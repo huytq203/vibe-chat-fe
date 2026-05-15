@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:basetech.io.vn)",
+      "WebFetch(domain:github.com)",
+      "Bash(mkdir -p 'D:\\\\code\\\\my\\\\fe\\\\vibe-chat\\\\src')",
+      "Bash(mv 'D:\\\\code\\\\my\\\\fe\\\\vibe-chat\\\\app' 'D:\\\\code\\\\my\\\\fe\\\\vibe-chat\\\\src\\\\app')",
+      "Bash(npm install *)",
+      "Bash(npx basuicn@latest init)",
+      "Bash(npx basuicn@latest add button card input label dialog dropdown-menu toast spinner badge form)",
+      "Bash(npm run *)"
+    ]
+  }
+}
