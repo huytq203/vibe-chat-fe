@@ -8,7 +8,10 @@
       "Bash(npm install *)",
       "Bash(npx basuicn@latest init)",
       "Bash(npx basuicn@latest add button card input label dialog dropdown-menu toast spinner badge form)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT $?\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

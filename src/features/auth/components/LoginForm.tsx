@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Mail, Lock } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
 import { Form, FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
@@ -16,28 +16,29 @@ import {
   CardDescription,
 } from '@/components/ui/card/Card';
 import { toast } from 'sonner';
+import { loginSchema, type LoginInput } from '../schemas';
+import { useLogin } from '../hooks/use-mutations';
+import { ApiError } from '@/lib/api/client';
 
-const loginSchema = z.object({
-  email: z.string().email('Email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu ít nhất 6 ký tự'),
-  rememberMe: z.boolean().optional(),
-});
+export const LoginForm = () => {
+  const router = useRouter();
+  const login = useLogin();
 
-type LoginValues = z.infer<typeof loginSchema>;
-
-export const LoginClassic = () => {
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  const form = useForm<LoginValues>({
+  const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '', rememberMe: false },
+    defaultValues: { username: '', password: '', rememberMe: false },
   });
 
-  const onSubmit = async (_data: LoginValues) => {
-    setIsLoading(true);
-    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    toast.success('Đăng nhập thành công!');
+  const onSubmit = async (data: LoginInput) => {
+    try {
+      await login.mutateAsync(data);
+      toast.success('Đăng nhập thành công!');
+      router.push('/chat');
+    } catch (e) {
+      const msg =
+        e instanceof ApiError ? e.message : 'Không thể đăng nhập. Thử lại sau.';
+      toast.error(msg);
+    }
   };
 
   return (
@@ -47,7 +48,7 @@ export const LoginClassic = () => {
           <Lock className="h-7 w-7 text-primary" />
         </div>
         <CardTitle className="text-2xl">Chào mừng trở lại</CardTitle>
-        <CardDescription>Đăng nhập vào tài khoản của bạn</CardDescription>
+        <CardDescription>Đăng nhập vào Vibe Chat</CardDescription>
       </CardHeader>
 
       <CardContent className="px-6 pb-8">
@@ -55,14 +56,14 @@ export const LoginClassic = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="email"
+              name="username"
               render={({ field, fieldState }) => (
                 <Input
-                  label="Email"
-                  type="email"
-                  placeholder="email@example.com"
-                  icon={<Mail className="w-4 h-4" />}
+                  label="Tên đăng nhập hoặc email"
+                  placeholder="username hoặc email"
+                  icon={<User className="w-4 h-4" />}
                   error={fieldState.error?.message}
+                  autoComplete="username"
                   {...field}
                 />
               )}
@@ -77,6 +78,7 @@ export const LoginClassic = () => {
                   placeholder="••••••••"
                   icon={<Lock className="w-4 h-4" />}
                   error={fieldState.error?.message}
+                  autoComplete="current-password"
                   {...field}
                 />
               )}
@@ -90,7 +92,9 @@ export const LoginClassic = () => {
                   <Checkbox
                     label="Ghi nhớ đăng nhập"
                     checked={field.value}
-                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked === true)
+                    }
                   />
                 )}
               />
@@ -102,31 +106,22 @@ export const LoginClassic = () => {
             <Button
               type="submit"
               className="w-full"
-              isLoading={isLoading}
-              disabled={isLoading}
+              isLoading={login.isPending}
+              disabled={login.isPending}
             >
               Đăng nhập
             </Button>
-
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Hoặc tiếp tục với</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" type="button">Google</Button>
-              <Button variant="outline" type="button">GitHub</Button>
-            </div>
           </form>
         </Form>
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Chưa có tài khoản?{' '}
-          <Button variant="link" type="button" className="px-0">
+          <Button
+            variant="link"
+            type="button"
+            className="px-0"
+            onClick={() => router.push('/register')}
+          >
             Đăng ký ngay
           </Button>
         </p>

@@ -74,12 +74,11 @@ src/
 ├── features/                     # ⭐ FEATURE MODULES — đơn vị scale chính (max depth 3)
 │   ├── chat/
 │   │   ├── components/           # UI riêng của feature
-│   │   ├── hooks/                # use* hooks
-│   │   ├── actions/              # Server Actions (mutate)
-│   │   ├── api/                  # TanStack Query hooks + fetchers (client-side)
-│   │   │   ├── queries.ts
-│   │   │   ├── mutations.ts
-│   │   │   └── keys.ts           # Query keys factory
+│   │   ├── hooks/                # TanStack hooks + custom hooks của feature
+│   │   │   ├── use-query.ts      # Tổng hợp useQuery / useInfiniteQuery của feature
+│   │   │   ├── use-mutations.ts  # Tổng hợp useMutation của feature
+│   │   │   └── useChatRealtime.ts # Hook đơn lẻ → useCamelCase.ts
+│   │   ├── actions/              # Server Actions (mutate, optional)
 │   │   ├── stores/               # Zustand slice (chỉ khi cần state global)
 │   │   ├── schemas.ts            # Zod schema (shared client + server)
 │   │   ├── types.ts
@@ -88,16 +87,22 @@ src/
 │   └── auth/
 │       └── ... (cùng pattern)
 │
+├── services/                     # ⭐ API TRANSPORT TẬP TRUNG (shared, không tách per-feature)
+│   ├── <scope>.api.ts            # Pure REST transport — không đụng cache/state
+│   │                             # Ví dụ: chat.api.ts, auth.api.ts
+│   └── keys.ts                   # Toàn bộ query key factory (chatKeys, authKeys, ...)
+│
 ├── components/
 │   ├── ui/                       # ⭐ Basuicn components (sinh ra bởi CLI) — KHÔNG sửa tay
 │   ├── layout/                   # Header, Sidebar, Footer dùng chung
 │   └── common/                   # Component dùng chung nhiều module (EmptyState, ErrorBoundary, ...)
 │
 ├── lib/                          # ⭐ Wrapper cho lib bên thứ ba
-│   ├── http/                     # Wrap fetch
+│   ├── api/                      # apiClient wrap fetch + auth (refresh token, ...)
+│   ├── http/                     # Generic HTTP wrapper (nếu cần)
 │   ├── query/                    # Wrap TanStack Query (QueryClient config, defaults)
-│   ├── form/                     # Wrap TanStack Form
-│   ├── analytics/
+│   ├── ws/                       # Wrap socket.io / WebSocket
+│   ├── logger/
 │   └── utils/                    # cn(), formatDate(), ...
 │
 ├── config/                       # Constants, env, feature flags
@@ -119,6 +124,15 @@ src/
 - **Feature chỉ giao tiếp qua `index.ts`** của nó. Không import sâu vào `features/X/internal/Y` từ feature khác.
 - **Component thuộc 1 route duy nhất** → để trong `app/.../_components/`. Dùng prefix `_` để Next ignore khỏi routing.
 
+### API & Query keys — tập trung (không tách per-feature)
+> Mục tiêu: share API giữa nhiều feature, không trùng key, dễ scale.
+
+- **API transport**: viết trong `src/services/<scope>.api.ts`. Mỗi scope export 1 object thuần (`chatApi`, `authApi`, ...). Không dính TanStack/Zustand/state.
+- **Query keys**: tất cả factory đặt trong `src/services/keys.ts` theo namespace (`chatKeys`, `authKeys`, ...). KHÔNG tạo `features/<x>/api/keys.ts` riêng.
+- **Hook TanStack** (`useQuery`, `useMutation`) sống trong `features/<x>/hooks/use-query.ts` và `hooks/use-mutations.ts`, import API + keys từ `@/services/*`.
+- **Types domain**: vẫn ở `features/<x>/types.ts`. `services/*.api.ts` được phép import types từ feature (services là transport thuộc về domain feature).
+- **Cấm**: `features/<x>/api/` không tồn tại nữa. Mọi fetcher / key factory đều ở `src/services/`.
+
 ---
 
 ## 3. Quy ước đặt tên
@@ -126,7 +140,8 @@ src/
 | Loại | Quy ước | Ví dụ |
 |---|---|---|
 | File component | `PascalCase.tsx` | `ChatMessage.tsx` |
-| File hook | `useCamelCase.ts` | `useChatStream.ts` |
+| File hook (1 hook) | `useCamelCase.ts` | `useChatRealtime.ts` |
+| File hook aggregator | `use-<kind>.ts` (kebab) | `use-query.ts`, `use-mutations.ts` |
 | File util/helper | `kebab-case.ts` | `format-date.ts` |
 | Folder | `kebab-case` | `modules/chat-history/` |
 | Type/Interface | `PascalCase`, không prefix `I` | `ChatMessage`, không `IChatMessage` |
@@ -157,15 +172,16 @@ src/
 
 ### 5.1 TanStack Query (server state)
 - **Mọi fetch client-side phải qua `useQuery`/`useMutation`**. Cấm dùng `useEffect + fetch`.
-- Query key dùng factory pattern:
+- Query key dùng factory pattern, **đặt tập trung ở `src/services/keys.ts`** (không tách per-feature):
   ```ts
-  // modules/chat/api/keys.ts
+  // src/services/keys.ts
   export const chatKeys = {
     all: ['chat'] as const,
     lists: () => [...chatKeys.all, 'list'] as const,
     list: (filters: ChatFilters) => [...chatKeys.lists(), filters] as const,
     detail: (id: string) => [...chatKeys.all, 'detail', id] as const,
   };
+  // Hook trong features/<x>/hooks/* import { chatKeys } from '@/services/keys'.
   ```
 - `QueryClient` config tập trung ở `lib/query/client.ts`. Defaults: `staleTime: 60_000`, `retry: 1` (override theo từng query nếu cần).
 - Mutation luôn invalidate đúng key, hạn chế `invalidateQueries(['all'])` — vung chổi rộng = performance kém.
@@ -332,6 +348,9 @@ Theo thứ tự, KHÔNG bỏ bước:
 - ❌ Tự cấu hình Tailwind tokens không đồng bộ với DESIGN.md.
 - ❌ Đọc/ghi file ngoài `src/` và `public/` — phải hỏi user (theo RULE.md §quy tắc).
 - ❌ Bịa API, prop, option khi không chắc — luôn đọc docs hoặc hỏi.
+- ❌ Tạo `features/<x>/api/` (queries / mutations / keys riêng) — API + keys phải ở `src/services/`.
+- ❌ Định nghĩa fetch logic trong feature (component, hook) — phải gọi qua `src/services/<scope>.api.ts`.
+- ❌ Giữ "dead code" / `_VarKeepAlive` / `<span hidden>{x}</span>` "phòng tương lai" — xoá hẳn, cần thì git revert.
 
 ---
 

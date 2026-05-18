@@ -1,0 +1,164 @@
+import { env } from '@/config/env';
+import { logger } from '@/lib/logger';
+
+export type ApiEnvelope<T> = {
+  success: true;
+  data: T;
+  meta?: { page?: number; limit?: number; total?: number; nextCursor?: string | null };
+  timestamp: string;
+};
+
+export type ApiErrorBody = {
+  success: false;
+  error: { code: string; message: string; details?: unknown };
+  timestamp: string;
+  path?: string;
+  requestId?: string | null;
+};
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly details: unknown;
+  constructor(status: number, code: string, message: string, details?: unknown) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+type RequestOptions = Omit<RequestInit, 'body'> & {
+  body?: unknown;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  auth?: boolean;
+};
+
+let accessToken: string | null = null;
+let refreshing: Promise<void> | null = null;
+let onUnauthorized: (() => void) | null = null;
+let onTokenChange: ((token: string | null) => void) | null = null;
+
+export const apiAuth = {
+  setToken(token: string | null) {
+    const changed = accessToken !== token;
+    accessToken = token;
+    if (changed) onTokenChange?.(token);
+  },
+  getToken() {
+    return accessToken;
+  },
+  onUnauthorized(handler: (() => void) | null) {
+    onUnauthorized = handler;
+  },
+  onTokenChange(handler: ((token: string | null) => void) | null) {
+    onTokenChange = handler;
+  },
+};
+
+function resolveBase(path: string): string {
+  // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.
+  if (env.NEXT_PUBLIC_USE_PROXY) return '';
+  return path.startsWith('/api/v1/auth/') ? env.NEXT_PUBLIC_AUTH_URL : env.NEXT_PUBLIC_VIBE_URL;
+}
+
+function buildUrl(path: string, query?: RequestOptions['query']): string {
+  const base = path.startsWith('http') ? path : `${resolveBase(path)}${path}`;
+  if (!query) return base;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== null) params.append(k, String(v));
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+async function rawRequest(method: string, path: string, options: RequestOptions): Promise<Response> {
+  const { body, query, headers, auth = true, ...rest } = options;
+  const url = buildUrl(path, query);
+  const finalHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(headers as Record<string, string> | undefined),
+  };
+  if (auth && accessToken) finalHeaders['Authorization'] = `Bearer ${accessToken}`;
+
+  return fetch(url, {
+    method,
+    headers: finalHeaders,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+    ...rest,
+  });
+}
+
+async function refreshAccessToken(): Promise<void> {
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    const res = await fetch(
+      buildUrl('/api/v1/auth/refresh'),
+      { method: 'POST', credentials: 'include' },
+    );
+    if (!res.ok) {
+      accessToken = null;
+      onUnauthorized?.();
+      throw new ApiError(res.status, 'AUTH_REFRESH_FAILED', 'Phiên đăng nhập đã hết hạn');
+    }
+    const json = (await res.json()) as ApiEnvelope<{ accessToken: string; expiresIn: number }>;
+    accessToken = json.data.accessToken;
+  })().finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+async function parseError(res: Response): Promise<ApiError> {
+  const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+  const code = body?.error?.code ?? 'INTERNAL_ERROR';
+  const message = body?.error?.message ?? res.statusText ?? 'Có lỗi xảy ra';
+  return new ApiError(res.status, code, message, body?.error?.details);
+}
+
+async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+  let res = await rawRequest(method, path, options);
+
+  if (res.status === 401 && options.auth !== false && accessToken) {
+    try {
+      await refreshAccessToken();
+      res = await rawRequest(method, path, options);
+    } catch (e) {
+      logger.warn('Refresh failed', { path });
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    const err = await parseError(res);
+    logger.warn('API error', { path, status: err.status, code: err.code });
+    throw err;
+  }
+
+  if (res.status === 204) return undefined as T;
+  const json = (await res.json()) as ApiEnvelope<T> | T;
+  if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+    return (json as ApiEnvelope<T>).data;
+  }
+  return json as T;
+}
+
+export const apiClient = {
+  get: <T>(path: string, options?: RequestOptions) => request<T>('GET', path, options),
+  post: <T>(path: string, options?: RequestOptions) => request<T>('POST', path, options),
+  put: <T>(path: string, options?: RequestOptions) => request<T>('PUT', path, options),
+  patch: <T>(path: string, options?: RequestOptions) => request<T>('PATCH', path, options),
+  delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),
+  rawWithMeta: async <T>(method: string, path: string, options: RequestOptions = {}) => {
+    let res = await rawRequest(method, path, options);
+    if (res.status === 401 && options.auth !== false && accessToken) {
+      await refreshAccessToken();
+      res = await rawRequest(method, path, options);
+    }
+    if (!res.ok) throw await parseError(res);
+    const json = (await res.json()) as ApiEnvelope<T>;
+    return { data: json.data, meta: json.meta };
+  },
+} as const;

@@ -1,4 +1,3 @@
-import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 
 /**
@@ -18,7 +17,8 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 };
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {
-  const base = path.startsWith('http') ? path : `${env.NEXT_PUBLIC_APP_URL}${path}`;
+  // Path tương đối — browser tự resolve về current origin (linh động theo env).
+  const base = path;
   if (!query) return base;
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {

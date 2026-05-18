@@ -1,40 +1,32 @@
 import { z } from 'zod';
 
 /**
- * Validate biến môi trường tại boot time.
- * Server-only vars KHÔNG được prefix NEXT_PUBLIC_.
- * Client vars BẮT BUỘC prefix NEXT_PUBLIC_.
+ * Validate biến môi trường public (client + server đều đọc được).
+ * Server-only vars (AUTH_URL, VIBE_URL) được đọc trực tiếp trong next.config.ts —
+ * không cần expose qua module này để tránh import server-env vào client bundle.
  */
-const serverSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  // DATABASE_URL: z.string().url(), // bật khi có Prisma
-  // NEXTAUTH_SECRET: z.string().min(32), // bật khi có NextAuth
+const schema = z.object({
+  NEXT_PUBLIC_AUTH_URL: z.string().url(),
+  NEXT_PUBLIC_VIBE_URL: z.string().url(),
+  NEXT_PUBLIC_WS_URL: z.string().url(),
+  // true → client gọi same-origin (Next rewrites proxy). false → gọi thẳng BE.
+  NEXT_PUBLIC_USE_PROXY: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
 });
 
-const clientSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+const parsed = schema.safeParse({
+  NEXT_PUBLIC_AUTH_URL: process.env.NEXT_PUBLIC_AUTH_URL,
+  NEXT_PUBLIC_VIBE_URL: process.env.NEXT_PUBLIC_VIBE_URL,
+  NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+  NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
 });
 
-const processEnv = {
-  NODE_ENV: process.env.NODE_ENV,
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-} as const;
-
-const parsedServer = serverSchema.safeParse(processEnv);
-const parsedClient = clientSchema.safeParse(processEnv);
-
-if (!parsedServer.success) {
-  console.error('❌ Invalid server env:', parsedServer.error.flatten().fieldErrors);
-  throw new Error('Invalid server environment variables');
-}
-if (!parsedClient.success) {
-  console.error('❌ Invalid client env:', parsedClient.error.flatten().fieldErrors);
-  throw new Error('Invalid client environment variables');
+if (!parsed.success) {
+  console.error('❌ Invalid env:', parsed.error.flatten().fieldErrors);
+  throw new Error('Invalid environment variables');
 }
 
-export const env = {
-  ...parsedServer.data,
-  ...parsedClient.data,
-} as const;
-
+export const env = parsed.data;
 export type Env = typeof env;
