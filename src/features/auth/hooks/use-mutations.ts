@@ -11,7 +11,6 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) => authApi.login(input),
     onSuccess: (data) => {
-      console.log('data', setSession);
       setSession(data.user, data.tokens.accessToken);
     },
   });

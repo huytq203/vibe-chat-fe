@@ -36,14 +36,18 @@ export function formatBubbleTime(iso: string): string {
 export function getConversationName(conv: Conversation, meId: string | null): string {
   if (conv.name) return conv.name;
   if (conv.type === 'DIRECT') {
-    const other = conv.memberIds.find((id) => id !== meId);
-    return other ?? 'Trò chuyện';
+    const other = conv.members?.find((m) => m.userId !== conv.ownerId);
+    if (other) return other.nickname || other.displayName || other.username || 'Trò chuyện';
+    const otherId = conv.memberIds.find((id) => id !== meId);
+    return otherId ?? 'Trò chuyện';
   }
   return 'Nhóm chưa đặt tên';
 }
 
 export function getConversationSeed(conv: Conversation, meId: string | null): string {
   if (conv.type === 'DIRECT') {
+    const other = conv.members?.find((m) => m.userId !== conv.ownerId);
+    if (other) return other.userId;
     return conv.memberIds.find((id) => id !== meId) ?? conv.id;
   }
   return conv.id;

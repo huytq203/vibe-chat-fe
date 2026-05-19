@@ -23,7 +23,6 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function ConversationList() {
   const me = useAuthStore((s) => s.user);
-  console.log(me)
   const logout = useLogout();
   const { selectedConversationId, activeTab, setSelected, setActiveTab } = useChatUIStore();
   const { data: conversations = [], isLoading } = useConversations();

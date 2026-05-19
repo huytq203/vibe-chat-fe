@@ -28,6 +28,15 @@ export type LastMessagePreview = {
   createdAt: string;
 };
 
+export type ConversationMember = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  nickname: string | null;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+};
+
 export type Conversation = {
   id: string;
   type: ConversationType;
@@ -39,6 +48,7 @@ export type Conversation = {
   memberCount: number;
   messageCount: number;
   memberIds: string[];
+  members?: ConversationMember[];
   lastMessage: LastMessagePreview | null;
   lastMessageAt: string | null;
   unreadCount: number;

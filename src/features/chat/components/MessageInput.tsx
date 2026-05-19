@@ -74,7 +74,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           disabled={disabled}
           maxLength={5000}
           className={cn(
-            'min-h-[36px] max-h-32 resize-none border-0 bg-transparent px-1.5 py-1 text-[13.5px] shadow-none',
+            'min-h-[36px] max-h-32 resize-none border-0 bg-transparent py-2 px-1.5 text-[13.5px] shadow-none',
             'focus-visible:ring-0 focus:border-transparent',
           )}
         />

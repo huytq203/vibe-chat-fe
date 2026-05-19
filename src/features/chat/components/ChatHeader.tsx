@@ -23,6 +23,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
 
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
+  console.log(conversation)
 
   const status: 'online' | 'offline' | null = !presence
     ? null
