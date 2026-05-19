@@ -1,13 +1,13 @@
 import { AuthBootstrap } from '@/features/auth';
-import LeftContent from '@/features/chat/components/Left-content';
+import { ChatLayout } from '@/features/chat';
 
 export const metadata = { title: 'Vibe Chat' };
 
 export default function ChatPage() {
   return (
-    <div className="flex h-full">
-      <AuthBootstrap />
-      <LeftContent />
+    <div className="h-full w-full">
+      <AuthBootstrap requireAuth redirectTo="/login" />
+      <ChatLayout />
     </div>
   );
 }

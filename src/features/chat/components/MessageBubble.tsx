@@ -1,0 +1,91 @@
+'use client';
+
+import { CheckCheck, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import type { Message } from '../types';
+import { formatBubbleTime } from '../utils';
+import { Avatar } from './Avatar';
+
+type MessageBubbleProps = {
+  message: Message;
+  meId: string | null;
+  showAvatar: boolean;
+  senderName?: string | null;
+  senderSeed?: string;
+};
+
+export function MessageBubble({
+  message, meId, showAvatar, senderName, senderSeed,
+}: MessageBubbleProps) {
+  const isMe = message.senderId === meId;
+  const isE2E = message.encryptionType === 'E2E';
+
+  return (
+    <div className={cn('flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}>
+      {!isMe && (
+        <div className="w-7 shrink-0">
+          {showAvatar && (
+            <Avatar
+              name={senderName ?? message.senderId}
+              seed={senderSeed ?? message.senderId}
+              size="sm"
+              className="!h-7 !w-7 !rounded-lg !text-[9px]"
+            />
+          )}
+        </div>
+      )}
+      <div className="max-w-[65%]">
+        <div
+          className={cn(
+            'relative rounded-2xl px-3.5 py-2.5',
+            isMe
+              ? 'rounded-br-md bg-primary text-primary-foreground'
+              : 'rounded-bl-md border border-border bg-muted text-foreground',
+          )}
+        >
+          <BubbleContent message={message} isE2E={isE2E} />
+          <div className="mt-1 flex items-center justify-end gap-1">
+            <span className={cn('text-[10px]', isMe ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
+              {formatBubbleTime(message.createdAt)}
+            </span>
+            {isMe && (
+              <CheckCheck
+                className={cn(
+                  'h-3.5 w-3.5',
+                  message.isEdited ? 'opacity-80' : 'opacity-80',
+                )}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BubbleContent({ message, isE2E }: { message: Message; isE2E: boolean }) {
+  if (isE2E) {
+    return (
+      <div className="flex items-center gap-1.5 text-[13.5px] italic opacity-90">
+        <Lock className="h-3.5 w-3.5" />
+        <span>Tin nhắn mã hoá — không có khoá để giải mã</span>
+      </div>
+    );
+  }
+  if (message.isDeleted) {
+    return <span className="text-[13.5px] italic opacity-70">Tin nhắn đã thu hồi</span>;
+  }
+  if (message.type === 'TEXT') {
+    return (
+      <span className="block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed">
+        {message.plaintext ?? message.contentPreview ?? ''}
+      </span>
+    );
+  }
+  return (
+    <span className="block text-[13.5px] italic opacity-80">
+      [{message.type.toLowerCase()}]
+    </span>
+  );
+}
+
