@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner/Spinner';
 import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { useConversations } from '../hooks/use-query';
+import { useChatRealtime } from '../hooks/useChatRealtime';
 import { ConversationList } from './ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from './ContactInfo';
@@ -14,6 +15,7 @@ export function ChatLayout() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const { selectedConversationId, rightPanelOpen, setSelected } = useChatUIStore();
   const { data: conversations } = useConversations();
+  useChatRealtime();
 
   useEffect(() => {
     if (selectedConversationId) return;

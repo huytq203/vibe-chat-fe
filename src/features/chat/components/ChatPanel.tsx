@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { useConversation, usePresence } from '../hooks/use-query';
+import { useMarkRead } from '../hooks/use-mutations';
 import { ChatHeader } from './ChatHeader';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -12,6 +14,22 @@ export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const { selectedConversationId, rightPanelOpen, toggleRight } = useChatUIStore();
   const { data: conversation } = useConversation(selectedConversationId);
+  const markRead = useMarkRead();
+  const markReadRef = useRef(markRead.mutate);
+  markReadRef.current = markRead.mutate;
+  const lastReadRef = useRef<string | null>(null);
+
+  const convId = conversation?.id ?? null;
+  const lastMessageId = conversation?.lastMessage?.id ?? null;
+  const unreadCount = conversation?.unreadCount ?? 0;
+
+  useEffect(() => {
+    if (!convId || !lastMessageId || unreadCount <= 0) return;
+    const key = `${convId}:${lastMessageId}`;
+    if (lastReadRef.current === key) return;
+    lastReadRef.current = key;
+    markReadRef.current({ conversationId: convId, messageId: lastMessageId });
+  }, [convId, lastMessageId, unreadCount]);
 
   const otherIds = conversation && conversation.type === 'DIRECT'
     ? conversation.memberIds.filter((id) => id !== meId)

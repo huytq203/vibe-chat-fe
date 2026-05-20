@@ -36,7 +36,7 @@ export function formatBubbleTime(iso: string): string {
 export function getConversationName(conv: Conversation, meId: string | null): string {
   if (conv.name) return conv.name;
   if (conv.type === 'DIRECT') {
-    const other = conv.members?.find((m) => m.userId !== conv.ownerId);
+    const other = conv.members?.find((m) => m.userId !== meId);
     if (other) return other.nickname || other.displayName || other.username || 'Trò chuyện';
     const otherId = conv.memberIds.find((id) => id !== meId);
     return otherId ?? 'Trò chuyện';
