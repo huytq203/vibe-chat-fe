@@ -26,7 +26,7 @@ export function MessageBubble({
         <div className="w-7 shrink-0">
           {showAvatar && (
             <Avatar
-              name={senderName ?? message.senderId}
+              name={senderName ?? null}
               seed={senderSeed ?? message.senderId}
               size="sm"
               className="!h-7 !w-7 !rounded-lg !text-[9px]"

@@ -1,6 +1,6 @@
 import { format, isToday, isYesterday, differenceInDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import type { Conversation } from './types';
+import type { Conversation, ConversationMember } from './types';
 
 const AVATAR_PALETTE = [
   '#7132f5', '#e0495e', '#49a0e0', '#149e61',
@@ -31,6 +31,20 @@ export function formatListTime(iso: string | null): string {
 
 export function formatBubbleTime(iso: string): string {
   return format(new Date(iso), 'HH:mm');
+}
+
+export function getMemberName(member: ConversationMember | undefined | null): string | null {
+  if (!member) return null;
+  return member.nickname || member.displayName || member.username || null;
+}
+
+export function buildMemberNameMap(conv: Conversation | null | undefined): Record<string, string> {
+  const map: Record<string, string> = {};
+  conv?.members?.forEach((m) => {
+    const name = getMemberName(m);
+    if (name) map[m.userId] = name;
+  });
+  return map;
 }
 
 export function getConversationName(conv: Conversation, meId: string | null): string {

@@ -1,17 +1,25 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, MessageSquare, Plus, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
-import { useAuthStore, useLogout } from '@/features/auth';
+import { useAuthStore } from '@/features/auth';
+import {
+  FindFriendsPanel,
+  useIncomingFriendRequests,
+  type UserSearchItem,
+} from '@/features/friends';
+import { chatApi } from '@/services/chat.api';
+import { chatKeys } from '@/services/keys';
 import { useConversations } from '../hooks/use-query';
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { getConversationName } from '../utils';
 import { ConversationItem } from './ConversationItem';
-import { Avatar } from './Avatar';
+import { UserMenu } from './UserMenu';
 
 const TABS = [
   { id: 'all', label: 'Tất cả' },
@@ -23,10 +31,26 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function ConversationList() {
   const me = useAuthStore((s) => s.user);
-  const logout = useLogout();
   const { selectedConversationId, activeTab, setSelected, setActiveTab } = useChatUIStore();
   const { data: conversations = [], isLoading } = useConversations();
+  const incomingRequests = useIncomingFriendRequests();
+  const incomingCount = incomingRequests.data?.items.length ?? 0;
   const [search, setSearch] = useState('');
+  const [findOpen, setFindOpen] = useState(false);
+
+  const qc = useQueryClient();
+  const openDirectMut = useMutation({
+    mutationFn: (userId: string) => chatApi.createDirect(userId),
+    onSuccess: (conv) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      setSelected(conv.id);
+      setFindOpen(false);
+    },
+  });
+
+  const handleMessageUser = (user: UserSearchItem) => {
+    openDirectMut.mutate(user.id);
+  };
 
   const unreadTotal = useMemo(
     () => conversations.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0),
@@ -112,26 +136,32 @@ export function ConversationList() {
         <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat" className="text-primary bg-primary/10">
           <MessageSquare className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon-sm" title="Bạn bè" aria-label="Bạn bè">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Bạn bè"
+          aria-label="Bạn bè"
+          onClick={() => setFindOpen(true)}
+          className="relative"
+        >
           <Users className="h-5 w-5" />
+          {incomingCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
+              {incomingCount > 9 ? '9+' : incomingCount}
+            </span>
+          )}
         </Button>
         <Button variant="ghost" size="icon-sm" title="Thông báo" aria-label="Thông báo">
           <Bell className="h-5 w-5" />
         </Button>
-        <button
-          type="button"
-          onClick={() => logout.mutate()}
-          title={me?.displayName ?? me?.username ?? 'Đăng xuất'}
-          aria-label="Tài khoản"
-        >
-          <Avatar
-            name={me?.displayName ?? me?.username}
-            seed={me?.id ?? 'me'}
-            size="sm"
-            status="online"
-          />
-        </button>
+        <UserMenu />
       </footer>
+
+      <FindFriendsPanel
+        open={findOpen}
+        onOpenChange={setFindOpen}
+        onMessageUser={handleMessageUser}
+      />
     </aside>
   );
 }

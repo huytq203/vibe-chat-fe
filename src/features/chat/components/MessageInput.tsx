@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { Clock, Image as ImageIcon, Paperclip, Send, Smile, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert/Alert';
 import { cn } from '@/lib/utils/cn';
+import { apiAuth } from '@/lib/api/client';
+import { getSocket } from '@/lib/ws/socket';
 import { useSendMessage } from '../hooks/use-mutations';
+
+const TYPING_STOP_DEBOUNCE_MS = 3_000;
 
 type MessageInputProps = {
   conversationId: string;
@@ -16,10 +20,58 @@ type MessageInputProps = {
 export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const [text, setText] = useState('');
   const send = useSendMessage();
+  const typingStateRef = useRef<'start' | 'stop'>('stop');
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function emitTyping(state: 'start' | 'stop') {
+    if (typingStateRef.current === state) return;
+    const socket = getSocket(apiAuth.getToken());
+    if (!socket || !socket.connected) {
+      typingStateRef.current = state;
+      return;
+    }
+    socket.emit('typing', { conversationId, state });
+    typingStateRef.current = state;
+  }
+
+  function scheduleStop() {
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    stopTimerRef.current = setTimeout(() => {
+      emitTyping('stop');
+    }, TYPING_STOP_DEBOUNCE_MS);
+  }
+
+  function handleChange(e: ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setText(value);
+    if (disabled) return;
+    if (value.trim().length > 0) {
+      emitTyping('start');
+      scheduleStop();
+    } else {
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      emitTyping('stop');
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      if (typingStateRef.current === 'start') {
+        const socket = getSocket(apiAuth.getToken());
+        if (socket?.connected) {
+          socket.emit('typing', { conversationId, state: 'stop' });
+        }
+        typingStateRef.current = 'stop';
+      }
+    };
+  }, [conversationId]);
 
   function submit() {
     const trimmed = text.trim();
     if (!trimmed || send.isPending || disabled) return;
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    emitTyping('stop');
     send.mutate(
       {
         conversationId,
@@ -67,7 +119,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         </div>
         <Textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKey}
           placeholder="Nhập tin nhắn..."
           rows={1}

@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '@/features/auth';
 import { chatKeys } from '@/services/keys';
 import { useChatUIStore } from '../stores/chat-ui.store';
+import { useTypingStore } from '../stores/typing.store';
 import type { Message, MessagesPage, Presence } from '../types';
 
 type NotifyPayload = { conversationId: string; message: Message };
@@ -21,14 +22,21 @@ type ReadPayload = {
   userId: string;
   readAt: string;
 };
+type TypingPayload = {
+  conversationId: string;
+  userId: string;
+  state: 'start' | 'stop';
+};
 
 const HEARTBEAT_MS = 30_000;
+const TYPING_AUTOCLEAR_MS = 6_000;
 
 export function useChatRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const selectedConversationId = useChatUIStore((s) => s.selectedConversationId);
   const qc = useQueryClient();
   const joinedRef = useRef<string | null>(null);
+  const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     setTokenProvider(() => apiAuth.getToken());
@@ -91,10 +99,33 @@ export function useChatRealtime() {
       }
     }
 
+    function onTyping(payload: TypingPayload) {
+      const meId = useAuthStore.getState().user?.id ?? null;
+      if (payload.userId === meId) return;
+      const isStart = payload.state === 'start';
+      useTypingStore
+        .getState()
+        .setTyping(payload.conversationId, payload.userId, isStart);
+      const key = `${payload.conversationId}:${payload.userId}`;
+      const timer = typingTimersRef.current[key];
+      if (timer) clearTimeout(timer);
+      if (isStart) {
+        typingTimersRef.current[key] = setTimeout(() => {
+          useTypingStore
+            .getState()
+            .setTyping(payload.conversationId, payload.userId, false);
+          delete typingTimersRef.current[key];
+        }, TYPING_AUTOCLEAR_MS);
+      } else {
+        delete typingTimersRef.current[key];
+      }
+    }
+
     socket.on('message:new', onMessageNew);
     socket.on('conversation:notify', onConversationNotify);
     socket.on('message:read', onMessageRead);
     socket.on('presence:update', onPresenceUpdate);
+    socket.on('typing', onTyping);
 
     const heartbeat = setInterval(() => {
       if (socket.connected) socket.emit('presence:heartbeat');
@@ -105,7 +136,10 @@ export function useChatRealtime() {
       socket.off('conversation:notify', onConversationNotify);
       socket.off('message:read', onMessageRead);
       socket.off('presence:update', onPresenceUpdate);
+      socket.off('typing', onTyping);
       clearInterval(heartbeat);
+      for (const t of Object.values(typingTimersRef.current)) clearTimeout(t);
+      typingTimersRef.current = {};
     };
   }, [isAuthed, qc]);
 
@@ -118,7 +152,10 @@ export function useChatRealtime() {
     const prev = joinedRef.current;
     if (prev === next) return;
 
-    if (prev) socket.emit('conversation:leave', { conversationId: prev });
+    if (prev) {
+      socket.emit('conversation:leave', { conversationId: prev });
+      useTypingStore.getState().clearConv(prev);
+    }
     if (next) socket.emit('conversation:join', { conversationId: next });
     joinedRef.current = next;
   }, [isAuthed, selectedConversationId]);

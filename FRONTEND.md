@@ -11,6 +11,12 @@
 1. [Authentication](#1-authentication)
 2. [Response envelope](#2-response-envelope)
 3. [REST API](#3-rest-api)
+   - 3.1 Conversations
+   - 3.2 Messages
+   - 3.3 Presence
+   - 3.4 Users — Search (kết bạn)
+   - 3.5 Friends — Kết bạn
+   - 3.6 Blocks — Chặn
 4. [WebSocket realtime](#4-websocket-realtime)
 5. [Mã hoá tin nhắn — SERVER vs E2E](#5-mã-hoá-tin-nhắn--server-vs-e2e)
 6. [Idempotency — `clientNonce`](#6-idempotency--clientnonce)
@@ -532,6 +538,272 @@ Response: `data: PresenceResponse[]`.
 
 > Xem mục [Online status](#7-online-status) để hiểu cách hiển thị `lastSeenLabel`.
 
+### 3.4. Users — Search (kết bạn)
+
+#### Tìm user qua username / email / phone / displayName
+
+```http
+GET /api/v1/users/search?q=huytq&limit=20&cursor=42
+Authorization: Bearer ...
+```
+
+**Query params:**
+| Tên | Bắt buộc | Default | Ghi chú |
+|---|---|---|---|
+| `q` | ✅ | — | Từ khoá, **tối thiểu 2 ký tự**. Match `prefix` của `username/email/phone`, `contains` của `displayName`. |
+| `limit` | ❌ | 20 | 1–50. |
+| `cursor` | ❌ | null | Của lần fetch trước (xem mục [Cursor pagination](#cursor-pagination)). |
+
+**Rate limit:** 30 req/phút/IP (chống enumeration).
+
+Response `200`:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "9d8b14cf-5392-452f-9ce3-557ded65d2d6",
+        "username": "huytq",
+        "email": "huytq203@gmail.com",
+        "displayName": "Trần Quang Huy",
+        "avatarUrl": null,
+        "friendship": "NONE"
+      }
+    ],
+    "nextCursor": "42"   // null nếu hết
+  }
+}
+```
+
+`friendship` quyết định UI:
+| Giá trị | Ý nghĩa | UI gợi ý |
+|---|---|---|
+| `NONE` | Chưa có quan hệ | Nút "Kết bạn" |
+| `PENDING_OUT` | Viewer đã gửi lời mời, chờ target | Nút "Huỷ lời mời" |
+| `PENDING_IN` | Target đã mời viewer | Nút "Chấp nhận" / "Từ chối" |
+| `ACCEPTED` | Đã là bạn | Badge "Bạn bè", nút "Nhắn tin" |
+| `BLOCKED_BY_ME` | Viewer đang chặn target | Badge "Đã chặn", nút "Bỏ chặn" |
+
+**Lưu ý:**
+- User đang **chặn viewer** sẽ **KHÔNG xuất hiện** trong kết quả (privacy).
+- Self không bao giờ xuất hiện.
+- User `DELETED/BANNED` bị loại.
+
+#### Cursor pagination
+
+FE giữ biến `cursor`, lần đầu = `null`. Mỗi response trả `nextCursor`:
+- `nextCursor !== null` → còn data, save lại để gọi tiếp.
+- `nextCursor === null` → hết.
+
+```ts
+let cursor: string | null = null;
+
+async function loadMore(q: string) {
+  const url = new URL('/api/v1/users/search', BASE);
+  url.searchParams.set('q', q);
+  url.searchParams.set('limit', '20');
+  if (cursor) url.searchParams.set('cursor', cursor);
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const { data } = await res.json();
+
+  appendItems(data.items);
+  cursor = data.nextCursor;
+  return cursor !== null;     // còn nữa không
+}
+
+// Khi user gõ keyword mới → reset
+function onQueryChange(newQ: string) {
+  cursor = null;
+  clearList();
+  loadMore(newQ);
+}
+```
+
+### 3.5. Friends — Kết bạn
+
+Tất cả endpoint require JWT. ID trong path/body là **Keycloak UUID** (chính là `user.id`).
+
+#### Gửi lời mời
+
+```http
+POST /api/v1/friends/requests
+Content-Type: application/json
+Authorization: Bearer ...
+
+{
+  "targetUserId": "9d8b14cf-5392-452f-9ce3-557ded65d2d6",
+  "nickname": "Lan béo",        // optional
+  "source": "SEARCH"            // optional: PHONE|SEARCH|QR|GROUP|LINK|SUGGEST
+}
+```
+
+Response `201`:
+```json
+{
+  "success": true,
+  "data": {
+    "targetUserId": "9d8b14cf-...",
+    "status": "PENDING_OUT"
+  }
+}
+```
+
+**Đặc biệt:** Nếu **target đã mời viewer trước đó**, gọi endpoint này sẽ **auto-accept** → trả `status: "ACCEPTED"`. FE chỉ cần đọc field `status` trong response để update UI tương ứng.
+
+Rate limit: 30 req/phút/IP.
+
+Lỗi:
+| Code | HTTP | Ý nghĩa |
+|---|---|---|
+| `FRIEND_SELF` | 400 | Tự kết bạn với mình |
+| `USER_NOT_FOUND` | 404 | `targetUserId` không tồn tại |
+| `FRIEND_BLOCKED` | 403 | 1 trong 2 phía đang chặn nhau |
+| `FRIEND_ALREADY_FRIENDS` | 409 | Đã là bạn rồi |
+
+#### Lời mời đang đến (chờ viewer phản hồi)
+
+```http
+GET /api/v1/friends/requests/incoming?limit=20&cursor=...
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "user": {
+          "id": "...",
+          "username": "huytq",
+          "displayName": "Huy",
+          "avatarUrl": null
+        },
+        "status": "PENDING_IN",
+        "nickname": null,
+        "createdAt": "2026-05-21T08:00:00.000Z",
+        "acceptedAt": null
+      }
+    ],
+    "nextCursor": null
+  }
+}
+```
+
+#### Lời mời viewer đã gửi (chờ phản hồi)
+
+```http
+GET /api/v1/friends/requests/outgoing?limit=20&cursor=...
+```
+
+Response shape giống `incoming`, status = `PENDING_OUT`.
+
+#### Chấp nhận lời mời
+
+```http
+POST /api/v1/friends/requests/{targetUserId}/accept
+```
+
+Response `200`:
+```json
+{ "success": true, "data": { "targetUserId": "...", "status": "ACCEPTED" } }
+```
+
+Lỗi: `FRIEND_REQUEST_NOT_FOUND` (404), `FRIEND_REQUEST_NOT_OWNER` (403 — viewer không phải người nhận).
+
+#### Từ chối lời mời
+
+```http
+POST /api/v1/friends/requests/{targetUserId}/reject
+```
+
+Xoá row PENDING, sau đó target có thể gửi lại được. Response status = `NONE`.
+
+#### Huỷ lời mời đã gửi (sender thao tác)
+
+```http
+DELETE /api/v1/friends/requests/{targetUserId}
+```
+
+Chỉ người **đã gửi** mới được huỷ (`FRIEND_REQUEST_NOT_OWNER` nếu không phải sender). Response status = `NONE`.
+
+#### Danh sách bạn bè
+
+```http
+GET /api/v1/friends?limit=20&cursor=...
+```
+
+Response: chỉ trả các bản ghi có `status = ACCEPTED`. Item shape giống `incoming/outgoing`, có thêm `acceptedAt`.
+
+#### Huỷ kết bạn
+
+```http
+DELETE /api/v1/friends/{targetUserId}
+```
+
+Cả 2 phía đều có quyền gọi. Xoá quan hệ 2 chiều. Response status = `NONE`.
+
+Lỗi: `FRIEND_NOT_FRIENDS` (404 — chưa từng là bạn).
+
+### 3.6. Blocks — Chặn người dùng
+
+#### Chặn user
+
+```http
+POST /api/v1/blocks
+Content-Type: application/json
+
+{
+  "targetUserId": "9d8b14cf-...",
+  "reason": "Spam"     // optional, max 255 ký tự
+}
+```
+
+Response `201`: `{ targetUserId }`.
+
+**Side-effect:** Tự động **xoá mọi quan hệ kết bạn / lời mời** giữa 2 user (cả 2 chiều).
+
+Lỗi: `BLOCK_SELF` (400), `BLOCK_ALREADY_EXISTS` (409), `USER_NOT_FOUND` (404).
+
+#### Bỏ chặn
+
+```http
+DELETE /api/v1/blocks/{targetUserId}
+```
+
+Response `200`. Lỗi `BLOCK_NOT_FOUND` (404) nếu chưa chặn.
+
+> Sau khi unblock, **không tự động khôi phục quan hệ bạn bè cũ** — phải kết bạn lại từ đầu.
+
+#### Danh sách user đã chặn
+
+```http
+GET /api/v1/blocks?limit=20&cursor=...
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "user": {
+          "id": "...",
+          "username": "spammer",
+          "displayName": "Spam User",
+          "avatarUrl": null
+        },
+        "reason": "Spam",
+        "createdAt": "2026-05-21T08:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+}
+```
+
 ---
 
 ## 4. WebSocket realtime
@@ -831,6 +1103,16 @@ socket.on('presence:update', ({ userId, isOnline, lastSeenLabel }) => {
 | `MESSAGE_TOO_LONG` | 400 | Plaintext > 5000 ký tự | Show counter |
 | `ENCRYPTION_KEY_NOT_FOUND` | 500 | Server-side bug — báo BE | — |
 | `ENCRYPTION_FAILED` | 500 | Server không decrypt được | Hiện "Lỗi giải mã" + báo BE |
+| `FRIEND_SELF` | 400 | Tự kết bạn với mình | UX: ẩn nút "Kết bạn" trên profile của chính mình |
+| `FRIEND_BLOCKED` | 403 | 1 trong 2 phía đang chặn nhau | Show "Không thể thực hiện thao tác này" (không lộ ai chặn ai) |
+| `FRIEND_REQUEST_NOT_FOUND` | 404 | Lời mời không tồn tại | Refresh list, có thể đã bị huỷ |
+| `FRIEND_REQUEST_NOT_OWNER` | 403 | Không phải người được phép thao tác | — (logic FE sai, không nên xảy ra) |
+| `FRIEND_REQUEST_ALREADY_EXISTS` | 409 | Đã có lời mời chờ | Refresh trạng thái friendship |
+| `FRIEND_ALREADY_FRIENDS` | 409 | Đã là bạn | Refresh trạng thái friendship |
+| `FRIEND_NOT_FRIENDS` | 404 | Chưa phải bạn (gọi unfriend khi không phải bạn) | — |
+| `BLOCK_SELF` | 400 | Tự chặn mình | UX: ẩn nút "Chặn" trên profile của chính mình |
+| `BLOCK_ALREADY_EXISTS` | 409 | Đã chặn rồi | Refresh trạng thái |
+| `BLOCK_NOT_FOUND` | 404 | Chưa chặn (gọi unblock khi không có block) | Refresh list block |
 | `INTERNAL_ERROR` | 500 | Lỗi không lường trước | Show "Có lỗi xảy ra" + retry |
 
 ---
@@ -994,6 +1276,74 @@ socket.emit('message:read', {
 // → backend reset unreadCount + broadcast read receipt
 clearUnreadBadge(conv.id);
 ```
+
+### 9.6. Flow kết bạn — từ search đến chat
+
+```ts
+// 1. Search user theo keyword
+const q = 'huy';
+const res = await fetch(`/api/v1/users/search?q=${encodeURIComponent(q)}&limit=20`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+const { data } = await res.json();    // { items, nextCursor }
+
+// 2. Render. Tuỳ friendship để hiện nút.
+data.items.forEach((u) => {
+  switch (u.friendship) {
+    case 'NONE':         renderButton('Kết bạn',    () => sendRequest(u.id)); break;
+    case 'PENDING_OUT':  renderButton('Huỷ lời mời', () => cancelRequest(u.id)); break;
+    case 'PENDING_IN':   renderButton('Chấp nhận',  () => acceptRequest(u.id)); break;
+    case 'ACCEPTED':     renderButton('Nhắn tin',   () => openDirectChat(u.id)); break;
+    case 'BLOCKED_BY_ME': renderButton('Bỏ chặn',   () => unblock(u.id)); break;
+  }
+});
+
+// 3. Gửi lời mời
+async function sendRequest(targetUserId: string) {
+  const res = await fetch('/api/v1/friends/requests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ targetUserId, source: 'SEARCH' }),
+  });
+  const { data, error } = await res.json();
+  if (error) return handleFriendError(error);
+
+  // ⚠️ Có thể server auto-accept nếu target đã mời mình trước → kiểm status
+  if (data.status === 'ACCEPTED') {
+    showToast('Đã trở thành bạn bè 🎉');
+  } else {
+    showToast('Đã gửi lời mời');
+  }
+  updateUserCardStatus(targetUserId, data.status);
+}
+
+// 4. Mở chat 1-1 sau khi accept
+async function openDirectChat(friendUserId: string) {
+  const res = await fetch('/api/v1/conversations/direct', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ userId: friendUserId }),
+  });
+  const { data } = await res.json();
+  navigateToConversation(data.id);    // conversation đã tồn tại hoặc vừa tạo
+}
+```
+
+### 9.7. Notification lời mời đến
+
+```ts
+// Polling đơn giản (10–30s/lần) hoặc gọi khi user mở app
+async function checkIncoming() {
+  const res = await fetch('/api/v1/friends/requests/incoming?limit=20', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const { data } = await res.json();
+  setIncomingBadge(data.items.length);   // badge ở icon 👥
+  renderIncomingList(data.items);
+}
+```
+
+> Realtime push cho friend-request chưa có ở v1 — sẽ thêm sau qua WS event `friend:request:incoming`. Tạm thời FE polling.
 
 ---
 

@@ -16,7 +16,9 @@
       "PowerShell(npx tsc --noEmit; \"ExitCode=$LASTEXITCODE\")",
       "PowerShell(npx basuicn add tabs textarea avatar 2>&1 | Select-Object -First 30; \"ExitCode=$LASTEXITCODE\")",
       "PowerShell(npx tsc --noEmit 2>&1; \"TS=$LASTEXITCODE\")",
-      "PowerShell(npx basuicn add alert 2>&1 | Select-Object -First 20; \"ExitCode=$LASTEXITCODE\")"
+      "PowerShell(npx basuicn add alert 2>&1 | Select-Object -First 20; \"ExitCode=$LASTEXITCODE\")",
+      "Bash(echo \"exit=$?\")",
+      "PowerShell(npx tsc --noEmit; echo \"EXIT=$LASTEXITCODE\")"
     ]
   }
 }

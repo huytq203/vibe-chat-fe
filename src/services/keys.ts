@@ -9,6 +9,19 @@ export const authKeys = {
   me: () => [...authKeys.all, 'me'] as const,
 } as const;
 
+export const userKeys = {
+  all: ['users'] as const,
+  search: (q: string, limit: number) =>
+    [...userKeys.all, 'search', q, limit] as const,
+} as const;
+
+export const friendKeys = {
+  all: ['friends'] as const,
+  list: () => [...friendKeys.all, 'list'] as const,
+  incoming: () => [...friendKeys.all, 'requests', 'incoming'] as const,
+  outgoing: () => [...friendKeys.all, 'requests', 'outgoing'] as const,
+} as const;
+
 export const chatKeys = {
   all: ['chat'] as const,
   conversations: () => [...chatKeys.all, 'conversations'] as const,
