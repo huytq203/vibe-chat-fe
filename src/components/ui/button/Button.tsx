@@ -88,7 +88,7 @@ const Button = React.forwardRef<React.ElementRef<typeof BaseButton>, ButtonProps
         data-loading={isLoading || undefined}
         {...props}
       >
-        {isLoading && <Spinner size="xs" className={cn('mr-2 text-muted')} />}
+        {isLoading && <Spinner size="xs" className={cn(children ? 'mr-2' : '', 'text-muted')} />}
         <div className="flex items-center gap-2">
           {!isLoading && leftIcon && <span>{leftIcon}</span>}
           {children}

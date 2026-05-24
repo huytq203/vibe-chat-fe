@@ -58,12 +58,32 @@ export function useChatRealtime() {
 
     function upsertMessage(message: Message) {
       const key = chatKeys.messages(message.conversationId);
+      const incomingNonce =
+        (message.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
+
       qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
         if (!prev) return prev;
-        if (prev.pages.some((p) => p.items.some((m) => m.id === message.id))) {
-          return prev;
-        }
-        const [first, ...rest] = prev.pages;
+
+        let replaced = false;
+        const pages = prev.pages.map((p) => ({
+          ...p,
+          items: p.items.flatMap((m) => {
+            if (m.id === message.id) {
+              replaced = true;
+              return [message];
+            }
+            const mNonce = (m.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
+            if (incomingNonce && mNonce && mNonce === incomingNonce) {
+              replaced = true;
+              return [message];
+            }
+            return [m];
+          }),
+        }));
+
+        if (replaced) return { ...prev, pages };
+
+        const [first, ...rest] = pages;
         const head: MessagesPage = first
           ? { ...first, items: [message, ...first.items] }
           : { items: [message], nextCursor: null };
@@ -83,7 +103,26 @@ export function useChatRealtime() {
       if (qc.getQueryData(key)) upsertMessage(payload.message);
     }
 
-    function onMessageRead(_payload: ReadPayload) {
+    function onMessageRead(payload: ReadPayload) {
+      const meId = useAuthStore.getState().user?.id ?? null;
+      if (payload.userId !== meId) {
+        const key = chatKeys.messages(payload.conversationId);
+        qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pages: prev.pages.map((p) => ({
+              ...p,
+              items: p.items.map((m) => {
+                if (m.isView) return m;
+                if (m.senderId !== meId) return m;
+                if (m.createdAt > payload.readAt) return m;
+                return { ...m, isView: true };
+              }),
+            })),
+          };
+        });
+      }
       qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
     }
 

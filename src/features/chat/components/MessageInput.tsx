@@ -69,18 +69,16 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
 
   function submit() {
     const trimmed = text.trim();
-    if (!trimmed || send.isPending || disabled) return;
+    if (!trimmed || disabled) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
     emitTyping('stop');
-    send.mutate(
-      {
-        conversationId,
-        plaintext: trimmed,
-        clientNonce: crypto.randomUUID(),
-        type: 'TEXT',
-      },
-      { onSuccess: () => setText('') },
-    );
+    setText('');
+    send.mutate({
+      conversationId,
+      plaintext: trimmed,
+      clientNonce: crypto.randomUUID(),
+      type: 'TEXT',
+    });
   }
 
   function handleKey(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -130,18 +128,19 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
             'focus-visible:ring-0 focus:border-transparent',
           )}
         />
+        {hasText&&
+        
         <Button
           variant={hasText ? 'solid' : 'ghost'}
           size="icon-sm"
           onClick={submit}
-          disabled={!hasText || send.isPending}
-          isLoading={send.isPending}
           aria-label="Gửi"
           title="Gửi"
           className="shrink-0"
         >
-          {!send.isPending && <Send className="h-[18px] w-[18px]" />}
+          { <Send className="h-[18px] w-[18px]" />}
         </Button>
+        }
       </div>
     </div>
   );

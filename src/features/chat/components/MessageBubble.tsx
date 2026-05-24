@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCheck, Lock } from 'lucide-react';
+import { Check, CheckCheck, Clock, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { Message } from '../types';
 import { formatBubbleTime } from '../utils';
@@ -19,6 +19,8 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isMe = message.senderId === meId;
   const isE2E = message.encryptionType === 'E2E';
+  const isSending = message.metadata?.optimistic === true;
+  const isSeen = isMe && !isSending && message.isView === true;
 
   return (
     <div className={cn('flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}>
@@ -37,24 +39,26 @@ export function MessageBubble({
       <div className="max-w-[65%]">
         <div
           className={cn(
-            'relative rounded-2xl px-3.5 py-2.5',
+            'relative rounded-2xl px-3.5 py-2.5 transition-opacity',
             isMe
               ? 'rounded-br-md bg-primary text-primary-foreground'
               : 'rounded-bl-md border border-border bg-muted text-foreground',
+            isSending && 'opacity-70',
           )}
         >
           <BubbleContent message={message} isE2E={isE2E} />
           <div className="mt-1 flex items-center justify-end gap-1">
             <span className={cn('text-[10px]', isMe ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
-              {formatBubbleTime(message.createdAt)}
+              {isSending ? 'Đang gửi…' : formatBubbleTime(message.createdAt)}
             </span>
             {isMe && (
-              <CheckCheck
-                className={cn(
-                  'h-3.5 w-3.5',
-                  message.isEdited ? 'opacity-80' : 'opacity-80',
-                )}
-              />
+              isSending ? (
+                <Clock className="h-3.5 w-3.5 opacity-70" aria-label="Đang gửi" />
+              ) : isSeen ? (
+                <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Đã xem" />
+              ) : (
+                <Check className="h-3.5 w-3.5 opacity-80" aria-label="Đã gửi" />
+              )
             )}
           </div>
         </div>

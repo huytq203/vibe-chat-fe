@@ -68,6 +68,7 @@ export type Message = {
   replyToMessageId: string | null;
   isEdited: boolean;
   isDeleted: boolean;
+  isView: boolean;
   createdAt: string;
 };
 

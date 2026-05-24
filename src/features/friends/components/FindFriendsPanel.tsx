@@ -82,6 +82,7 @@ export function FindFriendsPanel({ open, onOpenChange, onMessageUser }: Props) {
                 isLoading={f.search.isLoading}
                 isError={f.search.isError}
                 pendingTargetId={f.search.pendingId}
+                friends={f.friends}
                 onSend={f.onSendClick}
                 onCancel={f.onCancelRequest}
                 onAccept={f.onAcceptUser}

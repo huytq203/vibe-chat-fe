@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDebouncedValue } from './useDebounce';
-import { useIncomingFriendRequests, useUserSearch } from './use-query';
+import { useFriends, useIncomingFriendRequests, useUserSearch } from './use-query';
 import {
   useAcceptFriendRequest,
   useCancelFriendRequest,
@@ -26,6 +26,7 @@ export function useFindFriends() {
 
   const search = useUserSearch(debouncedQuery);
   const incoming = useIncomingFriendRequests();
+  const friends = useFriends();
 
   const sendMut = useSendFriendRequest();
   const cancelMut = useCancelFriendRequest();
@@ -34,6 +35,21 @@ export function useFindFriends() {
 
   const searchItems = search.data?.items ?? [];
   const incomingItems = incoming.data?.items ?? [];
+  const friendsItems = friends.data?.items ?? [];
+
+  const FRIENDS_SAMPLE_SIZE = 8;
+  const friendsSample = useMemo<UserSearchItem[]>(() => {
+    if (friendsItems.length === 0) return [];
+    const arr = friendsItems.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, FRIENDS_SAMPLE_SIZE).map((it) => ({
+      ...it.user,
+      friendship: 'ACCEPTED' as const,
+    }));
+  }, [friendsItems]);
 
   const handleQueryChange = useCallback(
     (value: string) => {
@@ -94,6 +110,11 @@ export function useFindFriends() {
       items: incomingItems,
       isLoading: incoming.isLoading,
       pendingId: requestsPendingId,
+    },
+    friends: {
+      sample: friendsSample,
+      total: friendsItems.length,
+      isLoading: friends.isLoading,
     },
 
     nicknameTarget: targetForNickname,
