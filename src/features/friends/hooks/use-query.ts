@@ -2,8 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { friendsApi } from '@/services/friends.api';
+import { blocksApi } from '@/services/blocks.api';
 import { usersApi } from '@/services/users.api';
-import { friendKeys, userKeys } from '@/services/keys';
+import { blockKeys, friendKeys, userKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 
 const MIN_QUERY_LENGTH = 2;
@@ -45,6 +46,16 @@ export function useFriends() {
   return useQuery({
     queryKey: friendKeys.list(),
     queryFn: () => friendsApi.listFriends({ limit: 50 }),
+    enabled: isAuthed,
+    staleTime: 60_000,
+  });
+}
+
+export function useBlockedUsers() {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: blockKeys.list(),
+    queryFn: () => blocksApi.list({ limit: 50 }),
     enabled: isAuthed,
     staleTime: 60_000,
   });

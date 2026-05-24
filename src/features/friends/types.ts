@@ -55,3 +55,23 @@ export type FriendRequestActionResult = {
   targetUserId: string;
   status: FriendshipStatus;
 };
+
+export type BlockedUserItem = {
+  user: UserSummary;
+  reason: string | null;
+  createdAt: string;
+};
+
+export type BlockListPage = {
+  items: BlockedUserItem[];
+  nextCursor: string | null;
+};
+
+export type BlockActionResult = {
+  targetUserId: string;
+};
+
+export type BlockUserInput = {
+  targetUserId: string;
+  reason?: string;
+};

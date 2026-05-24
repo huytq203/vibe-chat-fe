@@ -14,9 +14,7 @@ export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const { selectedConversationId, rightPanelOpen, toggleRight } = useChatUIStore();
   const { data: conversation } = useConversation(selectedConversationId);
-  const markRead = useMarkRead();
-  const markReadRef = useRef(markRead.mutate);
-  markReadRef.current = markRead.mutate;
+  const { mutate: markRead } = useMarkRead();
   const lastReadRef = useRef<string | null>(null);
 
   const convId = conversation?.id ?? null;
@@ -28,8 +26,8 @@ export function ChatPanel() {
     const key = `${convId}:${lastMessageId}`;
     if (lastReadRef.current === key) return;
     lastReadRef.current = key;
-    markReadRef.current({ conversationId: convId, messageId: lastMessageId });
-  }, [convId, lastMessageId, unreadCount]);
+    markRead({ conversationId: convId, messageId: lastMessageId });
+  }, [convId, lastMessageId, unreadCount, markRead]);
 
   const otherIds = conversation && conversation.type === 'DIRECT'
     ? conversation.memberIds.filter((id) => id !== meId)

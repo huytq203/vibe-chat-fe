@@ -22,6 +22,11 @@ export const friendKeys = {
   outgoing: () => [...friendKeys.all, 'requests', 'outgoing'] as const,
 } as const;
 
+export const blockKeys = {
+  all: ['blocks'] as const,
+  list: () => [...blockKeys.all, 'list'] as const,
+} as const;
+
 export const chatKeys = {
   all: ['chat'] as const,
   conversations: () => [...chatKeys.all, 'conversations'] as const,

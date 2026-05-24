@@ -15,7 +15,6 @@ type ConversationItemProps = {
 
 export function ConversationItem({ conversation, selected, meId, onSelect }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
-  console.log(conversation)
   const seed = getConversationSeed(conversation, meId);
   const preview = conversation.lastMessage?.preview
     ?? (conversation.encryptionType === 'E2E' ? '🔒 Tin nhắn mã hoá' : 'Chưa có tin nhắn');

@@ -1,11 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell, BellOff, Phone, Pin, Search, Trash2, UserX, Video, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Bell, BellOff, Phone, Pin, Search, Trash2, UserMinus, UserX, Video, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog/AlertDialog';
 import { useAuthStore } from '@/features/auth';
+import { useBlockedUsers, useFriends } from '@/features/friends/hooks/use-query';
+import {
+  useBlockUser,
+  useUnblockUser,
+  useUnfriend,
+} from '@/features/friends/hooks/use-mutations';
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { useConversation, usePresence } from '../hooks/use-query';
 import { getConversationName, getConversationSeed } from '../utils';
@@ -22,11 +36,59 @@ export function ContactInfo() {
   const otherPresence = presenceList?.[0] ?? null;
 
   const [muted, setMuted] = useState(false);
+  const [confirmUnfriendOpen, setConfirmUnfriendOpen] = useState(false);
+  const [confirmBlockOpen, setConfirmBlockOpen] = useState(false);
+
+  const otherUserId = otherIds[0] ?? null;
+  const friendsQuery = useFriends();
+  const blockedQuery = useBlockedUsers();
+  const unfriendMut = useUnfriend();
+  const blockMut = useBlockUser();
+  const unblockMut = useUnblockUser();
+
+  const isFriend = useMemo(() => {
+    if (!otherUserId) return false;
+    return Boolean(
+      friendsQuery.data?.items.some((it) => it.user.id === otherUserId),
+    );
+  }, [friendsQuery.data, otherUserId]);
+
+  const isBlocked = useMemo(() => {
+    if (!otherUserId) return false;
+    return Boolean(
+      blockedQuery.data?.items.some((it) => it.user.id === otherUserId),
+    );
+  }, [blockedQuery.data, otherUserId]);
 
   if (!conversation) return null;
 
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
+  const isDirect = conversation.type === 'DIRECT';
+  const canUnfriend = isDirect && isFriend && Boolean(otherUserId);
+  const canBlock = isDirect && Boolean(otherUserId);
+  const blockBusy = blockMut.isPending || unblockMut.isPending;
+
+  const handleConfirmUnfriend = () => {
+    if (!otherUserId) return;
+    unfriendMut.mutate(otherUserId, {
+      onSuccess: () => setConfirmUnfriendOpen(false),
+    });
+  };
+
+  const handleConfirmBlock = () => {
+    if (!otherUserId) return;
+    if (isBlocked) {
+      unblockMut.mutate(otherUserId, {
+        onSuccess: () => setConfirmBlockOpen(false),
+      });
+    } else {
+      blockMut.mutate(
+        { targetUserId: otherUserId },
+        { onSuccess: () => setConfirmBlockOpen(false) },
+      );
+    }
+  };
   const status = otherPresence?.isOnline ? 'online' : otherPresence ? 'offline' : null;
   const statusText = otherPresence?.isOnline
     ? 'Đang hoạt động'
@@ -96,11 +158,102 @@ export function ContactInfo() {
           </div>
           <div className="flex flex-col gap-0.5">
             <OptionRow icon={<Pin className="h-4 w-4" />} label="Ghim cuộc trò chuyện" />
-            <OptionRow icon={<UserX className="h-4 w-4" />} label="Chặn người dùng" danger />
+            {canBlock && (
+              <OptionRow
+                icon={<UserX className="h-4 w-4" />}
+                label={isBlocked ? 'Bỏ chặn người dùng' : 'Chặn người dùng'}
+                danger={!isBlocked}
+                onClick={() => setConfirmBlockOpen(true)}
+              />
+            )}
+            {canUnfriend && (
+              <OptionRow
+                icon={<UserMinus className="h-4 w-4" />}
+                label="Xóa bạn"
+                danger
+                onClick={() => setConfirmUnfriendOpen(true)}
+              />
+            )}
             <OptionRow icon={<Trash2 className="h-4 w-4" />} label="Xoá cuộc trò chuyện" danger />
           </div>
         </section>
       </div>
+
+      <AlertDialog open={confirmUnfriendOpen} onOpenChange={setConfirmUnfriendOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá bạn bè?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn sẽ huỷ kết bạn với <span className="font-semibold text-foreground">{name}</span>.
+              Cuộc trò chuyện vẫn được giữ lại, nhưng để nhắn tin lại bạn có thể cần gửi
+              lời mời kết bạn mới.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmUnfriendOpen(false)}
+              disabled={unfriendMut.isPending}
+            >
+              Huỷ
+            </Button>
+            <Button
+              variant="solid"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
+              onClick={handleConfirmUnfriend}
+              isLoading={unfriendMut.isPending}
+            >
+              Xác nhận xoá
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmBlockOpen} onOpenChange={setConfirmBlockOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isBlocked ? 'Bỏ chặn người dùng?' : 'Chặn người dùng?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isBlocked ? (
+                <>
+                  Bạn sẽ bỏ chặn{' '}
+                  <span className="font-semibold text-foreground">{name}</span>. Họ có
+                  thể nhắn tin và gửi lời mời kết bạn cho bạn trở lại.
+                </>
+              ) : (
+                <>
+                  Bạn sẽ chặn{' '}
+                  <span className="font-semibold text-foreground">{name}</span>. Họ
+                  không thể nhắn tin, gọi điện hay xem thông tin cá nhân của bạn.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmBlockOpen(false)}
+              disabled={blockBusy}
+            >
+              Huỷ
+            </Button>
+            <Button
+              variant="solid"
+              className={
+                isBlocked
+                  ? undefined
+                  : 'bg-danger text-danger-foreground hover:bg-danger/90'
+              }
+              onClick={handleConfirmBlock}
+              isLoading={blockBusy}
+            >
+              {isBlocked ? 'Xác nhận bỏ chặn' : 'Xác nhận chặn'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }
