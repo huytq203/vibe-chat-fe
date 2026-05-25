@@ -17,8 +17,10 @@ import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useConversations } from '../hooks/use-query';
 import { useChatUIStore } from '../stores/chat-ui.store';
+import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { getConversationName } from '../utils';
 import { ConversationItem } from './ConversationItem';
+import { SearchOverlay } from './SearchOverlay';
 import { UserMenu } from './UserMenu';
 
 const TABS = [
@@ -31,11 +33,14 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function ConversationList() {
   const me = useAuthStore((s) => s.user);
-  const { selectedConversationId, activeTab, setSelected, setActiveTab } = useChatUIStore();
+  const activeTab = useChatUIStore((s) => s.activeTab);
+  const setActiveTab = useChatUIStore((s) => s.setActiveTab);
+  const { selectedConversationId, setSelected } = useSelectedConversation();
   const { data: conversations = [], isLoading } = useConversations();
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
 
   const qc = useQueryClient();
@@ -79,61 +84,77 @@ export function ConversationList() {
           <span className="text-lg font-bold tracking-tight">VibeChat</span>
         </div>
         <Button variant="solid" size="icon-sm" title="Tạo chat mới" aria-label="Tạo chat mới">
-          <Plus className="h-[18px] w-[18px]" />
+          <Bell className="h-[18px] w-[18px]" />
         </Button>
       </header>
 
-      <div className="shrink-0 px-3 pb-2.5">
-        <Input
-          variant="filled"
-          icon={<Search className="h-[15px] w-[15px]" />}
-          placeholder="Tìm kiếm..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9 text-[13px]"
-        />
-      </div>
-
-      <div className="shrink-0 px-3 pb-2">
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}
-        >
-          <TabsList size="xs" className="w-full">
-            {TABS.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
-                {tab.label}
-                {tab.id === 'unread' && unreadTotal > 0 && (
-                  <Badge variant="default" size="sm">{unreadTotal}</Badge>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
-        {isLoading && (
-          <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
-        )}
-        {!isLoading && filtered.length === 0 && (
-          <div className="px-3 py-10 text-center text-xs text-muted-foreground">
-            {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
-          </div>
-        )}
-        {filtered.map((c) => (
-          <ConversationItem
-            key={c.id}
-            conversation={c}
-            selected={selectedConversationId === c.id}
-            meId={me?.id ?? null}
-            onSelect={setSelected}
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        <div className="shrink-0 px-3 pb-2.5">
+          <Input
+            variant="filled"
+            icon={<Search className="h-[15px] w-[15px]" />}
+            placeholder="Tìm kiếm..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            className="h-9 text-[13px]"
           />
-        ))}
+        </div>
+
+        <div className="shrink-0 px-3 pb-2">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}
+          >
+            <TabsList size="xs" className="w-full">
+              {TABS.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
+                  {tab.label}
+                  {tab.id === 'unread' && unreadTotal > 0 && (
+                    <Badge variant="default" size="sm">{unreadTotal}</Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {isLoading && (
+            <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
+          )}
+          {!isLoading && filtered.length === 0 && (
+            <div className="px-3 py-10 text-center text-xs text-muted-foreground">
+              {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
+            </div>
+          )}
+          {filtered.map((c) => (
+            <ConversationItem
+              key={c.id}
+              conversation={c}
+              selected={selectedConversationId === c.id}
+              meId={me?.id ?? null}
+              onSelect={setSelected}
+            />
+          ))}
+        </div>
+
+        {searchFocused && (
+          <SearchOverlay
+            query={search}
+            onQueryChange={setSearch}
+            onBack={() => { setSearchFocused(false); setSearch(''); }}
+            conversations={conversations}
+            meId={me?.id ?? null}
+            selectedConversationId={selectedConversationId}
+            onSelectConversation={setSelected}
+            onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
+          />
+        )}
       </div>
 
       <footer className="flex shrink-0 items-center justify-around border-t border-border px-2 py-3">
-        <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat" className="text-primary bg-primary/10">
+        <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat">
           <MessageSquare className="h-5 w-5" />
         </Button>
         <Button
@@ -151,9 +172,7 @@ export function ConversationList() {
             </span>
           )}
         </Button>
-        <Button variant="ghost" size="icon-sm" title="Thông báo" aria-label="Thông báo">
-          <Bell className="h-5 w-5" />
-        </Button>
+
         <UserMenu />
       </footer>
 

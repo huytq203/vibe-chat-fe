@@ -17,12 +17,14 @@
    - 3.4 Users — Search (kết bạn)
    - 3.5 Friends — Kết bạn
    - 3.6 Blocks — Chặn
+   - 3.7 Notifications — FCM + Inbox
 4. [WebSocket realtime](#4-websocket-realtime)
 5. [Mã hoá tin nhắn — SERVER vs E2E](#5-mã-hoá-tin-nhắn--server-vs-e2e)
 6. [Idempotency — `clientNonce`](#6-idempotency--clientnonce)
 7. [Online status](#7-online-status)
 8. [Error codes](#8-error-codes)
 9. [Cookbook — flow hoàn chỉnh](#9-cookbook)
+10. [Push notifications — FCM end-to-end](#10-push-notifications--fcm-end-to-end)
 
 ---
 
@@ -378,6 +380,49 @@ GET /api/v1/conversations/{id}
 
 `{id}` = UUID của conversation.
 
+#### Xoá conversation
+
+```http
+DELETE /api/v1/conversations/{id}
+Authorization: Bearer ...
+```
+
+Quy tắc quyền:
+| Loại | Ai được xoá | Side-effect |
+|---|---|---|
+| `DIRECT` | Bất kỳ thành viên | Xoá đối xứng — cả 2 bên không còn thấy conversation |
+| `GROUP` / `CHANNEL` | **Chỉ `ownerId`** | Tất cả member bị deactivate (`status='LEFT'`) |
+
+Response `200`:
+```json
+{ "success": true, "data": { "ok": true } }
+```
+
+Lỗi:
+| Code | HTTP | Khi nào |
+|---|---|---|
+| `CONVERSATION_NOT_FOUND` | 404 | UUID sai hoặc đã xoá |
+| `CONVERSATION_MEMBER_REQUIRED` | 403 | Không phải thành viên |
+| `CONVERSATION_NOT_OWNER` | 403 | Group/Channel mà không phải owner |
+| `CONVERSATION_ALREADY_DELETED` | 400 | Gọi 2 lần |
+
+**Side-effect realtime:** server emit event `conversation:deleted` đến **mọi member** (cả vào room conv và user room). FE phải:
+1. Đóng tab chat nếu đang mở conv đó.
+2. Xoá conv khỏi sidebar.
+3. Show toast "Cuộc trò chuyện đã bị xoá bởi {deletedBy}".
+
+```ts
+socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => {
+  store.removeConversation(conversationId);
+  if (currentOpenConvId === conversationId) {
+    closeChat();
+    showToast('Cuộc trò chuyện đã bị xoá');
+  }
+});
+```
+
+> 💡 Member trong GROUP muốn rời nhóm (mà không xoá cả nhóm) — endpoint `leave` chưa public ở v1, sẽ thêm sau. Tạm thời chỉ owner xoá toàn bộ.
+
 #### Conversation object — full shape
 
 | Field | Type | Mô tả |
@@ -407,11 +452,14 @@ URL pattern: `/api/v1/conversations/{conversationId}/...`
 POST /api/v1/conversations/{conversationId}/messages
 
 {
-  "plaintext": "Xin chào",
+  "plaintext": "Hey @huy chú ý nhé",
   "clientNonce": "uuid-FE-tự-sinh-cho-retry",   // optional
   "type": "TEXT",                                // optional, default TEXT
   "metadata": { "width": 1920 },                 // optional
-  "replyToMessageId": "uuid-message-đang-reply"  // optional
+  "replyToMessageId": "uuid-message-đang-reply", // optional
+  "mentions": [                                  // optional, group tag
+    { "userId": "uuid-keycloak-được-tag", "startOffset": 4, "length": 4 }
+  ]
 }
 ```
 
@@ -419,6 +467,7 @@ POST /api/v1/conversations/{conversationId}/messages
 - Server tự encrypt AES-256-GCM rồi lưu
 - Server tự gen `id` (UUID v4)
 - `plaintext` tối đa 5000 ký tự
+- `mentions[]` (optional, ≤ 50 items): server **filter chỉ giữ user thực sự là member**, sau đó tạo notification riêng cho từng người được tag (push FCM **bất kể online**). User được tag sẽ nhận event `notification:new` qua WS + 1 push FCM nếu đã đăng ký token.
 
 #### Gửi tin nhắn — conversation E2E (Secret Chat)
 
@@ -434,9 +483,14 @@ POST /api/v1/conversations/{conversationId}/secret-messages
     "keyVersion": 1
   },
   "clientNonce": "...",                // optional
-  "type": "TEXT"
+  "type": "TEXT",
+  "mentions": [                        // optional — phần này KHÔNG được encrypt
+    { "userId": "uuid-keycloak", "startOffset": 0, "length": 4 }
+  ]
 }
 ```
+
+> ⚠️ Trong E2E, `mentions` là metadata công khai (server cần để route notification). Đừng đặt thông tin nhạy cảm trong `userId/offset/length`.
 
 - FE **chịu trách nhiệm encrypt** trước khi gửi. Server pass-through.
 - Cách FE manage key — xem mục [E2E](#5-mã-hoá-tin-nhắn--server-vs-e2e)
@@ -804,6 +858,171 @@ GET /api/v1/blocks?limit=20&cursor=...
 }
 ```
 
+### 3.7. Notifications — FCM + Inbox
+
+Module này gồm 2 phần:
+- **FCM token CRUD** — đăng ký device để nhận push khi offline.
+- **Notification inbox** — list/read/delete các noti đã sinh (friend accept, mention, new message…).
+
+Notification được tạo cho 5 loại event:
+
+| `type` | Khi nào | Push FCM | Realtime WS |
+|---|---|---|---|
+| `FRIEND_REQUEST_RECEIVED` | Ai đó gửi lời mời kết bạn | ✅ luôn (kể cả online) | ✅ `notification:new` |
+| `FRIEND_REQUEST_ACCEPTED` | Lời mời của bạn được accept | ✅ luôn | ✅ |
+| `MESSAGE_MENTION` | Bạn bị `@tag` trong group | ✅ luôn | ✅ |
+| `MESSAGE_NEW` | Có tin mới ở conv bạn là member | 🟡 chỉ khi **bạn offline** | ✅ |
+| `CONVERSATION_DELETED` | (reserved, hiện chưa generate) | — | — |
+
+> Logic: Online → đã thấy realtime trong app → không cần FCM. Offline → FCM nhảy badge ngoài hệ điều hành.
+
+#### Đăng ký FCM token
+
+Gọi NGAY SAU khi:
+1. User login thành công.
+2. User grant permission `Notification.permission === 'granted'`.
+3. Firebase SDK trả token.
+
+```http
+POST /api/v1/notifications/fcm-tokens
+Authorization: Bearer ...
+Content-Type: application/json
+
+{
+  "token": "fSx8...registration-token...",
+  "deviceType": "WEB",                   // WEB | IOS | ANDROID | DESKTOP — default WEB
+  "userAgent": "Mozilla/5.0 ..."         // optional
+}
+```
+
+Response `201`: `{ "data": { "ok": true } }`.
+
+- **Idempotent**: cùng `token` gọi lại không tạo bản ghi trùng. Đổi tài khoản trên cùng device → token tự gắn về user mới.
+- Token tối thiểu 20 ký tự, tối đa 4096.
+
+#### Xoá FCM token
+
+Gọi khi user logout / tắt notification setting / SW báo token expired:
+
+```http
+DELETE /api/v1/notifications/fcm-tokens
+Authorization: Bearer ...
+Content-Type: application/json
+
+{ "token": "fSx8..." }
+```
+
+> Server cũng **tự xoá** token gặp lỗi `messaging/registration-token-not-registered` khi push — FE không cần lo cleanup phía server.
+
+#### Inbox — list notification
+
+```http
+GET /api/v1/notifications?page=1&limit=20&unreadOnly=false
+Authorization: Bearer ...
+```
+
+Query params:
+| Tên | Default | Ghi chú |
+|---|---|---|
+| `page` | 1 | ≥ 1 |
+| `limit` | 20 | 1–100 |
+| `unreadOnly` | false | `true` chỉ lấy noti chưa đọc |
+
+Response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "a3e5c4d8-...",
+      "type": "FRIEND_REQUEST_ACCEPTED",
+      "recipientId": "<keycloakId của bạn>",
+      "actorId": "<keycloakId của người gây hành động>",
+      "title": "Lời mời được chấp nhận",
+      "body": "Trần Quang Huy đã chấp nhận lời mời kết bạn của bạn",
+      "conversationId": null,
+      "messageId": null,
+      "data": { "actorName": "Trần Quang Huy" },
+      "isRead": false,
+      "readAt": null,
+      "createdAt": "2026-05-25T08:00:00Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 87,
+    "totalPages": 5,
+    "unreadCount": 12
+  }
+}
+```
+
+> `data` chứa context tuỳ type. Vd `MESSAGE_MENTION` có `{ senderName }`. FE đọc `type` để chọn icon/route khi click.
+
+#### Badge unread
+
+```http
+GET /api/v1/notifications/unread-count
+```
+
+```json
+{ "success": true, "data": { "unreadCount": 12 } }
+```
+
+> Có thể gọi 1 lần lúc app khởi động → sau đó **cập nhật incremental qua WS** (`notification:new` tăng, `notification:read` không có — FE tự decrement khi gọi `markRead`).
+
+#### Đánh dấu đã đọc
+
+```http
+POST /api/v1/notifications/{id}/read
+Authorization: Bearer ...
+```
+
+`{id}` là `notification.id`. Response `{ ok: true }`.
+
+#### Đánh dấu tất cả đã đọc
+
+```http
+POST /api/v1/notifications/read-all
+```
+
+```json
+{ "success": true, "data": { "updated": 12 } }
+```
+
+#### Xoá 1 notification
+
+```http
+DELETE /api/v1/notifications/{id}
+```
+
+Response `{ ok: true }`. Lỗi `NOTIFICATION_NOT_FOUND` (404) nếu không tồn tại hoặc không thuộc user hiện tại.
+
+#### Notification object — full shape
+
+```ts
+{
+  id: string;                  // UUID v4
+  type:
+    | 'FRIEND_REQUEST_RECEIVED'
+    | 'FRIEND_REQUEST_ACCEPTED'
+    | 'MESSAGE_NEW'
+    | 'MESSAGE_MENTION'
+    | 'CONVERSATION_DELETED';
+  recipientId: string;         // keycloakId — luôn là user hiện tại
+  actorId: string | null;      // người gây hành động
+  title: string;               // tiêu đề push
+  body: string | null;         // nội dung push
+  conversationId: string | null;   // UUID — dùng cho deep link
+  messageId: string | null;        // UUID
+  data: Record<string, unknown> | null;
+  isRead: boolean;
+  readAt: string | null;       // ISO date
+  createdAt: string;           // ISO date
+}
+```
+
 ---
 
 ## 4. WebSocket realtime
@@ -919,6 +1138,51 @@ socket.on('presence:update', ({ userId, isOnline, lastSeenAt, lastSeenLabel }) =
 });
 ```
 
+### Notification realtime
+
+Server emit `notification:new` vào **user room** của recipient — FE không cần join thêm room, chỉ cần connect socket là tự lắng nghe được.
+
+```ts
+socket.on('notification:new', (n) => {
+  // n là Notification object đầy đủ (xem mục 3.7)
+  store.prependNotification(n);
+  incrementUnreadBadge();
+
+  // Tuỳ type → toast in-app (chỉ khi tab đang focus, tránh trùng FCM)
+  if (document.hasFocus()) {
+    showInAppToast({
+      title: n.title,
+      body: n.body,
+      onClick: () => navigateByNotification(n),
+    });
+  }
+});
+
+function navigateByNotification(n) {
+  switch (n.type) {
+    case 'MESSAGE_NEW':
+    case 'MESSAGE_MENTION':
+      return router.push(`/conversations/${n.conversationId}`);
+    case 'FRIEND_REQUEST_RECEIVED':
+      return router.push('/friends/requests');
+    case 'FRIEND_REQUEST_ACCEPTED':
+      return router.push('/friends');
+  }
+}
+```
+
+### Conversation deleted
+
+```ts
+socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => {
+  store.removeConversation(conversationId);
+  if (currentOpenConvId === conversationId) {
+    closeChat();
+    showToast('Cuộc trò chuyện đã bị xoá');
+  }
+});
+```
+
 ### Bảng tổng hợp WS events
 
 | Hướng | Event | Payload | Mô tả |
@@ -935,6 +1199,8 @@ socket.on('presence:update', ({ userId, isOnline, lastSeenAt, lastSeenLabel }) =
 | S→C | `message:read` | `{ conversationId, messageId, userId, readAt }` | User khác đã đọc |
 | S→C | `typing` | `{ conversationId, userId, state }` | User khác đang gõ |
 | S→C | `presence:update` | `{ userId, isOnline, lastSeenAt, lastSeenLabel }` | Trạng thái online đổi |
+| S→C | `notification:new` | `NotificationResponse` | Có noti mới (friend request/accept, mention, message new) |
+| S→C | `conversation:deleted` | `{ conversationId, deletedBy, deletedAt }` | Conversation bị xoá — FE remove khỏi sidebar |
 | S→C | `error` | `{ code, message }` | Lỗi (vd auth fail) — socket sẽ disconnect |
 
 ---
@@ -1113,6 +1379,10 @@ socket.on('presence:update', ({ userId, isOnline, lastSeenLabel }) => {
 | `BLOCK_SELF` | 400 | Tự chặn mình | UX: ẩn nút "Chặn" trên profile của chính mình |
 | `BLOCK_ALREADY_EXISTS` | 409 | Đã chặn rồi | Refresh trạng thái |
 | `BLOCK_NOT_FOUND` | 404 | Chưa chặn (gọi unblock khi không có block) | Refresh list block |
+| `NOTIFICATION_NOT_FOUND` | 404 | Notification id sai hoặc không thuộc user | Refresh inbox |
+| `FCM_TOKEN_INVALID` | 400 | Token sai format | FE log + re-fetch token từ Firebase |
+| `CONVERSATION_NOT_OWNER` | 403 | Group/Channel mà không phải owner xoá | Ẩn nút "Xoá nhóm" nếu không phải owner |
+| `CONVERSATION_ALREADY_DELETED` | 400 | Gọi DELETE 2 lần | Refresh list, conv đã biến mất |
 | `INTERNAL_ERROR` | 500 | Lỗi không lường trước | Show "Có lỗi xảy ra" + retry |
 
 ---
@@ -1329,21 +1599,253 @@ async function openDirectChat(friendUserId: string) {
 }
 ```
 
-### 9.7. Notification lời mời đến
+### 9.7. Notification lời mời đến (realtime)
+
+Từ v1.1, có realtime — **không cần polling**:
 
 ```ts
-// Polling đơn giản (10–30s/lần) hoặc gọi khi user mở app
-async function checkIncoming() {
-  const res = await fetch('/api/v1/friends/requests/incoming?limit=20', {
-    headers: { Authorization: `Bearer ${token}` },
+// 1. Initial load
+async function loadIncomingOnAppOpen() {
+  const [reqRes, countRes] = await Promise.all([
+    fetch('/api/v1/friends/requests/incoming?limit=20', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    fetch('/api/v1/notifications/unread-count', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  ]);
+  const requests = (await reqRes.json()).data;
+  const { unreadCount } = (await countRes.json()).data;
+  setIncomingBadge(requests.items.length);
+  setNotificationBadge(unreadCount);
+}
+
+// 2. Realtime — push tự đến qua WS
+socket.on('notification:new', (n) => {
+  if (n.type === 'FRIEND_REQUEST_RECEIVED') {
+    incrementIncomingBadge();
+    showToast(`${n.data?.actorName} muốn kết bạn`);
+    refetchIncomingList();      // hoặc prepend optimistic
+  }
+  if (n.type === 'FRIEND_REQUEST_ACCEPTED') {
+    showToast(`${n.data?.actorName} đã chấp nhận lời mời`);
+    refetchFriendList();
+  }
+});
+```
+
+---
+
+## 10. Push notifications — FCM end-to-end
+
+Flow tổng quan:
+
+```
+User login → xin permission → lấy FCM token → POST /notifications/fcm-tokens
+       │
+User tắt tab → WS disconnect → server đánh dấu offline
+       │
+User B nhắn → server thấy A offline → call FCM
+       │
+FCM → browser push → Service Worker → showNotification()
+       │
+User click → mở app → /conversations/{conversationId}
+```
+
+### 10.1. Setup Firebase (FE)
+
+`firebase.config.ts`:
+```ts
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+
+export const firebaseApp = initializeApp({
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+});
+
+export const messaging = getMessaging(firebaseApp);
+export { getToken, onMessage };
+```
+
+### 10.2. Xin permission + đăng ký token
+
+Gọi **sau khi login thành công**:
+
+```ts
+import { messaging, getToken, onMessage } from './firebase.config';
+
+async function setupPush(accessToken: string) {
+  // 1. Check support + xin permission
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') return;
+
+  // 2. Register Service Worker (đường dẫn phải đúng — public/firebase-messaging-sw.js)
+  const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+  // 3. Lấy FCM registration token
+  const token = await getToken(messaging, {
+    vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,   // public VAPID từ Firebase console
+    serviceWorkerRegistration: reg,
   });
-  const { data } = await res.json();
-  setIncomingBadge(data.items.length);   // badge ở icon 👥
-  renderIncomingList(data.items);
+  if (!token) return;
+
+  // 4. Gửi token lên BE
+  await fetch('/api/v1/notifications/fcm-tokens', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      token,
+      deviceType: 'WEB',
+      userAgent: navigator.userAgent,
+    }),
+  });
+
+  // 5. Foreground message — khi app đang mở vẫn nhận được payload từ FCM
+  //    (mặc định SW không show noti khi tab đang focus)
+  onMessage(messaging, (payload) => {
+    console.log('FCM foreground:', payload);
+    // Có thể skip — vì FE đã có 'notification:new' qua WS rồi.
+    // Hoặc show in-app toast nếu muốn.
+  });
 }
 ```
 
-> Realtime push cho friend-request chưa có ở v1 — sẽ thêm sau qua WS event `friend:request:incoming`. Tạm thời FE polling.
+### 10.3. Service Worker — `public/firebase-messaging-sw.js`
+
+```js
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: 'YOUR_API_KEY',
+  projectId: 'YOUR_PROJECT_ID',
+  messagingSenderId: 'YOUR_SENDER_ID',
+  appId: 'YOUR_APP_ID',
+});
+
+const messaging = firebase.messaging();
+
+// Background message — show OS notification
+messaging.onBackgroundMessage((payload) => {
+  const { title, body } = payload.notification ?? {};
+  const data = payload.data ?? {};
+  // BE truyền click_action trong data + fcmOptions.link → SW dùng link để mở app
+  const link = payload.fcmOptions?.link || data.click_action || '/';
+
+  self.registration.showNotification(title || 'Vibe Chat', {
+    body: body || '',
+    icon: '/icon-192.png',
+    badge: '/badge.png',
+    data: { ...data, link },
+    tag: data.conversationId || data.notificationId,   // group cùng conv → ghi đè noti cũ
+  });
+});
+
+// Click → focus tab hoặc mở mới đúng route
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Có tab đang mở → focus
+      for (const c of clients) {
+        if ('focus' in c) {
+          c.focus();
+          c.postMessage({ type: 'NOTIFICATION_CLICK', link });
+          return;
+        }
+      }
+      // Không tab nào → mở mới
+      if (self.clients.openWindow) return self.clients.openWindow(link);
+    }),
+  );
+});
+```
+
+> BE truyền `click_action` trong `data` + `webpush.fcmOptions.link` = `${FCM_APP_URL}/conversations/{conversationId}` (cho noti có conversationId) hoặc `/notifications` cho noti khác. FE chỉ việc dùng nguyên.
+
+### 10.4. Listen postMessage từ SW khi tab đang mở
+
+```ts
+navigator.serviceWorker.addEventListener('message', (event) => {
+  if (event.data?.type === 'NOTIFICATION_CLICK' && event.data?.link) {
+    router.push(new URL(event.data.link).pathname);
+  }
+});
+```
+
+### 10.5. Cleanup khi logout
+
+```ts
+async function logout(accessToken: string) {
+  // Xoá token trên BE TRƯỚC (cần access token còn hiệu lực)
+  const token = await getToken(messaging).catch(() => null);
+  if (token) {
+    await fetch('/api/v1/notifications/fcm-tokens', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+  }
+  // Sau đó logout backend (clear refresh cookie + revoke Keycloak session)
+  await fetch('/api/v1/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+```
+
+### 10.6. Khi nào FE nhận noti qua kênh nào?
+
+| Trạng thái user | `notification:new` WS | FCM push |
+|---|---|---|
+| Online, tab đang focus | ✅ | ❌ (server check offline) — trừ MENTION & FRIEND_* (push luôn) |
+| Online, tab background | ✅ | ❌ — trừ MENTION & FRIEND_* |
+| Offline (tắt browser/disconnect) | ❌ (sẽ thấy khi reconnect qua `/notifications` API) | ✅ |
+
+> Anti-dup: khi FE đang nhận cả 2 kênh (vd MENTION lúc online), SW vẫn sẽ show noti OS. Nếu muốn ẩn khi tab đang focus → dùng `onMessage` foreground + check `document.hasFocus()` rồi `event.preventDefault()` ở SW (gửi message từ tab xuống SW). Đây là tweak optional.
+
+### 10.7. Troubleshooting FCM
+
+| Triệu chứng | Nguyên nhân thường gặp |
+|---|---|
+| `getToken` trả `null` | Permission `denied`, hoặc SW chưa register, hoặc VAPID key sai |
+| BE log `FcmService no-op` | Thiếu env `FIREBASE_PROJECT_ID` / `CLIENT_EMAIL` / `PRIVATE_KEY_BASE64` |
+| Push không đến | Token đã expire — BE tự xoá trong DB, FE re-call `setupPush()` định kỳ (vd mỗi 24h) |
+| `messaging/registration-token-not-registered` | Bình thường, server đã xoá token đó — FE không cần action |
+| Noti không deep-link đúng | `click_action` rỗng → check `FCM_APP_URL` env của BE; check SW có đọc `data.click_action` không |
+
+### 10.8. Refresh FCM token định kỳ
+
+FCM token có thể bị invalidate (đổi browser profile, clear data…). FE nên:
+
+```ts
+// Mỗi lần app khởi động, hoặc 24h/lần
+setInterval(async () => {
+  const newToken = await getToken(messaging, { vapidKey: VAPID }).catch(() => null);
+  if (newToken) {
+    await fetch('/api/v1/notifications/fcm-tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ token: newToken, deviceType: 'WEB' }),
+    });
+  }
+}, 24 * 60 * 60 * 1000);
+```
+
+Backend upsert theo `token` (unique) — gọi lặp không tạo bản ghi mới.
 
 ---
 
@@ -1357,6 +1859,14 @@ WS_URL=ws://localhost:3000/chat
 KEYCLOAK_URL=http://localhost:8080
 KEYCLOAK_REALM=vibe
 KEYCLOAK_CLIENT_ID=vibe-frontend
+
+# Firebase Cloud Messaging (FE)
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_VAPID_KEY=...
 ```
 
 ### Swagger interactive

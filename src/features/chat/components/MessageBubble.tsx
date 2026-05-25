@@ -55,7 +55,7 @@ export function MessageBubble({
               isSending ? (
                 <Clock className="h-3.5 w-3.5 opacity-70" aria-label="Đang gửi" />
               ) : isSeen ? (
-                <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Đã xem" />
+                <CheckCheck className="h-3.5 w-3.5  opacity-80" aria-label="Đã xem" />
               ) : (
                 <Check className="h-3.5 w-3.5 opacity-80" aria-label="Đã gửi" />
               )

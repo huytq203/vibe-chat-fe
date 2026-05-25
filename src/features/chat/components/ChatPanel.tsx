@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '../stores/chat-ui.store';
+import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { useConversation, usePresence } from '../hooks/use-query';
 import { useMarkRead } from '../hooks/use-mutations';
 import { ChatHeader } from './ChatHeader';
@@ -12,7 +13,9 @@ import { MessageInput } from './MessageInput';
 
 export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
-  const { selectedConversationId, rightPanelOpen, toggleRight } = useChatUIStore();
+  const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
+  const toggleRight = useChatUIStore((s) => s.toggleRight);
+  const { selectedConversationId } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
   const { mutate: markRead } = useMarkRead();
   const lastReadRef = useRef<string | null>(null);
@@ -25,8 +28,26 @@ export function ChatPanel() {
     if (!convId || !lastMessageId || unreadCount <= 0) return;
     const key = `${convId}:${lastMessageId}`;
     if (lastReadRef.current === key) return;
-    lastReadRef.current = key;
-    markRead({ conversationId: convId, messageId: lastMessageId });
+
+    let done = false;
+    const fire = () => {
+      if (done) return;
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+      done = true;
+      lastReadRef.current = key;
+      markRead({ conversationId: convId, messageId: lastMessageId });
+    };
+
+    fire();
+    if (done) return;
+
+    document.addEventListener('visibilitychange', fire);
+    window.addEventListener('focus', fire);
+    return () => {
+      document.removeEventListener('visibilitychange', fire);
+      window.removeEventListener('focus', fire);
+    };
   }, [convId, lastMessageId, unreadCount, markRead]);
 
   const otherIds = conversation && conversation.type === 'DIRECT'

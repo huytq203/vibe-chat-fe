@@ -20,7 +20,6 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
     ?? (conversation.encryptionType === 'E2E' ? '🔒 Tin nhắn mã hoá' : 'Chưa có tin nhắn');
   const time = formatListTime(conversation.lastMessageAt);
   const unread = conversation.unreadCount;
-
   return (
     <button
       type="button"

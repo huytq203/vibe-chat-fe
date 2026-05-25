@@ -21,13 +21,17 @@ import {
   useUnfriend,
 } from '@/features/friends/hooks/use-mutations';
 import { useChatUIStore } from '../stores/chat-ui.store';
+import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { useConversation, usePresence } from '../hooks/use-query';
 import { getConversationName, getConversationSeed } from '../utils';
 import { Avatar } from './Avatar';
+import { QuickAction } from './QuickAction';
+import { OptionRow } from './OptionRow';
 
 export function ContactInfo() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
-  const { selectedConversationId, setRightOpen } = useChatUIStore();
+  const setRightOpen = useChatUIStore((s) => s.setRightOpen);
+  const { selectedConversationId } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
   const otherIds = conversation && conversation.type === 'DIRECT'
     ? conversation.memberIds.filter((id) => id !== meId)
@@ -255,39 +259,5 @@ export function ContactInfo() {
         </AlertDialogContent>
       </AlertDialog>
     </aside>
-  );
-}
-
-function QuickAction({
-  icon, label, active, onClick,
-}: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
-  return (
-    <Button
-      variant={active ? 'danger-outline' : 'ghost'}
-      onClick={onClick}
-      className="flex h-auto flex-col items-center gap-1 rounded-xl bg-muted px-1 py-2.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-    >
-      {icon}
-      <span className="text-[10.5px] font-medium">{label}</span>
-    </Button>
-  );
-}
-
-function OptionRow({
-  icon, label, danger, onClick,
-}: { icon: React.ReactNode; label: string; danger?: boolean; onClick?: () => void }) {
-  return (
-    <Button
-      variant={danger ? 'ghost' : 'ghost'}
-      onClick={onClick}
-      className={
-        danger
-          ? 'h-auto w-full justify-start gap-2 px-2 py-2 text-[13px] font-normal text-danger hover:bg-danger/10 hover:text-danger'
-          : 'h-auto w-full justify-start gap-2 px-2 py-2 text-[13px] font-normal text-muted-foreground hover:text-foreground'
-      }
-    >
-      {icon}
-      <span>{label}</span>
-    </Button>
   );
 }

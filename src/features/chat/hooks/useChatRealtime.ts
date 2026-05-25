@@ -11,8 +11,8 @@ import {
 } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { chatKeys } from '@/services/keys';
-import { useChatUIStore } from '../stores/chat-ui.store';
 import { useTypingStore } from '../stores/typing.store';
+import { useSelectedConversation } from './useSelectedConversation';
 import type { Message, MessagesPage, Presence } from '../types';
 
 type NotifyPayload = { conversationId: string; message: Message };
@@ -33,7 +33,7 @@ const TYPING_AUTOCLEAR_MS = 6_000;
 
 export function useChatRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
-  const selectedConversationId = useChatUIStore((s) => s.selectedConversationId);
+  const { selectedConversationId } = useSelectedConversation();
   const qc = useQueryClient();
   const joinedRef = useRef<string | null>(null);
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});

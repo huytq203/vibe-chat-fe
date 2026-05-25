@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner/Spinner';
 import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '../stores/chat-ui.store';
+import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { useConversations } from '../hooks/use-query';
 import { useChatRealtime } from '../hooks/useChatRealtime';
 import { ConversationList } from './ConversationList';
@@ -13,7 +14,8 @@ import { ContactInfo } from './ContactInfo';
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
-  const { selectedConversationId, rightPanelOpen, setSelected } = useChatUIStore();
+  const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
+  const { selectedConversationId, setSelected } = useSelectedConversation();
   const { data: conversations } = useConversations();
   useChatRealtime();
 
