@@ -14,6 +14,15 @@ const schema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((v) => v === 'true'),
+
+  // Firebase Cloud Messaging (public — SDK chạy ở browser cần các giá trị này).
+  // Server-side admin (PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY_BASE64) thuộc BE, không expose FE.
+  NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().min(1).optional(),
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+  NEXT_PUBLIC_FIREBASE_SENDER_ID: z.string().min(1).optional(),
+  NEXT_PUBLIC_FIREBASE_APP_ID: z.string().min(1).optional(),
+  NEXT_PUBLIC_FIREBASE_VAPID_KEY: z.string().min(1).optional(),
 });
 
 const parsed = schema.safeParse({
@@ -21,6 +30,12 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_VIBE_URL: process.env.NEXT_PUBLIC_VIBE_URL,
   NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  NEXT_PUBLIC_FIREBASE_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID,
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  NEXT_PUBLIC_FIREBASE_VAPID_KEY: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
 });
 
 if (!parsed.success) {
@@ -30,3 +45,13 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = typeof env;
+
+export function isFirebaseConfigured(): boolean {
+  return Boolean(
+    env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+      env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
+      env.NEXT_PUBLIC_FIREBASE_APP_ID &&
+      env.NEXT_PUBLIC_FIREBASE_SENDER_ID &&
+      env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+  );
+}

@@ -72,15 +72,33 @@ socket.on('presence:update', ({ userId, isOnline, lastSeenAt, lastSeenLabel }) =
 });
 ```
 
-### Heartbeat từ FE
+### Heartbeat từ FE — BẮT BUỘC mỗi 30s
 
-Server đã tự set online lúc WS connect. Nếu socket idle dài, gửi heartbeat 30s/lần để giữ `lastSeenAt` luôn fresh:
+Server lưu presence ở Redis với **TTL 60 giây per-socket**. Nếu FE không emit heartbeat → socket bị auto-prune sau 60s → user thành offline.
 
 ```ts
-setInterval(() => socket.emit('presence:heartbeat'), 30_000);
+const HEARTBEAT_MS = 30_000;
+
+setInterval(async () => {
+  try {
+    const ack = await socket.emitWithAck('presence:heartbeat');
+    // Nếu server đã prune socket (vì heartbeat trễ quá lâu) → buộc reconnect.
+    if (ack && ack.reconnect) {
+      socket.disconnect().connect();
+    }
+  } catch {
+    // ack timeout → để socket.io tự reconnect
+  }
+}, HEARTBEAT_MS);
 ```
 
-### Polling bổ sung
+> Ack shape: `{ ok: true }` hoặc `{ ok: false, reconnect: true }`. Khi `reconnect=true`, socket đã bị server force-disconnect — FE PHẢI `socket.connect()` lại để có entry presence mới.
+
+### Sweep job server-side
+
+Server chạy job mỗi 30s tự prune socket "im lặng" (FE ngừng heartbeat / tab kill đột ngột / mất mạng). Khi user mất hết socket → broadcast `presence:update` với `isOnline=false`. FE không cần làm gì thêm.
+
+### Polling bổ sung (tuỳ chọn)
 
 Định kỳ (vd 1 phút/lần) call lại `GET /presence?userIds=...` để refresh label cho các user không có WS event gần đây (tránh stale "5 phút trước" cứ ở yên).
 
@@ -88,9 +106,13 @@ setInterval(() => socket.emit('presence:heartbeat'), 30_000);
 
 ## Cách BE detect offline
 
-1. User tắt tab → WS disconnect → server xoá socket khỏi `activeSockets[]` của user presence.
-2. Nếu user hết socket → `isOnline = false`, broadcast `presence:update`.
-3. FCM module dùng presence này để quyết định push khi có tin mới — xem [07-notifications.md](./07-notifications.md).
+1. **Disconnect bình thường** (logout, refresh page) → WS disconnect event → server xoá socket khỏi Redis + Mongo ngay.
+2. **Tab đóng đột ngột / mất mạng / kill browser** → Socket.IO `pingTimeout` ~45s phát hiện chết → disconnect.
+3. **Server crash / FE ngừng heartbeat** → Redis TTL 60s tự expire socket → sweep job 30s tới sẽ broadcast `presence:update`.
+4. Khi user mất hết socket → `isOnline = false`, server emit `presence:update` toàn namespace `/chat`.
+5. FCM module dùng presence này để quyết định push khi có tin mới — xem [07-notifications.md](./07-notifications.md).
+
+> **Boot clear**: mỗi lần backend restart, mọi `activeSockets` đều bị wipe → user nào không reconnect kịp sẽ thành offline cho đến khi WS connect lại. Tránh tình trạng "kẹt online" sau redeploy.
 
 ---
 

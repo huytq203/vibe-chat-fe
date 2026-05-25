@@ -7,7 +7,13 @@ export {
   useMessages,
   usePresence,
 } from './hooks/use-query';
-export { useSendMessage, useMarkRead } from './hooks/use-mutations';
+export {
+  useSendMessage,
+  useMarkRead,
+  useDeleteConversation,
+  useResendMessage,
+  useDiscardFailedMessage,
+} from './hooks/use-mutations';
 export type {
   Conversation,
   Message,

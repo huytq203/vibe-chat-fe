@@ -130,9 +130,19 @@ socket.on('message:read', ({ conversationId, messageId, userId, readAt }) => {
 
 ## Presence
 
+Server lưu presence ở Redis với **TTL 60s per-socket** — FE **BẮT BUỘC** emit heartbeat mỗi 30s, nếu không socket bị auto-prune → user thành offline.
+
 ```ts
-// Heartbeat 30s/lần để báo "vẫn online"
-setInterval(() => socket.emit('presence:heartbeat'), 30_000);
+// Heartbeat 30s/lần — phải dùng emitWithAck để xử lý force-reconnect.
+setInterval(async () => {
+  try {
+    const ack = await socket.emitWithAck('presence:heartbeat');
+    if (ack?.reconnect) {
+      // Socket đã bị server prune (heartbeat trễ quá lâu) → reconnect cho sạch state
+      socket.disconnect().connect();
+    }
+  } catch {}
+}, 30_000);
 
 // Lắng nghe presence của user khác đổi trạng thái
 socket.on('presence:update', ({ userId, isOnline, lastSeenAt, lastSeenLabel }) => {
@@ -157,9 +167,32 @@ socket.on('notification:new', (n /* NotificationResponse */) => {
     showInAppToast({ title: n.title, body: n.body });
   }
 });
+
+// Server tự mark read noti khi user xem nội dung gốc (đọc tin, accept request...)
+// → emit event này để FE giảm badge ngay, KHÔNG cần gọi markRead thủ công.
+socket.on('notification:cleared', ({ scope, conversationId, actorId, clearedCount }) => {
+  unreadBadge = Math.max(0, unreadBadge - clearedCount);
+  // ... remove khỏi list theo filter (xem 07-notifications.md)
+});
 ```
 
-> Shape `NotificationResponse` + handler đầy đủ → [07-notifications.md](./07-notifications.md).
+> Shape `NotificationResponse` + auto-clear logic đầy đủ → [07-notifications.md](./07-notifications.md#auto-clear-notification).
+
+---
+
+## Friend update realtime
+
+Server emit `friend:update` mỗi khi 1 trong 2 phía thực hiện action friend (send/accept/reject/cancel/unfriend). FE update list realtime, không cần refetch.
+
+```ts
+socket.on('friend:update', ({ type, otherUserId, status }) => {
+  // type: REQUEST_SENT | REQUEST_ACCEPTED | REQUEST_REJECTED | REQUEST_CANCELLED | UNFRIENDED
+  // status: PENDING_IN | PENDING_OUT | ACCEPTED | NONE  (góc nhìn của recipient)
+  // otherUserId: user kia (không phải bản thân)
+});
+```
+
+> Mapping action → event nhận được + handler đầy đủ → [06-friends-blocks.md](./06-friends-blocks.md#realtime--event-friendupdate).
 
 ---
 
@@ -187,13 +220,15 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 | C→S | `message:send:secret` | `WsSendSecretMessage` | Gửi tin E2E conv |
 | C→S | `message:read` | `{ conversationId, messageId }` | Đánh dấu đọc |
 | C→S | `typing` | `{ conversationId, state }` | Báo đang/dừng gõ |
-| C→S | `presence:heartbeat` | — | Giữ session online |
+| C→S | `presence:heartbeat` | — | Giữ session online. Ack `{ ok, reconnect? }` — `reconnect=true` thì FE phải reconnect |
 | S→C | `message:new` | `MessageResponse` | Có tin mới trong conv đang join |
 | S→C | `conversation:notify` | `{ conversationId, message }` | Tin mới ở conv khác (không join room) |
 | S→C | `message:read` | `{ conversationId, messageId, userId, readAt }` | User khác đã đọc |
 | S→C | `typing` | `{ conversationId, userId, state }` | User khác đang gõ |
 | S→C | `presence:update` | `{ userId, isOnline, lastSeenAt, lastSeenLabel }` | Trạng thái online đổi |
 | S→C | `notification:new` | `NotificationResponse` | Có noti mới (friend request/accept, mention, message new) |
+| S→C | `notification:cleared` | `{ scope, conversationId?, types?, actorId?, clearedCount }` | Server tự mark read noti — FE giảm badge ngay |
+| S→C | `friend:update` | `{ type, otherUserId, status, at }` | Friend lifecycle (send/accept/reject/cancel/unfriend) |
 | S→C | `conversation:deleted` | `{ conversationId, deletedBy, deletedAt }` | Conversation bị xoá — FE remove khỏi sidebar |
 | S→C | `error` | `{ code, message }` | Lỗi (vd auth fail) — socket sẽ disconnect |
 

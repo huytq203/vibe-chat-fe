@@ -13,6 +13,7 @@ import {
   useIncomingFriendRequests,
   type UserSearchItem,
 } from '@/features/friends';
+import { NotificationPanel, useUnreadCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useConversations } from '../hooks/use-query';
@@ -42,6 +43,9 @@ export function ConversationList() {
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
+  const [notiOpen, setNotiOpen] = useState(false);
+  const notiUnread = useUnreadCount();
+  const notiUnreadCount = notiUnread.data?.unreadCount ?? 0;
 
   const qc = useQueryClient();
   const openDirectMut = useMutation({
@@ -83,8 +87,20 @@ export function ConversationList() {
           </div>
           <span className="text-lg font-bold tracking-tight">VibeChat</span>
         </div>
-        <Button variant="solid" size="icon-sm" title="Tạo chat mới" aria-label="Tạo chat mới">
+        <Button
+          variant="solid"
+          size="icon-sm"
+          title="Thông báo"
+          aria-label="Thông báo"
+          className="relative"
+          onClick={() => setNotiOpen(true)}
+        >
           <Bell className="h-[18px] w-[18px]" />
+          {notiUnreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
+              {notiUnreadCount > 9 ? '9+' : notiUnreadCount}
+            </span>
+          )}
         </Button>
       </header>
 
@@ -181,6 +197,8 @@ export function ConversationList() {
         onOpenChange={setFindOpen}
         onMessageUser={handleMessageUser}
       />
+
+      <NotificationPanel open={notiOpen} onOpenChange={setNotiOpen} />
     </aside>
   );
 }

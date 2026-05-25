@@ -23,6 +23,9 @@ export const chatApi = {
       body: { userId, encryptionType: 'SERVER' },
     }),
 
+  deleteConversation: (id: string) =>
+    apiClient.delete<{ ok: true }>(`/api/v1/conversations/${id}`),
+
   listMessages: async (
     conversationId: string,
     params: { limit?: number; before?: string } = {},

@@ -213,6 +213,60 @@ function navigateByNotification(n) {
 
 ---
 
+## Auto-clear notification
+
+Khi user đã thực sự xem nội dung gốc (đọc tin nhắn / accept lời mời / mở trang lời mời), server **tự mark read** các notification liên quan và emit event `notification:cleared` để FE giảm badge ngay — FE KHÔNG phải gọi `markRead` cho từng noti.
+
+### Trigger từ phía server
+
+| User action | Endpoint / sự kiện | Noti được mark read |
+|---|---|---|
+| Đọc 1 tin nhắn | `POST /messages/{id}/read` hoặc WS `message:read` | Tất cả `MESSAGE_NEW` + `MESSAGE_MENTION` của conversation đó |
+| Accept lời mời | `POST /friends/requests/{actorId}/accept` | `FRIEND_REQUEST_RECEIVED` từ actor đó |
+| Reject lời mời | `POST /friends/requests/{actorId}/reject` | `FRIEND_REQUEST_RECEIVED` từ actor đó |
+| Sender cancel lời mời | `DELETE /friends/requests/{targetId}` | (cho **target**) `FRIEND_REQUEST_RECEIVED` từ viewer |
+| Mở trang Lời mời (page đầu, không cursor) | `GET /friends/requests/incoming` | Tất cả `FRIEND_REQUEST_RECEIVED` của viewer |
+
+### Payload `notification:cleared`
+
+```ts
+{
+  scope: 'conversation' | 'friendRequest',
+  conversationId?: string,    // có khi scope='conversation'
+  types?: string[],           // ['MESSAGE_NEW', 'MESSAGE_MENTION']
+  actorId?: string,           // có khi clear theo actor cụ thể
+  clearedCount: number,       // số noti vừa mark read — dùng decrement badge
+}
+```
+
+### Handler mẫu
+
+```ts
+socket.on('notification:cleared', ({ scope, conversationId, types, actorId, clearedCount }) => {
+  // Giảm badge tổng
+  unreadBadge = Math.max(0, unreadBadge - clearedCount);
+
+  // Remove khỏi list noti theo filter
+  if (scope === 'conversation' && conversationId) {
+    store.markReadWhere(n =>
+      n.conversationId === conversationId &&
+      (!types || types.includes(n.type))
+    );
+  }
+
+  if (scope === 'friendRequest') {
+    store.markReadWhere(n =>
+      n.type === 'FRIEND_REQUEST_RECEIVED' &&
+      (!actorId || n.actorId === actorId)
+    );
+  }
+});
+```
+
+> Server **không xoá** doc notification — chỉ set `isRead=true + readAt=now`. History vẫn còn trong inbox cho user xem lại.
+
+---
+
 **Liên quan:**
 - 🔥 Setup Firebase + Service Worker → [11-push-fcm.md](./11-push-fcm.md)
 - 🔌 WS event `notification:new` → [08-websocket.md](./08-websocket.md)

@@ -27,6 +27,14 @@ export const blockKeys = {
   list: () => [...blockKeys.all, 'list'] as const,
 } as const;
 
+export const notificationKeys = {
+  all: ['notifications'] as const,
+  lists: () => [...notificationKeys.all, 'list'] as const,
+  list: (params: { page: number; limit: number; unreadOnly: boolean }) =>
+    [...notificationKeys.lists(), params] as const,
+  unreadCount: () => [...notificationKeys.all, 'unread-count'] as const,
+} as const;
+
 export const chatKeys = {
   all: ['chat'] as const,
   conversations: () => [...chatKeys.all, 'conversations'] as const,

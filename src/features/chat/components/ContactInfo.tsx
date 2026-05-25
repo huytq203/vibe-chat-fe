@@ -23,6 +23,7 @@ import {
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { useConversation, usePresence } from '../hooks/use-query';
+import { useDeleteConversation } from '../hooks/use-mutations';
 import { getConversationName, getConversationSeed } from '../utils';
 import { Avatar } from './Avatar';
 import { QuickAction } from './QuickAction';
@@ -31,7 +32,7 @@ import { OptionRow } from './OptionRow';
 export function ContactInfo() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const setRightOpen = useChatUIStore((s) => s.setRightOpen);
-  const { selectedConversationId } = useSelectedConversation();
+  const { selectedConversationId, setSelected } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
   const otherIds = conversation && conversation.type === 'DIRECT'
     ? conversation.memberIds.filter((id) => id !== meId)
@@ -42,6 +43,8 @@ export function ContactInfo() {
   const [muted, setMuted] = useState(false);
   const [confirmUnfriendOpen, setConfirmUnfriendOpen] = useState(false);
   const [confirmBlockOpen, setConfirmBlockOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const deleteConvMut = useDeleteConversation();
 
   const otherUserId = otherIds[0] ?? null;
   const friendsQuery = useFriends();
@@ -72,11 +75,24 @@ export function ContactInfo() {
   const canUnfriend = isDirect && isFriend && Boolean(otherUserId);
   const canBlock = isDirect && Boolean(otherUserId);
   const blockBusy = blockMut.isPending || unblockMut.isPending;
+  // DIRECT: bất kỳ member; GROUP/CHANNEL: chỉ owner (BE check, FE ẩn UI để tránh lỗi).
+  const canDelete = isDirect || conversation.ownerId === meId;
 
   const handleConfirmUnfriend = () => {
     if (!otherUserId) return;
     unfriendMut.mutate(otherUserId, {
       onSuccess: () => setConfirmUnfriendOpen(false),
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedConversationId) return;
+    deleteConvMut.mutate(selectedConversationId, {
+      onSuccess: () => {
+        setConfirmDeleteOpen(false);
+        setRightOpen(false);
+        setSelected(null);
+      },
     });
   };
 
@@ -178,7 +194,14 @@ export function ContactInfo() {
                 onClick={() => setConfirmUnfriendOpen(true)}
               />
             )}
-            <OptionRow icon={<Trash2 className="h-4 w-4" />} label="Xoá cuộc trò chuyện" danger />
+            {canDelete && (
+              <OptionRow
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Xoá cuộc trò chuyện"
+                danger
+                onClick={() => setConfirmDeleteOpen(true)}
+              />
+            )}
           </div>
         </section>
       </div>
@@ -206,6 +229,46 @@ export function ContactInfo() {
               className="bg-danger text-danger-foreground hover:bg-danger/90"
               onClick={handleConfirmUnfriend}
               isLoading={unfriendMut.isPending}
+            >
+              Xác nhận xoá
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá cuộc trò chuyện?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isDirect ? (
+                <>
+                  Cuộc trò chuyện với{' '}
+                  <span className="font-semibold text-foreground">{name}</span> sẽ bị
+                  xoá ở cả hai bên. Toàn bộ tin nhắn sẽ không còn truy cập được.
+                </>
+              ) : (
+                <>
+                  Nhóm <span className="font-semibold text-foreground">{name}</span> sẽ
+                  bị xoá. Tất cả thành viên sẽ không còn truy cập được cuộc trò chuyện
+                  này.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={deleteConvMut.isPending}
+            >
+              Huỷ
+            </Button>
+            <Button
+              variant="solid"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
+              onClick={handleConfirmDelete}
+              isLoading={deleteConvMut.isPending}
             >
               Xác nhận xoá
             </Button>

@@ -278,6 +278,70 @@ GET /api/v1/blocks?limit=20&cursor=...
 
 ---
 
+## Realtime — event `friend:update`
+
+Server emit `friend:update` vào **user room** mỗi khi 1 trong 2 phía thực hiện action (send/accept/reject/cancel/unfriend). FE dùng để cập nhật `incomingList`, `outgoingList`, `friendsList` mà không cần refetch.
+
+### Payload
+
+```ts
+{
+  type: 'REQUEST_SENT' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED'
+      | 'REQUEST_CANCELLED' | 'UNFRIENDED',
+  otherUserId: string,        // user kia (không phải bản thân recipient)
+  status: 'PENDING_IN' | 'PENDING_OUT' | 'ACCEPTED' | 'NONE',
+  at: string,                 // ISO timestamp
+}
+```
+
+### Mapping action → event nhận được
+
+| Action | Viewer (người gọi API) | Target (user kia) |
+|---|---|---|
+| `POST /friends/requests` (send) | `REQUEST_SENT` + `PENDING_OUT` | `REQUEST_SENT` + `PENDING_IN` |
+| `POST /friends/requests` (auto-accept khi target đã mời trước) | `REQUEST_ACCEPTED` + `ACCEPTED` | `REQUEST_ACCEPTED` + `ACCEPTED` |
+| `POST /:id/accept` | `REQUEST_ACCEPTED` + `ACCEPTED` | `REQUEST_ACCEPTED` + `ACCEPTED` |
+| `POST /:id/reject` | `REQUEST_REJECTED` + `NONE` | `REQUEST_REJECTED` + `NONE` |
+| `DELETE /requests/:id` (cancel) | `REQUEST_CANCELLED` + `NONE` | `REQUEST_CANCELLED` + `NONE` |
+| `DELETE /:id` (unfriend) | `UNFRIENDED` + `NONE` | `UNFRIENDED` + `NONE` |
+
+> Field `otherUserId` LUÔN là user kia (từ góc nhìn recipient). FE dùng để tìm đúng row trong list để remove/update.
+
+### Handler mẫu
+
+```ts
+socket.on('friend:update', ({ type, otherUserId, status }) => {
+  switch (type) {
+    case 'REQUEST_SENT':
+      if (status === 'PENDING_IN') incomingStore.add({ userId: otherUserId });
+      else outgoingStore.add({ userId: otherUserId });
+      break;
+
+    case 'REQUEST_ACCEPTED':
+      incomingStore.remove(otherUserId);
+      outgoingStore.remove(otherUserId);
+      friendsStore.add({ userId: otherUserId });
+      break;
+
+    case 'REQUEST_REJECTED':
+    case 'REQUEST_CANCELLED':
+      incomingStore.remove(otherUserId);
+      outgoingStore.remove(otherUserId);
+      break;
+
+    case 'UNFRIENDED':
+      friendsStore.remove(otherUserId);
+      break;
+  }
+});
+```
+
+### Side-effect noti tự clear
+
+Khi user xử lý lời mời (accept/reject), server **tự mark read** notification `FRIEND_REQUEST_RECEIVED` tương ứng và emit `notification:cleared` để FE giảm badge ngay. Tương tự khi sender cancel → noti ở target cũng được clear. Chi tiết: [07-notifications.md](./07-notifications.md#auto-clear-notification).
+
+---
+
 **Liên quan:**
 - 🔔 Noti friend request realtime → [07-notifications.md](./07-notifications.md)
 - 💬 Mở chat 1-1 sau khi accept → [03-conversations.md](./03-conversations.md#tạo-chat-1-1-direct)
