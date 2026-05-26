@@ -122,12 +122,10 @@ export function useChatRealtime() {
     }
 
     function onMessageNew(message: Message) {
-      console.log('[ws message:new]', message.id, message.conversationId);
       upsertMessage(message);
     }
 
     function onConversationNotify(payload: NotifyPayload) {
-      console.log('[ws conversation:notify]', payload.conversationId, payload.message.id);
       qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
       // Luôn upsert (kể cả cache rỗng) — đảm bảo nếu user mở conv ngay sau đó,
       // tin nhắn đã có sẵn trong cache, không bị "delay 1 vòng REST".
@@ -136,13 +134,11 @@ export function useChatRealtime() {
 
     function onReconnect() {
       // WS có thể đã miss event trong gap reconnect → refetch toàn bộ chat state.
-      console.log('[ws reconnect] invalidating chat queries');
       qc.invalidateQueries({ queryKey: chatKeys.all });
     }
 
     function onMessageRead(payload: ReadPayload) {
       const meId = useAuthStore.getState().user?.id ?? null;
-      console.log('[ws message:read]', payload, 'me=', meId);
       const key = chatKeys.messages(payload.conversationId);
       const readAtMs = new Date(payload.readAt).getTime();
 
@@ -227,7 +223,7 @@ export function useChatRealtime() {
       }
     }
 
-socket.on('message:new', onMessageNew);
+    socket.on('message:new', onMessageNew);
     socket.on('conversation:notify', onConversationNotify);
     socket.on('conversation:deleted', onConversationDeleted);
     socket.on('message:read', onMessageRead);

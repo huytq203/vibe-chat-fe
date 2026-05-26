@@ -1,16 +1,39 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Clock, Image as ImageIcon, Paperclip, Send, Smile, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert/Alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
+import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { cn } from '@/lib/utils/cn';
+import { emojiToUrl } from '@/lib/utils/emoji';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useSendMessage } from '../hooks/use-mutations';
 
 const TYPING_STOP_DEBOUNCE_MS = 3_000;
+const MAX_LENGTH = 5000;
+
+// Walk the contenteditable DOM → plain text string.
+// text nodes → raw text, <img data-emoji> → alt (the emoji char), <br> → \n
+function extractText(el: HTMLElement): string {
+  let text = '';
+  el.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent ?? '';
+    } else if (node.nodeName === 'IMG') {
+      text += (node as HTMLImageElement).alt;
+    } else if (node.nodeName === 'BR') {
+      text += '\n';
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const inner = extractText(node as HTMLElement);
+      text += inner;
+      if (inner && ['DIV', 'P'].includes(node.nodeName)) text += '\n';
+    }
+  });
+  return text;
+}
 
 type MessageInputProps = {
   conversationId: string;
@@ -18,77 +41,163 @@ type MessageInputProps = {
 };
 
 export function MessageInput({ conversationId, disabled }: MessageInputProps) {
-  const [text, setText] = useState('');
+  const editorRef = useRef<HTMLDivElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
+  const [hasContent, setHasContent] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const send = useSendMessage();
   const typingStateRef = useRef<'start' | 'stop'>('stop');
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clear editor and stop typing when conversation changes
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = '';
+      setHasContent(false);
+    }
+    return () => {
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      if (typingStateRef.current === 'start') {
+        const socket = getSocket(apiAuth.getToken());
+        if (socket?.connected) socket.emit('typing', { conversationId, state: 'stop' });
+        typingStateRef.current = 'stop';
+      }
+    };
+  }, [conversationId]);
+
   function emitTyping(state: 'start' | 'stop') {
     if (typingStateRef.current === state) return;
     const socket = getSocket(apiAuth.getToken());
-    if (!socket || !socket.connected) {
-      typingStateRef.current = state;
-      return;
-    }
+    if (!socket?.connected) { typingStateRef.current = state; return; }
     socket.emit('typing', { conversationId, state });
     typingStateRef.current = state;
   }
 
   function scheduleStop() {
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    stopTimerRef.current = setTimeout(() => {
-      emitTyping('stop');
-    }, TYPING_STOP_DEBOUNCE_MS);
+    stopTimerRef.current = setTimeout(() => emitTyping('stop'), TYPING_STOP_DEBOUNCE_MS);
   }
 
-  function handleChange(e: ChangeEvent<HTMLTextAreaElement>) {
-    const value = e.target.value;
-    setText(value);
+  function syncHasContent() {
+    const el = editorRef.current;
+    if (!el) return false;
+    const text = extractText(el);
+    const has = text.trim().length > 0;
+    setHasContent(has);
+    return has;
+  }
+
+  function handleInput() {
+    const el = editorRef.current;
+    if (!el) return;
+    const text = extractText(el);
+    const has = text.trim().length > 0;
+    setHasContent(has);
     if (disabled) return;
-    if (value.trim().length > 0) {
-      emitTyping('start');
-      scheduleStop();
-    } else {
-      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-      emitTyping('stop');
+    if (has) { emitTyping('start'); scheduleStop(); }
+    else { if (stopTimerRef.current) clearTimeout(stopTimerRef.current); emitTyping('stop'); }
+  }
+
+  function handleKey(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Insert <br> for newline instead of default div-wrapping
+        e.preventDefault();
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          const br = document.createElement('br');
+          range.insertNode(br);
+          range.setStartAfter(br);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          syncHasContent();
+        }
+      } else {
+        e.preventDefault();
+        submit();
+      }
+      return;
+    }
+    // Enforce max length for printable keys
+    if (!e.ctrlKey && !e.metaKey && e.key.length === 1) {
+      const el = editorRef.current;
+      if (el && extractText(el).length >= MAX_LENGTH) e.preventDefault();
     }
   }
 
-  useEffect(() => {
-    return () => {
-      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-      if (typingStateRef.current === 'start') {
-        const socket = getSocket(apiAuth.getToken());
-        if (socket?.connected) {
-          socket.emit('typing', { conversationId, state: 'stop' });
-        }
-        typingStateRef.current = 'stop';
-      }
-    };
-  }, [conversationId]);
+  function handlePaste(e: ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const plain = e.clipboardData.getData('text/plain');
+    if (!plain) return;
+    const el = editorRef.current;
+    const currentLen = el ? extractText(el).length : 0;
+    const truncated = plain.slice(0, MAX_LENGTH - currentLen);
+    if (!truncated) return;
+    // insertText is deprecated but still the most compatible way for contenteditable
+    document.execCommand('insertText', false, truncated);
+    syncHasContent();
+  }
 
   function submit() {
-    const trimmed = text.trim();
-    if (!trimmed || disabled) return;
+    const el = editorRef.current;
+    if (!el || disabled) return;
+    const text = extractText(el).trim();
+    if (!text) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
     emitTyping('stop');
-    setText('');
-    send.mutate({
-      conversationId,
-      plaintext: trimmed,
-      clientNonce: crypto.randomUUID(),
-      type: 'TEXT',
-    });
+    el.innerHTML = '';
+    setHasContent(false);
+    send.mutate({ conversationId, plaintext: text, clientNonce: crypto.randomUUID(), type: 'TEXT' });
   }
 
-  function handleKey(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      submit();
+  // Save cursor position just before the emoji picker opens
+  function handleEmojiButtonClick() {
+    const sel = window.getSelection();
+    savedRangeRef.current = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+    setEmojiOpen((v) => !v);
+  }
+
+  function handleEmojiSelect(emoji: string) {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+
+    // Restore saved cursor, or place at end
+    const sel = window.getSelection();
+    const range = savedRangeRef.current ?? (() => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);
+      return r;
+    })();
+    savedRangeRef.current = null;
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+
+    range.deleteContents();
+
+    const url = emojiToUrl(emoji);
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = emoji;
+      img.title = emoji;
+      img.className = 'inline-block h-[1.2em] w-[1.2em] align-[-0.2em]';
+      img.setAttribute('draggable', 'false');
+      range.insertNode(img);
+      range.setStartAfter(img);
+    } else {
+      const node = document.createTextNode(emoji);
+      range.insertNode(node);
+      range.setStartAfter(node);
     }
-  }
 
-  const hasText = text.trim().length > 0;
+    range.collapse(true);
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    syncHasContent();
+  }
 
   return (
     <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3">
@@ -111,36 +220,62 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           <Button variant="ghost" size="icon-sm" title="Tin nhắn hẹn giờ" aria-label="Tin nhắn hẹn giờ" className="text-warning hover:text-warning">
             <Clock className="h-[18px] w-[18px]" />
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Emoji" aria-label="Emoji" className="text-muted-foreground hover:text-primary">
-            <Smile className="h-[18px] w-[18px]" />
-          </Button>
+          <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+            <PopoverTrigger>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Emoji"
+                aria-label="Emoji"
+                className="text-muted-foreground hover:text-primary"
+                onClick={handleEmojiButtonClick}
+              >
+                <Smile className="h-[18px] w-[18px]" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" sideOffset={8} showArrow={false} className="w-auto p-0">
+              <EmojiPicker onSelect={handleEmojiSelect} />
+            </PopoverContent>
+          </Popover>
         </div>
-        <Textarea
-          value={text}
-          onChange={handleChange}
-          onKeyDown={handleKey}
-          placeholder="Nhập tin nhắn..."
-          rows={1}
-          disabled={disabled}
-          maxLength={5000}
-          className={cn(
-            'min-h-[36px] max-h-32 resize-none border-0 bg-transparent py-2 px-1.5 text-[13.5px] shadow-none',
-            'focus-visible:ring-0 focus:border-transparent',
+
+        {/* Contenteditable editor with absolute placeholder */}
+        <div className="relative min-h-[36px] flex-1">
+          {!hasContent && (
+            <span className="pointer-events-none absolute left-1.5 top-2 select-none text-[13.5px] text-muted-foreground">
+              Nhập tin nhắn...
+            </span>
           )}
-        />
-        {hasText&&
-        
-        <Button
-          variant={hasText ? 'solid' : 'ghost'}
-          size="icon-sm"
-          onClick={submit}
-          aria-label="Gửi"
-          title="Gửi"
-          className="shrink-0"
-        >
-          { <Send className="h-[18px] w-[18px]" />}
-        </Button>
-        }
+          <div
+            ref={editorRef}
+            contentEditable={disabled ? 'false' : 'true'}
+            suppressContentEditableWarning
+            onInput={handleInput}
+            onKeyDown={handleKey}
+            onPaste={handlePaste}
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Nhập tin nhắn"
+            className={cn(
+              'min-h-[36px] max-h-32 overflow-y-auto px-1.5 py-2 text-[13.5px] leading-relaxed',
+              'whitespace-pre-wrap break-words outline-none',
+              disabled && 'cursor-not-allowed opacity-50',
+            )}
+          />
+        </div>
+
+        {hasContent && (
+          <Button
+            variant="solid"
+            size="icon-sm"
+            onClick={submit}
+            aria-label="Gửi"
+            title="Gửi"
+            className="shrink-0"
+          >
+            <Send className="h-[18px] w-[18px]" />
+          </Button>
+        )}
       </div>
     </div>
   );

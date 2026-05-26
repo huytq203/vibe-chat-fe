@@ -8,6 +8,7 @@ import {
   useFcmSetup,
   useNotificationRealtime,
 } from '@/features/notifications';
+import { useFriendRealtime } from '@/features/friends';
 import { useChatUIStore } from '../stores/chat-ui.store';
 import { useSelectedConversation } from '../hooks/useSelectedConversation';
 import { useConversations } from '../hooks/use-query';
@@ -25,6 +26,7 @@ export function ChatLayout() {
   const router = useRouter();
   useChatRealtime();
   useNotificationRealtime();
+  useFriendRealtime();
   useFcmSetup();
 
   useEffect(() => {

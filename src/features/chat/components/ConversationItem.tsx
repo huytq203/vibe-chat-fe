@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge/Badge';
+import { EmojiText } from '@/components/common/EmojiText';
 import { cn } from '@/lib/utils/cn';
 import type { Conversation } from '../types';
 import { formatListTime, getConversationName, getConversationSeed } from '../utils';
@@ -38,7 +39,9 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
           <span className="shrink-0 text-[11px] text-muted-foreground">{time}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-muted-foreground">{preview}</span>
+          <span className="truncate text-xs text-muted-foreground">
+              <EmojiText text={preview} />
+            </span>
           {unread > 0 && (
             <Badge variant="default" size="sm">
               {unread > 99 ? '99+' : unread}

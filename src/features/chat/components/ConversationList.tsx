@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, MessageSquare, Plus, Search, Users } from 'lucide-react';
+import { MessageSquare, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { Badge } from '@/components/ui/badge/Badge';
@@ -44,8 +44,6 @@ export function ConversationList() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
-  const notiUnread = useUnreadCount();
-  const notiUnreadCount = notiUnread.data?.unreadCount ?? 0;
 
   const qc = useQueryClient();
   const openDirectMut = useMutation({
@@ -87,75 +85,11 @@ export function ConversationList() {
           </div>
           <span className="text-lg font-bold tracking-tight">VibeChat</span>
         </div>
-        <Button
-          variant="solid"
-          size="icon-sm"
-          title="Thông báo"
-          aria-label="Thông báo"
-          className="relative"
-          onClick={() => setNotiOpen(true)}
-        >
-          <Bell className="h-[18px] w-[18px]" />
-          {notiUnreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
-              {notiUnreadCount > 9 ? '9+' : notiUnreadCount}
-            </span>
-          )}
-        </Button>
+        
       </header>
 
-      <div className="relative flex flex-1 flex-col overflow-hidden">
-        <div className="shrink-0 px-3 pb-2.5">
-          <Input
-            variant="filled"
-            icon={<Search className="h-[15px] w-[15px]" />}
-            placeholder="Tìm kiếm..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            className="h-9 text-[13px]"
-          />
-        </div>
-
-        <div className="shrink-0 px-3 pb-2">
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}
-          >
-            <TabsList size="xs" className="w-full">
-              {TABS.map((tab) => (
-                <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
-                  {tab.label}
-                  {tab.id === 'unread' && unreadTotal > 0 && (
-                    <Badge variant="default" size="sm">{unreadTotal}</Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
-          {isLoading && (
-            <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
-          )}
-          {!isLoading && filtered.length === 0 && (
-            <div className="px-3 py-10 text-center text-xs text-muted-foreground">
-              {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
-            </div>
-          )}
-          {filtered.map((c) => (
-            <ConversationItem
-              key={c.id}
-              conversation={c}
-              selected={selectedConversationId === c.id}
-              meId={me?.id ?? null}
-              onSelect={setSelected}
-            />
-          ))}
-        </div>
-
-        {searchFocused && (
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {searchFocused ? (
           <SearchOverlay
             query={search}
             onQueryChange={setSearch}
@@ -166,6 +100,58 @@ export function ConversationList() {
             onSelectConversation={setSelected}
             onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
           />
+        ) : (
+          <>
+            <div className="shrink-0 px-3 pb-2.5">
+              <Input
+                variant="filled"
+                icon={<Search className="h-[15px] w-[15px]" />}
+                placeholder="Tìm kiếm..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                className="h-9 text-[13px]"
+              />
+            </div>
+
+            <div className="shrink-0 px-3 pb-2">
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}
+              >
+                <TabsList size="xs" className="w-full">
+                  {TABS.map((tab) => (
+                    <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
+                      {tab.label}
+                      {tab.id === 'unread' && unreadTotal > 0 && (
+                        <Badge variant="default" size="sm">{unreadTotal}</Badge>
+                      )}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-2 pb-2">
+              {isLoading && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
+              )}
+              {!isLoading && filtered.length === 0 && (
+                <div className="px-3 py-10 text-center text-xs text-muted-foreground">
+                  {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
+                </div>
+              )}
+              {filtered.map((c) => (
+                <ConversationItem
+                  key={c.id}
+                  conversation={c}
+                  selected={selectedConversationId === c.id}
+                  meId={me?.id ?? null}
+                  onSelect={setSelected}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 

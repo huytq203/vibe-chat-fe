@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils/cn';
 import type { Message } from '../types';
 import { formatBubbleTime } from '../utils';
 import { useDiscardFailedMessage, useResendMessage } from '../hooks/use-mutations';
+import { EmojiText } from '@/components/common/EmojiText';
 import { Avatar } from './Avatar';
 
 type MessageBubbleProps = {
@@ -122,9 +123,11 @@ function BubbleContent({ message, isE2E }: { message: Message; isE2E: boolean })
   }
   if (message.type === 'TEXT') {
     return (
-      <span className="block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed">
-        {message.plaintext ?? message.contentPreview ?? ''}
-      </span>
+      <EmojiText
+        text={message.plaintext ?? message.contentPreview ?? ''}
+        className="block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed"
+        largeEmoji
+      />
     );
   }
   return (

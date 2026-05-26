@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Bell, BellOff, Phone, Pin, Search, Trash2, UserMinus, UserX, Video, X } from 'lucide-react';
+import { Bell, BellOff, PenIcon, Phone, Pin, Search, Trash2, UserMinus, Users, UserX, Video, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
@@ -135,13 +135,13 @@ export function ContactInfo() {
       <div className="flex-1 overflow-y-auto">
         <section className="flex flex-col items-center border-b border-border px-4 pb-4 pt-5">
           <Avatar name={name} seed={seed} size="lg" status={status} className="mb-3" />
-          <div className="text-[17px] font-bold text-foreground">{name}</div>
+          <div className="text-[17px] font-bold text-foreground flex items-center gap-2">{name} <span className='border border-border p-1 rounded-md hover:bg-secondary  transition-colors duration-200'><PenIcon className="h-[14px] w-[14px] cursor-pointer text-muted-foreground"/></span></div>
           <Badge variant={statusVariant} size="sm" className="mt-1.5">
             {statusText}
           </Badge>
         </section>
 
-        <section className="grid grid-cols-4 gap-2 px-3 py-3">
+        <section className="flex items-center gap-2 px-3 py-3">
           <QuickAction icon={<Phone className="h-[18px] w-[18px]" />} label="Gọi" />
           <QuickAction icon={<Video className="h-[18px] w-[18px]" />} label="Video" />
           <QuickAction icon={<Search className="h-[18px] w-[18px]" />} label="Tìm" />
@@ -178,6 +178,11 @@ export function ContactInfo() {
           </div>
           <div className="flex flex-col gap-0.5">
             <OptionRow icon={<Pin className="h-4 w-4" />} label="Ghim cuộc trò chuyện" />
+            <OptionRow
+                icon={<Users className="h-4 w-4" />}
+                label="Tạo nhóm"
+                onClick={()=>{}}
+              />
             {canBlock && (
               <OptionRow
                 icon={<UserX className="h-4 w-4" />}
@@ -202,6 +207,7 @@ export function ContactInfo() {
                 onClick={() => setConfirmDeleteOpen(true)}
               />
             )}
+            
           </div>
         </section>
       </div>

@@ -39,7 +39,7 @@ export function UserMenu() {
 
   return (
     <>
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} >
         <PopoverTrigger>
           <button
             type="button"

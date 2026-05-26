@@ -75,3 +75,17 @@ export type BlockUserInput = {
   targetUserId: string;
   reason?: string;
 };
+
+export type FriendUpdateType =
+  | 'REQUEST_SENT'
+  | 'REQUEST_ACCEPTED'
+  | 'REQUEST_REJECTED'
+  | 'REQUEST_CANCELLED'
+  | 'UNFRIENDED';
+
+export type FriendUpdateEvent = {
+  type: FriendUpdateType;
+  otherUserId: string;
+  status: 'PENDING_IN' | 'PENDING_OUT' | 'ACCEPTED' | 'NONE';
+  at: string;
+};
