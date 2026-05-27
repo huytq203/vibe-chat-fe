@@ -9,13 +9,13 @@ import {
   useNotificationRealtime,
 } from '@/features/notifications';
 import { useFriendRealtime } from '@/features/friends';
-import { useChatUIStore } from '../stores/chat-ui.store';
-import { useSelectedConversation } from '../hooks/useSelectedConversation';
-import { useConversations } from '../hooks/use-query';
-import { useChatRealtime } from '../hooks/useChatRealtime';
-import { ConversationList } from './ConversationList';
+import { useChatUIStore } from '../../stores/chat-ui.store';
+import { useSelectedConversation } from '../../hooks/useSelectedConversation';
+import { useConversations } from '../../hooks/use-query';
+import { useChatRealtime } from '../../hooks/useChatRealtime';
+import { ConversationList } from '../conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
-import { ContactInfo } from './ContactInfo';
+import { ContactInfo } from '../contact/ContactInfo';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);

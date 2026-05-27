@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { cn } from '@/lib/utils/cn';
-import type { Conversation, Presence } from '../types';
-import { getConversationName, getConversationSeed } from '../utils';
-import { Avatar } from './Avatar';
+import type { Conversation, Presence } from '../../types';
+import { getConversationName, getConversationSeed } from '../../utils';
+import { Avatar } from '../common/Avatar';
 
 type ChatHeaderProps = {
   conversation: Conversation;

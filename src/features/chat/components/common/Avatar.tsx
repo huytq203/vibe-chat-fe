@@ -1,9 +1,9 @@
 import { Avatar as BaseAvatar } from '@/components/ui/avatar/Avatar';
 import { cn } from '@/lib/utils/cn';
-import { getAvatarColor, getInitials } from '../utils';
+import { getAvatarColor, getInitials } from '../../utils';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
-type AvatarStatus = 'online' | 'offline' | 'away';
+export type AvatarStatus = 'online' | 'offline' | 'away';
 
 type ChatAvatarProps = {
   name: string | null | undefined;

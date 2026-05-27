@@ -183,7 +183,6 @@ export function useSendMessage() {
 
 export function useResendMessage() {
   const qc = useQueryClient();
-  const currentUserId = useAuthStore((s) => s.user?.id ?? '');
 
   return useMutation<string, Error, { conversationId: string; tempId: string }>({
     mutationFn: async (vars) => {
@@ -330,6 +329,35 @@ export function useMarkRead() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+    },
+  });
+}
+
+export function useCreateGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; memberIds: string[] }) =>
+      chatApi.createGroup(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+    },
+  });
+}
+
+export function useSetNickname() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      userId,
+      nickname,
+    }: {
+      conversationId: string;
+      userId: string;
+      nickname: string | null;
+    }) => chatApi.setNickname(conversationId, userId, nickname),
+    onSuccess: (_, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
     },
   });
 }

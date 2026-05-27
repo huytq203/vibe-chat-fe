@@ -3,9 +3,9 @@
 import { Badge } from '@/components/ui/badge/Badge';
 import { EmojiText } from '@/components/common/EmojiText';
 import { cn } from '@/lib/utils/cn';
-import type { Conversation } from '../types';
-import { formatListTime, getConversationName, getConversationSeed } from '../utils';
-import { Avatar } from './Avatar';
+import type { Conversation } from '../../types';
+import { formatListTime, getConversationName, getConversationSeed } from '../../utils';
+import { Avatar } from '../common/Avatar';
 
 type ConversationItemProps = {
   conversation: Conversation;

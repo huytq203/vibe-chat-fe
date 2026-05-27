@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import { Avatar } from './Avatar';
+import { Avatar } from '../common/Avatar';
 
 type TypingBubbleProps = {
   userId: string;

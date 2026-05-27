@@ -2,11 +2,11 @@
 
 import { AlertCircle, Check, CheckCheck, Clock, Lock, RotateCw, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import type { Message } from '../types';
-import { formatBubbleTime } from '../utils';
-import { useDiscardFailedMessage, useResendMessage } from '../hooks/use-mutations';
+import type { Message } from '../../types';
+import { formatBubbleTime } from '../../utils';
+import { useDiscardFailedMessage, useResendMessage } from '../../hooks/use-mutations';
 import { EmojiText } from '@/components/common/EmojiText';
-import { Avatar } from './Avatar';
+import { Avatar } from '../common/Avatar';
 
 type MessageBubbleProps = {
   message: Message;

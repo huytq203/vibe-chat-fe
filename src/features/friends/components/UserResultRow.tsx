@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, MessageSquare, ShieldOff, UserPlus, X } from 'lucide-react';
-import { Avatar } from '@/features/chat/components/Avatar';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { cn } from '@/lib/utils/cn';

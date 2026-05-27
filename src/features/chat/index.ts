@@ -1,4 +1,4 @@
-export { ChatLayout } from './components/ChatLayout';
+export { ChatLayout } from './components/layout/ChatLayout';
 export { useChatUIStore } from './stores/chat-ui.store';
 export { useSelectedConversation } from './hooks/useSelectedConversation';
 export {

@@ -5,6 +5,8 @@ export type AuthUser = {
   phone: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
+  dateOfBirth: string | null;
   status: string;
   isOnline: boolean;
   lastSeenAt: string | null;

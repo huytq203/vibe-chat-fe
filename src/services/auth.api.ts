@@ -5,6 +5,7 @@ import type {
   AuthUser,
   LoginInput,
   RegisterInput,
+  UpdateMeInput,
 } from '@/features/auth';
 
 /**
@@ -28,4 +29,6 @@ export const authApi = {
       auth: false,
     }),     
   fetchMe: () => apiClient.get<AuthUser>('/api/v1/auth/me'),
+  updateMe: (input: UpdateMeInput) =>
+    apiClient.patch<AuthUser>('/api/v1/users/me', { body: input }),
 } as const;

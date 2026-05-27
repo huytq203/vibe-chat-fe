@@ -60,4 +60,15 @@ export const chatApi = {
     apiClient.get<Presence[]>('/api/v1/presence', {
       query: { userIds: userIds.join(',') },
     }),
+
+  setNickname: (conversationId: string, userId: string, nickname: string | null) =>
+    apiClient.patch<void>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/nickname`,
+      { body: { nickname } },
+    ),
+
+  createGroup: (input: { name: string; memberIds: string[] }) =>
+    apiClient.post<Conversation>('/api/v1/conversations/group', {
+      body: { ...input, encryptionType: 'SERVER' },
+    }),
 } as const;

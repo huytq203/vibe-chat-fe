@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useAuthStore } from '@/features/auth';
-import { useConversation, useMessages } from '../hooks/use-query';
-import { useTypingStore } from '../stores/typing.store';
-import type { Message } from '../types';
-import { buildMemberNameMap } from '../utils';
+import { useConversation, useMessages } from '../../hooks/use-query';
+import { useTypingStore } from '../../stores/typing.store';
+import type { Message } from '../../types';
+import { buildMemberNameMap } from '../../utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 

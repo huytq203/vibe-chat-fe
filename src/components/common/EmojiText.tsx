@@ -13,7 +13,7 @@ function isEmojiOnly(text: string, tokens: TwemojiEntity[]): boolean {
 }
 
 const IMG_SIZE = {
-  normal: 'h-[1.2em] w-[1.2em] align-[-0.2em]',
+  normal: 'h-[1.4em] w-[1.4em] align-[-0.2em]',
   lg:     'h-[1.8em] w-[1.8em] align-[-0.3em]',
   xl:     'h-[2.5em] w-[2.5em] align-[-0.4em]',
   '2xl':  'h-[3em]   w-[3em]   align-[-0.5em]',

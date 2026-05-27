@@ -23,7 +23,15 @@
       "Bash(Get-ChildItem -Path \"D:\\\\code\\\\my\\\\fe\\\\vibe-chat-fe\\\\src\" -Recurse -Name)",
       "Bash(Select-String -Pattern \"friend|unfriend\")",
       "Bash(Get-ChildItem *)",
-      "Bash(python3 -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('types:',d.get\\('types',''\\)\\);print\\('exports:',list\\(d.get\\('exports',{}\\).keys\\(\\)\\)[:5]\\)\")"
+      "Bash(python3 -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('types:',d.get\\('types',''\\)\\);print\\('exports:',list\\(d.get\\('exports',{}\\).keys\\(\\)\\)[:5]\\)\")",
+      "Bash(git mv *)",
+      "Bash(New-Item -ItemType Directory -Force \"src/features/chat/components/layout\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force \"src/features/chat/components/messages\")",
+      "Bash(New-Item -ItemType Directory -Force \"src/features/chat/components/contact\")",
+      "PowerShell(Move-Item *)",
+      "Bash(git add *)",
+      "Bash(xargs grep -l \"conversation.type.*GROUP\\\\|type.*==.*GROUP\")"
     ]
   }
 }

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils/cn';
 import { emojiToUrl } from '@/lib/utils/emoji';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
-import { useSendMessage } from '../hooks/use-mutations';
+import { useSendMessage } from '../../hooks/use-mutations';
 
 const TYPING_STOP_DEBOUNCE_MS = 3_000;
 const MAX_LENGTH = 5000;

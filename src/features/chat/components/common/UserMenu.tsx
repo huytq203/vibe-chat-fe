@@ -18,14 +18,21 @@ import {
 import { Button } from '@/components/ui/button/Button';
 import { useAuthStore, useLogout } from '@/features/auth';
 import { Avatar } from './Avatar';
+import { ProfileDialog } from '../contact/ProfileDialog';
 
 export function UserMenu() {
   const me = useAuthStore((s) => s.user);
   const logout = useLogout();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const displayName = me?.displayName ?? me?.username ?? 'Tài khoản';
+
+  const handleOpenProfile = () => {
+    setPopoverOpen(false);
+    setProfileOpen(true);
+  };
 
   const handleRequestLogout = () => {
     setPopoverOpen(false);
@@ -83,6 +90,7 @@ export function UserMenu() {
           <div className="flex flex-col p-1.5">
             <button
               type="button"
+              onClick={handleOpenProfile}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <User className="h-4 w-4 text-muted-foreground" />
@@ -107,6 +115,8 @@ export function UserMenu() {
           </div>
         </PopoverContent>
       </Popover>
+
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

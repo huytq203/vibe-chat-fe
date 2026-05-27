@@ -15,10 +15,10 @@ import {
   useRejectFriendRequest,
 } from '@/features/friends';
 import type { UserSearchItem } from '@/features/friends';
-import { Avatar } from './Avatar';
+import { Avatar } from '../common/Avatar';
 import { ConversationItem } from './ConversationItem';
-import { getConversationName } from '../utils';
-import type { Conversation } from '../types';
+import { getConversationName } from '../../utils';
+import type { Conversation } from '../../types';
 
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 300;

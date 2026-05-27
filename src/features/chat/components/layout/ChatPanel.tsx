@@ -3,13 +3,13 @@
 import { useEffect, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
-import { useChatUIStore } from '../stores/chat-ui.store';
-import { useSelectedConversation } from '../hooks/useSelectedConversation';
-import { useConversation, usePresence } from '../hooks/use-query';
-import { useMarkRead } from '../hooks/use-mutations';
+import { useChatUIStore } from '../../stores/chat-ui.store';
+import { useSelectedConversation } from '../../hooks/useSelectedConversation';
+import { useConversation, usePresence } from '../../hooks/use-query';
+import { useMarkRead } from '../../hooks/use-mutations';
 import { ChatHeader } from './ChatHeader';
-import { MessageList } from './MessageList';
-import { MessageInput } from './MessageInput';
+import { MessageList } from '../messages/MessageList';
+import { MessageInput } from '../messages/MessageInput';
 
 export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);

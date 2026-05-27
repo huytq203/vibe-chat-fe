@@ -23,3 +23,11 @@ export const registerSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const updateMeSchema = z.object({
+  displayName: z.string().min(1, 'Tên hiển thị không được để trống').max(100),
+  gender: z.enum(['MALE', 'FEMALE']).nullable().optional(),
+  dateOfBirth: z.string().nullable().optional(),
+});
+
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;

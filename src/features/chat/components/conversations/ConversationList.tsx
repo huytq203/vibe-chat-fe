@@ -16,13 +16,13 @@ import {
 import { NotificationPanel, useUnreadCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
-import { useConversations } from '../hooks/use-query';
-import { useChatUIStore } from '../stores/chat-ui.store';
-import { useSelectedConversation } from '../hooks/useSelectedConversation';
-import { getConversationName } from '../utils';
+import { useConversations } from '../../hooks/use-query';
+import { useChatUIStore } from '../../stores/chat-ui.store';
+import { useSelectedConversation } from '../../hooks/useSelectedConversation';
+import { getConversationName } from '../../utils';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
-import { UserMenu } from './UserMenu';
+import { UserMenu } from '../common/UserMenu';
 
 const TABS = [
   { id: 'all', label: 'Tất cả' },
