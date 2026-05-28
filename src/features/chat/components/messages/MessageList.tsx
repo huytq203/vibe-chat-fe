@@ -86,8 +86,9 @@ export function MessageList({ conversationId }: MessageListProps) {
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="flex-1 space-y-1 overflow-y-auto px-5 pb-2 pt-4"
+      className="flex-1 overflow-y-auto px-5 pb-2 pt-4"
     >
+      <div className="flex min-h-full flex-col justify-end space-y-1">
       {isFetchingNextPage && (
         <div className="py-2 text-center text-[11px] text-muted-foreground">Đang tải thêm...</div>
       )}
@@ -118,6 +119,7 @@ export function MessageList({ conversationId }: MessageListProps) {
           />
         );
       })}
+      </div>
     </div>
   );
 }

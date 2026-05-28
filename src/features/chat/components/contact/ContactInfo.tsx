@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, BellOff, PenIcon, Phone, Pin, Search, Trash2, UserMinus, Users, UserX, Video, X } from "lucide-react";
+import { Bell, BellOff, PenIcon, Phone, Pin, Search, Trash2, UserMinus, UserPlus, Users, UserX, Video, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs/Tabs";
@@ -28,6 +28,7 @@ export function ContactInfo() {
     seed,
     isDirect,
     canUnfriend,
+    canCancelRequest,
     canBlock,
     canDelete,
     isBlocked,
@@ -49,8 +50,12 @@ export function ContactInfo() {
     handleConfirmUnfriend,
     handleConfirmDelete,
     handleConfirmBlock,
+    handleSendFriendRequest,
+    handleCancelFriendRequest,
     unfriendMut,
     deleteConvMut,
+    sendFriendMut,
+    cancelFriendMut,
   } = data;
   return (
     <aside className="flex h-full w-[300px] min-w-[260px] shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground">
@@ -123,12 +128,32 @@ export function ContactInfo() {
           </div>
           <div className="flex flex-col gap-0.5">
             <OptionRow icon={<Pin className="h-4 w-4" />} label="Ghim cuộc trò chuyện" />
-            {isDirect && (
+            {isDirect && canUnfriend && (
               <OptionRow icon={<Users className="h-4 w-4" />} label="Tạo nhóm" onClick={() => setCreateGroupOpen(true)} />
             )}
             {!isDirect && (
-              <OptionRow icon={<Users className="h-4 w-4" />} label="Thành viên nhóm" onClick={() => {}} />
+              <OptionRow icon={<Users className="h-4 w-4" />} label="Thành viên nhóm" onClick={() => { }} />
             )}
+            {canUnfriend ? (
+              <OptionRow
+                icon={<UserMinus className="h-4 w-4" />}
+                label="Xóa bạn"
+                danger
+                onClick={() => setConfirmUnfriendOpen(true)}
+              />
+            ) : canCancelRequest ? (
+              <OptionRow
+                icon={<Clock className="h-4 w-4" />}
+                label={cancelFriendMut.isPending ? "Đang huỷ lời mời..." : "Huỷ lời mời kết bạn"}
+                onClick={handleCancelFriendRequest}
+              />
+            ) : isDirect && otherUserId ? (
+              <OptionRow
+                icon={<UserPlus className="h-4 w-4" />}
+                label={sendFriendMut.isPending ? "Đang gửi lời mời..." : "Thêm bạn"}
+                onClick={handleSendFriendRequest}
+              />
+            ) : null}
             {canBlock && (
               <OptionRow
                 icon={<UserX className="h-4 w-4" />}
@@ -137,14 +162,7 @@ export function ContactInfo() {
                 onClick={() => setConfirmBlockOpen(true)}
               />
             )}
-            {canUnfriend && (
-              <OptionRow
-                icon={<UserMinus className="h-4 w-4" />}
-                label="Xóa bạn"
-                danger
-                onClick={() => setConfirmUnfriendOpen(true)}
-              />
-            )}
+
             {canDelete && (
               <OptionRow
                 icon={<Trash2 className="h-4 w-4" />}

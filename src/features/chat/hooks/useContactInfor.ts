@@ -2,8 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { useAuthStore } from "@/features/auth";
-import { useBlockedUsers, useFriends } from "@/features/friends/hooks/use-query";
-import { useBlockUser, useUnblockUser, useUnfriend } from "@/features/friends/hooks/use-mutations";
+import {
+  useBlockedUsers,
+  useFriends,
+  useOutgoingFriendRequests,
+} from "@/features/friends/hooks/use-query";
+import {
+  useBlockUser,
+  useCancelFriendRequest,
+  useSendFriendRequest,
+  useUnblockUser,
+  useUnfriend,
+} from "@/features/friends/hooks/use-mutations";
 import { useChatUIStore } from "../stores/chat-ui.store";
 import { useSelectedConversation } from "./useSelectedConversation";
 import { useConversation, usePresence } from "./use-query";
@@ -32,9 +42,12 @@ const useContactInfor = () => {
   const otherUserId = otherIds[0] ?? null;
   const friendsQuery = useFriends();
   const blockedQuery = useBlockedUsers();
+  const outgoingQuery = useOutgoingFriendRequests();
   const unfriendMut = useUnfriend();
   const blockMut = useBlockUser();
   const unblockMut = useUnblockUser();
+  const sendFriendMut = useSendFriendRequest();
+  const cancelFriendMut = useCancelFriendRequest();
 
   const isFriend = useMemo(() => {
     if (!otherUserId) return false;
@@ -46,12 +59,22 @@ const useContactInfor = () => {
     return Boolean(blockedQuery.data?.items.some((it) => it.user.id === otherUserId));
   }, [blockedQuery.data, otherUserId]);
 
+  const hasOutgoingRequest = useMemo(() => {
+    if (!otherUserId) return false;
+    return Boolean(
+      outgoingQuery.data?.items.some(
+        (it) => it.user.id === otherUserId && it.status === "PENDING_OUT",
+      ),
+    );
+  }, [outgoingQuery.data, otherUserId]);
+
   if (!conversation) return null;
 
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
   const isDirect = conversation.type === "DIRECT";
   const canUnfriend = isDirect && isFriend && Boolean(otherUserId);
+  const canCancelRequest = isDirect && !isFriend && hasOutgoingRequest && Boolean(otherUserId);
   const canBlock = isDirect && Boolean(otherUserId);
   const canDelete = isDirect || conversation.ownerId === meId;
   const blockBusy = blockMut.isPending || unblockMut.isPending;
@@ -82,6 +105,16 @@ const useContactInfor = () => {
     });
   };
 
+  const handleSendFriendRequest = () => {
+    if (!otherUserId || sendFriendMut.isPending) return;
+    sendFriendMut.mutate({ targetUserId: otherUserId, source: "SEARCH" });
+  };
+
+  const handleCancelFriendRequest = () => {
+    if (!otherUserId || cancelFriendMut.isPending) return;
+    cancelFriendMut.mutate(otherUserId);
+  };
+
   const handleConfirmBlock = () => {
     if (!otherUserId) return;
     if (isBlocked) {
@@ -99,10 +132,12 @@ const useContactInfor = () => {
     seed,
     isDirect,
     canUnfriend,
+    canCancelRequest,
     canBlock,
     canDelete,
     isFriend,
     isBlocked,
+    hasOutgoingRequest,
     blockBusy,
     status,
     statusText,
@@ -121,8 +156,12 @@ const useContactInfor = () => {
     handleConfirmUnfriend,
     handleConfirmDelete,
     handleConfirmBlock,
+    handleSendFriendRequest,
+    handleCancelFriendRequest,
     unfriendMut,
     deleteConvMut,
+    sendFriendMut,
+    cancelFriendMut,
   };
 };
 

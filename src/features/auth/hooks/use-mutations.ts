@@ -10,20 +10,24 @@ import { useAuthStore } from '../stores/auth.store';
 import type { LoginInput, RegisterInput, UpdateMeInput } from '../schemas';
 
 export function useLogin() {
+  const queryClient = useQueryClient();
   const setSession = useAuthStore((s) => s.setSession);
   return useMutation({
     mutationFn: (input: LoginInput) => authApi.login(input),
     onSuccess: (data) => {
+      queryClient.clear();
       setSession(data.user, data.tokens.accessToken);
     },
   });
 }
 
 export function useRegister() {
+  const queryClient = useQueryClient();
   const setSession = useAuthStore((s) => s.setSession);
   return useMutation({
     mutationFn: (input: RegisterInput) => authApi.register(input),
     onSuccess: (data) => {
+      queryClient.clear();
       setSession(data.user, data.tokens.accessToken);
     },
   });
@@ -42,6 +46,7 @@ export function useUpdateMe() {
 }
 
 export function useLogout() {
+  const queryClient = useQueryClient();
   const clear = useAuthStore((s) => s.clear);
   return useMutation({
     mutationFn: async () => {
@@ -55,6 +60,7 @@ export function useLogout() {
     onSettled: () => {
       closeSocket();
       clear();
+      queryClient.clear();
     },
   });
 }

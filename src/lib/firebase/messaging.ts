@@ -79,6 +79,8 @@ async function ensureServiceWorker(): Promise<ServiceWorkerRegistration | null> 
 }
 
 export async function getFcmToken(): Promise<string | null> {
+  if (!browserSupportsPush()) return null;
+  if (Notification.permission !== 'granted') return null;
   const messaging = await getMessagingInstance();
   if (!messaging) return null;
   const vapidKey = env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;

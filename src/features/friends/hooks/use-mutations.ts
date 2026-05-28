@@ -4,24 +4,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { friendsApi } from '@/services/friends.api';
 import { blocksApi } from '@/services/blocks.api';
-import { blockKeys, friendKeys, userKeys } from '@/services/keys';
+import { blockKeys, friendKeys } from '@/services/keys';
 import type { BlockUserInput, SendFriendRequestInput } from '../types';
-
-function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: userKeys.all });
-  qc.invalidateQueries({ queryKey: friendKeys.incoming() });
-  qc.invalidateQueries({ queryKey: friendKeys.outgoing() });
-  qc.invalidateQueries({ queryKey: friendKeys.list() });
-  qc.invalidateQueries({ queryKey: blockKeys.list() });
-}
 
 export function useSendFriendRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: SendFriendRequestInput) => friendsApi.sendRequest(input),
     onSuccess: (data) => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: friendKeys.outgoing() });
       if (data.status === 'ACCEPTED') {
+        qc.invalidateQueries({ queryKey: friendKeys.list() });
+        qc.invalidateQueries({ queryKey: friendKeys.incoming() });
         toast.success('Đã trở thành bạn bè 🎉');
       } else {
         toast.success('Đã gửi lời mời kết bạn');
@@ -36,7 +30,7 @@ export function useCancelFriendRequest() {
   return useMutation({
     mutationFn: (targetUserId: string) => friendsApi.cancelRequest(targetUserId),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: friendKeys.outgoing() });
       toast.success('Đã huỷ lời mời');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -48,7 +42,8 @@ export function useAcceptFriendRequest() {
   return useMutation({
     mutationFn: (targetUserId: string) => friendsApi.acceptRequest(targetUserId),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: friendKeys.incoming() });
+      qc.invalidateQueries({ queryKey: friendKeys.list() });
       toast.success('Đã chấp nhận lời mời');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -60,7 +55,7 @@ export function useRejectFriendRequest() {
   return useMutation({
     mutationFn: (targetUserId: string) => friendsApi.rejectRequest(targetUserId),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: friendKeys.incoming() });
       toast.success('Đã từ chối lời mời');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -72,7 +67,7 @@ export function useUnfriend() {
   return useMutation({
     mutationFn: (targetUserId: string) => friendsApi.unfriend(targetUserId),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: friendKeys.list() });
       toast.success('Đã huỷ kết bạn');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -84,7 +79,8 @@ export function useBlockUser() {
   return useMutation({
     mutationFn: (input: BlockUserInput) => blocksApi.block(input),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: blockKeys.list() });
+      qc.invalidateQueries({ queryKey: friendKeys.list() });
       toast.success('Đã chặn người dùng');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -96,7 +92,7 @@ export function useUnblockUser() {
   return useMutation({
     mutationFn: (targetUserId: string) => blocksApi.unblock(targetUserId),
     onSuccess: () => {
-      invalidateAll(qc);
+      qc.invalidateQueries({ queryKey: blockKeys.list() });
       toast.success('Đã bỏ chặn');
     },
     onError: (e: Error) => toast.error(e.message),
