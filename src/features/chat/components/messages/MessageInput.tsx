@@ -5,7 +5,7 @@ import { Clock, Image as ImageIcon, Paperclip, Send, Smile, Video } from 'lucide
 import { Button } from '@/components/ui/button/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert/Alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
-import { EmojiPicker } from '@/components/common/EmojiPicker';
+import { EmojiPicker, prefetchEmojiPicker } from '@/components/common/EmojiPicker';
 import { cn } from '@/lib/utils/cn';
 import { emojiToUrl } from '@/lib/utils/emoji';
 import { apiAuth } from '@/lib/api/client';
@@ -228,6 +228,8 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
                 title="Emoji"
                 aria-label="Emoji"
                 className="text-muted-foreground hover:text-primary"
+                onMouseEnter={prefetchEmojiPicker}
+                onFocus={prefetchEmojiPicker}
                 onClick={handleEmojiButtonClick}
               >
                 <Smile className="h-[18px] w-[18px]" />
@@ -240,9 +242,9 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         </div>
 
         {/* Contenteditable editor with absolute placeholder */}
-        <div className="relative min-h-[36px] flex-1">
+        <div className="relative min-h-[32px] flex-1">
           {!hasContent && (
-            <span className="pointer-events-none absolute left-1.5 top-2 select-none text-[13.5px] text-muted-foreground">
+            <span className="pointer-events-none absolute left-1.5 top-[5px] select-none text-[13.5px] text-muted-foreground">
               Nhập tin nhắn...
             </span>
           )}
@@ -257,7 +259,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
             aria-multiline="true"
             aria-label="Nhập tin nhắn"
             className={cn(
-              'min-h-[36px] max-h-32 overflow-y-auto px-1.5 py-2 text-[13.5px] leading-relaxed',
+              'min-h-[32px] max-h-32 overflow-y-auto px-1.5 py-[5px] text-[13.5px] leading-relaxed',
               'whitespace-pre-wrap break-words outline-none',
               disabled && 'cursor-not-allowed opacity-50',
             )}
