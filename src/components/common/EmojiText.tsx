@@ -2,6 +2,32 @@
 
 import { type TwemojiEntity } from 'twemoji-parser';
 import { parseEmoji } from '@/lib/utils/emoji';
+import { createUrlRegex, normalizeUrl } from '@/lib/utils/url';
+
+/** Tách 1 đoạn text thành các node: phần URL → <a> clickable, còn lại giữ text. */
+function linkify(slice: string, keyBase: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  const re = createUrlRegex();
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(slice)) !== null) {
+    if (m.index > last) out.push(slice.slice(last, m.index));
+    out.push(
+      <a
+        key={`${keyBase}-${m.index}`}
+        href={normalizeUrl(m[0])}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-all underline underline-offset-2 hover:opacity-80"
+      >
+        {m[0]}
+      </a>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < slice.length) out.push(slice.slice(last));
+  return out;
+}
 
 function isEmojiOnly(text: string, tokens: TwemojiEntity[]): boolean {
   if (tokens.length === 0) return false;
@@ -24,13 +50,18 @@ type EmojiTextProps = {
   className?: string;
   /** Enlarge emoji when the entire message is emoji-only (1–5 emojis). */
   largeEmoji?: boolean;
+  /** Biến URL trong text thành link clickable. */
+  linkify?: boolean;
 };
 
-export function EmojiText({ text, className, largeEmoji = false }: EmojiTextProps) {
+export function EmojiText({ text, className, largeEmoji = false, linkify: enableLinks = false }: EmojiTextProps) {
   if (!text) return <span className={className} />;
 
+  const renderText = (slice: string, keyBase: string): React.ReactNode =>
+    enableLinks ? linkify(slice, keyBase) : slice;
+
   const tokens = parseEmoji(text);
-  if (tokens.length === 0) return <span className={className}>{text}</span>;
+  if (tokens.length === 0) return <span className={className}>{renderText(text, 't')}</span>;
 
   let imgClass: string = IMG_SIZE.normal;
   if (largeEmoji && isEmojiOnly(text, tokens)) {
@@ -43,7 +74,7 @@ export function EmojiText({ text, className, largeEmoji = false }: EmojiTextProp
 
   tokens.forEach((token, i) => {
     if (token.indices[0] > lastIndex) {
-      segments.push(text.slice(lastIndex, token.indices[0]));
+      segments.push(renderText(text.slice(lastIndex, token.indices[0]), `s${i}`));
     }
     segments.push(
       <img
@@ -60,7 +91,7 @@ export function EmojiText({ text, className, largeEmoji = false }: EmojiTextProp
   });
 
   if (lastIndex < text.length) {
-    segments.push(text.slice(lastIndex));
+    segments.push(renderText(text.slice(lastIndex), 'tail'));
   }
 
   return <span className={className}>{segments}</span>;

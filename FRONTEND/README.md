@@ -24,6 +24,7 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 |---|---|
 | [03-conversations.md](./03-conversations.md) | CRUD conversation (direct/group, list, **xoá**) |
 | [04-messages.md](./04-messages.md) | Gửi/nhận tin nhắn, mention `@user`, đánh dấu đọc |
+| [14-media-upload.md](./14-media-upload.md) | Upload ảnh/video/voice/file rồi gắn vào tin nhắn |
 | [08-websocket.md](./08-websocket.md) | Connect socket, lắng nghe event realtime |
 | [09-encryption.md](./09-encryption.md) | Phân biệt SERVER vs E2E, FE encrypt thế nào |
 | [10-idempotency.md](./10-idempotency.md) | Retry tin nhắn an toàn với `clientNonce` |

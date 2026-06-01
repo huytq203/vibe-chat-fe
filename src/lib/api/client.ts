@@ -73,11 +73,21 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return qs ? `${base}?${qs}` : base;
 }
 
+/**
+ * Resolve URL tuyệt đối cho 1 path API — dùng khi cần upload qua XMLHttpRequest
+ * (tiến trình %), nơi không đi qua `request()`/`fetch` wrapper.
+ */
+export function resolveApiUrl(path: string): string {
+  return buildUrl(path);
+}
+
 async function rawRequest(method: string, path: string, options: RequestOptions): Promise<Response> {
   const { body, query, headers, auth = true, ...rest } = options;
   const url = buildUrl(path, query);
+  // FormData → để browser tự set Content-Type kèm boundary, không stringify.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const finalHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
     ...(headers as Record<string, string> | undefined),
   };
   if (auth && accessToken) finalHeaders['Authorization'] = `Bearer ${accessToken}`;
@@ -85,7 +95,7 @@ async function rawRequest(method: string, path: string, options: RequestOptions)
   return fetch(url, {
     method,
     headers: finalHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isForm ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
     credentials: 'include',
     ...rest,
   });

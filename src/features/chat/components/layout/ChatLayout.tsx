@@ -43,7 +43,10 @@ export function ChatLayout() {
       if (data?.type === 'NOTIFICATION_CLICK' && data.link) {
         try {
           const url = new URL(data.link, window.location.origin);
-          router.push(`${url.pathname}${url.search}`);
+          // Backend cũ có thể gửi /chat?c=<id> → chuẩn hoá về /chat/<id>.
+          const legacyId = url.pathname === '/chat' && url.searchParams.get('c');
+          if (legacyId) router.push(`/chat/${legacyId}`);
+          else router.push(`${url.pathname}${url.search}`);
         } catch {
           router.push(data.link);
         }

@@ -7,6 +7,9 @@ import { formatBubbleTime } from '../../utils';
 import { useDiscardFailedMessage, useResendMessage } from '../../hooks/use-mutations';
 import { EmojiText } from '@/components/common/EmojiText';
 import { Avatar } from '../common/Avatar';
+import { MediaContent } from './MediaContent';
+
+const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
 
 type MessageBubbleProps = {
   message: Message;
@@ -26,6 +29,9 @@ export function MessageBubble({
   const isSeen = isMe && !isSending && !isFailed && message.isView === true;
   const resendMut = useResendMessage();
   const discardFailed = useDiscardFailedMessage();
+  // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
+  const isVisualMedia =
+    !isE2E && !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO');
 
   return (
     <div className={cn('flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}>
@@ -44,7 +50,8 @@ export function MessageBubble({
       <div className="max-w-[65%]">
         <div
           className={cn(
-            'relative rounded-2xl px-3.5 py-2.5 transition-opacity',
+            'relative rounded-2xl transition-opacity',
+            isVisualMedia ? 'p-1.5' : 'px-3.5 py-2.5',
             isMe
               ? 'rounded-br-md bg-primary text-primary-foreground'
               : 'rounded-bl-md border border-border bg-muted text-foreground',
@@ -52,8 +59,8 @@ export function MessageBubble({
             isFailed && 'border border-danger/60',
           )}
         >
-          <BubbleContent message={message} isE2E={isE2E} />
-          <div className="mt-1 flex items-center justify-end gap-1">
+          <BubbleContent message={message} isE2E={isE2E} isMe={isMe} />
+          <div className={cn('mt-1 flex items-center justify-end gap-1', isVisualMedia && 'px-1 pb-0.5')}>
             <span className={cn('text-[10px]', isMe ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
               {isSending
                 ? 'Đang gửi…'
@@ -109,7 +116,7 @@ export function MessageBubble({
   );
 }
 
-function BubbleContent({ message, isE2E }: { message: Message; isE2E: boolean }) {
+function BubbleContent({ message, isE2E, isMe }: { message: Message; isE2E: boolean; isMe: boolean }) {
   if (isE2E) {
     return (
       <div className="flex items-center gap-1.5 text-[13.5px] italic opacity-90">
@@ -127,7 +134,24 @@ function BubbleContent({ message, isE2E }: { message: Message; isE2E: boolean })
         text={message.plaintext ?? message.contentPreview ?? ''}
         className="block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed"
         largeEmoji
+        linkify
       />
+    );
+  }
+  if ((MEDIA_TYPES as readonly string[]).includes(message.type)) {
+    const caption = message.plaintext?.trim();
+    return (
+      <>
+        <MediaContent message={message} isMe={isMe} />
+        {caption && (
+          <EmojiText
+            text={caption}
+            className="mt-1.5 block whitespace-pre-wrap break-words px-1 text-[13.5px] leading-relaxed"
+            largeEmoji
+            linkify
+          />
+        )}
+      </>
     );
   }
   return (

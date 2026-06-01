@@ -154,47 +154,47 @@
 @layer base {
     :root {
         /* GENERATED:theme-start */
-        /* Auto-generated from themes.ts — run `npm run theme:sync` to update */
-        --background: #ffffff;
-        --foreground: #101114;              /* Kraken Near Black */
-        --primary: #7132f5;                 /* Kraken Purple */
+        /* Đồng bộ thủ công với themes.ts (theme "indigo" = Vibe Night) */
+        --background: #130f1a;              /* Nền chat sâu nhất */
+        --foreground: #fbfbfc;              /* Chữ sáng */
+        --primary: #7f49e0;                 /* Tím thương hiệu */
         --primary-foreground: #ffffff;
-        --secondary: #ebe5fe;               /* Purple Subtle — rgba(133,91,251,0.16) on white */
-        --secondary-foreground: #5741d8;    /* Purple Dark */
-        --muted: #f8f8fb;                   /* Cool off-white */
-        --muted-foreground: #9497a9;        /* Kraken Silver Blue */
-        --accent: #f5f4ff;                  /* Light purple tint */
-        --accent-foreground: #101114;
-        --success: #149e61;                 /* Kraken Green */
-        --success-foreground: #ffffff;
-        --warning: #f59e0b;
-        --warning-foreground: #ffffff;
-        --danger: #ef4444;
+        --secondary: #221a30;               /* Surface bubble / card */
+        --secondary-foreground: #9e75e7;    /* Lavender nhạt */
+        --muted: #1a1425;                   /* Surface header / sidebar / input */
+        --muted-foreground: #8778a0;        /* Silver tím */
+        --accent: #221a30;                  /* Hover surface */
+        --accent-foreground: #fbfbfc;
+        --success: #49e049;                 /* Online / xanh */
+        --success-foreground: #0e0c14;
+        --warning: #e0c849;                 /* Vàng (burn / cảnh báo) */
+        --warning-foreground: #1a1425;
+        --danger: #e04949;
         --danger-foreground: #ffffff;
-        --destructive: #ef4444;
+        --destructive: #e04949;
         --destructive-foreground: #ffffff;
-        --border: #dedee5;                  /* Kraken Border Gray */
-        --input: #dedee5;
-        --ring: #7132f5;
-        --popover: #ffffff;
-        --popover-foreground: #101114;
+        --border: #2e2540;                  /* Viền tím tối */
+        --input: #221a30;
+        --ring: #7f49e0;
+        --popover: #1a1425;
+        --popover-foreground: #fbfbfc;
         /* GENERATED:theme-end */
 
         /* Non-theme tokens (not managed by applyTheme) */
-        --switch-background: #c0c2d1;       /* Cool gray toggle */
+        --switch-background: #2e2540;       /* Toggle nền tối */
 
-        --chart-1: #e11d48;
-        --chart-2: #7132f5;                 /* Kraken Purple */
-        --chart-3: #149e61;                 /* Kraken Green */
-        --chart-4: #f59e0b;
-        --chart-5: #5741d8;                 /* Purple Dark */
+        --chart-1: #e04949;
+        --chart-2: #7f49e0;                 /* Tím thương hiệu */
+        --chart-3: #49e049;                 /* Xanh */
+        --chart-4: #e0c849;                 /* Vàng */
+        --chart-5: #9e75e7;                 /* Lavender */
 
-        --sidebar: #f8f8fb;
-        --sidebar-foreground: #101114;
-        --sidebar-border: #dedee5;
-        --sidebar-accent: #f5f4ff;
-        --sidebar-accent-foreground: #7132f5;
-        --sidebar-ring: #7132f5;
+        --sidebar: #1a1425;
+        --sidebar-foreground: #fbfbfc;
+        --sidebar-border: #2e2540;
+        --sidebar-accent: #221a30;
+        --sidebar-accent-foreground: #9e75e7;
+        --sidebar-ring: #7f49e0;
     }
 
     .dark {
@@ -262,7 +262,7 @@
         font-family: var(--font-ui);
         overflow: hidden; /* Khóa scroll tổng để dùng nội bộ */
         height: 100%;
-        color-scheme: light;
+        color-scheme: dark; /* Default theme = Vibe Night (dark) */
         transition: background-color 0.3s ease, color 0.3s ease;
     }
 

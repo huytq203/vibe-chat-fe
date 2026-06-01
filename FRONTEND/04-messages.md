@@ -12,10 +12,11 @@ URL pattern: `/api/v1/conversations/{conversationId}/...`. Tất cả endpoint r
 POST /api/v1/conversations/{conversationId}/messages
 
 {
-  "plaintext": "Hey @huy chú ý nhé",
+  "plaintext": "Hey @huy chú ý nhé",            // bắt buộc khi type=TEXT; là caption optional khi gửi media
   "clientNonce": "uuid-FE-tự-sinh-cho-retry",   // optional, xem 10-idempotency.md
   "type": "TEXT",                                // optional, default TEXT
-  "metadata": { "width": 1920 },                 // optional
+  "attachmentIds": ["media-uuid-READY"],         // optional — bắt buộc khi type là media; xem 14-media-upload.md
+  "metadata": { "width": 1920 },                 // optional — metadata không nhạy cảm
   "replyToMessageId": "uuid-message-đang-reply", // optional
   "mentions": [                                  // optional — group tag
     { "userId": "uuid-keycloak-được-tag", "startOffset": 4, "length": 4 }
@@ -24,9 +25,21 @@ POST /api/v1/conversations/{conversationId}/messages
 ```
 
 - Chỉ dùng được nếu `conversation.encryptionType === "SERVER"` (gọi vào conv E2E → `400`).
-- Server tự encrypt AES-256-GCM rồi lưu.
-- Server tự gen `id` (UUID v4).
+- Server tự encrypt AES-256-GCM rồi lưu. Server tự gen `id` (UUID v4).
 - `plaintext` tối đa 5000 ký tự.
+
+### Quy tắc theo `type` (server validate ở biên)
+
+| `type` | Yêu cầu | Lỗi nếu sai |
+|---|---|---|
+| `TEXT` (hoặc bỏ trống) | bắt buộc `plaintext` (không rỗng) | `400 MESSAGE_CONTENT_REQUIRED` |
+| `IMAGE` / `VIDEO` / `AUDIO` / `FILE` | bắt buộc `attachmentIds` (≥1). `plaintext` là **caption optional** | `400 MESSAGE_ATTACHMENT_REQUIRED` |
+| `STICKER` / `LOCATION` / `CONTACT` / `SYSTEM` / `CALL` | không ràng buộc 2 rule trên | — |
+
+> ⚠️ Gửi `type: "IMAGE"` mà quên `attachmentIds` → `400 MESSAGE_ATTACHMENT_REQUIRED`. Nếu chỉ định gửi chữ, **đừng set `type`** (mặc định `TEXT`).
+>
+> - `attachmentIds` tối đa **10 file**/tin, mỗi id phải là media **đã `READY`** và **thuộc về chính người gửi** (xem [14-media-upload.md](./14-media-upload.md)). Sai/chưa upload xong → `400 MEDIA_NOT_FOUND`.
+
 - `mentions[]` (optional, ≤ 50 items): server **filter chỉ giữ user thực sự là member**, sau đó tạo notification riêng cho từng người được tag (push FCM **bất kể online**). User được tag sẽ nhận event `notification:new` qua WS + 1 push FCM nếu đã đăng ký token — xem [07-notifications.md](./07-notifications.md).
 
 ## Gửi tin nhắn — conversation E2E (Secret Chat)
@@ -134,7 +147,7 @@ Sau khi gọi → `conversation.unreadCount` của user reset về 0, server bro
   encryptionType: 'SERVER'|'E2E';  // copy từ conv — discriminator
 
   // 1 trong 2 field dưới có giá trị:
-  plaintext: string | null;        // CÓ với SERVER, NULL với E2E
+  plaintext: string | null;        // CÓ với SERVER. NULL với E2E, hoặc tin media KHÔNG có caption
   encrypted: {                     // CÓ với E2E, NULL với SERVER
     ciphertext: string;            // base64
     iv: string;                    // base64
@@ -143,6 +156,7 @@ Sau khi gọi → `conversation.unreadCount` của user reset về 0, server bro
     keyVersion: number;
   } | null;
 
+  attachments: Attachment[];       // file đính kèm — [] nếu tin chỉ có text
   contentPreview: string | null;   // preview ngắn (≤150 char), NULL với E2E
   metadata: Record<string, unknown> | null;
   replyToMessageId: string | null;
@@ -151,11 +165,65 @@ Sau khi gọi → `conversation.unreadCount` của user reset về 0, server bro
   isView: boolean;                 // true khi mọi member khác sender đã xem
   createdAt: string;               // ISO date
 }
+
+type Attachment = {
+  mediaId: string;                 // UUID media — dùng để refresh URL khi hết hạn
+  fileName: string;
+  fileSize: number;                // byte
+  mimeType: string;                // 'image/png', 'video/mp4'...
+  width: number | null;            // px — ảnh/video
+  height: number | null;           // px — ảnh/video
+  duration: number | null;         // giây — video/audio
+  downloadUrl: string | null;      // signed URL hiển thị/tải (CÓ HẠN). NULL nếu media đã xoá
+};
 ```
+
+> `downloadUrl` đã được server **ký sẵn và nhúng vào mỗi attachment** (cả tin realtime `message:new` lẫn `GET /messages`) — **mọi member** xem được ngay, không cần là chủ media.
+> URL có **TTL** (hết hạn sau 1 khoảng) → khi ảnh cũ cuộn lại bị lỗi, refresh qua endpoint dưới.
+
+---
+
+## Gửi ảnh / video / file đính kèm
+
+Tin nhắn `type: IMAGE | VIDEO | AUDIO | FILE` cần **upload media trước**, rồi tham chiếu qua **`attachmentIds`** (mảng UUID media đã `READY`). Toàn bộ flow upload (trực tiếp / presigned URL, category, giới hạn dung lượng, hiển thị) → **[14-media-upload.md](./14-media-upload.md)**.
+
+```ts
+const media = await uploadDirect(imageFile, 'ATTACHMENT'); // xem 14-media-upload.md → media.id (status READY)
+await sendMessage(conversationId, {
+  type: 'IMAGE',
+  attachmentIds: [media.id],   // BẮT BUỘC với tin media — tối đa 10 id
+  plaintext: 'caption',        // optional — bỏ trống nếu không có caption (đừng gửi '')
+});
+```
+
+- Tin trả về có `attachments[]` (metadata + `mediaId` + `downloadUrl` ký sẵn). Tin không caption → `plaintext = null`.
+
+### Refresh URL attachment (khi `downloadUrl` hết hạn)
+
+```http
+GET /api/v1/conversations/{conversationId}/attachments/{mediaId}/url
+```
+
+Response `200`:
+```json
+{
+  "success": true,
+  "data": {
+    "mediaId": "8d2f...-uuid",
+    "downloadUrl": "https://s3.../signed?...",
+    "expiresIn": 900
+  }
+}
+```
+
+- Chỉ cần là **member của conversation** chứa tin có media đó (không cần là chủ media).
+- Media không thuộc conversation này → `404 MEDIA_NOT_FOUND`.
+- Chi tiết hiển thị / cache URL → [14-media-upload.md](./14-media-upload.md#hiển-thị-khi-nhận-tin).
 
 ---
 
 **Liên quan:**
+- 🖼️ Upload & gắn media → [14-media-upload.md](./14-media-upload.md)
 - 🔁 Retry an toàn → [10-idempotency.md](./10-idempotency.md)
 - 🔌 Gửi qua WebSocket → [08-websocket.md](./08-websocket.md#gửi-tin-nhắn)
 - 🔐 E2E encrypt/decrypt → [09-encryption.md](./09-encryption.md)

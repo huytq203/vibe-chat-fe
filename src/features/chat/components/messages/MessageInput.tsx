@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
-import { Clock, Image as ImageIcon, Paperclip, Send, Smile, Video } from 'lucide-react';
+import { Clock, Send, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert/Alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
@@ -11,6 +11,16 @@ import { emojiToUrl } from '@/lib/utils/emoji';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useSendMessage } from '../../hooks/use-mutations';
+import { buildOptimisticAttachment, useAttachments, type AttachmentKind } from '../../hooks/useAttachments';
+import { AttachmentButtons } from './AttachmentButtons';
+import { AttachmentTray } from './AttachmentTray';
+import type { MessageType } from '../../types';
+
+const KIND_TO_TYPE: Record<AttachmentKind, MessageType> = {
+  image: 'IMAGE',
+  video: 'VIDEO',
+  file: 'FILE',
+};
 
 const TYPING_STOP_DEBOUNCE_MS = 3_000;
 const MAX_LENGTH = 5000;
@@ -46,8 +56,11 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const [hasContent, setHasContent] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const send = useSendMessage();
+  const { attachments, addFiles, remove, uploadAll, isUploading } = useAttachments();
   const typingStateRef = useRef<'start' | 'stop'>('stop');
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Chặn submit chồng (double-click) → tránh gửi trùng tin media.
+  const submittingRef = useRef(false);
 
   // Clear editor and stop typing when conversation changes
   useEffect(() => {
@@ -117,7 +130,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         }
       } else {
         e.preventDefault();
-        submit();
+        void submit();
       }
       return;
     }
@@ -129,6 +142,13 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   }
 
   function handlePaste(e: ClipboardEvent<HTMLDivElement>) {
+    // Dán ảnh từ clipboard → thêm vào tray đính kèm.
+    const images = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+    if (images.length > 0) {
+      e.preventDefault();
+      addFiles(images, 'image');
+      return;
+    }
     e.preventDefault();
     const plain = e.clipboardData.getData('text/plain');
     if (!plain) return;
@@ -141,16 +161,45 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
     syncHasContent();
   }
 
-  function submit() {
+  async function submit() {
     const el = editorRef.current;
-    if (!el || disabled) return;
+    if (!el || disabled || submittingRef.current) return;
     const text = extractText(el).trim();
-    if (!text) return;
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    emitTyping('stop');
-    el.innerHTML = '';
-    setHasContent(false);
-    send.mutate({ conversationId, plaintext: text, clientNonce: crypto.randomUUID(), type: 'TEXT' });
+    const hasAttachments = attachments.length > 0;
+    if (!text && !hasAttachments) return;
+    submittingRef.current = true;
+    try {
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      emitTyping('stop');
+
+      // Gửi text ngay cho phản hồi tức thì.
+      if (text) {
+        el.innerHTML = '';
+        setHasContent(false);
+        send.mutate({ conversationId, plaintext: text, clientNonce: crypto.randomUUID(), type: 'TEXT' });
+      }
+
+      if (!hasAttachments) return;
+      // Media đã upload ngầm từ lúc chọn file → uploadAll chỉ chờ phần chưa xong.
+      const uploaded = await uploadAll();
+      uploaded.forEach((a) => {
+        if (a.status !== 'done' || !a.media) return; // item lỗi → giữ lại tray để thử lại
+        send.mutate({
+          conversationId,
+          clientNonce: crypto.randomUUID(),
+          type: KIND_TO_TYPE[a.kind],
+          attachmentIds: [a.media.id],
+          // KHÔNG gửi plaintext rỗng cho media (theo 04-messages.md).
+          // Blob mới riêng cho optimistic — tray preview sẽ bị revoke khi remove().
+          previewUrl: a.kind === 'file' ? undefined : URL.createObjectURL(a.file),
+          optimisticAttachment: buildOptimisticAttachment(a.media),
+        });
+        // Dọn tray nhưng GIỮ media (tin vừa gửi đang tham chiếu) → KHÔNG xoá storage.
+        remove(a.id, false);
+      });
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   // Save cursor position just before the emoji picker opens
@@ -206,17 +255,10 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           <AlertDescription>Gửi thất bại — {send.error.message}</AlertDescription>
         </Alert>
       )}
+      <AttachmentTray attachments={attachments} onRemove={remove} />
       <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-muted px-2 py-1.5">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon-sm" title="Gửi ảnh" aria-label="Gửi ảnh" className="text-muted-foreground hover:text-primary">
-            <ImageIcon className="h-[18px] w-[18px]" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Gửi video" aria-label="Gửi video" className="text-muted-foreground hover:text-primary">
-            <Video className="h-[18px] w-[18px]" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Gửi tệp" aria-label="Gửi tệp" className="text-muted-foreground hover:text-primary">
-            <Paperclip className="h-[18px] w-[18px]" />
-          </Button>
+          <AttachmentButtons onFiles={addFiles} disabled={disabled} />
           <Button variant="ghost" size="icon-sm" title="Tin nhắn hẹn giờ" aria-label="Tin nhắn hẹn giờ" className="text-warning hover:text-warning">
             <Clock className="h-[18px] w-[18px]" />
           </Button>
@@ -266,16 +308,18 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           />
         </div>
 
-        {hasContent && (
+        {(hasContent || attachments.length > 0) && (
           <Button
             variant="solid"
             size="icon-sm"
-            onClick={submit}
+            onClick={() => void submit()}
+            isLoading={isUploading}
+            disabled={disabled}
             aria-label="Gửi"
             title="Gửi"
             className="shrink-0"
           >
-            <Send className="h-[18px] w-[18px]" />
+          {!isUploading&&<Send className="h-[18px] w-[18px]" />}
           </Button>
         )}
       </div>

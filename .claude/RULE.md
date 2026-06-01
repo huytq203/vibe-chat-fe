@@ -19,6 +19,7 @@ Quy tắc:
 - 1 components không được quá 200 dòng nếu quá phải tách ra thành component nhỏ hơn
 - Code luôn tối ưu và performance đạt hiệu quả cao nhất
 - Mọi component cần hiển thị dữ liệu lấy từ API phải xử lý 4 trạng thái: loading, error, empty và data
+- không comment bừa bãi, code cần rõ ràng
 
 
 Format trả lời:

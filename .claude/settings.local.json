@@ -31,7 +31,15 @@
       "Bash(New-Item -ItemType Directory -Force \"src/features/chat/components/contact\")",
       "PowerShell(Move-Item *)",
       "Bash(git add *)",
-      "Bash(xargs grep -l \"conversation.type.*GROUP\\\\|type.*==.*GROUP\")"
+      "Bash(xargs grep -l \"conversation.type.*GROUP\\\\|type.*==.*GROUP\")",
+      "Bash(node -e \"console.log\\('installed:', require\\('yet-another-react-lightbox/package.json'\\).version\\)\")",
+      "Bash(npm ls *)",
+      "Bash(ls dist/*.css dist/index.*)",
+      "Bash(ls dist/plugins/)",
+      "Bash(node -e \"const p=require\\('fs'\\).readFileSync\\('package.json','utf8'\\); const j=JSON.parse\\(p\\); console.log\\(Object.keys\\(j.exports\\)\\)\")",
+      "Bash(grep -rn \"getNotificationHref\\\\|?c=\\\\|c=\\\\${\" src --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(grep -rn \"chat?c=\\\\|c=\\\\${\\\\|?c=\\\\|\\\\[PARAM\\\\]\\\\|'c'\" src public --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\")",
+      "Bash(echo \"exit $?\")"
     ]
   }
 }

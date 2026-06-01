@@ -4,7 +4,7 @@ export function getNotificationHref(n: Notification): string {
   switch (n.type) {
     case 'MESSAGE_NEW':
     case 'MESSAGE_MENTION':
-      return n.conversationId ? `/chat?c=${n.conversationId}` : '/chat';
+      return n.conversationId ? `/chat/${n.conversationId}` : '/chat';
     case 'FRIEND_REQUEST_RECEIVED':
       return '/chat?friends=requests';
     case 'FRIEND_REQUEST_ACCEPTED':

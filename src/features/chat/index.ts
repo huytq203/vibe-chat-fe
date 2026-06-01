@@ -22,4 +22,8 @@ export type {
   EncryptionType,
   Presence,
   SendMessageInput,
+  Attachment,
+  MediaResponse,
+  MediaCategory,
+  MediaStatus,
 } from './types';

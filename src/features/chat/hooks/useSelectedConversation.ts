@@ -1,25 +1,18 @@
 'use client';
 
 import { useCallback } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-
-const PARAM = 'c';
+import { useParams, useRouter } from 'next/navigation';
 
 export function useSelectedConversation() {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const selectedConversationId = searchParams.get(PARAM);
+  const params = useParams<{ id?: string }>();
+  const selectedConversationId = params.id ?? null;
 
   const setSelected = useCallback(
     (id: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (id) params.set(PARAM, id);
-      else params.delete(PARAM);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      router.replace(id ? `/chat/${id}` : '/chat', { scroll: false });
     },
-    [router, pathname, searchParams],
+    [router],
   );
 
   return { selectedConversationId, setSelected };

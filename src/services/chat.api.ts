@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api/client';
 import type {
+  AttachmentUrl,
   Conversation,
   Message,
   MessagesPage,
@@ -43,10 +44,14 @@ export const chatApi = {
       `/api/v1/conversations/${input.conversationId}/messages`,
       {
         body: {
-          plaintext: input.plaintext,
+          // Caption rỗng → bỏ field (đừng gửi '') theo 04-messages.md.
+          plaintext: input.plaintext ? input.plaintext : undefined,
           clientNonce: input.clientNonce,
           type: input.type ?? 'TEXT',
+          // Bắt buộc với tin media (≤10 id) — xem 04/14-*.md.
+          attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
           replyToMessageId: input.replyToMessageId,
+          metadata: input.metadata,
         },
       },
     ),
@@ -54,6 +59,12 @@ export const chatApi = {
   markRead: (conversationId: string, messageId: string) =>
     apiClient.post<void>(
       `/api/v1/conversations/${conversationId}/messages/${messageId}/read`,
+    ),
+
+  // Refresh signed URL của 1 attachment (member-accessible, scoped theo conversation).
+  getAttachmentUrl: (conversationId: string, mediaId: string) =>
+    apiClient.get<AttachmentUrl>(
+      `/api/v1/conversations/${conversationId}/attachments/${mediaId}/url`,
     ),
 
   getPresenceBulk: (userIds: string[]) =>

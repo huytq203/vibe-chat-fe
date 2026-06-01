@@ -8,6 +8,7 @@ import type { Message } from '../../types';
 import { buildMemberNameMap } from '../../utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
+import { LightboxProvider } from './LightboxProvider';
 
 type MessageListProps = {
   conversationId: string;
@@ -83,6 +84,7 @@ export function MessageList({ conversationId }: MessageListProps) {
   }
 
   return (
+    <LightboxProvider>
     <div
       ref={scrollRef}
       onScroll={handleScroll}
@@ -121,5 +123,6 @@ export function MessageList({ conversationId }: MessageListProps) {
       })}
       </div>
     </div>
+    </LightboxProvider>
   );
 }

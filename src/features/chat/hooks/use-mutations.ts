@@ -20,10 +20,6 @@ type SendContext = {
 };
 
 const WS_SEND_TIMEOUT_MS = 10_000;
-
-// Outbox queue serial per conversation: chỉ emit tin tiếp theo khi tin trước đã có
-// ack (hoặc fail). Tránh nhiều emitWithAck song song khi user spam Enter — vừa giảm
-// race ở cache, vừa giữ đúng thứ tự khi BE serialize per-socket.
 const sendQueues = new Map<string, Promise<unknown>>();
 
 async function emitSend(input: SendMessageInput, clientNonce: string): Promise<string> {
@@ -36,10 +32,14 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
     .timeout(WS_SEND_TIMEOUT_MS)
     .emitWithAck('message:send', {
       conversationId: input.conversationId,
-      plaintext: input.plaintext,
+      // Caption rỗng → BỎ field (đừng gửi '') theo 04-messages.md.
+      plaintext: input.plaintext ? input.plaintext : undefined,
       clientNonce,
       type: input.type ?? 'TEXT',
+      // Bắt buộc với tin media; bỏ khi không có.
+      attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
       replyToMessageId: input.replyToMessageId,
+      metadata: input.metadata,
     })) as SendAck;
   const dt = Math.round(performance.now() - t0);
   // eslint-disable-next-line no-console
@@ -60,9 +60,13 @@ function sendMessageWs(input: SendMessageInput, clientNonce: string): Promise<st
     .then(() => emitSend(input, clientNonce));
   sendQueues.set(convId, next);
   // Cleanup map entry khi queue rỗng để không giữ ref vĩnh viễn.
-  void next.finally(() => {
-    if (sendQueues.get(convId) === next) sendQueues.delete(convId);
-  });
+  // .catch(noop) ở nhánh cleanup để rejection của `next` không thành
+  // unhandledRejection (nhánh chính `return next` mới là nơi mutation xử lý lỗi).
+  next
+    .finally(() => {
+      if (sendQueues.get(convId) === next) sendQueues.delete(convId);
+    })
+    .catch(() => undefined);
   return next;
 }
 
@@ -92,10 +96,16 @@ export function useSendMessage() {
         senderId: currentUserId,
         type: input.type ?? 'TEXT',
         encryptionType: 'SERVER',
-        plaintext: input.plaintext,
+        plaintext: input.plaintext ?? null,
         encrypted: null,
-        contentPreview: input.plaintext,
-        metadata: { optimistic: true, clientNonce },
+        attachments: input.optimisticAttachment ? [input.optimisticAttachment] : [],
+        contentPreview: input.plaintext ?? null,
+        metadata: {
+          ...(input.metadata ?? {}),
+          ...(input.previewUrl ? { previewUrl: input.previewUrl } : {}),
+          optimistic: true,
+          clientNonce,
+        },
         replyToMessageId: input.replyToMessageId ?? null,
         isEdited: false,
         isDeleted: false,
@@ -190,14 +200,10 @@ export function useResendMessage() {
       const cache = qc.getQueryData<MessagesCache>(key);
       const msg = cache?.pages.flatMap((p) => p.items).find((m) => m.id === vars.tempId);
       if (!msg) throw new Error('Không tìm thấy tin nhắn để gửi lại');
-      const meta = (msg.metadata ?? {}) as {
-        clientNonce?: string;
-        plaintext?: string;
-        replyToMessageId?: string | null;
-        type?: SendMessageInput['type'];
-      };
+      const meta = (msg.metadata ?? {}) as { clientNonce?: string };
       const nonce = meta.clientNonce ?? crypto.randomUUID();
-      const plaintext = meta.plaintext ?? msg.plaintext ?? '';
+      // Tin media đã upload xong (attachments có sẵn) → gửi lại nguyên attachmentIds + type.
+      const attachmentIds = msg.attachments?.map((a) => a.mediaId) ?? [];
 
       // Bỏ flag failed, hiện "Đang gửi…" lại.
       qc.setQueryData<MessagesCache>(key, (old) => {
@@ -219,10 +225,11 @@ export function useResendMessage() {
       return sendMessageWs(
         {
           conversationId: vars.conversationId,
-          plaintext,
-          type: meta.type ?? 'TEXT',
-          replyToMessageId: meta.replyToMessageId ?? undefined,
+          plaintext: msg.plaintext ?? undefined,
+          type: msg.type,
+          replyToMessageId: msg.replyToMessageId ?? undefined,
           clientNonce: nonce,
+          attachmentIds: attachmentIds.length ? attachmentIds : undefined,
         },
         nonce,
       );

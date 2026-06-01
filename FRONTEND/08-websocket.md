@@ -55,9 +55,10 @@ socket.emit('conversation:leave', { conversationId: 'uuid-...' });
 ```ts
 const ack = await socket.emitWithAck('message:send', {
   conversationId: 'uuid-...',
-  plaintext: 'Xin chào',
+  plaintext: 'Xin chào',                 // bắt buộc khi type=TEXT; caption optional khi gửi media
   clientNonce: crypto.randomUUID(),     // optional — xem 10-idempotency.md
   type: 'TEXT',
+  attachmentIds: [/* 'media-uuid' */],   // optional — bắt buộc khi type là media; xem 14-media-upload.md
   mentions: [/* ... */],                 // optional
 });
 // ack: { ok: true, messageId: 'uuid-server-gen' }

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Bell, BellOff, PenIcon, Phone, Pin, Search, Trash2, UserMinus, UserPlus, Users, UserX, Video, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs/Tabs";
 import useContactInfor from "../../hooks/useContactInfor";
+import { SharedTabs } from "./SharedTabs";
 import { Avatar, AvatarStatus } from "../common/Avatar";
 import { QuickAction } from "../common/QuickAction";
 import { OptionRow } from "../common/OptionRow";
@@ -104,22 +104,7 @@ export function ContactInfo() {
         </section>
 
         <section className="px-3 pt-2">
-          <Tabs defaultValue="media">
-            <TabsList size="xs" className="w-full">
-              <TabsTrigger value="media" className="flex-1">Ảnh & Video</TabsTrigger>
-              <TabsTrigger value="files" className="flex-1">Tài liệu</TabsTrigger>
-              <TabsTrigger value="links" className="flex-1">Liên kết</TabsTrigger>
-            </TabsList>
-            <TabsContent value="media" className="py-3 text-center text-[11.5px] text-muted-foreground">
-              Chưa có ảnh hoặc video được chia sẻ
-            </TabsContent>
-            <TabsContent value="files" className="py-3 text-center text-[11.5px] text-muted-foreground">
-              Chưa có tệp được chia sẻ
-            </TabsContent>
-            <TabsContent value="links" className="py-3 text-center text-[11.5px] text-muted-foreground">
-              Chưa có liên kết được chia sẻ
-            </TabsContent>
-          </Tabs>
+          <SharedTabs conversationId={conversation.id} />
         </section>
 
         <section className="px-3 pb-4 pt-2">

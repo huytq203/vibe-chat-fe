@@ -39,6 +39,8 @@ Format response error xem [02-response-envelope.md](./02-response-envelope.md#er
 | `MESSAGE_NOT_FOUND` | 404 | messageId sai (vd reply tin đã xoá) | — |
 | `MESSAGE_NOT_OWNED` | 403 | Sửa/xoá tin của người khác | — |
 | `MESSAGE_TOO_LONG` | 400 | Plaintext > 5000 ký tự | Show counter |
+| `MESSAGE_CONTENT_REQUIRED` | 400 | `type=TEXT` nhưng thiếu `plaintext` (rỗng/khoảng trắng) | Bắt buộc nhập text |
+| `MESSAGE_ATTACHMENT_REQUIRED` | 400 | `type=IMAGE/VIDEO/AUDIO/FILE` nhưng thiếu `attachmentIds` | Upload media trước, gửi kèm `attachmentIds` |
 
 ## Encryption
 

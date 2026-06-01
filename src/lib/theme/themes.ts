@@ -43,32 +43,33 @@ export type BuiltInThemeName = 'indigo' | 'blue' | 'violet' | 'rose' | 'emerald'
 // ─── Built-in Themes ──────────────────────────────────────────────────────────
 
 export const themes: Theme[] = [
-  // ─── Default: Kraken Design System ────────────────────────────────────────────
+  // ─── Default: Vibe Night (design mockup) ──────────────────────────────────────
+  // Palette lấy trực tiếp từ design (/Downloads/vibe-chat) — dark purple.
   {
     name: 'indigo',
-    label: 'Indigo (Default)',
+    label: 'Vibe Night (Default)',
     colors: {
-      background: '#ffffff',
-      foreground: '#101114',              // Kraken Near Black
-      primary: '#7132f5',                 // Kraken Purple
+      background: '#130f1a',              
+      foreground: '#fbfbfc',             
+      primary: '#7f49e0',                
       primaryForeground: '#ffffff',
-      secondary: '#ebe5fe',               // Purple Subtle (~rgba(133,91,251,0.16) on white)
-      secondaryForeground: '#5741d8',     // Purple Dark
-      muted: '#f8f8fb',                   // Cool off-white
-      mutedForeground: '#9497a9',         // Kraken Silver Blue
-      accent: '#f5f4ff',                  // Light purple tint
-      accentForeground: '#101114',
-      success: '#149e61',                 // Kraken Green
-      successForeground: '#ffffff',
-      warning: '#f59e0b',
-      warningForeground: '#ffffff',
-      danger: '#ef4444',
+      secondary: '#221a30',              
+      secondaryForeground: '#9e75e7',    
+      muted: '#1a1425',                  
+      mutedForeground: '#8778a0',        
+      accent: '#221a30',                 
+      accentForeground: '#fbfbfc',
+      success: '#49e049',                
+      successForeground: '#0e0c14',
+      warning: '#e0c849',                
+      warningForeground: '#1a1425',
+      danger: '#e04949',
       dangerForeground: '#ffffff',
-      border: '#dedee5',                  // Kraken Border Gray
-      input: '#dedee5',
-      ring: '#7132f5',
-      popover: '#ffffff',
-      popoverForeground: '#101114',
+      border: '#2e2540',                 
+      input: '#221a30',
+      ring: '#7f49e0',
+      popover: '#1a1425',
+      popoverForeground: '#fbfbfc',
     },
   },
 
@@ -84,7 +85,7 @@ export const themes: Theme[] = [
       secondary: '#dbeafe',
       secondaryForeground: '#1d4ed8',
       muted: '#f8f9fc',
-      mutedForeground: '#9497a9',         // same contrast standard
+      mutedForeground: '#9497a9',         
       accent: '#eff6ff',
       accentForeground: '#101114',
       success: '#149e61',
