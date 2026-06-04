@@ -117,11 +117,13 @@ export function useAttachments() {
   const inflight = useRef<Map<string, Promise<MediaResponse | null>>>(new Map());
 
   const sync = useCallback((updater: (prev: Attachment[]) => Attachment[]) => {
-    setAttachments((prev) => {
-      const next = updater(prev);
-      ref.current = next;
-      return next;
-    });
+    // Cập nhật ref ĐỒNG BỘ ngay (nguồn sự thật cho uploadAll/submit), rồi mới
+    // setState để re-render. Nếu chỉ gán ref.current trong updater của setState,
+    // nó chạy trễ → uploadAll() có thể đọc trạng thái cũ (media=null) và bỏ sót
+    // file khi gửi (bug "lúc được lúc không").
+    const next = updater(ref.current);
+    ref.current = next;
+    setAttachments(next);
   }, []);
 
   const patch = useCallback(
@@ -241,12 +243,14 @@ export function useAttachments() {
   }, [sync]);
 
   /**
-   * Đảm bảo mọi attachment đã upload xong: chờ các upload nền đang chạy +
-   * thử lại item lỗi/idle. Trả snapshot sau khi tất cả settle.
+   * Chờ các upload nền settle trước khi gửi. CHỈ khởi động item `idle` (chưa từng
+   * chạy) — KHÔNG tự up lại item `error`: presign tạo media PENDING + object mới
+   * mỗi lần, retry ngầm sẽ leak storage. Item lỗi do user chủ động xoá rồi chọn
+   * lại. Trả snapshot sau khi tất cả settle.
    */
   const uploadAll = useCallback(async (): Promise<Attachment[]> => {
     ref.current.forEach((a) => {
-      if (a.status !== 'done') startUpload(a);
+      if (a.status === 'idle') startUpload(a);
     });
     await Promise.allSettled([...inflight.current.values()]);
     return ref.current;

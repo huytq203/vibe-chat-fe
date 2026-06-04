@@ -16,7 +16,7 @@ export function useLogin() {
     mutationFn: (input: LoginInput) => authApi.login(input),
     onSuccess: (data) => {
       queryClient.clear();
-      setSession(data.user, data.tokens.accessToken);
+      setSession(data.user, data.tokens);
     },
   });
 }
@@ -28,7 +28,7 @@ export function useRegister() {
     mutationFn: (input: RegisterInput) => authApi.register(input),
     onSuccess: (data) => {
       queryClient.clear();
-      setSession(data.user, data.tokens.accessToken);
+      setSession(data.user, data.tokens);
     },
   });
 }

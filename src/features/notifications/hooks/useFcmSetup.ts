@@ -29,11 +29,6 @@ export function useFcmSetup() {
 
   useEffect(() => {
     if (!isAuthed || !userId) return;
-    console.log('[FCM] useFcmSetup effect', {
-      isAuthed,
-      userId,
-      configured: isFirebaseConfigured(),
-    });
     if (!isFirebaseConfigured()) {
       logger.info('FCM skipped (firebase env not configured)');
       return;
@@ -47,16 +42,12 @@ export function useFcmSetup() {
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     async function register() {
-      console.log('[FCM] register: requesting permission');
       const perm = await requestPushPermission();
-      console.log('[FCM] permission =', perm);
       if (perm !== 'granted') {
         logger.info('Push permission not granted', { perm });
         return;
       }
-      console.log('[FCM] getting token...');
       const token = await getFcmToken();
-      console.log('[FCM] token =', token ? token.slice(0, 24) + '...' : null);
       if (!token || cancelled) return;
       try {
         await registerMut.mutateAsync({
@@ -64,10 +55,8 @@ export function useFcmSetup() {
           deviceType: 'WEB',
           userAgent: navigator.userAgent,
         });
-        console.log('[FCM] registered to BE OK');
         logger.info('FCM token registered');
       } catch (err) {
-        console.error('[FCM] register BE failed', err);
         logger.warn('FCM register failed', { err: String(err) });
       }
     }

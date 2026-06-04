@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -16,12 +17,15 @@ import { useChatRealtime } from '../../hooks/useChatRealtime';
 import { ConversationList } from '../conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '../contact/ContactInfo';
+import { MobileTabBar } from './MobileTabBar';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
+  const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const { selectedConversationId, setSelected } = useSelectedConversation();
+  const isMobile = useIsMobile();
   const { data: conversations } = useConversations();
   const router = useRouter();
   useChatRealtime();
@@ -60,6 +64,17 @@ export function ChatLayout() {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Spinner size="md" variant="primary" />
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        {mobilePanel === 'list' && <ConversationList />}
+        {mobilePanel === 'chat' && <ChatPanel />}
+        {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        <MobileTabBar />
       </div>
     );
   }

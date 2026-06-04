@@ -8,6 +8,9 @@ import { useDiscardFailedMessage, useResendMessage } from '../../hooks/use-mutat
 import { EmojiText } from '@/components/common/EmojiText';
 import { Avatar } from '../common/Avatar';
 import { MediaContent } from './MediaContent';
+import { MessageActions } from './MessageActions';
+import { ReplyQuote } from './ReplyQuote';
+import { SelfDestructTimer } from './SelfDestructTimer';
 
 const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
 
@@ -17,10 +20,19 @@ type MessageBubbleProps = {
   showAvatar: boolean;
   senderName?: string | null;
   senderSeed?: string;
+  /** Tin gốc được trả lời, tra từ cache; null nếu tin không reply hoặc ngoài khung nhìn. */
+  repliedTo?: Message | null;
+  /** Tên người gửi tin gốc đã resolve (cho ReplyQuote). */
+  repliedToName?: string | null;
+  /** Bấm quote → cuộn tới tin gốc (do MessageList cung cấp). */
+  onQuoteClick?: (messageId: string) => void;
+  /** Đang được nháy sáng do vừa cuộn tới từ một reply. */
+  isHighlighted?: boolean;
 };
 
 export function MessageBubble({
   message, meId, showAvatar, senderName, senderSeed,
+  repliedTo, repliedToName, onQuoteClick, isHighlighted,
 }: MessageBubbleProps) {
   const isMe = message.senderId === meId;
   const isE2E = message.encryptionType === 'E2E';
@@ -32,9 +44,25 @@ export function MessageBubble({
   // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
   const isVisualMedia =
     !isE2E && !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO');
+  // Menu hành động: mọi tin đã gửi xong, chưa gỡ, không E2E. Reply cho tất cả;
+  // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
+  const canActions = !isSending && !isFailed && !message.isDeleted && !isE2E;
+  const actionsMenu = canActions && (
+    <MessageActions
+      message={message}
+      meId={meId}
+      isMe={isMe}
+      senderName={senderName}
+      className="self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+    />
+  );
 
   return (
-    <div className={cn('flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}>
+    <div
+      data-message-id={message.id}
+      className={cn('group flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}
+    >
+      {isMe && actionsMenu}
       {!isMe && (
         <div className="w-7 shrink-0">
           {showAvatar && (
@@ -50,17 +78,40 @@ export function MessageBubble({
       <div className="max-w-[65%]">
         <div
           className={cn(
-            'relative rounded-2xl transition-opacity',
+            'relative rounded-2xl transition-all',
             isVisualMedia ? 'p-1.5' : 'px-3.5 py-2.5',
             isMe
               ? 'rounded-br-md bg-primary text-primary-foreground'
               : 'rounded-bl-md border border-border bg-muted text-foreground',
             isSending && 'opacity-70',
             isFailed && 'border border-danger/60',
+            isHighlighted && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
           )}
         >
+          {message.replyToMessageId && (
+            <ReplyQuote
+              repliedTo={repliedTo ?? null}
+              repliedToName={repliedToName ?? null}
+              replyToMessageId={message.replyToMessageId}
+              isMe={isMe}
+              onClick={onQuoteClick ?? (() => {})}
+            />
+          )}
           <BubbleContent message={message} isE2E={isE2E} isMe={isMe} />
           <div className={cn('mt-1 flex items-center justify-end gap-1', isVisualMedia && 'px-1 pb-0.5')}>
+            {message.expireAt && !message.isDeleted && !isSending && !isFailed && (
+              <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
+            )}
+            {message.isEdited && !message.isDeleted && (
+              <span
+                className={cn(
+                  'text-[9.5px] italic',
+                  isMe ? 'text-primary-foreground/50' : 'text-muted-foreground/70',
+                )}
+              >
+                đã chỉnh sửa
+              </span>
+            )}
             <span className={cn('text-[10px]', isMe ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
               {isSending
                 ? 'Đang gửi…'
@@ -112,6 +163,7 @@ export function MessageBubble({
           </div>
         )}
       </div>
+      {!isMe && actionsMenu}
     </div>
   );
 }

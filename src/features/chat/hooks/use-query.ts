@@ -41,6 +41,18 @@ export function useMessages(conversationId: string | null) {
   });
 }
 
+/** Danh sách yêu cầu vào nhóm đang PENDING — chỉ fetch khi user có quyền duyệt. */
+export function useJoinRequests(conversationId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: conversationId
+      ? chatKeys.joinRequests(conversationId)
+      : ['chat', 'join-requests', 'null'],
+    queryFn: () => chatApi.listJoinRequests(conversationId as string),
+    enabled: Boolean(conversationId) && enabled,
+    staleTime: 15_000,
+  });
+}
+
 export function usePresence(userIds: string[]) {
   const enabled = userIds.length > 0;
   return useQuery({

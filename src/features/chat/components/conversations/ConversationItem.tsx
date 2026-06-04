@@ -1,5 +1,6 @@
 'use client';
 
+import { Lock, Pin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { EmojiText } from '@/components/common/EmojiText';
 import { cn } from '@/lib/utils/cn';
@@ -35,7 +36,15 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
       <Avatar name={name} seed={seed} size="md" status={null} />
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center justify-between gap-2">
-          <span className="truncate text-[13.5px] font-semibold text-foreground">{name}</span>
+          <span className="flex min-w-0 items-center gap-1">
+            {conversation.isPinned && (
+              <Pin className="h-3 w-3 shrink-0 text-primary" aria-label="Đã ghim" />
+            )}
+            {conversation.encryptionType === 'E2E' && (
+              <Lock className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="Secret chat" />
+            )}
+            <span className="truncate text-[13.5px] font-semibold text-foreground">{name}</span>
+          </span>
           <span className="shrink-0 text-[11px] text-muted-foreground">{time}</span>
         </div>
         <div className="flex items-center justify-between gap-2">

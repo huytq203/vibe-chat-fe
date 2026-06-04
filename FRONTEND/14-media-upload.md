@@ -36,6 +36,7 @@ Tất cả endpoint require JWT (`Authorization: Bearer <accessToken>`).
 File code/text có MIME do trình duyệt/OS báo **không đáng tin** (vd `.ts` → `text/vnd.trolltech.linguist`, `video/mp2t`, hoặc rỗng). Nên riêng `ATTACHMENT` backend **kiểm tra theo đuôi file**, không theo `Content-Type`:
 
 - ✅ **Cho phép (default-deny — chỉ các đuôi này):** ảnh (`jpg,png,webp,gif,heic,svg…`), video (`mp4,webm,mov,mkv…`), audio (`mp3,m4a,aac,ogg,wav,opus`), tài liệu (`pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,md,rtf`), dữ liệu/config (`json,xml,yaml,yml,toml,ini,env,log,sql`), **code** (`ts,tsx,js,jsx,py,go,rs,java,kt,c,h,cpp,cs,rb,php,swift,sh,bash,html,css,scss,vue,dart,lua,r…`), archive (`zip,rar,7z,tar,gz`).
+- ✅ **File KHÔNG đuôi** (`Dockerfile`, `Makefile`, `LICENSE`, `README`, `.gitignore`, `.env`…) → **được phép** (không thể là executable Windows — loại đó luôn có đuôi).
 - ❌ **Chặn (đuôi thực thi):** `exe,bat,cmd,com,msi,scr,dll,apk,deb,dmg,ps1,vbs,jar…` → `400 MEDIA_INVALID_TYPE`.
 - 💡 FE **không cần lo `mimeType` đúng** cho ATTACHMENT — chỉ cần đuôi file hợp lệ. (Với category media khác — `AVATAR/VIDEO/VOICE/THUMBNAIL` — vẫn validate theo MIME như cũ.)
 

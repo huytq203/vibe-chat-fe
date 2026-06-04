@@ -13,7 +13,10 @@ export {
   useDeleteConversation,
   useResendMessage,
   useDiscardFailedMessage,
+  useEditMessage,
+  useDeleteMessage,
 } from './hooks/use-mutations';
+export { useMessageEditStore } from './stores/message-edit.store';
 export type {
   Conversation,
   Message,

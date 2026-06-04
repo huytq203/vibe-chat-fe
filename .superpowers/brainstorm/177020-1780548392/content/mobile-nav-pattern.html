@@ -1,0 +1,113 @@
+<h2>Mobile navigation pattern</h2>
+<p class="subtitle">Trên mobile, 3 panel (ConvList | Chat | ContactInfo) không fit — cần chọn pattern điều hướng. Đây là 3 hướng phổ biến:</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#0f0f0f;border-radius:8px;font-family:monospace;font-size:11px">
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px">
+        <div style="background:#1a1a2e;border:1px solid #7132f5;border-radius:12px;padding:6px 10px;color:#7132f5;font-size:10px">📋 Danh sách</div>
+        <div style="background:#111;border:1px solid #333;border-radius:12px;padding:6px 10px;color:#666;font-size:10px">💬 Chat</div>
+        <div style="background:#111;border:1px solid #333;border-radius:12px;padding:6px 10px;color:#666;font-size:10px">👥 Bạn bè</div>
+      </div>
+      <div style="background:#111;border:1px solid #222;border-radius:8px;height:160px;display:flex;flex-direction:column;gap:8px;padding:10px;overflow:hidden">
+        <div style="background:#1a1a1a;border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;background:#7132f5;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1"><div style="background:#333;height:8px;border-radius:4px;width:70%;margin-bottom:4px"></div><div style="background:#222;height:6px;border-radius:4px;width:50%"></div></div>
+          <div style="background:#7132f5;border-radius:8px;padding:2px 6px;font-size:9px;color:#fff">3</div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;background:#49a0e0;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1"><div style="background:#333;height:8px;border-radius:4px;width:60%;margin-bottom:4px"></div><div style="background:#222;height:6px;border-radius:4px;width:40%"></div></div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;background:#149e61;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1"><div style="background:#333;height:8px;border-radius:4px;width:80%;margin-bottom:4px"></div><div style="background:#222;height:6px;border-radius:4px;width:45%"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:8px;background:#111;border:1px solid #222;border-radius:8px;padding:6px;display:flex;justify-content:space-around">
+        <div style="text-align:center"><div style="font-size:16px">💬</div><div style="font-size:9px;color:#7132f5">Chat</div></div>
+        <div style="text-align:center"><div style="font-size:16px">👥</div><div style="font-size:9px;color:#555">Bạn bè</div></div>
+        <div style="text-align:center"><div style="font-size:16px">🔔</div><div style="font-size:9px;color:#555">Thông báo</div></div>
+        <div style="text-align:center"><div style="font-size:16px">👤</div><div style="font-size:9px;color:#555">Tôi</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Bottom Tab Bar</h3>
+      <p>Thanh tab cố định ở đáy màn hình. List → Chat → Info là back-stack dọc. Pattern của <strong>WhatsApp, Messenger, Zalo</strong>.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Quen thuộc với user mobile</li><li>Điều hướng 1 tay dễ</li><li>Slot sẵn cho thêm tab</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Tốn 50px chiều cao</li><li>Cần thiết kế thêm tab bar</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#0f0f0f;border-radius:8px;font-family:monospace;font-size:11px">
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <div style="color:#7132f5;font-size:18px">☰</div>
+        <div style="background:#1a1a1a;border-radius:6px;height:24px;flex:1;display:flex;align-items:center;padding:0 8px"><div style="background:#333;height:6px;border-radius:3px;width:60%"></div></div>
+        <div style="color:#555;font-size:16px">🔍</div>
+      </div>
+      <div style="display:flex;gap:0">
+        <div style="width:200px;background:#111;border:1px solid #222;border-radius:8px;padding:10px;flex-shrink:0">
+          <div style="color:#aaa;font-size:10px;margin-bottom:8px">Cuộc trò chuyện</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;background:#7132f5;border-radius:50%"></div><div style="background:#333;height:7px;border-radius:3px;flex:1"></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;background:#49a0e0;border-radius:50%"></div><div style="background:#222;height:7px;border-radius:3px;flex:1"></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;background:#149e61;border-radius:50%"></div><div style="background:#222;height:7px;border-radius:3px;flex:1"></div></div>
+          </div>
+        </div>
+        <div style="width:8px;background:rgba(113,50,245,0.2)"></div>
+        <div style="flex:1;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;opacity:0.4;display:flex;align-items:center;justify-content:center;font-size:10px;color:#444">Kéo ra để xem</div>
+      </div>
+      <div style="margin-top:8px;text-align:center;font-size:9px;color:#555">Drawer trượt từ trái, overlay lên chat</div>
+    </div>
+    <div class="card-body">
+      <h3>B — Slide Drawer</h3>
+      <p>Danh sách ẩn trong drawer trượt ra từ trái (giống Gmail). Chat là màn hình chính. Bấm ☰ để mở drawer.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Tối đa diện tích chat</li><li>Không tốn tab bar</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Ít trực quan hơn</li><li>Khó discover conv list</li><li>Cần gesture handler</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#0f0f0f;border-radius:8px;font-family:monospace;font-size:11px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:#111;border:1px solid #7132f5;border-radius:8px;padding:10px">
+          <div style="color:#7132f5;font-size:10px;margin-bottom:6px;font-weight:bold">① Danh sách (màn hình mặc định)</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;background:#7132f5;border-radius:50%"></div><div style="background:#333;height:7px;border-radius:3px;flex:1"></div><div style="color:#7132f5;font-size:12px">›</div></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;background:#49a0e0;border-radius:50%"></div><div style="background:#222;height:7px;border-radius:3px;flex:1"></div><div style="color:#555;font-size:12px">›</div></div>
+          </div>
+        </div>
+        <div style="text-align:center;color:#7132f5;font-size:14px">↓ chọn conv</div>
+        <div style="background:#111;border:1px solid #333;border-radius:8px;padding:10px;opacity:0.7">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="color:#555;font-size:14px">←</div><div style="color:#aaa;font-size:10px">Huy Trần</div></div>
+          <div style="background:#1a1a1a;border-radius:6px;height:50px;margin-bottom:6px"></div>
+          <div style="background:#1a1a2e;border:1px solid #7132f5;border-radius:6px;height:28px"></div>
+        </div>
+        <div style="text-align:center;color:#555;font-size:14px">↓ bấm info</div>
+        <div style="background:#111;border:1px solid #222;border-radius:8px;padding:8px;opacity:0.5">
+          <div style="display:flex;align-items:center;gap:6px"><div style="color:#555;font-size:14px">←</div><div style="color:#aaa;font-size:10px">Thông tin</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Full Stack Navigation</h3>
+      <p>3 màn hình độc lập: List → Chat → Info. Điều hướng bằng back button. Pattern của <strong>Telegram, Signal</strong>.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Đơn giản nhất, ít code nhất</li><li>Tái dụng component 100%</li><li>Tailwind breakpoint thuần túy</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Không có persistent nav</li><li>Không có bottom tab (có thể thêm sau)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">💡 Khuyến nghị của mình: <strong>C — Full Stack</strong> vì ít thay đổi nhất, tái dụng hoàn toàn component hiện có, và dễ bổ sung Bottom Tab Bar sau (option A) nếu cần.</p>

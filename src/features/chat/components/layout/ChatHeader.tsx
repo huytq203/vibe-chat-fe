@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical, PanelRight, Phone, Search, Video, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, PanelRight, Phone, Search, Video, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
@@ -15,9 +15,11 @@ type ChatHeaderProps = {
   presence: Presence | null;
   rightOpen: boolean;
   onToggleRight: () => void;
+  /** Mobile only: back button ← về danh sách. */
+  onBack?: () => void;
 };
 
-export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight }: ChatHeaderProps) {
+export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack }: ChatHeaderProps) {
   const [searching, setSearching] = useState(false);
   const [searchQ, setSearchQ] = useState('');
 
@@ -38,10 +40,22 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
 
   return (
     <div className="flex shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 py-3">
+      {onBack && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onBack}
+          aria-label="Quay lại"
+          title="Quay lại"
+          className="mr-1 shrink-0"
+        >
+          <ArrowLeft className="h-[18px] w-[18px]" />
+        </Button>
+      )}
       <button
         type="button"
         onClick={onToggleRight}
-        className="flex min-w-0 items-center gap-2.5 text-left"
+        className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
       >
         <Avatar name={name} seed={seed} size="md" status={status} />
         <div className="min-w-0">
@@ -88,16 +102,18 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
             </Button>
           </>
         )}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onToggleRight}
-          title={rightOpen ? 'Ẩn thông tin' : 'Hiện thông tin'}
-          aria-label="Toggle panel"
-          className={cn('ml-1 border-l border-border pl-2 rounded-l-none', rightOpen && 'text-primary')}
-        >
-          <PanelRight className="h-[18px] w-[18px]" />
-        </Button>
+        {!onBack && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleRight}
+            title={rightOpen ? 'Ẩn thông tin' : 'Hiện thông tin'}
+            aria-label="Toggle panel"
+            className={cn('ml-1 border-l border-border pl-2 rounded-l-none', rightOpen && 'text-primary')}
+          >
+            <PanelRight className="h-[18px] w-[18px]" />
+          </Button>
+        )}
       </div>
     </div>
   );

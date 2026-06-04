@@ -1,5 +1,6 @@
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
+import { syncServerTime } from '@/lib/time/server-clock';
 
 export type ApiEnvelope<T> = {
   success: true;
@@ -38,12 +39,43 @@ let accessToken: string | null = null;
 let refreshing: Promise<void> | null = null;
 let onUnauthorized: (() => void) | null = null;
 let onTokenChange: ((token: string | null) => void) | null = null;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Refresh sớm trước khi token hết hạn (giây) để tránh request đầu tiên dính 401. */
+const REFRESH_SKEW_SECONDS = 60;
+/** Khoảng tối thiểu giữa các lần refresh chủ động (giây) — chặn busy-loop khi expiresIn nhỏ. */
+const MIN_REFRESH_DELAY_SECONDS = 5;
+
+function clearRefreshTimer(): void {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+/** Lên lịch refresh chủ động: chạy trước khi token hết hạn REFRESH_SKEW_SECONDS giây. */
+function scheduleProactiveRefresh(expiresIn?: number): void {
+  clearRefreshTimer();
+  if (typeof window === 'undefined' || !expiresIn || expiresIn <= 0) return;
+  const delaySeconds = Math.max(expiresIn - REFRESH_SKEW_SECONDS, MIN_REFRESH_DELAY_SECONDS);
+  refreshTimer = setTimeout(() => {
+    // Best-effort: refreshAccessToken tự xử lý onUnauthorized khi thất bại.
+    refreshAccessToken().catch(() => undefined);
+  }, delaySeconds * 1000);
+}
+
+/** Cập nhật access token + lên lịch refresh chủ động dựa trên expiresIn (giây). */
+function applyToken(token: string | null, expiresIn?: number): void {
+  const changed = accessToken !== token;
+  accessToken = token;
+  if (token) scheduleProactiveRefresh(expiresIn);
+  else clearRefreshTimer();
+  if (changed) onTokenChange?.(token);
+}
 
 export const apiAuth = {
-  setToken(token: string | null) {
-    const changed = accessToken !== token;
-    accessToken = token;
-    if (changed) onTokenChange?.(token);
+  setToken(token: string | null, expiresIn?: number) {
+    applyToken(token, expiresIn);
   },
   getToken() {
     return accessToken;
@@ -109,12 +141,12 @@ async function refreshAccessToken(): Promise<void> {
       { method: 'POST', credentials: 'include' },
     );
     if (!res.ok) {
-      accessToken = null;
+      applyToken(null);
       onUnauthorized?.();
       throw new ApiError(res.status, 'AUTH_REFRESH_FAILED', 'Phiên đăng nhập đã hết hạn');
     }
     const json = (await res.json()) as ApiEnvelope<{ accessToken: string; expiresIn: number }>;
-    accessToken = json.data.accessToken;
+    applyToken(json.data.accessToken, json.data.expiresIn);
   })().finally(() => {
     refreshing = null;
   });
@@ -149,6 +181,9 @@ async function request<T>(method: string, path: string, options: RequestOptions 
 
   if (res.status === 204) return undefined as T;
   const json = (await res.json()) as ApiEnvelope<T> | T;
+  if (json && typeof json === 'object' && 'timestamp' in json) {
+    syncServerTime((json as ApiEnvelope<T>).timestamp);
+  }
   if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
     return (json as ApiEnvelope<T>).data;
   }
@@ -169,6 +204,7 @@ export const apiClient = {
     }
     if (!res.ok) throw await parseError(res);
     const json = (await res.json()) as ApiEnvelope<T>;
+    syncServerTime(json.timestamp);
     return { data: json.data, meta: json.meta };
   },
 } as const;

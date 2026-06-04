@@ -129,6 +129,36 @@ socket.on('message:read', ({ conversationId, messageId, userId, readAt }) => {
 
 ---
 
+## Sửa / Gỡ tin nhắn
+
+```ts
+// Gỡ (thu hồi) — người gửi, không giới hạn thời gian
+await socket.emitWithAck('message:recall', { conversationId, messageId });
+
+// Sửa SERVER conv (trong 5 phút) — gửi plaintext mới
+await socket.emitWithAck('message:edit', { conversationId, messageId, plaintext: 'mới' });
+
+// Sửa E2E conv (trong 5 phút) — gửi ciphertext mới
+await socket.emitWithAck('message:edit:secret', {
+  conversationId, messageId,
+  encrypted: { ciphertext, iv, authTag, keyId, keyVersion },
+});
+
+// Lắng nghe tin bị gỡ → render "Tin nhắn đã được thu hồi"
+socket.on('message:deleted', ({ conversationId, messageId, deletedBy, deletedAt }) => {
+  store.markDeleted(messageId);
+});
+
+// Lắng nghe tin được sửa → cập nhật nội dung tại chỗ (payload = Message object đầy đủ)
+socket.on('message:edited', (message /* MessageResponse */) => {
+  store.upsertMessage(message);
+});
+```
+
+> Chi tiết quy tắc (cửa sổ 5 phút, lỗi, tin tự huỷ) → [15-edit-recall-selfdestruct.md](./15-edit-recall-selfdestruct.md).
+
+---
+
 ## Presence
 
 Server lưu presence ở Redis với **TTL 60s per-socket** — FE **BẮT BUỘC** emit heartbeat mỗi 30s, nếu không socket bị auto-prune → user thành offline.
@@ -211,6 +241,44 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 
 ---
 
+## Group members & join requests
+
+Chi tiết REST: [16-group-members.md](./16-group-members.md). Realtime:
+
+```ts
+// Có thành viên mới được thêm vào nhóm
+socket.on('conversation:members_added', ({ conversationId, addedUserIds, addedBy }) => {
+  store.refetchMembers(conversationId);
+  // Nếu chính mình vừa được thêm → nhóm xuất hiện trong sidebar
+});
+
+// Có thành viên bị xoá (KICKED) hoặc tự rời (LEFT)
+socket.on('conversation:member_removed', ({ conversationId, userId, reason }) => {
+  if (userId === myUserId) {
+    store.removeConversation(conversationId); // mình bị kick/đã rời
+  } else {
+    store.refetchMembers(conversationId);
+  }
+});
+
+// (Chỉ OWNER/ADMIN/MODERATOR) có yêu cầu xin vào nhóm mới
+socket.on('conversation:join_request', ({ conversationId, requestId, requesterId, reason }) => {
+  store.incrementPendingJoinRequests(conversationId);
+});
+
+// (Người gửi) yêu cầu được duyệt / từ chối
+socket.on('conversation:join_request_resolved', ({ conversationId, status }) => {
+  if (status === 'ACCEPTED') {
+    showToast('Bạn đã được duyệt vào nhóm');
+    store.refetchConversations();
+  } else {
+    showToast('Yêu cầu vào nhóm bị từ chối');
+  }
+});
+```
+
+---
+
 ## Bảng tổng hợp WS events
 
 | Hướng | Event | Payload | Mô tả |
@@ -220,17 +288,26 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 | C→S | `message:send` | `WsSendServerMessage` | Gửi tin SERVER conv |
 | C→S | `message:send:secret` | `WsSendSecretMessage` | Gửi tin E2E conv |
 | C→S | `message:read` | `{ conversationId, messageId }` | Đánh dấu đọc |
+| C→S | `message:recall` | `{ conversationId, messageId }` | Gỡ (thu hồi) tin. Ack `{ ok, messageId }` |
+| C→S | `message:edit` | `{ conversationId, messageId, plaintext }` | Sửa tin SERVER (≤5 phút) |
+| C→S | `message:edit:secret` | `{ conversationId, messageId, encrypted }` | Sửa tin E2E (≤5 phút) |
 | C→S | `typing` | `{ conversationId, state }` | Báo đang/dừng gõ |
 | C→S | `presence:heartbeat` | — | Giữ session online. Ack `{ ok, reconnect? }` — `reconnect=true` thì FE phải reconnect |
 | S→C | `message:new` | `MessageResponse` | Có tin mới trong conv đang join |
 | S→C | `conversation:notify` | `{ conversationId, message }` | Tin mới ở conv khác (không join room) |
 | S→C | `message:read` | `{ conversationId, messageId, userId, readAt }` | User khác đã đọc |
+| S→C | `message:deleted` | `{ conversationId, messageId, deletedBy, deletedAt }` | Tin bị gỡ — render placeholder |
+| S→C | `message:edited` | `MessageResponse` | Tin được sửa — cập nhật nội dung |
 | S→C | `typing` | `{ conversationId, userId, state }` | User khác đang gõ |
 | S→C | `presence:update` | `{ userId, isOnline, lastSeenAt, lastSeenLabel }` | Trạng thái online đổi |
 | S→C | `notification:new` | `NotificationResponse` | Có noti mới (friend request/accept, mention, message new) |
 | S→C | `notification:cleared` | `{ scope, conversationId?, types?, actorId?, clearedCount }` | Server tự mark read noti — FE giảm badge ngay |
 | S→C | `friend:update` | `{ type, otherUserId, status, at }` | Friend lifecycle (send/accept/reject/cancel/unfriend) |
 | S→C | `conversation:deleted` | `{ conversationId, deletedBy, deletedAt }` | Conversation bị xoá — FE remove khỏi sidebar |
+| S→C | `conversation:members_added` | `{ conversationId, addedUserIds, addedBy, at }` | Có thành viên mới — cập nhật member list |
+| S→C | `conversation:member_removed` | `{ conversationId, userId, removedBy, reason, at }` | Member bị kick (`KICKED`) / rời (`LEFT`) — nếu là mình thì rời nhóm khỏi sidebar |
+| S→C | `conversation:join_request` | `{ conversationId, requestId, requesterId, reason, at }` | (Admin) có yêu cầu vào nhóm mới |
+| S→C | `conversation:join_request_resolved` | `{ conversationId, requestId, status, reviewedBy, at }` | (Người gửi) yêu cầu được duyệt/từ chối |
 | S→C | `error` | `{ code, message }` | Lỗi (vd auth fail) — socket sẽ disconnect |
 
 ---

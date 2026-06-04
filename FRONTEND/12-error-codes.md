@@ -31,16 +31,39 @@ Format response error xem [02-response-envelope.md](./02-response-envelope.md#er
 | `CONVERSATION_DIRECT_SELF` | 400 | Tự tạo DIRECT với mình | UX: ẩn nút khi click vào avatar mình |
 | `CONVERSATION_NOT_OWNER` | 403 | Group/Channel mà không phải owner xoá | Ẩn nút "Xoá nhóm" nếu không phải owner |
 | `CONVERSATION_ALREADY_DELETED` | 400 | Gọi DELETE 2 lần | Refresh list, conv đã biến mất |
+| `CONVERSATION_NOT_GROUP` | 400 | Thao tác member/join-request trên DIRECT | Chỉ hiện UI quản lý member ở GROUP/CHANNEL |
+| `CONVERSATION_NOT_PUBLIC` | 403 | Xin vào nhóm riêng tư | Ẩn nút "Xin vào nhóm" khi `isPublic=false` |
+| `CONVERSATION_INSUFFICIENT_ROLE` | 403 | Không đủ quyền thêm/duyệt member | Ẩn UI quản lý nếu role là MEMBER |
+| `CONVERSATION_MEMBER_EXISTS` | 409 | Xin vào nhóm khi đã là thành viên | Refresh, mở thẳng nhóm |
+| `CONVERSATION_MEMBER_BANNED` | 403 | User bị ban — không add/join được | Show "Bạn đã bị cấm khỏi nhóm" |
+| `CONVERSATION_FULL` | 400 | Vượt `maxMembers` | Show "Nhóm đã đầy" |
+| `CONVERSATION_TARGET_NOT_MEMBER` | 404 | Kick user không phải thành viên | Refresh member list |
+| `CONVERSATION_CANNOT_REMOVE_SELF` | 400 | Tự kick mình | Dùng nút "Rời nhóm" thay vì kick |
+| `CONVERSATION_CANNOT_REMOVE_OWNER` | 403 | Cố kick chủ nhóm | Ẩn nút kick trên OWNER |
+| `CONVERSATION_OWNER_CANNOT_LEAVE` | 403 | Owner rời nhóm | Bắt chuyển quyền hoặc xoá nhóm trước |
+
+## Conversation — Join request (xem [16-group-members.md](./16-group-members.md))
+
+| Code | HTTP | Khi nào | FE nên làm |
+|---|---|---|---|
+| `JOIN_REQUEST_ALREADY_EXISTS` | 409 | Đã gửi yêu cầu (đang chờ) | Disable nút, hiện "Đang chờ duyệt" |
+| `JOIN_REQUEST_NOT_FOUND` | 404 | requestId sai / không thuộc nhóm | Refresh danh sách yêu cầu |
+| `JOIN_REQUEST_NOT_PENDING` | 409 | Yêu cầu đã được duyệt/từ chối/huỷ | Refresh danh sách (ai đó xử lý trước) |
+| `JOIN_REQUEST_NOT_OWNER` | 403 | Huỷ yêu cầu không phải của mình | — (logic FE sai) |
 
 ## Message
 
 | Code | HTTP | Khi nào | FE nên làm |
 |---|---|---|---|
 | `MESSAGE_NOT_FOUND` | 404 | messageId sai (vd reply tin đã xoá) | — |
-| `MESSAGE_NOT_OWNED` | 403 | Sửa/xoá tin của người khác | — |
+| `MESSAGE_NOT_OWNED` | 403 | Sửa/gỡ tin của người khác | Ẩn nút Sửa/Gỡ trên tin không phải của mình |
 | `MESSAGE_TOO_LONG` | 400 | Plaintext > 5000 ký tự | Show counter |
 | `MESSAGE_CONTENT_REQUIRED` | 400 | `type=TEXT` nhưng thiếu `plaintext` (rỗng/khoảng trắng) | Bắt buộc nhập text |
 | `MESSAGE_ATTACHMENT_REQUIRED` | 400 | `type=IMAGE/VIDEO/AUDIO/FILE` nhưng thiếu `attachmentIds` | Upload media trước, gửi kèm `attachmentIds` |
+| `MESSAGE_EDIT_WINDOW_EXPIRED` | 422 | Sửa tin quá 5 phút sau khi gửi | Ẩn nút Sửa khi quá hạn; toast + revert nội dung |
+| `MESSAGE_ALREADY_DELETED` | 409 | Sửa tin đã bị gỡ | Refresh tin, hiện trạng thái đã thu hồi |
+
+> Chi tiết flow sửa/gỡ/tin tự huỷ → [15-edit-recall-selfdestruct.md](./15-edit-recall-selfdestruct.md).
 
 ## Encryption
 

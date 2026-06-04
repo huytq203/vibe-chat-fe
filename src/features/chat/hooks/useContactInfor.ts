@@ -17,7 +17,11 @@ import {
 import { useChatUIStore } from "../stores/chat-ui.store";
 import { useSelectedConversation } from "./useSelectedConversation";
 import { useConversation, usePresence } from "./use-query";
-import { useDeleteConversation } from "./use-mutations";
+import {
+  useDeleteConversation,
+  useLeaveConversation,
+  useTogglePinConversation,
+} from "./use-mutations";
 import { getConversationName, getConversationSeed } from "../utils";
 
 const useContactInfor = () => {
@@ -37,8 +41,11 @@ const useContactInfor = () => {
   const [confirmUnfriendOpen, setConfirmUnfriendOpen] = useState(false);
   const [confirmBlockOpen, setConfirmBlockOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
   const deleteConvMut = useDeleteConversation();
+  const leaveConvMut = useLeaveConversation();
+  const togglePinMut = useTogglePinConversation();
   const otherUserId = otherIds[0] ?? null;
   const friendsQuery = useFriends();
   const blockedQuery = useBlockedUsers();
@@ -77,7 +84,15 @@ const useContactInfor = () => {
   const canCancelRequest = isDirect && !isFriend && hasOutgoingRequest && Boolean(otherUserId);
   const canBlock = isDirect && Boolean(otherUserId);
   const canDelete = isDirect || conversation.ownerId === meId;
+  // Rời nhóm: group/channel và mình KHÔNG phải owner (owner phải xoá nhóm).
+  const canLeave = !isDirect && conversation.ownerId !== meId;
   const blockBusy = blockMut.isPending || unblockMut.isPending;
+  const isPinned = Boolean(conversation.isPinned);
+
+  const handleTogglePin = () => {
+    if (togglePinMut.isPending) return;
+    togglePinMut.mutate({ conversationId: conversation.id, pinned: !isPinned });
+  };
 
   const status = otherPresence?.isOnline ? "online" : otherPresence ? "offline" : null;
   const statusText = otherPresence?.isOnline
@@ -99,6 +114,17 @@ const useContactInfor = () => {
     deleteConvMut.mutate(selectedConversationId, {
       onSuccess: () => {
         setConfirmDeleteOpen(false);
+        setRightOpen(false);
+        setSelected(null);
+      },
+    });
+  };
+
+  const handleConfirmLeave = () => {
+    if (!selectedConversationId || leaveConvMut.isPending) return;
+    leaveConvMut.mutate(selectedConversationId, {
+      onSuccess: () => {
+        setConfirmLeaveOpen(false);
         setRightOpen(false);
         setSelected(null);
       },
@@ -135,10 +161,13 @@ const useContactInfor = () => {
     canCancelRequest,
     canBlock,
     canDelete,
+    canLeave,
     isFriend,
     isBlocked,
     hasOutgoingRequest,
     blockBusy,
+    isPinned,
+    handleTogglePin,
     status,
     statusText,
     statusVariant,
@@ -152,14 +181,18 @@ const useContactInfor = () => {
     setConfirmBlockOpen,
     confirmDeleteOpen,
     setConfirmDeleteOpen,
+    confirmLeaveOpen,
+    setConfirmLeaveOpen,
     setRightOpen,
     handleConfirmUnfriend,
     handleConfirmDelete,
+    handleConfirmLeave,
     handleConfirmBlock,
     handleSendFriendRequest,
     handleCancelFriendRequest,
     unfriendMut,
     deleteConvMut,
+    leaveConvMut,
     sendFriendMut,
     cancelFriendMut,
   };

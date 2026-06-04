@@ -1,6 +1,73 @@
 import { format, isToday, isYesterday, differenceInDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import type { Conversation, ConversationMember } from './types';
+import type { Conversation, ConversationMember, Message } from './types';
+
+// ─── Sửa / gỡ tin & tin tự huỷ ───────────────────────────────────────────────
+// Xem FRONTEND/15-edit-recall-selfdestruct.md
+
+/** Cửa sổ cho phép sửa tin = 5 phút kể từ createdAt. Quá hạn → 422. */
+export const EDIT_WINDOW_MS = 5 * 60 * 1000;
+
+/** Khoảng selfDestructTtl hợp lệ (giây): 5s → 30 ngày. Ngoài khoảng → 400. */
+export const SELF_DESTRUCT_MIN_SECONDS = 5;
+export const SELF_DESTRUCT_MAX_SECONDS = 2_592_000;
+
+/** Tuỳ chọn hẹn giờ tự huỷ cho ô soạn tin (giây). `null` = tắt (tin thường). */
+export const SELF_DESTRUCT_OPTIONS: { label: string; seconds: number | null }[] = [
+  { label: 'Tắt hẹn giờ', seconds: null },
+  { label: '5 giây', seconds: 5 },
+  { label: '30 giây', seconds: 30 },
+  { label: '1 phút', seconds: 60 },
+  { label: '5 phút', seconds: 5 * 60 },
+  { label: '1 giờ', seconds: 60 * 60 },
+  { label: '1 ngày', seconds: 24 * 60 * 60 },
+  { label: '1 tuần', seconds: 7 * 24 * 60 * 60 },
+];
+
+/**
+ * Tin TEXT của chính mình, chưa gỡ, còn trong cửa sổ 5 phút → cho phép sửa.
+ * Ẩn nút Sửa khi false để giảm số lần ăn lỗi 422 (xem doc 15).
+ */
+export function canEditMessage(msg: Message, meId: string | null): boolean {
+  return (
+    msg.senderId === meId &&
+    msg.type === 'TEXT' &&
+    !msg.isDeleted &&
+    Date.now() - new Date(msg.createdAt).getTime() < EDIT_WINDOW_MS
+  );
+}
+
+/** Nhãn preview cho tin media (không có caption) — dùng trong banner reply & quote. */
+const MEDIA_SNIPPET: Partial<Record<Message['type'], string>> = {
+  IMAGE: '[Hình ảnh]',
+  VIDEO: '[Video]',
+  AUDIO: '[Âm thanh]',
+  FILE: '[Tệp]',
+  STICKER: '[Nhãn dán]',
+  LOCATION: '[Vị trí]',
+  CONTACT: '[Danh thiếp]',
+};
+
+/**
+ * Preview ngắn 1 dòng của tin nhắn cho banner trả lời & khối trích dẫn (ReplyQuote).
+ * Ưu tiên text; tin media không caption → nhãn theo loại; đã gỡ / E2E → nhãn riêng.
+ */
+export function getMessageSnippet(msg: Message): string {
+  if (msg.isDeleted) return 'Tin nhắn đã thu hồi';
+  if (msg.encryptionType === 'E2E') return 'Tin nhắn mã hoá';
+  const text = (msg.plaintext ?? msg.contentPreview ?? '').trim();
+  if (text) return text;
+  return MEDIA_SNIPPET[msg.type] ?? '[Tin nhắn]';
+}
+
+/** Định dạng thời gian còn lại (ms) thành nhãn ngắn cho đồng hồ tự huỷ. */
+export function formatTimeLeft(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
 
 const AVATAR_PALETTE = [
   '#7132f5', '#e0495e', '#49a0e0', '#149e61',

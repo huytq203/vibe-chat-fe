@@ -4,12 +4,42 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { toast } from 'sonner';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
-import { apiAuth } from '@/lib/api/client';
+import { ApiError, apiAuth } from '@/lib/api/client';
+import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { getSocket } from '@/lib/ws/socket';
+import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
-import type { Message, MessagesPage, SendMessageInput } from '../types';
+import type {
+  DeleteMessageInput,
+  EditMessageInput,
+  Message,
+  MessagesPage,
+  SendMessageInput,
+} from '../types';
 
 type MessagesCache = InfiniteData<MessagesPage, string | null>;
+
+/** Patch 1 message theo id trong cache infinite (giữ nguyên cấu trúc trang). */
+function patchMessageInCache(
+  qc: ReturnType<typeof useQueryClient>,
+  conversationId: string,
+  messageId: string,
+  patch: (m: Message) => Message,
+): MessagesCache | undefined {
+  const key = chatKeys.messages(conversationId);
+  const previous = qc.getQueryData<MessagesCache>(key);
+  qc.setQueryData<MessagesCache>(key, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.map((m) => (m.id === messageId ? patch(m) : m)),
+      })),
+    };
+  });
+  return previous;
+}
 type SendAck = { ok: true; messageId: string } | { ok: false; error?: string };
 
 type SendContext = {
@@ -40,6 +70,8 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
       attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
       replyToMessageId: input.replyToMessageId,
       metadata: input.metadata,
+      // Tin tự huỷ — giống REST. Bỏ field nếu không set (xem doc 15).
+      selfDestructTtl: input.selfDestructTtl,
     })) as SendAck;
   const dt = Math.round(performance.now() - t0);
   // eslint-disable-next-line no-console
@@ -88,7 +120,9 @@ export function useSendMessage() {
       const previous = qc.getQueryData<MessagesCache>(key);
       const clientNonce = input.clientNonce ?? crypto.randomUUID();
       const tempId = `temp-${clientNonce}`;
-      const now = new Date().toISOString();
+      // Mốc giờ theo SERVER (bù lệch đồng hồ máy) → hai bên hiện cùng giờ gửi.
+      const nowMs = serverNow();
+      const now = new Date(nowMs).toISOString();
 
       const optimistic: Message = {
         id: tempId,
@@ -109,6 +143,12 @@ export function useSendMessage() {
         replyToMessageId: input.replyToMessageId ?? null,
         isEdited: false,
         isDeleted: false,
+        deletedFor: 'NONE',
+        // Optimistic expireAt cho tin tự huỷ → countdown hiện ngay; bản WS echo
+        // từ server sẽ ghi đè bằng expireAt chuẩn (xem doc 15).
+        expireAt: input.selfDestructTtl
+          ? new Date(nowMs + input.selfDestructTtl * 1000).toISOString()
+          : null,
         isView: false,
         createdAt: now,
       };
@@ -305,6 +345,95 @@ export function useDiscardFailedMessage() {
   };
 }
 
+type EditContext = { previous: MessagesCache | undefined };
+
+export function useEditMessage() {
+  const qc = useQueryClient();
+  return useMutation<Message, Error, EditMessageInput, EditContext>({
+    mutationFn: (vars) =>
+      chatApi.editMessage(vars.conversationId, vars.messageId, vars.plaintext),
+
+    onMutate: (vars): EditContext => {
+      const now = new Date().toISOString();
+      const previous = patchMessageInCache(qc, vars.conversationId, vars.messageId, (m) => ({
+        ...m,
+        plaintext: vars.plaintext,
+        contentPreview: vars.plaintext,
+        isEdited: true,
+        editedAt: now,
+      }));
+      return { previous };
+    },
+
+    onSuccess: (serverMsg, vars) => {
+      // Đồng bộ lại theo bản chuẩn từ BE (nếu trả Message).
+      if (serverMsg && typeof serverMsg === 'object' && 'id' in serverMsg) {
+        patchMessageInCache(qc, vars.conversationId, vars.messageId, () => serverMsg);
+      }
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    },
+
+    onError: (err, vars, ctx) => {
+      // Rollback về nội dung cũ (đồng hồ FE/BE lệch hoặc race) — xem doc 15.
+      if (ctx?.previous) {
+        qc.setQueryData(chatKeys.messages(vars.conversationId), ctx.previous);
+      }
+      const code = err instanceof ApiError ? err.code : '';
+      if (code === 'MESSAGE_EDIT_WINDOW_EXPIRED') {
+        toast.error('Đã quá 5 phút — không thể sửa tin này nữa');
+      } else if (code === 'MESSAGE_ALREADY_DELETED') {
+        // Tin đã bị gỡ ở phía khác → đồng bộ trạng thái thu hồi.
+        patchMessageInCache(qc, vars.conversationId, vars.messageId, (m) => ({
+          ...m,
+          isDeleted: true,
+          deletedFor: 'EVERYONE',
+          plaintext: null,
+          contentPreview: null,
+          attachments: [],
+        }));
+        toast.error('Tin nhắn đã bị thu hồi');
+      } else {
+        toast.error(err.message || 'Sửa tin nhắn thất bại');
+      }
+    },
+  });
+}
+
+export function useDeleteMessage() {
+  const qc = useQueryClient();
+  return useMutation<Message | void, Error, DeleteMessageInput, EditContext>({
+    mutationFn: (vars) => chatApi.deleteMessage(vars.conversationId, vars.messageId),
+
+    onMutate: (vars): EditContext => {
+      const previous = patchMessageInCache(qc, vars.conversationId, vars.messageId, (m) => ({
+        ...m,
+        isDeleted: true,
+        deletedFor: 'EVERYONE',
+        plaintext: null,
+        contentPreview: null,
+        attachments: [],
+      }));
+      return { previous };
+    },
+
+    onSuccess: (serverMsg, vars) => {
+      if (serverMsg && typeof serverMsg === 'object' && 'id' in serverMsg) {
+        patchMessageInCache(qc, vars.conversationId, vars.messageId, () => serverMsg);
+      }
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    },
+
+    onError: (err, vars, ctx) => {
+      // Gỡ idempotent ở BE → nếu đã gỡ (409) thì coi như thành công, giữ tombstone.
+      if (err instanceof ApiError && err.code === 'MESSAGE_ALREADY_DELETED') return;
+      if (ctx?.previous) {
+        qc.setQueryData(chatKeys.messages(vars.conversationId), ctx.previous);
+      }
+      toast.error(err.message || 'Gỡ tin nhắn thất bại');
+    },
+  });
+}
+
 export function useDeleteConversation() {
   const qc = useQueryClient();
   return useMutation({
@@ -312,7 +441,7 @@ export function useDeleteConversation() {
     onSuccess: (_res, conversationId) => {
       qc.removeQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
       qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
       toast.success('Đã xoá cuộc trò chuyện');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -335,7 +464,7 @@ export function useMarkRead() {
       );
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
     },
   });
 }
@@ -346,7 +475,7 @@ export function useCreateGroup() {
     mutationFn: (input: { name: string; memberIds: string[] }) =>
       chatApi.createGroup(input),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
     },
   });
 }
@@ -366,5 +495,134 @@ export function useSetNickname() {
     onSuccess: (_, { conversationId }) => {
       qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
     },
+  });
+}
+
+/** Ghim / bỏ ghim hội thoại. Optimistic: set isPinned ngay để conv nổi lên đầu. */
+export function useTogglePinConversation() {
+  const qc = useQueryClient();
+  return useMutation<
+    import('../types').Conversation,
+    Error,
+    { conversationId: string; pinned: boolean },
+    { previousLists: [readonly unknown[], unknown][] }
+  >({
+    mutationFn: ({ conversationId, pinned }) => chatApi.setPin(conversationId, pinned),
+
+    onMutate: ({ conversationId, pinned }) => {
+      const nowMaybe = new Date().toISOString();
+      const previousLists = qc.getQueriesData<import('../types').Conversation[]>({
+        queryKey: chatKeys.conversationLists(),
+      });
+      qc.setQueriesData<import('../types').Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) =>
+          prev
+            ? prev.map((c) =>
+                c.id === conversationId
+                  ? { ...c, isPinned: pinned, pinnedAt: pinned ? nowMaybe : null }
+                  : c,
+              )
+            : prev,
+      );
+      qc.setQueryData<import('../types').Conversation | undefined>(
+        chatKeys.conversationDetail(conversationId),
+        (prev) => (prev ? { ...prev, isPinned: pinned, pinnedAt: pinned ? nowMaybe : null } : prev),
+      );
+      return { previousLists };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      ctx?.previousLists.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error('Cập nhật ghim thất bại');
+    },
+
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    },
+  });
+}
+
+/** Thêm thành viên vào nhóm (OWNER/ADMIN). BE trả Conversation đã cập nhật members. */
+export function useAddMembers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userIds }: { conversationId: string; userIds: string[] }) =>
+      chatApi.addMembers(conversationId, userIds),
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã thêm thành viên');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Thêm thành viên thất bại'),
+  });
+}
+
+/** Kick 1 thành viên khỏi nhóm (OWNER/ADMIN/MOD, chỉ role thấp hơn). Trả { ok: true }. */
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.removeMember(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      // BE chỉ trả { ok: true } → refetch detail để lấy members[] mới.
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã xoá thành viên');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Xoá thành viên thất bại'),
+  });
+}
+
+/** Tự rời nhóm. OWNER không rời được (BE chặn → toast lỗi). */
+export function useLeaveConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: string) => chatApi.leaveConversation(conversationId),
+    onSuccess: (_res, conversationId) => {
+      qc.removeQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã rời nhóm');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Rời nhóm thất bại'),
+  });
+}
+
+/** Duyệt yêu cầu vào nhóm (OWNER/ADMIN/MOD) → thêm người gửi làm MEMBER. */
+export function useAcceptJoinRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, requestId }: { conversationId: string; requestId: string }) =>
+      chatApi.acceptJoinRequest(conversationId, requestId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.joinRequests(conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã duyệt yêu cầu vào nhóm');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Duyệt yêu cầu thất bại'),
+  });
+}
+
+/** Từ chối yêu cầu vào nhóm (OWNER/ADMIN/MOD). reason optional. */
+export function useRejectJoinRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      requestId,
+      reason,
+    }: {
+      conversationId: string;
+      requestId: string;
+      reason?: string;
+    }) => chatApi.rejectJoinRequest(conversationId, requestId, reason),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.joinRequests(conversationId) });
+      toast.success('Đã từ chối yêu cầu');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Từ chối yêu cầu thất bại'),
   });
 }

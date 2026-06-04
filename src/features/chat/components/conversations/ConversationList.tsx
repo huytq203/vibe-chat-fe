@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { MessageSquare, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
@@ -22,6 +23,7 @@ import { useSelectedConversation } from '../../hooks/useSelectedConversation';
 import { getConversationName } from '../../utils';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
+import { SecretDivider } from './SecretDivider';
 import { UserMenu } from '../common/UserMenu';
 
 const TABS = [
@@ -36,7 +38,9 @@ export function ConversationList() {
   const me = useAuthStore((s) => s.user);
   const activeTab = useChatUIStore((s) => s.activeTab);
   const setActiveTab = useChatUIStore((s) => s.setActiveTab);
+  const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { selectedConversationId, setSelected } = useSelectedConversation();
+  const isMobile = useIsMobile();
   const { data: conversations = [], isLoading } = useConversations();
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
@@ -57,7 +61,13 @@ export function ConversationList() {
 
   const handleMessageUser = (user: UserSearchItem) => {
     openDirectMut.mutate(user.id);
+    if (isMobile) setMobilePanel('chat');
   };
+
+  function handleSelectConversation(id: string) {
+    setSelected(id);
+    if (isMobile) setMobilePanel('chat');
+  }
 
   const unreadTotal = useMemo(
     () => conversations.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0),
@@ -66,7 +76,7 @@ export function ConversationList() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return conversations.filter((c) => {
+    const matched = conversations.filter((c) => {
       if (activeTab === 'unread' && c.unreadCount === 0) return false;
       if (activeTab === 'group' && c.type === 'DIRECT') return false;
       if (!q) return true;
@@ -74,10 +84,17 @@ export function ConversationList() {
       const preview = (c.lastMessage?.preview ?? '').toLowerCase();
       return name.includes(q) || preview.includes(q);
     });
+    // Conv đã ghim luôn nổi lên đầu; trong cùng nhóm giữ thứ tự mới nhất theo
+    // lastMessageAt (BE đã sort sẵn, dùng làm tie-break).
+    const ts = (s: string | null) => (s ? new Date(s).getTime() : 0);
+    return matched.slice().sort((a, b) => {
+      if (Boolean(a.isPinned) !== Boolean(b.isPinned)) return a.isPinned ? -1 : 1;
+      return ts(b.lastMessageAt) - ts(a.lastMessageAt);
+    });
   }, [conversations, activeTab, search, me?.id]);
 
   return (
-    <aside className="flex h-full w-[300px] min-w-[260px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[18px]">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-primary/30 bg-primary/15">
@@ -141,21 +158,39 @@ export function ConversationList() {
                   {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
                 </div>
               )}
-              {filtered.map((c) => (
-                <ConversationItem
-                  key={c.id}
-                  conversation={c}
-                  selected={selectedConversationId === c.id}
-                  meId={me?.id ?? null}
-                  onSelect={setSelected}
-                />
-              ))}
+              {(() => {
+                const normal = filtered.filter((c) => c.encryptionType !== 'E2E');
+                const secrets = filtered.filter((c) => c.encryptionType === 'E2E');
+                return (
+                  <>
+                    {normal.map((c) => (
+                      <ConversationItem
+                        key={c.id}
+                        conversation={c}
+                        selected={selectedConversationId === c.id}
+                        meId={me?.id ?? null}
+                        onSelect={handleSelectConversation}
+                      />
+                    ))}
+                    {secrets.length > 0 && <SecretDivider />}
+                    {secrets.map((c) => (
+                      <ConversationItem
+                        key={c.id}
+                        conversation={c}
+                        selected={selectedConversationId === c.id}
+                        meId={me?.id ?? null}
+                        onSelect={handleSelectConversation}
+                      />
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </>
         )}
       </div>
 
-      <footer className="flex shrink-0 items-center justify-around border-t border-border px-2 py-3">
+      <footer className="hidden shrink-0 items-center justify-around border-t border-border px-2 py-3 md:flex">
         <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat">
           <MessageSquare className="h-5 w-5" />
         </Button>

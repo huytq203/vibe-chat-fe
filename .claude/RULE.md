@@ -16,7 +16,7 @@ Quy tắc:
 - Viết unitest cho các component
 - Luôn sử dụng wrap cho các lib để bảo toàn việc update và thay đổi lib không ảnh hưởng đén dự án
 - Chỉ đọc trong /src, /public nếu muôn đọc ra bên ngoài yêu cầu người dùng accept
-- 1 components không được quá 200 dòng nếu quá phải tách ra thành component nhỏ hơn
+- 1 components không được quá 200 dòng nếu quá phải tách ra thành component nhỏ hơn hoặc tách logic sang hook riêng 
 - Code luôn tối ưu và performance đạt hiệu quả cao nhất
 - Mọi component cần hiển thị dữ liệu lấy từ API phải xử lý 4 trạng thái: loading, error, empty và data
 - không comment bừa bãi, code cần rõ ràng

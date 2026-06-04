@@ -38,7 +38,7 @@ export function AuthBootstrap({ requireAuth = false, redirectTo = '/login' }: Pr
         if (!apiAuth.getToken()) {
           const tokens = await authApi.refreshAccessToken();
           if (cancelled || useAuthStore.getState().isAuthenticated) return;
-          apiAuth.setToken(tokens.accessToken);
+          apiAuth.setToken(tokens.accessToken, tokens.expiresIn);
         }
         const user = await authApi.fetchMe();
         if (cancelled || useAuthStore.getState().isAuthenticated) return;

@@ -43,6 +43,8 @@ export const chatKeys = {
     [...chatKeys.conversationLists(), params] as const,
   conversationDetail: (id: string) =>
     [...chatKeys.conversations(), 'detail', id] as const,
+  joinRequests: (conversationId: string) =>
+    [...chatKeys.conversations(), 'join-requests', conversationId] as const,
   messages: (conversationId: string) =>
     [...chatKeys.all, 'messages', conversationId] as const,
   presence: (userIds: string[]) =>

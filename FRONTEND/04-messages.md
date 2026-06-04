@@ -20,7 +20,8 @@ POST /api/v1/conversations/{conversationId}/messages
   "replyToMessageId": "uuid-message-đang-reply", // optional
   "mentions": [                                  // optional — group tag
     { "userId": "uuid-keycloak-được-tag", "startOffset": 4, "length": 4 }
-  ]
+  ],
+  "selfDestructTtl": 60                           // optional — tin tự huỷ sau N giây; xem 15-edit-recall-selfdestruct.md
 }
 ```
 
@@ -135,6 +136,18 @@ Sau khi gọi → `conversation.unreadCount` của user reset về 0, server bro
 
 ---
 
+## Sửa / Gỡ tin & Tin tự huỷ
+
+Edit (chỉ trong 5 phút), recall (gỡ với mọi người), và disappearing message (`selfDestructTtl`) tách riêng → **[15-edit-recall-selfdestruct.md](./15-edit-recall-selfdestruct.md)**.
+
+Tóm tắt nhanh:
+- `DELETE .../messages/{id}` — gỡ tin (người gửi, không giới hạn thời gian).
+- `PATCH .../messages/{id}` (SERVER) / `PATCH .../secret-messages/{id}` (E2E) — sửa tin trong 5 phút.
+- Thêm `selfDestructTtl` (giây) khi gửi → tin tự huỷ. FE tự ẩn theo `expireAt`.
+- WS: `message:recall`, `message:edit`, `message:edit:secret`; nhận `message:deleted`, `message:edited`.
+
+---
+
 ## Message object — full shape
 
 ```ts
@@ -161,7 +174,10 @@ Sau khi gọi → `conversation.unreadCount` của user reset về 0, server bro
   metadata: Record<string, unknown> | null;
   replyToMessageId: string | null;
   isEdited: boolean;
-  isDeleted: boolean;
+  editedAt: string | null;         // ISO — thời điểm sửa lần cuối; NULL nếu chưa sửa
+  isDeleted: boolean;              // true = đã bị gỡ → render "Tin nhắn đã được thu hồi"
+  deletedFor: 'NONE'|'SENDER'|'EVERYONE';
+  expireAt: string | null;         // ISO — tin tự huỷ sẽ biến mất lúc này; NULL = tin thường
   isView: boolean;                 // true khi mọi member khác sender đã xem
   createdAt: string;               // ISO date
 }

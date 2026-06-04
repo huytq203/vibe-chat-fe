@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useChatUIStore } from '../../stores/chat-ui.store';
 import { useSelectedConversation } from '../../hooks/useSelectedConversation';
 import { useConversation, usePresence } from '../../hooks/use-query';
@@ -15,6 +16,8 @@ export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
   const toggleRight = useChatUIStore((s) => s.toggleRight);
+  const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
+  const isMobile = useIsMobile();
   const { selectedConversationId } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
   const { mutate: markRead } = useMarkRead();
@@ -74,7 +77,8 @@ export function ChatPanel() {
         meId={meId}
         presence={otherPresence}
         rightOpen={rightPanelOpen}
-        onToggleRight={toggleRight}
+        onToggleRight={isMobile ? () => setMobilePanel('contact') : toggleRight}
+        onBack={isMobile ? () => setMobilePanel('list') : undefined}
       />
       <MessageList conversationId={conversation.id} />
       <MessageInput conversationId={conversation.id} />

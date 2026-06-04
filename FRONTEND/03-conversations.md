@@ -73,6 +73,7 @@ Response:
       },
       "lastMessageAt": "2026-05-15T07:30:00Z",
       "unreadCount": 3,
+      "isPinned": false,
       "createdAt": "..."
     }
   ],
@@ -102,6 +103,30 @@ GET /api/v1/conversations/{id}
   ]
 }
 ```
+
+## Ghim / bỏ ghim conversation
+
+Ghim **riêng cho từng user** — conversation đã ghim luôn nằm **đầu** danh sách (mục [list](#danh-sách-conversation-của-user)).
+
+```http
+PATCH /api/v1/conversations/{id}/pin
+Authorization: Bearer ...
+Content-Type: application/json
+
+{ "pinned": true }     // true = ghim, false = bỏ ghim
+```
+
+Response `200`: `Conversation` object với `isPinned` đã cập nhật.
+
+- Idempotent: gọi `pinned: true` 2 lần vẫn OK.
+- Bất kỳ thành viên ACTIVE nào cũng ghim được (kể cả DIRECT).
+
+| Code | HTTP | Khi nào |
+|---|---|---|
+| `CONVERSATION_NOT_FOUND` | 404 | UUID sai / đã xoá |
+| `CONVERSATION_MEMBER_REQUIRED` | 403 | Không phải thành viên |
+
+> 📌 **Sắp xếp danh sách:** server trả về đã sort sẵn — **ghim trước** (`isPinned=true`), trong mỗi nhóm thì **mới nhất trước** (`lastMessageAt` giảm dần). FE chỉ cần render theo thứ tự nhận được, không cần tự sort lại.
 
 ## Xoá conversation
 
@@ -150,6 +175,8 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 
 > 💡 Member trong GROUP muốn **rời nhóm** (không xoá cả nhóm) — endpoint `leave` chưa public ở v1, sẽ thêm sau. Tạm thời chỉ owner xoá toàn bộ.
 
+> 👥 **Thêm thành viên / xin vào nhóm / duyệt yêu cầu** → xem [16-group-members.md](./16-group-members.md).
+
 ---
 
 ## Conversation object — full shape
@@ -170,6 +197,7 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 | `lastMessage` | object\|null | embed message cuối — `preview` null nếu E2E |
 | `lastMessageAt` | ISO date\|null | |
 | `unreadCount` | number | unread của user hiện tại |
+| `isPinned` | boolean | user hiện tại có ghim conversation lên đầu không |
 | `createdAt` | ISO date | |
 
 ---

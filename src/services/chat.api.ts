@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api/client';
 import type {
   AttachmentUrl,
   Conversation,
+  JoinRequest,
   Message,
   MessagesPage,
   Presence,
@@ -52,8 +53,28 @@ export const chatApi = {
           attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
           replyToMessageId: input.replyToMessageId,
           metadata: input.metadata,
+          // Tin tự huỷ (giây, 5–2592000). Bỏ field nếu không set. Xem doc 15.
+          selfDestructTtl: input.selfDestructTtl,
         },
       },
+    ),
+
+  // ─── Sửa / gỡ tin nhắn (conversation SERVER) ────────────────────────────
+  // Endpoint & contract theo FRONTEND/15-edit-recall-selfdestruct.md.
+  // (E2E edit dùng PATCH /secret-messages/:id — chưa wire vì UI chưa hỗ trợ
+  //  quản lý khoá E2E; bổ sung khi có lớp encrypt client-side.)
+
+  /** Sửa nội dung text của 1 tin SERVER (trong 5 phút). Trả Message đã cập nhật (isEdited=true). */
+  editMessage: (conversationId: string, messageId: string, plaintext: string) =>
+    apiClient.patch<Message>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}`,
+      { body: { plaintext } },
+    ),
+
+  /** Gỡ (thu hồi) 1 tin đã gửi. Trả về Message tombstone (isDeleted=true). */
+  deleteMessage: (conversationId: string, messageId: string) =>
+    apiClient.delete<Message>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}`,
     ),
 
   markRead: (conversationId: string, messageId: string) =>
@@ -82,4 +103,68 @@ export const chatApi = {
     apiClient.post<Conversation>('/api/v1/conversations/group', {
       body: { ...input, encryptionType: 'SERVER' },
     }),
+
+  // ─── Ghim hội thoại ─────────────────────────────────────────────────────
+  // PATCH /pin với body { pinned } — trả Conversation đã cập nhật isPinned. Xem 03.
+  setPin: (id: string, pinned: boolean) =>
+    apiClient.patch<Conversation>(`/api/v1/conversations/${id}/pin`, {
+      body: { pinned },
+    }),
+
+  // ─── Thành viên nhóm ────────────────────────────────────────────────────
+  // addMembers nhận mảng userId (1–100); removeMember xoá 1 user. Xem 16.
+  addMembers: (conversationId: string, userIds: string[]) =>
+    apiClient.post<Conversation>(
+      `/api/v1/conversations/${conversationId}/members`,
+      { body: { userIds } },
+    ),
+
+  // Kick 1 thành viên (chỉ role cao hơn). Trả { ok: true } — refetch detail để cập nhật members.
+  removeMember: (conversationId: string, userId: string) =>
+    apiClient.delete<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}`,
+    ),
+
+  // Tự rời nhóm (OWNER không rời được — phải chuyển quyền hoặc xoá nhóm).
+  leaveConversation: (conversationId: string) =>
+    apiClient.post<{ ok: true }>(`/api/v1/conversations/${conversationId}/leave`),
+
+  // ─── Yêu cầu vào nhóm (join request) ────────────────────────────────────
+  // Endpoint & contract theo FRONTEND/16-group-members.md.
+
+  /** Danh sách yêu cầu PENDING (cho OWNER/ADMIN/MOD), kèm thông tin requester. */
+  listJoinRequests: (
+    conversationId: string,
+    params: { page?: number; limit?: number } = {},
+  ) =>
+    apiClient.get<JoinRequest[]>(
+      `/api/v1/conversations/${conversationId}/join-requests`,
+      { query: { page: params.page ?? 1, limit: params.limit ?? 50 } },
+    ),
+
+  /** User ngoài gửi yêu cầu xin vào nhóm công khai (reason ≤ 300 ký tự, optional). */
+  requestJoin: (conversationId: string, reason?: string) =>
+    apiClient.post<JoinRequest>(
+      `/api/v1/conversations/${conversationId}/join-requests`,
+      { body: { reason } },
+    ),
+
+  /** Duyệt yêu cầu → thêm người gửi làm MEMBER. */
+  acceptJoinRequest: (conversationId: string, requestId: string) =>
+    apiClient.post<JoinRequest>(
+      `/api/v1/conversations/${conversationId}/join-requests/${requestId}/accept`,
+    ),
+
+  /** Từ chối yêu cầu (reason optional). */
+  rejectJoinRequest: (conversationId: string, requestId: string, reason?: string) =>
+    apiClient.post<JoinRequest>(
+      `/api/v1/conversations/${conversationId}/join-requests/${requestId}/reject`,
+      { body: { reason } },
+    ),
+
+  /** Người gửi tự huỷ yêu cầu của mình khi còn PENDING. */
+  cancelJoinRequest: (conversationId: string, requestId: string) =>
+    apiClient.delete<JoinRequest>(
+      `/api/v1/conversations/${conversationId}/join-requests/${requestId}`,
+    ),
 } as const;

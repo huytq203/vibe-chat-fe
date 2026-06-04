@@ -34,8 +34,11 @@ export type ConversationMember = {
   displayName: string;
   avatarUrl: string | null;
   nickname: string | null;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role: MemberRole;
 };
+
+/** Thứ hạng quyền: OWNER > ADMIN > MODERATOR > MEMBER (xem 16-group-members.md). */
+export type MemberRole = 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
 
 export type Conversation = {
   id: string;
@@ -52,6 +55,35 @@ export type Conversation = {
   lastMessage: LastMessagePreview | null;
   lastMessageAt: string | null;
   unreadCount: number;
+  // Ghim hội thoại — conv đã ghim luôn nổi lên đầu danh sách. BE sẽ trả 2 field
+  // này (endpoint pin đang chờ chốt — xem chatApi.pinConversation).
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+  createdAt: string;
+};
+
+// ─── Join request (xin vào nhóm) ───────────────────────────────────────────
+// Tham chiếu FRONTEND/16-group-members.md.
+
+export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+
+/** Thông tin người gửi yêu cầu — chỉ có ở endpoint list (cho admin). */
+export type JoinRequestRequester = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+};
+
+export type JoinRequest = {
+  id: string;
+  conversationId: string;
+  status: JoinRequestStatus;
+  /** Lý do xin vào (hoặc lý do từ chối sau khi reject). */
+  reason: string | null;
+  requester: JoinRequestRequester | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
   createdAt: string;
 };
 
@@ -89,9 +121,26 @@ export type Message = {
   metadata: Record<string, unknown> | null;
   replyToMessageId: string | null;
   isEdited: boolean;
+  /** Thời điểm sửa gần nhất (BE set khi edit). NULL nếu chưa sửa. */
+  editedAt?: string | null;
   isDeleted: boolean;
+  /** Phạm vi gỡ tin. EVERYONE = thu hồi với mọi người. Xem 15-edit-recall-selfdestruct.md. */
+  deletedFor?: 'NONE' | 'SENDER' | 'EVERYONE';
+  /** ISO — thời điểm tin tự huỷ biến mất. NULL = tin thường. FE tự ẩn khi tới hạn. */
+  expireAt?: string | null;
   isView: boolean;
   createdAt: string;
+};
+
+export type EditMessageInput = {
+  conversationId: string;
+  messageId: string;
+  plaintext: string;
+};
+
+export type DeleteMessageInput = {
+  conversationId: string;
+  messageId: string;
 };
 
 export type SendMessageInput = {
@@ -105,6 +154,9 @@ export type SendMessageInput = {
   attachmentIds?: string[];
   /** Metadata không nhạy cảm gửi kèm cho BE (optional). */
   metadata?: Record<string, unknown>;
+  /** Tin tự huỷ sau N giây kể từ lúc gửi (5–2592000). Bỏ trống = tin thường.
+   *  Xem 15-edit-recall-selfdestruct.md. */
+  selfDestructTtl?: number;
   /** Blob URL cục bộ — chỉ để hiển thị optimistic, KHÔNG gửi lên BE. */
   previewUrl?: string;
   /** Attachment dựng sẵn để hiển thị optimistic ngay, KHÔNG gửi lên BE. */

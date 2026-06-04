@@ -39,7 +39,12 @@
       "Bash(node -e \"const p=require\\('fs'\\).readFileSync\\('package.json','utf8'\\); const j=JSON.parse\\(p\\); console.log\\(Object.keys\\(j.exports\\)\\)\")",
       "Bash(grep -rn \"getNotificationHref\\\\|?c=\\\\|c=\\\\${\" src --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(grep -rn \"chat?c=\\\\|c=\\\\${\\\\|?c=\\\\|\\\\[PARAM\\\\]\\\\|'c'\" src public --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\")",
-      "Bash(echo \"exit $?\")"
+      "Bash(echo \"exit $?\")",
+      "Bash(xargs ls -la)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(git commit -q -m 'docs: spec thiết kế tính năng reply tin nhắn *)",
+      "Bash(bash *)"
     ]
   }
 }

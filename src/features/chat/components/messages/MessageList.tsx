@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth';
 import { useConversation, useMessages } from '../../hooks/use-query';
+import { useSelfDestruct } from '../../hooks/useSelfDestruct';
 import { useTypingStore } from '../../stores/typing.store';
 import type { Message } from '../../types';
 import { buildMemberNameMap } from '../../utils';
@@ -33,6 +35,15 @@ export function MessageList({ conversationId }: MessageListProps) {
     return data.pages.flatMap((p) => p.items).slice().reverse();
   }, [data]);
 
+  // Tra nhanh tin gốc của một reply (chỉ trong các trang đã load).
+  const messageById = useMemo(
+    () => new Map(messages.map((m) => [m.id, m])),
+    [messages],
+  );
+
+  // Tin tự huỷ: hẹn timer ẩn theo expireAt (không chờ server xoá nền).
+  useSelfDestruct(conversationId, messages);
+
   const typingUserIds = useTypingStore(
     (s) => s.byConv[conversationId] ?? EMPTY_TYPING,
   );
@@ -43,6 +54,27 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Bấm khối trích dẫn → cuộn tới tin gốc + nháy sáng. Ngoài khung nhìn → toast.
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-message-id="${messageId}"]`,
+    );
+    if (!el) {
+      toast('Tin nhắn gốc không còn trong khung nhìn');
+      return;
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightId(messageId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1600);
+  }, []);
+
+  useEffect(() => () => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -97,6 +129,12 @@ export function MessageList({ conversationId }: MessageListProps) {
       {messages.map((m, i) => {
         const prev = messages[i - 1];
         const showAvatar = m.senderId !== meId && (!prev || prev.senderId !== m.senderId);
+        const repliedTo = m.replyToMessageId ? messageById.get(m.replyToMessageId) ?? null : null;
+        const repliedToName = repliedTo
+          ? repliedTo.senderId === meId
+            ? 'Bạn'
+            : memberNames[repliedTo.senderId] ?? null
+          : null;
         return (
           <MessageBubble
             key={m.id}
@@ -105,6 +143,10 @@ export function MessageList({ conversationId }: MessageListProps) {
             showAvatar={showAvatar}
             senderName={memberNames[m.senderId] ?? null}
             senderSeed={m.senderId}
+            repliedTo={repliedTo}
+            repliedToName={repliedToName}
+            onQuoteClick={scrollToMessage}
+            isHighlighted={highlightId === m.id}
           />
         );
       })}

@@ -11,10 +11,17 @@ import {
   setTokenProvider,
 } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
+import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { chatKeys } from '@/services/keys';
 import { useTypingStore } from '../stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
-import type { Conversation, Message, MessagesPage, Presence } from '../types';
+import type {
+  Conversation,
+  JoinRequestStatus,
+  Message,
+  MessagesPage,
+  Presence,
+} from '../types';
 
 type NotifyPayload = { conversationId: string; message: Message };
 type ReadPayload = {
@@ -32,6 +39,38 @@ type ConversationDeletedPayload = {
   conversationId: string;
   deletedBy?: string;
   deletedAt?: string;
+};
+// BE có thể bắn full Message (đã isDeleted=true) hoặc chỉ id — handle cả hai.
+type MessageDeletedPayload =
+  | Message
+  | { conversationId: string; messageId: string; deletedAt?: string };
+
+type MembersAddedPayload = {
+  conversationId: string;
+  addedUserIds: string[];
+  addedBy?: string;
+  at?: string;
+};
+type MemberRemovedPayload = {
+  conversationId: string;
+  userId: string;
+  removedBy?: string;
+  reason?: 'KICKED' | 'LEFT';
+  at?: string;
+};
+type JoinRequestPayload = {
+  conversationId: string;
+  requestId: string;
+  requesterId: string;
+  reason?: string | null;
+  at?: string;
+};
+type JoinRequestResolvedPayload = {
+  conversationId: string;
+  requestId: string;
+  status: JoinRequestStatus;
+  reviewedBy?: string;
+  at?: string;
 };
 
 const HEARTBEAT_MS = 30_000;
@@ -117,7 +156,7 @@ export function useChatRealtime() {
           : { items: [message], nextCursor: null };
         return { ...prev, pages: [head, ...rest] };
       });
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
       qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(message.conversationId) });
     }
 
@@ -125,8 +164,45 @@ export function useChatRealtime() {
       upsertMessage(message);
     }
 
+    // Sửa tin: BE bắn full Message đã cập nhật → upsert thay theo id.
+    function onMessageEdited(message: Message) {
+      upsertMessage(message);
+    }
+
+    // Gỡ tin: nếu có full Message → upsert; nếu chỉ id → patch isDeleted tại chỗ.
+    function onMessageDeleted(payload: MessageDeletedPayload) {
+      if ('plaintext' in payload || 'senderId' in payload) {
+        upsertMessage(payload as Message);
+        return;
+      }
+      const { conversationId, messageId } = payload;
+      const key = chatKeys.messages(conversationId);
+      qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pages: prev.pages.map((p) => ({
+            ...p,
+            items: p.items.map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    isDeleted: true,
+                    deletedFor: 'EVERYONE',
+                    plaintext: null,
+                    contentPreview: null,
+                    attachments: [],
+                  }
+                : m,
+            ),
+          })),
+        };
+      });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    }
+
     function onConversationNotify(payload: NotifyPayload) {
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
       // Luôn upsert (kể cả cache rỗng) — đảm bảo nếu user mở conv ngay sau đó,
       // tin nhắn đã có sẵn trong cache, không bị "delay 1 vòng REST".
       upsertMessage(payload.message);
@@ -175,7 +251,7 @@ export function useChatRealtime() {
           (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
         );
       }
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
     function onPresenceUpdate(payload: Presence) {
@@ -215,7 +291,7 @@ export function useChatRealtime() {
     function onConversationDeleted(payload: ConversationDeletedPayload) {
       qc.removeQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
       qc.removeQueries({ queryKey: chatKeys.messages(payload.conversationId) });
-      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
       if (joinedRef.current === payload.conversationId) {
         joinedRef.current = null;
         setSelected(null);
@@ -223,9 +299,53 @@ export function useChatRealtime() {
       }
     }
 
+    // ─── Thành viên nhóm & yêu cầu vào nhóm (xem 16-group-members.md) ───────
+    function onMembersAdded(payload: MembersAddedPayload) {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    }
+
+    function onMemberRemoved(payload: MemberRemovedPayload) {
+      const meId = useAuthStore.getState().user?.id ?? null;
+      if (payload.userId === meId) {
+        // Mình bị kick / vừa rời → gỡ conversation khỏi state, đóng nếu đang mở.
+        qc.removeQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
+        qc.removeQueries({ queryKey: chatKeys.messages(payload.conversationId) });
+        debouncedInvalidate(qc, chatKeys.conversationLists());
+        if (joinedRef.current === payload.conversationId) {
+          joinedRef.current = null;
+          setSelected(null);
+          toast.info(payload.reason === 'LEFT' ? 'Bạn đã rời nhóm' : 'Bạn đã bị xoá khỏi nhóm');
+        }
+      } else {
+        qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
+        debouncedInvalidate(qc, chatKeys.conversationLists());
+      }
+    }
+
+    function onJoinRequest(payload: JoinRequestPayload) {
+      // Người duyệt nhận event → refetch danh sách yêu cầu chờ duyệt.
+      qc.invalidateQueries({ queryKey: chatKeys.joinRequests(payload.conversationId) });
+    }
+
+    function onJoinRequestResolved(payload: JoinRequestResolvedPayload) {
+      if (payload.status === 'ACCEPTED') {
+        toast.success('Bạn đã được duyệt vào nhóm');
+        debouncedInvalidate(qc, chatKeys.conversationLists());
+      } else if (payload.status === 'REJECTED') {
+        toast.info('Yêu cầu vào nhóm bị từ chối');
+      }
+    }
+
     socket.on('message:new', onMessageNew);
+    socket.on('message:edited', onMessageEdited);
+    socket.on('message:deleted', onMessageDeleted);
     socket.on('conversation:notify', onConversationNotify);
     socket.on('conversation:deleted', onConversationDeleted);
+    socket.on('conversation:members_added', onMembersAdded);
+    socket.on('conversation:member_removed', onMemberRemoved);
+    socket.on('conversation:join_request', onJoinRequest);
+    socket.on('conversation:join_request_resolved', onJoinRequestResolved);
     socket.on('message:read', onMessageRead);
     socket.on('presence:update', onPresenceUpdate);
     socket.on('typing', onTyping);
@@ -253,8 +373,14 @@ export function useChatRealtime() {
 
     return () => {
       socket.off('message:new', onMessageNew);
+      socket.off('message:edited', onMessageEdited);
+      socket.off('message:deleted', onMessageDeleted);
       socket.off('conversation:notify', onConversationNotify);
       socket.off('conversation:deleted', onConversationDeleted);
+      socket.off('conversation:members_added', onMembersAdded);
+      socket.off('conversation:member_removed', onMemberRemoved);
+      socket.off('conversation:join_request', onJoinRequest);
+      socket.off('conversation:join_request_resolved', onJoinRequestResolved);
       socket.off('message:read', onMessageRead);
       socket.off('presence:update', onPresenceUpdate);
       socket.off('typing', onTyping);
