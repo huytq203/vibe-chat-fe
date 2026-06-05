@@ -15,8 +15,8 @@ import {
   CardDescription,
 } from '@/components/ui/card/Card';
 import { toast } from 'sonner';
-import { registerSchema, type RegisterInput } from '../schemas';
-import { useRegister } from '../hooks/use-mutations';
+import { registerSchema, type RegisterInput } from '@/features/auth/schemas';
+import { useRegister } from '@/features/auth/hooks/use-mutations';
 import { ApiError } from '@/lib/api/client';
 
 export const RegisterForm = () => {

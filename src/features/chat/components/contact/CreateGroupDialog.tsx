@@ -12,8 +12,8 @@ import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import { useFriends } from '@/features/friends/hooks/use-query';
 import type { UserSummary } from '@/features/friends/types';
-import { useCreateGroup } from '../../hooks/use-mutations';
-import { Avatar } from '../common/Avatar';
+import { useCreateGroup } from '@/features/chat/hooks/use-mutations';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 import { ApiError } from '@/lib/api/client';
 
 const MAX_MEMBERS = 100;

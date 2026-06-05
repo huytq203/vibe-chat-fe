@@ -10,8 +10,8 @@ import {
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import { useFriends } from '@/features/friends/hooks/use-query';
-import { useAddMembers } from '../../hooks/use-mutations';
-import { Avatar } from '../common/Avatar';
+import { useAddMembers } from '@/features/chat/hooks/use-mutations';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 
 interface AddMembersDialogProps {
   open: boolean;

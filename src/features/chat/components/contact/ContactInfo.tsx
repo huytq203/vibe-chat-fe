@@ -2,32 +2,42 @@
 
 import { useState } from "react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
-import { Bell, BellOff, Lock, LogOut, PenIcon, Phone, Pin, PinOff, Search, Settings, Trash2, UserMinus, UserPlus, Users, UserX, Video, X, Clock } from "lucide-react";
+import { Lock, LogOut, PenIcon, Phone, Pin, PinOff, Search, Settings, Trash2, UserMinus, UserPlus, Users, UserX, Video, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
-import useContactInfor from "../../hooks/useContactInfor";
-import { useChatUIStore } from "../../stores/chat-ui.store";
+import useContactInfor from "@/features/chat/hooks/useContactInfor";
+import { useConvLockStore } from "@/features/chat/stores/conv-lock.store";
+import { useLockConversation, useRemoveLock } from "@/features/chat/hooks/use-mutations";
+import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
+import { useSettingsStore } from "@/features/settings";
 import { SharedTabs } from "./SharedTabs";
-import { Avatar, AvatarStatus } from "../common/Avatar";
-import { QuickAction } from "../common/QuickAction";
-import { OptionRow } from "../common/OptionRow";
+import { Avatar, AvatarStatus } from "@/features/chat/components/common/Avatar";
+import { QuickAction } from "@/features/chat/components/common/QuickAction";
+import { OptionRow } from "@/features/chat/components/common/OptionRow";
 import { NicknameDialog } from "./NicknameDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { AlertDeleteFriend } from "./AlertDeleteFriend";
 import { AlertDeleteConversation } from "./AlertDeleteConversation";
 import { AlertBlock } from "./AlertBlock";
 import { AlertLeaveGroup } from "./AlertLeaveGroup";
+import { LockPasswordDialog } from "./PinDialog";
 import { GroupMembersPanel } from "./GroupMembersPanel";
 import { GroupSettingsPanel } from "./GroupSettingsPanel";
 import { JoinRequestsPanel } from "./JoinRequestsPanel";
-import { ToggleRow } from "../common/ToggleRow";
+import { MessageSearchPanel } from "./MessageSearchPanel";
+import { MuteButton } from "./MuteButton";
 
 export function ContactInfo() {
   const data = useContactInfor();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [view, setView] = useState<"info" | "members" | "requests" | "settings">("info");
+  const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "search">("info");
+  const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
+  const convLockStore = useConvLockStore();
+  const lockMut = useLockConversation();
+  const removeLockMut = useRemoveLock();
+  const lockPin = useSettingsStore((s) => s.lockPin);
 
   if (!data) return null;
 
@@ -50,8 +60,6 @@ export function ContactInfo() {
     status,
     statusText,
     statusVariant,
-    muted,
-    setMuted,
     nicknameOpen,
     setNicknameOpen,
     confirmUnfriendOpen,
@@ -76,10 +84,37 @@ export function ContactInfo() {
     cancelFriendMut,
   } = data;
 
+  const isLocked = Boolean(conversation.isLocked);
+  const lockDialogMode: 'lock' | 'unlock' = isLocked ? 'unlock' : 'lock';
+
+  function lockWith(password: string) {
+    lockMut.mutate(
+      { conversationId: conversation.id, password },
+      { onSuccess: () => convLockStore.markUnlocked(conversation.id) },
+    );
+  }
+
+  // Bật khoá: nếu đã có PIN mặc định → khoá thẳng (không hỏi mật khẩu). Chưa có,
+  // hoặc đang tắt khoá (cần xác nhận mật khẩu) → mở dialog.
+  function handleLockToggle() {
+    if (!isLocked && lockPin) {
+      lockWith(lockPin);
+      return;
+    }
+    setLockDialogOpen(true);
+  }
+
+  function handleLockConfirm(password: string) {
+    if (isLocked) {
+      removeLockMut.mutate({ conversationId: conversation.id, password });
+    } else {
+      lockWith(password);
+    }
+  }
+
   if (!isDirect && view === "settings") {
     return (
       <GroupSettingsPanel
-        conversation={conversation}
         onBack={() => setView("info")}
         onClose={handleClose}
       />
@@ -103,6 +138,16 @@ export function ContactInfo() {
       <JoinRequestsPanel
         conversation={conversation}
         onBack={() => setView("members")}
+        onClose={handleClose}
+      />
+    );
+  }
+
+  if (view === "search") {
+    return (
+      <MessageSearchPanel
+        conversation={conversation}
+        onBack={() => setView("info")}
         onClose={handleClose}
       />
     );
@@ -161,13 +206,12 @@ export function ContactInfo() {
         <section className="grid grid-cols-4 gap-2 px-3 py-3">
           <QuickAction icon={<Phone className="h-[18px] w-[18px]" />} label="Gọi" />
           <QuickAction icon={<Video className="h-[18px] w-[18px]" />} label="Video" />
-          <QuickAction icon={<Search className="h-[18px] w-[18px]" />} label="Tìm" />
           <QuickAction
-            icon={muted ? <BellOff className="h-[18px] w-[18px]" /> : <Bell className="h-[18px] w-[18px]" />}
-            label={muted ? "Bỏ tắt" : "Tắt t.báo"}
-            active={muted}
-            onClick={() => setMuted((m) => !m)}
+            icon={<Search className="h-[18px] w-[18px]" />}
+            label="Tìm"
+            onClick={() => setView("search")}
           />
+          <MuteButton conversation={conversation} />
         </section>
 
         <section className="px-3 pt-2">
@@ -185,17 +229,10 @@ export function ContactInfo() {
               onClick={handleTogglePin}
             />
             {isDirect && (
-              <ToggleRow
+              <OptionRow
                 icon={<Lock className="h-4 w-4" />}
-                label="Chế độ bí mật"
-                subtitle={
-                  conversation.encryptionType === 'E2E'
-                    ? 'Đang bật — tin nhắn mã hoá đầu cuối'
-                    : 'Mã hoá đầu cuối — không có preview, không tìm kiếm'
-                }
-                checked={conversation.encryptionType === 'E2E'}
-                disabled
-                comingSoon
+                label={isLocked ? 'Tắt khoá hội thoại' : 'Khoá hội thoại'}
+                onClick={handleLockToggle}
               />
             )}
             {!isDirect && canManageSettings && (
@@ -316,6 +353,13 @@ export function ContactInfo() {
         name={name}
         isPending={leaveConvMut.isPending}
         onConfirm={handleConfirmLeave}
+      />
+
+      <LockPasswordDialog
+        open={lockDialogOpen}
+        onOpenChange={setLockDialogOpen}
+        mode={lockDialogMode}
+        onConfirm={handleLockConfirm}
       />
     </aside>
   );

@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button/Button';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { ApiError } from '@/lib/api/client';
 import { useMe, useUpdateMe, updateMeSchema, type UpdateMeInput } from '@/features/auth';
-import { Avatar } from '../common/Avatar';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);

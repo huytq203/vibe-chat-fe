@@ -50,11 +50,10 @@ const MEDIA_SNIPPET: Partial<Record<Message['type'], string>> = {
 
 /**
  * Preview ngắn 1 dòng của tin nhắn cho banner trả lời & khối trích dẫn (ReplyQuote).
- * Ưu tiên text; tin media không caption → nhãn theo loại; đã gỡ / E2E → nhãn riêng.
+ * Ưu tiên text; tin media không caption → nhãn theo loại; đã gỡ → nhãn riêng.
  */
 export function getMessageSnippet(msg: Message): string {
   if (msg.isDeleted) return 'Tin nhắn đã thu hồi';
-  if (msg.encryptionType === 'E2E') return 'Tin nhắn mã hoá';
   const text = (msg.plaintext ?? msg.contentPreview ?? '').trim();
   if (text) return text;
   return MEDIA_SNIPPET[msg.type] ?? '[Tin nhắn]';

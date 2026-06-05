@@ -10,10 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu/DropdownMenu";
-import type { Conversation, ConversationMember } from "../../types";
-import { useRemoveMember } from "../../hooks/use-mutations";
-import { useJoinRequests } from "../../hooks/use-query";
-import { Avatar } from "../common/Avatar";
+import type { Conversation, ConversationMember } from "@/features/chat/types";
+import { useRemoveMember } from "@/features/chat/hooks/use-mutations";
+import { useJoinRequests } from "@/features/chat/hooks/use-query";
+import { Avatar } from "@/features/chat/components/common/Avatar";
 import { AddMembersDialog } from "./AddMembersDialog";
 import { AlertRemoveMember } from "./AlertRemoveMember";
 

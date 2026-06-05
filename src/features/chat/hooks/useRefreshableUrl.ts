@@ -20,14 +20,20 @@ export function useRefreshableUrl(
   const [failed, setFailed] = useState(false);
   const [attempts, setAttempts] = useState(0);
 
-  // Reset khi initialUrl đổi (đổi message/URL) — điều chỉnh state ngay trong
-  // render (pattern "previous value" của React), tránh setState trong effect.
-  const [prevInitial, setPrevInitial] = useState(initialUrl);
-  if (prevInitial !== initialUrl) {
-    setPrevInitial(initialUrl);
+  // Khoá URL hiển thị theo mediaId, KHÔNG theo chuỗi initialUrl. Khi message list
+  // refetch, BE ký lại signed URL khác cho CÙNG file → nếu reset theo URL sẽ làm
+  // <video>/<img> đổi src và tải lại file nặng. Chỉ reset khi đổi sang media khác;
+  // URL hết hạn thật sẽ được làm mới qua onError. Pattern "previous value" của React.
+  const [prevMediaId, setPrevMediaId] = useState(mediaId);
+  if (prevMediaId !== mediaId) {
+    setPrevMediaId(mediaId);
     setUrl(initialUrl);
     setFailed(false);
     setAttempts(0);
+  } else if (url === null && !failed && initialUrl) {
+    // Cùng media nhưng trước đó chưa có URL (vd tin về trước, downloadUrl đến sau)
+    // → nhận URL đầu tiên. Sau khi set, url khác null nên không lặp.
+    setUrl(initialUrl);
   }
 
   const onError = useCallback(async () => {

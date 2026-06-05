@@ -12,8 +12,11 @@ export function useKeyboardVisible(): boolean {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    // Ghi nhớ chiều cao lúc mount (chưa có bàn phím).
+    // So sánh tương đối để tránh false-positive do browser chrome (thanh địa chỉ).
+    const baseHeight = vv.height;
     const handler = () => {
-      setVisible(vv.height < window.innerHeight * 0.75);
+      setVisible(baseHeight - vv.height > 150);
     };
     vv.addEventListener('resize', handler);
     return () => vv.removeEventListener('resize', handler);

@@ -6,8 +6,9 @@ import { authKeys } from '@/services/keys';
 import { notificationsApi } from '@/services/notifications.api';
 import { closeSocket } from '@/lib/ws/socket';
 import { getFcmToken } from '@/lib/firebase/messaging';
-import { useAuthStore } from '../stores/auth.store';
-import type { LoginInput, RegisterInput, UpdateMeInput } from '../schemas';
+import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
+import type { LoginInput, RegisterInput, UpdateMeInput } from '@/features/auth/schemas';
 
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -48,6 +49,7 @@ export function useUpdateMe() {
 export function useLogout() {
   const queryClient = useQueryClient();
   const clear = useAuthStore((s) => s.clear);
+  const clearLockSession = useConvLockStore((s) => s.clearAll);
   return useMutation({
     mutationFn: async () => {
       // Xoá FCM token TRƯỚC khi logout — cần access token còn hiệu lực.
@@ -59,6 +61,7 @@ export function useLogout() {
     },
     onSettled: () => {
       closeSocket();
+      clearLockSession();
       clear();
       queryClient.clear();
     },

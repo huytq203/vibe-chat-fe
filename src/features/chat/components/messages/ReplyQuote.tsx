@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import type { Message } from '../../types';
-import { getMessageSnippet } from '../../utils';
+import type { Message } from '@/features/chat/types';
+import { getMessageSnippet } from '@/features/chat/utils';
 
 type ReplyQuoteProps = {
   /** Tin gốc đã tra từ cache; null = ngoài khung nhìn (chưa load). */

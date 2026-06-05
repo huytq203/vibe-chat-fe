@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import { Download, ImageOff } from 'lucide-react';
 import { Progress } from '@/components/ui/progress/Progress';
-import { fileExtFromName, formatFileSize, getFileIconMeta } from '../../utils';
-import { useMediaDownload } from '../../hooks/useMediaDownload';
-import { useRefreshableUrl } from '../../hooks/useRefreshableUrl';
+import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
+import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
+import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
 import { useImageLightbox } from './LightboxProvider';
-import type { OptimisticMeta, Message } from '../../types';
+import type { OptimisticMeta, Message } from '@/features/chat/types';
 
 type MediaContentProps = {
   message: Message;
@@ -94,7 +94,7 @@ function ImageView({
         src={url}
         alt={name}
         onError={onError}
-        className="block max-h-[260px] max-w-[260px] rounded-[10px] object-cover"
+        className="block w-full max-h-[260px] max-w-[260px] rounded-[10px] object-cover"
       />
     </button>
   );
@@ -107,7 +107,7 @@ function VideoView({ url, name, onError }: { url: string | null; name: string; o
       src={url}
       controls
       onError={onError}
-      className="block max-h-[260px] max-w-[260px] rounded-[10px]"
+      className="block w-full max-h-[260px] max-w-[260px] rounded-[10px]"
     />
   );
 }

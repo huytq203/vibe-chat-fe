@@ -1,5 +1,5 @@
 export type ConversationType = 'DIRECT' | 'GROUP' | 'CHANNEL';
-export type EncryptionType = 'SERVER' | 'E2E';
+export type EncryptionType = 'SERVER';
 export type MessageType =
   | 'TEXT'
   | 'IMAGE'
@@ -11,14 +11,6 @@ export type MessageType =
   | 'CONTACT'
   | 'SYSTEM'
   | 'CALL';
-
-export type EncryptedBlob = {
-  ciphertext: string;
-  iv: string;
-  authTag: string;
-  keyId: string;
-  keyVersion: number;
-};
 
 export type LastMessagePreview = {
   id: string;
@@ -59,6 +51,11 @@ export type Conversation = {
   // này (endpoint pin đang chờ chốt — xem chatApi.pinConversation).
   isPinned?: boolean;
   pinnedAt?: string | null;
+  isLocked?: boolean;
+  // Mute per-user (đã normalize bởi BE). isMuted=true + mutedUntil=null = vĩnh viễn;
+  // mutedUntil=<ISO> = tắt có hạn; hết hạn BE tự trả isMuted=false. Xem 22-mute-notifications.md.
+  isMuted?: boolean;
+  mutedUntil?: string | null;
   createdAt: string;
 };
 
@@ -115,7 +112,6 @@ export type Message = {
   type: MessageType;
   encryptionType: EncryptionType;
   plaintext: string | null;
-  encrypted: EncryptedBlob | null;
   attachments: Attachment[];
   contentPreview: string | null;
   metadata: Record<string, unknown> | null;
@@ -229,3 +225,6 @@ export type MessagesPage = {
   items: Message[];
   nextCursor: string | null;
 };
+
+/** Loại nội dung chia sẻ cho tab "Ảnh & Video / Tài liệu / Liên kết" (xem 20-shared-content.md). */
+export type SharedContentType = 'MEDIA' | 'FILE' | 'LINK';

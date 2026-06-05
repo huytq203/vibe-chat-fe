@@ -1,45 +1,95 @@
 'use client';
 
 import { useMemo } from 'react';
+import type { InfiniteData } from '@tanstack/react-query';
 import { extractUrls } from '@/lib/utils/url';
-import { useMessages } from './use-query';
-import type { Attachment, Message } from '../types';
+import { featureFlags } from '@/config/features';
+import { useMessages, useSharedMessages } from './use-query';
+import type { Attachment, Message, MessagesPage } from '@/features/chat/types';
 
 export type SharedMedia = { key: string; message: Message; attachment: Attachment };
 export type SharedLink = { key: string; url: string; messageId: string; createdAt: string };
 
+/** Một tab Shared: danh sách item ĐẦY ĐỦ (lấy hết 1 lần) + cờ đang tải. Mở rộng hiển thị
+ *  ("Xem thêm") xử lý phía FE bằng slicing, không gọi BE thêm. */
+export type SharedSection<T> = { items: T[]; isLoading: boolean };
+
 export type SharedContent = {
+  media: SharedSection<SharedMedia>;
+  files: SharedSection<SharedMedia>;
+  links: SharedSection<SharedLink>;
+};
+
+function flattenInfinite(data: InfiniteData<MessagesPage> | undefined): Message[] {
+  return data?.pages.flatMap((p) => p.items) ?? [];
+}
+
+/** Phân loại danh sách message thành ảnh/video, tệp và liên kết đã chia sẻ. */
+function deriveSharedContent(messages: Message[]): {
   media: SharedMedia[];
   files: SharedMedia[];
   links: SharedLink[];
-};
+} {
+  const media: SharedMedia[] = [];
+  const files: SharedMedia[] = [];
+  const links: SharedLink[] = [];
+
+  for (const m of messages) {
+    const att = m.attachments?.[0];
+    if ((m.type === 'IMAGE' || m.type === 'VIDEO') && att) {
+      media.push({ key: m.id, message: m, attachment: att });
+    } else if ((m.type === 'FILE' || m.type === 'AUDIO') && att) {
+      files.push({ key: m.id, message: m, attachment: att });
+    }
+    for (const url of extractUrls(m.plaintext)) {
+      links.push({ key: `${m.id}:${url}`, url, messageId: m.id, createdAt: m.createdAt });
+    }
+  }
+
+  return { media, files, links };
+}
 
 /**
- * Gom ảnh/video, tệp và liên kết đã chia sẻ từ các trang message đã nạp trong
- * cache (useMessages). Không gọi API riêng — phản ánh đúng phần lịch sử đang xem.
+ * Gom ảnh/video, tệp và liên kết đã chia sẻ của một conversation — lấy ĐỦ toàn bộ.
+ *
+ * - `featureFlags.sharedContentApi` BẬT → mỗi loại gọi endpoint BE riêng một lần KHÔNG `limit`
+ *   (`GET /conversations/:id/shared`, xem FRONTEND/20-shared-content.md) → nhận hết.
+ * - TẮT → fallback suy ra từ các trang message đã nạp trong cache.
+ *
+ * "Xem thêm" trong UI chỉ mở rộng số item hiển thị (slicing FE), KHÔNG fetch thêm.
  */
 export function useSharedContent(conversationId: string | null): SharedContent {
-  const { data } = useMessages(conversationId);
+  const useApi = featureFlags.sharedContentApi;
+
+  const mediaQ = useSharedMessages(conversationId, 'MEDIA', useApi);
+  const filesQ = useSharedMessages(conversationId, 'FILE', useApi);
+  const linksQ = useSharedMessages(conversationId, 'LINK', useApi);
+
+  // Fallback chỉ tải message cache khi không dùng API (tránh fetch thừa).
+  const { data: cacheData } = useMessages(useApi ? null : conversationId);
 
   return useMemo(() => {
-    const messages = data?.pages.flatMap((p) => p.items) ?? [];
-    const media: SharedMedia[] = [];
-    const files: SharedMedia[] = [];
-    const links: SharedLink[] = [];
-
-    for (const m of messages) {
-      if (m.isDeleted || m.encryptionType === 'E2E') continue;
-      const att = m.attachments?.[0];
-      if ((m.type === 'IMAGE' || m.type === 'VIDEO') && att) {
-        media.push({ key: m.id, message: m, attachment: att });
-      } else if ((m.type === 'FILE' || m.type === 'AUDIO') && att) {
-        files.push({ key: m.id, message: m, attachment: att });
-      }
-      for (const url of extractUrls(m.plaintext)) {
-        links.push({ key: `${m.id}:${url}`, url, messageId: m.id, createdAt: m.createdAt });
-      }
+    if (useApi) {
+      return {
+        media: { items: deriveSharedContent(mediaQ.data?.items ?? []).media, isLoading: mediaQ.isLoading },
+        files: { items: deriveSharedContent(filesQ.data?.items ?? []).files, isLoading: filesQ.isLoading },
+        links: { items: deriveSharedContent(linksQ.data?.items ?? []).links, isLoading: linksQ.isLoading },
+      };
     }
-
-    return { media, files, links };
-  }, [data]);
+    const all = deriveSharedContent(flattenInfinite(cacheData));
+    return {
+      media: { items: all.media, isLoading: false },
+      files: { items: all.files, isLoading: false },
+      links: { items: all.links, isLoading: false },
+    };
+  }, [
+    useApi,
+    mediaQ.data,
+    mediaQ.isLoading,
+    filesQ.data,
+    filesQ.isLoading,
+    linksQ.data,
+    linksQ.isLoading,
+    cacheData,
+  ]);
 }

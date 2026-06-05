@@ -8,7 +8,7 @@ import { tv } from 'tailwind-variants';
 import * as locales from 'react-day-picker/locale';
 
 import 'react-day-picker/dist/style.css';
-import { Button } from '../button/Button';
+import { Button } from '@/components/ui/button/Button';
 
 // ---------- types ----------
 

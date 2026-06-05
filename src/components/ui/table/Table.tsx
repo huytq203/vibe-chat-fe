@@ -22,8 +22,8 @@ declare module '@tanstack/react-table' {
     }
 }
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Checkbox } from '../checkbox/Checkbox';
-import { Spinner } from '../spinner/Spinner';
+import { Checkbox } from '@/components/ui/checkbox/Checkbox';
+import { Spinner } from '@/components/ui/spinner/Spinner';
 import { TableHeader } from './TableHeader';
 import { TableEmpty, TableNormalRows, TableVirtualRows } from './TableBody';
 import { TablePagination } from './TablePagination';

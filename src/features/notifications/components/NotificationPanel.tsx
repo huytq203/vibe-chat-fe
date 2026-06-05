@@ -13,14 +13,14 @@ import {
 import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
-import { useNotifications, useUnreadCount } from '../hooks/use-query';
+import { useNotifications, useUnreadCount } from '@/features/notifications/hooks/use-query';
 import {
   useDeleteNotification,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
-} from '../hooks/use-mutations';
-import { getNotificationHref } from '../utils';
-import type { Notification } from '../types';
+} from '@/features/notifications/hooks/use-mutations';
+import { getNotificationHref } from '@/features/notifications/utils';
+import type { Notification } from '@/features/notifications/types';
 import { NotificationItem } from './NotificationItem';
 
 type Tab = 'all' | 'unread';

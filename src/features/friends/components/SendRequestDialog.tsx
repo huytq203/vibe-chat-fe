@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input/Input";
 import { Button } from "@/components/ui/button/Button";
 import { Avatar } from "@/features/chat/components/common/Avatar";
-import type { UserSearchItem } from "../types";
+import type { UserSearchItem } from "@/features/friends/types";
 
 type Props = {
   user: UserSearchItem | null;

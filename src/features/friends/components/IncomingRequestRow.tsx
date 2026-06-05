@@ -3,7 +3,7 @@
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import { formatListTime } from '@/features/chat/utils';
-import type { FriendRequest } from '../types';
+import type { FriendRequest } from '@/features/friends/types';
 
 type Props = {
   request: FriendRequest;

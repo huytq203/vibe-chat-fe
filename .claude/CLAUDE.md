@@ -377,4 +377,4 @@ Theo thứ tự, KHÔNG bỏ bước:
 
 ---
 
-**Ghi nhớ:** Code này sẽ được đọc bởi đồng nghiệp 6 tháng sau, không phải bởi compiler. Viết cho con người. Tối ưu cho việc thay đổi, không cho việc viết một lần.
+**Ghi nhớ:** Code này sẽ được đọc bởi đồng nghiệp 6 tháng sau, **và bởi AI Agents** khi sinh code theo rule. Viết cho con người — và cho máy đọc rule. Tối ưu cho việc thay đổi, không cho việc viết một lần.

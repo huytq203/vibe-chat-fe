@@ -15,10 +15,10 @@ import {
   useRejectFriendRequest,
 } from '@/features/friends';
 import type { UserSearchItem } from '@/features/friends';
-import { Avatar } from '../common/Avatar';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 import { ConversationItem } from './ConversationItem';
-import { getConversationName } from '../../utils';
-import type { Conversation } from '../../types';
+import { getConversationName } from '@/features/chat/utils';
+import type { Conversation } from '@/features/chat/types';
 
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 300;
@@ -88,12 +88,14 @@ export function SearchOverlay({
   }, [friendItems]);
 
   const filteredConvs = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter((c) => {
-      const name = getConversationName(c, meId).toLowerCase();
-      const preview = (c.lastMessage?.preview ?? '').toLowerCase();
-      return name.includes(q) || preview.includes(q);
+    // Cuộc trò chuyện đã khóa không xuất hiện trong tìm kiếm thường.
+    const visibleConversations = conversations.filter((conversation) => !conversation.isLocked);
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return visibleConversations;
+    return visibleConversations.filter((conversation) => {
+      const name = getConversationName(conversation, meId).toLowerCase();
+      const preview = (conversation.lastMessage?.preview ?? '').toLowerCase();
+      return name.includes(normalizedQuery) || preview.includes(normalizedQuery);
     });
   }, [conversations, query, meId]);
 
@@ -162,36 +164,11 @@ type IdleProps = {
 function IdleContent({ friendsSample, conversations, meId, selectedConversationId, onSelectConversation, onMessageFriend }: IdleProps) {
   return (
     <>
-      {friendsSample.length > 0 && (
-        <div className="shrink-0">
-          <p className="px-4 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Bạn bè
-          </p>
-          <div className="flex gap-0.5 overflow-x-auto px-2 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {friendsSample.map((user) => {
-              const name = user.displayName || user.username;
-              return (
-                <button
-                  key={user.id}
-                  onClick={() => onMessageFriend(user)}
-                  className="flex min-w-[60px] flex-col items-center gap-1.5 rounded-xl px-1.5 py-2 transition-colors hover:bg-accent/50 active:bg-accent/70"
-                >
-                  <Avatar name={name} src={user.avatarUrl} seed={user.id} size="md" />
-                  <span className="w-[52px] truncate text-center text-[11px] leading-tight text-foreground">
-                    {name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="mx-3 mb-1 h-px bg-border/60" />
-        </div>
-      )}
       <p className="px-4 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Gần đây
       </p>
       <div className="px-2 pb-2">
-        {conversations.map((c) => (
+        {conversations.slice(0,5).map((c) => (
           <ConversationItem
             key={c.id}
             conversation={c}

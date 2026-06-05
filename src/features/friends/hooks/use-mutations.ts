@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { friendsApi } from '@/services/friends.api';
 import { blocksApi } from '@/services/blocks.api';
 import { blockKeys, friendKeys } from '@/services/keys';
-import type { BlockUserInput, SendFriendRequestInput } from '../types';
+import type { BlockUserInput, SendFriendRequestInput } from '@/features/friends/types';
 
 export function useSendFriendRequest() {
   const qc = useQueryClient();

@@ -17,14 +17,13 @@ import {
 import { NotificationPanel, useUnreadCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
-import { useConversations } from '../../hooks/use-query';
-import { useChatUIStore } from '../../stores/chat-ui.store';
-import { useSelectedConversation } from '../../hooks/useSelectedConversation';
-import { getConversationName } from '../../utils';
+import { useConversations, useLockedConversations } from '@/features/chat/hooks/use-query';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
+import { getConversationName } from '@/features/chat/utils';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
-import { SecretDivider } from './SecretDivider';
-import { UserMenu } from '../common/UserMenu';
+import { UserMenu } from '@/features/chat/components/common/UserMenu';
 
 const TABS = [
   { id: 'all', label: 'Tất cả' },
@@ -48,6 +47,8 @@ export function ConversationList() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
+  const [lockedExpanded, setLockedExpanded] = useState(false);
+  const { data: lockedConversations = [] } = useLockedConversations();
 
   const qc = useQueryClient();
   const openDirectMut = useMutation({
@@ -75,21 +76,22 @@ export function ConversationList() {
   );
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const matched = conversations.filter((c) => {
-      if (activeTab === 'unread' && c.unreadCount === 0) return false;
-      if (activeTab === 'group' && c.type === 'DIRECT') return false;
-      if (!q) return true;
-      const name = getConversationName(c, me?.id ?? null).toLowerCase();
-      const preview = (c.lastMessage?.preview ?? '').toLowerCase();
-      return name.includes(q) || preview.includes(q);
+    const query = search.trim().toLowerCase();
+    const matched = conversations.filter((conversation) => {
+      if (conversation.isLocked) return false;
+      if (activeTab === 'unread' && conversation.unreadCount === 0) return false;
+      if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
+      if (!query) return true;
+      const name = getConversationName(conversation, me?.id ?? null).toLowerCase();
+      const preview = (conversation.lastMessage?.preview ?? '').toLowerCase();
+      return name.includes(query) || preview.includes(query);
     });
-    // Conv đã ghim luôn nổi lên đầu; trong cùng nhóm giữ thứ tự mới nhất theo
-    // lastMessageAt (BE đã sort sẵn, dùng làm tie-break).
-    const ts = (s: string | null) => (s ? new Date(s).getTime() : 0);
-    return matched.slice().sort((a, b) => {
-      if (Boolean(a.isPinned) !== Boolean(b.isPinned)) return a.isPinned ? -1 : 1;
-      return ts(b.lastMessageAt) - ts(a.lastMessageAt);
+
+    const toTimestamp = (dateString: string | null) =>
+      dateString ? new Date(dateString).getTime() : 0;
+    return matched.slice().sort((first, second) => {
+      if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
+      return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
   }, [conversations, activeTab, search, me?.id]);
 
@@ -158,39 +160,22 @@ export function ConversationList() {
                   {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
                 </div>
               )}
-              {(() => {
-                const normal = filtered.filter((c) => c.encryptionType !== 'E2E');
-                const secrets = filtered.filter((c) => c.encryptionType === 'E2E');
-                return (
-                  <>
-                    {normal.map((c) => (
-                      <ConversationItem
-                        key={c.id}
-                        conversation={c}
-                        selected={selectedConversationId === c.id}
-                        meId={me?.id ?? null}
-                        onSelect={handleSelectConversation}
-                      />
-                    ))}
-                    {secrets.length > 0 && <SecretDivider />}
-                    {secrets.map((c) => (
-                      <ConversationItem
-                        key={c.id}
-                        conversation={c}
-                        selected={selectedConversationId === c.id}
-                        meId={me?.id ?? null}
-                        onSelect={handleSelectConversation}
-                      />
-                    ))}
-                  </>
-                );
-              })()}
+              {filtered.map((c) => (
+                <ConversationItem
+                  key={c.id}
+                  conversation={c}
+                  selected={selectedConversationId === c.id}
+                  meId={me?.id ?? null}
+                  onSelect={handleSelectConversation}
+                />
+              ))}
+         
             </div>
           </>
         )}
       </div>
 
-      <footer className="hidden shrink-0 items-center justify-around border-t border-border px-2 py-3 md:flex">
+      <footer className="flex shrink-0 items-center justify-around border-t border-border px-2 py-3">
         <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat">
           <MessageSquare className="h-5 w-5" />
         </Button>

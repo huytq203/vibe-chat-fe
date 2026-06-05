@@ -2,8 +2,8 @@
 
 import { AlertCircle, Play, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { getFileIconMeta } from '../../utils';
-import type { Attachment } from '../../hooks/useAttachments';
+import { getFileIconMeta } from '@/features/chat/utils';
+import type { Attachment } from '@/features/chat/hooks/useAttachments';
 
 type AttachmentTrayProps = {
   attachments: Attachment[];

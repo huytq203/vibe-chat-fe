@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { apiAuth } from '@/lib/api/client';
-import type { AuthTokens, AuthUser } from '../types';
+import type { AuthTokens, AuthUser } from '@/features/auth/types';
 
 type AuthState = {
   user: AuthUser | null;

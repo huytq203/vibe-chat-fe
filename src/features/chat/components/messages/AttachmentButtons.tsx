@@ -3,7 +3,7 @@
 import { useRef, type ChangeEvent } from 'react';
 import { Image as ImageIcon, Paperclip, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import type { AttachmentKind } from '../../hooks/useAttachments';
+import type { AttachmentKind } from '@/features/chat/hooks/useAttachments';
 
 type AttachmentButtonsProps = {
   onFiles: (files: FileList, kind: AttachmentKind) => void;

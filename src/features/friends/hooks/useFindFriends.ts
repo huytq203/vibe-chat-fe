@@ -9,7 +9,7 @@ import {
   useRejectFriendRequest,
   useSendFriendRequest,
 } from './use-mutations';
-import type { SendFriendRequestInput, UserSearchItem } from '../types';
+import type { SendFriendRequestInput, UserSearchItem } from '@/features/friends/types';
 
 export type FindFriendsTab = 'search' | 'requests';
 

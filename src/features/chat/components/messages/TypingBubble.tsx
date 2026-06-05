@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import { Avatar } from '../common/Avatar';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 
 type TypingBubbleProps = {
   userId: string;

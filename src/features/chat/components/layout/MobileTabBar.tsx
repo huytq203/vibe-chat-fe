@@ -5,7 +5,6 @@ import { Bell, MessageSquare, Users } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
-import { useKeyboardVisible } from '@/lib/hooks/useKeyboardVisible';
 import { cn } from '@/lib/utils/cn';
 import {
   FindFriendsPanel,
@@ -13,9 +12,9 @@ import {
   type UserSearchItem,
 } from '@/features/friends';
 import { NotificationPanel } from '@/features/notifications';
-import { useChatUIStore } from '../../stores/chat-ui.store';
-import { useSelectedConversation } from '../../hooks/useSelectedConversation';
-import { UserMenu } from '../common/UserMenu';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
+import { UserMenu } from '@/features/chat/components/common/UserMenu';
 
 type TabId = 'chat' | 'friends' | 'notifications' | 'me';
 
@@ -55,7 +54,6 @@ function TabButton({ icon, label, active, badge, onClick }: TabButtonProps) {
  * 4 tab: Chat · Bạn bè · Thông báo · Tôi.
  */
 export function MobileTabBar() {
-  const keyboardVisible = useKeyboardVisible();
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { setSelected } = useSelectedConversation();
@@ -81,8 +79,6 @@ export function MobileTabBar() {
   function handleMessageUser(user: UserSearchItem) {
     openDirectMut.mutate(user.id);
   }
-
-  if (keyboardVisible) return null;
 
   return (
     <>

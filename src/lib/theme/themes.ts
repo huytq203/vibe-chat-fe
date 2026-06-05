@@ -291,6 +291,16 @@ export function applyTheme(theme: Theme) {
   --ring: ${c.ring};
   --popover: ${c.popover};
   --popover-foreground: ${c.popoverForeground};
+  /* Sidebar + switch dẫn xuất từ palette → luôn đúng cặp tương phản theo theme.
+     Trước đây các token này không được ghi đè nên giữ giá trị tím tối mặc định
+     khi đổi sang theme sáng (chữ tím / nền tím). */
+  --sidebar: ${c.muted};
+  --sidebar-foreground: ${c.foreground};
+  --sidebar-border: ${c.border};
+  --sidebar-accent: ${c.accent};
+  --sidebar-accent-foreground: ${c.accentForeground};
+  --sidebar-ring: ${c.ring};
+  --switch-background: ${c.border};
 }`.trim();
 
   let styleEl = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null;
@@ -334,6 +344,13 @@ export function toCssVars(theme: Theme): string {
     ['--ring', c.ring],
     ['--popover', c.popover],
     ['--popover-foreground', c.popoverForeground],
+    ['--sidebar', c.muted],
+    ['--sidebar-foreground', c.foreground],
+    ['--sidebar-border', c.border],
+    ['--sidebar-accent', c.accent],
+    ['--sidebar-accent-foreground', c.accentForeground],
+    ['--sidebar-ring', c.ring],
+    ['--switch-background', c.border],
   ];
   const body = vars.map(([k, v]) => `        ${k}: ${v};`).join('\n');
   return `:root {\n${body}\n    }`;

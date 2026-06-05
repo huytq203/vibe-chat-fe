@@ -14,7 +14,7 @@ import {
   useUnblockUser,
   useUnfriend,
 } from "@/features/friends/hooks/use-mutations";
-import { useChatUIStore } from "../stores/chat-ui.store";
+import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
 import { useSelectedConversation } from "./useSelectedConversation";
 import { useConversation, usePresence } from "./use-query";
 import {
@@ -22,7 +22,7 @@ import {
   useLeaveConversation,
   useTogglePinConversation,
 } from "./use-mutations";
-import { getConversationName, getConversationSeed } from "../utils";
+import { getConversationName, getConversationSeed } from "@/features/chat/utils";
 
 const useContactInfor = () => {
   const meId = useAuthStore((s) => s.user?.id ?? null);
@@ -36,7 +36,6 @@ const useContactInfor = () => {
   const { data: presenceList } = usePresence(otherIds);
   const otherPresence = presenceList?.[0] ?? null;
 
-  const [muted, setMuted] = useState(false);
   const [nicknameOpen, setNicknameOpen] = useState(false);
   const [confirmUnfriendOpen, setConfirmUnfriendOpen] = useState(false);
   const [confirmBlockOpen, setConfirmBlockOpen] = useState(false);
@@ -109,9 +108,9 @@ const useContactInfor = () => {
     });
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = (scope: 'ME' | 'BOTH') => {
     if (!selectedConversationId) return;
-    deleteConvMut.mutate(selectedConversationId, {
+    deleteConvMut.mutate({ conversationId: selectedConversationId, scope }, {
       onSuccess: () => {
         setConfirmDeleteOpen(false);
         setRightOpen(false);
@@ -171,8 +170,6 @@ const useContactInfor = () => {
     status,
     statusText,
     statusVariant,
-    muted,
-    setMuted,
     nicknameOpen,
     setNicknameOpen,
     confirmUnfriendOpen,

@@ -3,11 +3,11 @@
 import { ArrowLeft, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Spinner } from '@/components/ui/spinner/Spinner';
-import type { Conversation, JoinRequest } from '../../types';
-import { useJoinRequests } from '../../hooks/use-query';
-import { useAcceptJoinRequest, useRejectJoinRequest } from '../../hooks/use-mutations';
-import { formatListTime } from '../../utils';
-import { Avatar } from '../common/Avatar';
+import type { Conversation, JoinRequest } from '@/features/chat/types';
+import { useJoinRequests } from '@/features/chat/hooks/use-query';
+import { useAcceptJoinRequest, useRejectJoinRequest } from '@/features/chat/hooks/use-mutations';
+import { formatListTime } from '@/features/chat/utils';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 
 type JoinRequestsPanelProps = {
   conversation: Conversation;

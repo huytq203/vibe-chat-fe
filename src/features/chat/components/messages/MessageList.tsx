@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth';
-import { useConversation, useMessages } from '../../hooks/use-query';
-import { useSelfDestruct } from '../../hooks/useSelfDestruct';
-import { useTypingStore } from '../../stores/typing.store';
-import type { Message } from '../../types';
-import { buildMemberNameMap } from '../../utils';
+import { useConversation, useMessages } from '@/features/chat/hooks/use-query';
+import { useSelfDestruct } from '@/features/chat/hooks/useSelfDestruct';
+import { useTypingStore } from '@/features/chat/stores/typing.store';
+import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
+import type { Message } from '@/features/chat/types';
+import { buildMemberNameMap } from '@/features/chat/utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { LightboxProvider } from './LightboxProvider';
@@ -17,6 +19,8 @@ type MessageListProps = {
 };
 
 const EMPTY_TYPING: string[] = [];
+/** Trần số trang tự nạp khi nhảy tới 1 tin cũ (40 × 30 ≈ 1200 tin) — tránh nạp vô hạn. */
+const MAX_JUMP_FETCHES = 40;
 
 export function MessageList({ conversationId }: MessageListProps) {
   const meId = useAuthStore((s) => s.user?.id ?? null);
@@ -56,6 +60,14 @@ export function MessageList({ conversationId }: MessageListProps) {
   const lastIdRef = useRef<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setShowScrollDown(false);
+  }, []);
 
   // Bấm khối trích dẫn → cuộn tới tin gốc + nháy sáng. Ngoài khung nhìn → toast.
   const scrollToMessage = useCallback((messageId: string) => {
@@ -76,6 +88,45 @@ export function MessageList({ conversationId }: MessageListProps) {
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
   }, []);
 
+  // Nhảy tới tin từ panel ngoài (kết quả tìm kiếm): nếu tin chưa nạp, tự tải dần các
+  // trang cũ hơn tới khi tin có trong khung rồi cuộn + nháy sáng. Drive trực tiếp từ
+  // store target (không mirror sang state) — counter giữ ở ref để chặn nạp vô hạn.
+  const jumpTarget = useMessageJumpStore((s) => s.target);
+  const clearJump = useMessageJumpStore((s) => s.clear);
+  const jumpFetchCountRef = useRef(0);
+  const lastJumpIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!jumpTarget) {
+      lastJumpIdRef.current = null;
+      return;
+    }
+    if (lastJumpIdRef.current !== jumpTarget.id) {
+      lastJumpIdRef.current = jumpTarget.id;
+      jumpFetchCountRef.current = 0;
+    }
+    const el = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-message-id="${jumpTarget.id}"]`,
+    );
+    if (el) {
+      scrollToMessage(jumpTarget.id);
+      clearJump();
+      return;
+    }
+    if (isFetchingNextPage) return; // chờ trang đang tải xong rồi kiểm tra lại
+    // messages sắp xếp cũ → mới, messages[0] là tin cũ nhất đã nạp.
+    const oldest = messages[0];
+    const loadedPastTarget =
+      oldest && new Date(oldest.createdAt).getTime() <= new Date(jumpTarget.createdAt).getTime();
+    if (hasNextPage && !loadedPastTarget && jumpFetchCountRef.current < MAX_JUMP_FETCHES) {
+      jumpFetchCountRef.current += 1;
+      void fetchNextPage();
+      return;
+    }
+    toast('Không tải được tin nhắn để nhảy tới');
+    clearJump();
+  }, [jumpTarget, messages, hasNextPage, isFetchingNextPage, fetchNextPage, scrollToMessage, clearJump]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -95,8 +146,10 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   function handleScroll() {
     const el = scrollRef.current;
-    if (!el || !hasNextPage || isFetchingNextPage) return;
-    if (el.scrollTop <= 40) void fetchNextPage();
+    if (!el) return;
+    if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollDown(distanceFromBottom > 240);
   }
 
   if (isLoading) {
@@ -117,6 +170,7 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   return (
     <LightboxProvider>
+    <div className="relative flex min-h-0 flex-1 flex-col">
     <div
       ref={scrollRef}
       onScroll={handleScroll}
@@ -164,6 +218,18 @@ export function MessageList({ conversationId }: MessageListProps) {
         );
       })}
       </div>
+    </div>
+
+      {showScrollDown && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          aria-label="Xuống tin mới nhất"
+          className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-muted text-foreground transition-colors hover:bg-secondary"
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      )}
     </div>
     </LightboxProvider>
   );

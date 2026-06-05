@@ -7,7 +7,7 @@ import type {
   MediaCategory,
   MediaDimensions,
   MediaResponse,
-} from '../types';
+} from '@/features/chat/types';
 
 export type AttachmentKind = 'image' | 'video' | 'file';
 export type AttachmentStatus = 'idle' | 'uploading' | 'done' | 'error';

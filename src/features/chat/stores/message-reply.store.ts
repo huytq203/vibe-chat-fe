@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { MessageType } from '../types';
+import type { MessageType } from '@/features/chat/types';
 
 export type ReplyingMessage = {
   conversationId: string;

@@ -11,8 +11,8 @@ import {
 import { Input } from '@/components/ui/input/Input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { Badge } from '@/components/ui/badge/Badge';
-import { useFindFriends, type FindFriendsTab } from '../hooks/useFindFriends';
-import type { UserSearchItem } from '../types';
+import { useFindFriends, type FindFriendsTab } from '@/features/friends/hooks/useFindFriends';
+import type { UserSearchItem } from '@/features/friends/types';
 import { SearchPane } from './SearchPane';
 import { RequestsPane } from './RequestsPane';
 import { SendRequestDialog } from './SendRequestDialog';

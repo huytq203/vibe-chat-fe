@@ -4,6 +4,13 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
+import type { SharedContentType } from '@/features/chat/types';
+
+// Cache tin nhắn giữ lâu (2h): realtime WS đã upsert tin mới vào cache nên không
+// cần refetch REST mỗi lần mở lại conversation → tránh reload tin & media nặng.
+// gcTime riêng 2h (> default global 30 phút) để cache không bị thu hồi khi rời lâu.
+const MESSAGES_STALE_TIME = 2 * 60 * 60_000;
+const MESSAGES_GC_TIME = 2 * 60 * 60_000;
 
 export function useConversations(params: { page?: number; limit?: number } = {}) {
   const page = params.page ?? 1;
@@ -37,7 +44,61 @@ export function useMessages(conversationId: string | null) {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     enabled: Boolean(conversationId),
-    staleTime: 10_000,
+    staleTime: MESSAGES_STALE_TIME,
+    gcTime: MESSAGES_GC_TIME,
+  });
+}
+
+/**
+ * Nội dung chia sẻ theo loại (MEDIA/FILE/LINK) qua endpoint BE riêng — lấy ĐỦ toàn bộ
+ * trong 1 lần gọi (không `limit`). "Xem thêm" mở rộng hiển thị phía FE, không fetch thêm.
+ * Gọi qua useSharedContent.
+ */
+export function useSharedMessages(
+  conversationId: string | null,
+  type: SharedContentType,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: conversationId
+      ? chatKeys.shared(conversationId, type)
+      : ['chat', 'shared', 'null', type],
+    queryFn: () => chatApi.listShared(conversationId as string, { type }),
+    enabled: enabled && Boolean(conversationId),
+    staleTime: 60_000,
+  });
+}
+
+export type MessageSearchFilters = {
+  key: string;
+  senderId?: string;
+  from?: string;
+  to?: string;
+};
+
+/**
+ * Tìm tin nhắn TEXT trong 1 conversation (toàn bộ lịch sử) — phân trang cursor.
+ * Chỉ fetch khi `key` đã trim có ít nhất 1 ký tự. Xem FRONTEND/21-message-search.md.
+ */
+export function useMessageSearch(conversationId: string | null, filters: MessageSearchFilters) {
+  const key = filters.key.trim();
+  return useInfiniteQuery({
+    queryKey: conversationId
+      ? chatKeys.search(conversationId, { ...filters, key })
+      : ['chat', 'search', 'null'],
+    queryFn: ({ pageParam }) =>
+      chatApi.searchMessages(conversationId as string, {
+        key,
+        limit: 20,
+        before: pageParam ?? undefined,
+        senderId: filters.senderId,
+        from: filters.from,
+        to: filters.to,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: Boolean(conversationId) && key.length >= 1,
+    staleTime: 30_000,
   });
 }
 
@@ -61,5 +122,15 @@ export function usePresence(userIds: string[]) {
     enabled,
     staleTime: 60_000,
     refetchInterval: 60_000,
+  });
+}
+
+export function useLockedConversations() {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: chatKeys.lockedConversations(),
+    queryFn: () => chatApi.listLockedConversations(),
+    enabled: isAuthed,
+    staleTime: 30_000,
   });
 }

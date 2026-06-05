@@ -9,13 +9,14 @@ import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { getSocket } from '@/lib/ws/socket';
 import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
+import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import type {
   DeleteMessageInput,
   EditMessageInput,
   Message,
   MessagesPage,
   SendMessageInput,
-} from '../types';
+} from '@/features/chat/types';
 
 type MessagesCache = InfiniteData<MessagesPage, string | null>;
 
@@ -131,7 +132,6 @@ export function useSendMessage() {
         type: input.type ?? 'TEXT',
         encryptionType: 'SERVER',
         plaintext: input.plaintext ?? null,
-        encrypted: null,
         attachments: input.optimisticAttachment ? [input.optimisticAttachment] : [],
         contentPreview: input.plaintext ?? null,
         metadata: {
@@ -437,8 +437,9 @@ export function useDeleteMessage() {
 export function useDeleteConversation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId: string) => chatApi.deleteConversation(conversationId),
-    onSuccess: (_res, conversationId) => {
+    mutationFn: ({ conversationId, scope }: { conversationId: string; scope?: 'ME' | 'BOTH' }) =>
+      chatApi.deleteConversation(conversationId, scope),
+    onSuccess: (_res, { conversationId }) => {
       qc.removeQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
       qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
       debouncedInvalidate(qc, chatKeys.conversationLists());
@@ -455,7 +456,7 @@ export function useMarkRead() {
       chatApi.markRead(vars.conversationId, vars.messageId),
     onMutate: (vars) => {
       // Optimistic: badge unread của conv = 0 ngay khi user mở conv.
-      qc.setQueriesData<import('../types').Conversation[]>(
+      qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
         { queryKey: chatKeys.conversationLists() },
         (prev) =>
           prev
@@ -502,7 +503,7 @@ export function useSetNickname() {
 export function useTogglePinConversation() {
   const qc = useQueryClient();
   return useMutation<
-    import('../types').Conversation,
+    import('@/features/chat/types').Conversation,
     Error,
     { conversationId: string; pinned: boolean },
     { previousLists: [readonly unknown[], unknown][] }
@@ -511,10 +512,10 @@ export function useTogglePinConversation() {
 
     onMutate: ({ conversationId, pinned }) => {
       const nowMaybe = new Date().toISOString();
-      const previousLists = qc.getQueriesData<import('../types').Conversation[]>({
+      const previousLists = qc.getQueriesData<import('@/features/chat/types').Conversation[]>({
         queryKey: chatKeys.conversationLists(),
       });
-      qc.setQueriesData<import('../types').Conversation[]>(
+      qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
         { queryKey: chatKeys.conversationLists() },
         (prev) =>
           prev
@@ -525,7 +526,7 @@ export function useTogglePinConversation() {
               )
             : prev,
       );
-      qc.setQueryData<import('../types').Conversation | undefined>(
+      qc.setQueryData<import('@/features/chat/types').Conversation | undefined>(
         chatKeys.conversationDetail(conversationId),
         (prev) => (prev ? { ...prev, isPinned: pinned, pinnedAt: pinned ? nowMaybe : null } : prev),
       );
@@ -540,6 +541,50 @@ export function useTogglePinConversation() {
     onSuccess: (conv, { conversationId }) => {
       qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
       debouncedInvalidate(qc, chatKeys.conversationLists());
+    },
+  });
+}
+
+/** Mute / unmute thông báo (per-user). Optimistic set isMuted ngay; reconcile bằng response normalize. */
+export function useMuteConversation() {
+  const qc = useQueryClient();
+  type Conv = import('@/features/chat/types').Conversation;
+  return useMutation<
+    Conv,
+    Error,
+    { conversationId: string; isMuted: boolean; mutedUntil?: string | null },
+    { previousLists: [readonly unknown[], unknown][] }
+  >({
+    mutationFn: ({ conversationId, isMuted, mutedUntil }) =>
+      chatApi.setMute(conversationId, { isMuted, mutedUntil }),
+
+    onMutate: ({ conversationId, isMuted, mutedUntil }) => {
+      const nextUntil = isMuted ? mutedUntil ?? null : null;
+      const patch = (c: Conv): Conv =>
+        c.id === conversationId ? { ...c, isMuted, mutedUntil: nextUntil } : c;
+      const previousLists = qc.getQueriesData<Conv[]>({ queryKey: chatKeys.conversationLists() });
+      qc.setQueriesData<Conv[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) => (prev ? prev.map(patch) : prev),
+      );
+      qc.setQueryData<Conv | undefined>(
+        chatKeys.conversationDetail(conversationId),
+        (prev) => (prev ? { ...prev, isMuted, mutedUntil: nextUntil } : prev),
+      );
+      return { previousLists };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      ctx?.previousLists.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error('Cập nhật thông báo thất bại');
+    },
+
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      qc.setQueriesData<Conv[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) => (prev ? prev.map((c) => (c.id === conversationId ? conv : c)) : prev),
+      );
     },
   });
 }
@@ -624,5 +669,114 @@ export function useRejectJoinRequest() {
       toast.success('Đã từ chối yêu cầu');
     },
     onError: (e: Error) => toast.error(e.message || 'Từ chối yêu cầu thất bại'),
+  });
+}
+
+export function useLockConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, password }: { conversationId: string; password: string }) =>
+      chatApi.lockConversation(conversationId, password),
+    onSuccess: (conv, { conversationId }) => {
+      // Xoá khỏi normal list, thêm vào locked list
+      qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) => prev?.filter((c) => c.id !== conversationId) ?? prev,
+      );
+      qc.setQueryData<import('@/features/chat/types').Conversation[]>(
+        chatKeys.lockedConversations(),
+        (prev) => {
+          const list = prev ?? [];
+          if (list.some((c) => c.id === conv.id)) return list;
+          return [conv, ...list];
+        },
+      );
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      toast.success('Đã khoá hội thoại');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Khoá hội thoại thất bại'),
+  });
+}
+
+export function useRemoveLock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, password }: { conversationId: string; password: string }) =>
+      chatApi.removeLock(conversationId, password),
+    onSuccess: (_res, { conversationId }) => {
+      // Xoá khỏi locked list, invalidate detail + lists để refetch
+      qc.setQueryData<import('@/features/chat/types').Conversation[]>(
+        chatKeys.lockedConversations(),
+        (prev) => prev?.filter((c) => c.id !== conversationId) ?? prev,
+      );
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã tắt khoá hội thoại');
+    },
+    onError: (e: Error) => {
+      const code = e instanceof ApiError ? e.code : '';
+      if (code === 'CONVERSATION_LOCK_WRONG_PASSWORD') {
+        toast.error('Sai mật khẩu xác nhận');
+      } else if (code === 'CONVERSATION_NOT_LOCKED') {
+        // Race: đã unlock ở thiết bị khác — sync cache
+        qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      } else {
+        toast.error(e.message || 'Tắt khoá thất bại');
+      }
+    },
+  });
+}
+
+/**
+ * Đổi mật khẩu khoá hội thoại: BẮT BUỘC nhập đúng mật khẩu hiện tại (verify) rồi mới
+ * đặt mật khẩu mới. BE PUT /lock không tự kiểm mật khẩu cũ nên FE chặn ở đây.
+ */
+export function useChangeLockPassword() {
+  const qc = useQueryClient();
+  return useMutation<
+    import('@/features/chat/types').Conversation,
+    Error,
+    { conversationId: string; currentPassword: string; newPassword: string }
+  >({
+    mutationFn: async ({ conversationId, currentPassword, newPassword }) => {
+      // verifyLock ném lỗi nếu mật khẩu hiện tại sai → không đổi sang mật khẩu mới.
+      await chatApi.verifyLock(conversationId, currentPassword);
+      return chatApi.lockConversation(conversationId, newPassword);
+    },
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      toast.success('Đã đổi mật khẩu hội thoại');
+    },
+    onError: (e: Error) => {
+      const code = e instanceof ApiError ? e.code : '';
+      if (code === 'CONVERSATION_LOCK_WRONG_PASSWORD') {
+        toast.error('Mật khẩu hiện tại không đúng');
+      } else if (code === 'CONVERSATION_NOT_LOCKED') {
+        qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      } else {
+        toast.error(e.message || 'Đổi mật khẩu thất bại');
+      }
+    },
+  });
+}
+
+export function useVerifyLock() {
+  const convLockStore = useConvLockStore();
+  return useMutation({
+    mutationFn: ({ conversationId, password }: { conversationId: string; password: string }) =>
+      chatApi.verifyLock(conversationId, password),
+    onSuccess: (_res, { conversationId }) => {
+      convLockStore.markUnlocked(conversationId);
+    },
+    onError: (e: Error) => {
+      const code = e instanceof ApiError ? e.code : '';
+      if (code === 'CONVERSATION_LOCK_WRONG_PASSWORD') {
+        toast.error('Sai mật khẩu, thử lại');
+      } else if (code === 'CONVERSATION_NOT_LOCKED') {
+        // Race: conv vừa unlock ở thiết bị khác — không cần hiện lỗi
+      } else {
+        toast.error(e.message || 'Xác thực thất bại');
+      }
+    },
   });
 }

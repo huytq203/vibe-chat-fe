@@ -43,10 +43,26 @@ export const chatKeys = {
     [...chatKeys.conversationLists(), params] as const,
   conversationDetail: (id: string) =>
     [...chatKeys.conversations(), 'detail', id] as const,
+  lockedConversations: () => [...chatKeys.conversations(), 'locked'] as const,
   joinRequests: (conversationId: string) =>
     [...chatKeys.conversations(), 'join-requests', conversationId] as const,
   messages: (conversationId: string) =>
     [...chatKeys.all, 'messages', conversationId] as const,
+  shared: (conversationId: string, type: string) =>
+    [...chatKeys.all, 'shared', conversationId, type] as const,
+  search: (
+    conversationId: string,
+    filters: { key: string; senderId?: string; from?: string; to?: string },
+  ) =>
+    [
+      ...chatKeys.all,
+      'search',
+      conversationId,
+      filters.key,
+      filters.senderId ?? '',
+      filters.from ?? '',
+      filters.to ?? '',
+    ] as const,
   presence: (userIds: string[]) =>
     [...chatKeys.all, 'presence', [...userIds].sort()] as const,
 } as const;

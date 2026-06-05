@@ -5,7 +5,7 @@ import { Avatar } from '@/features/chat/components/common/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { cn } from '@/lib/utils/cn';
-import type { UserSearchItem } from '../types';
+import type { UserSearchItem } from '@/features/friends/types';
 
 type Props = {
   user: UserSearchItem;

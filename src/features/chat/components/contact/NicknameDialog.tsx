@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/dialog/Dialog';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
-import { Avatar } from '../common/Avatar';
-import { useSetNickname } from '../../hooks/use-mutations';
+import { Avatar } from '@/features/chat/components/common/Avatar';
+import { useSetNickname } from '@/features/chat/hooks/use-mutations';
 
 interface NicknameDialogProps {
   open: boolean;

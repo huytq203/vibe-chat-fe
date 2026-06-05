@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '@/features/auth';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { chatKeys } from '@/services/keys';
-import { useTypingStore } from '../stores/typing.store';
+import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
 import type {
   Conversation,
@@ -21,7 +21,7 @@ import type {
   Message,
   MessagesPage,
   Presence,
-} from '../types';
+} from '@/features/chat/types';
 
 type NotifyPayload = { conversationId: string; message: Message };
 type ReadPayload = {
@@ -72,7 +72,11 @@ type JoinRequestResolvedPayload = {
   reviewedBy?: string;
   at?: string;
 };
-
+type MuteUpdatedPayload = {
+  conversationId: string;
+  isMuted: boolean;
+  mutedUntil: string | null;
+};
 const HEARTBEAT_MS = 30_000;
 const TYPING_AUTOCLEAR_MS = 6_000;
 
@@ -299,6 +303,26 @@ export function useChatRealtime() {
       }
     }
 
+    // Mute đồng bộ đa thiết bị của chính user (xem 22-mute-notifications.md).
+    function onMuteUpdated(payload: MuteUpdatedPayload) {
+      qc.setQueriesData<Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) =>
+          prev
+            ? prev.map((c) =>
+                c.id === payload.conversationId
+                  ? { ...c, isMuted: payload.isMuted, mutedUntil: payload.mutedUntil }
+                  : c,
+              )
+            : prev,
+      );
+      qc.setQueryData<Conversation | undefined>(
+        chatKeys.conversationDetail(payload.conversationId),
+        (prev) =>
+          prev ? { ...prev, isMuted: payload.isMuted, mutedUntil: payload.mutedUntil } : prev,
+      );
+    }
+
     // ─── Thành viên nhóm & yêu cầu vào nhóm (xem 16-group-members.md) ───────
     function onMembersAdded(payload: MembersAddedPayload) {
       qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
@@ -337,11 +361,13 @@ export function useChatRealtime() {
       }
     }
 
+
     socket.on('message:new', onMessageNew);
     socket.on('message:edited', onMessageEdited);
     socket.on('message:deleted', onMessageDeleted);
     socket.on('conversation:notify', onConversationNotify);
     socket.on('conversation:deleted', onConversationDeleted);
+    socket.on('conversation:mute_updated', onMuteUpdated);
     socket.on('conversation:members_added', onMembersAdded);
     socket.on('conversation:member_removed', onMemberRemoved);
     socket.on('conversation:join_request', onJoinRequest);
@@ -377,6 +403,7 @@ export function useChatRealtime() {
       socket.off('message:deleted', onMessageDeleted);
       socket.off('conversation:notify', onConversationNotify);
       socket.off('conversation:deleted', onConversationDeleted);
+      socket.off('conversation:mute_updated', onMuteUpdated);
       socket.off('conversation:members_added', onMembersAdded);
       socket.off('conversation:member_removed', onMemberRemoved);
       socket.off('conversation:join_request', onJoinRequest);

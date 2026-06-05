@@ -1,12 +1,12 @@
 'use client';
 
-import { AlertCircle, Check, CheckCheck, Clock, Lock, RotateCw, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import type { Message } from '../../types';
-import { formatBubbleTime } from '../../utils';
-import { useDiscardFailedMessage, useResendMessage } from '../../hooks/use-mutations';
+import type { Message } from '@/features/chat/types';
+import { formatBubbleTime } from '@/features/chat/utils';
+import { useDiscardFailedMessage, useResendMessage } from '@/features/chat/hooks/use-mutations';
 import { EmojiText } from '@/components/common/EmojiText';
-import { Avatar } from '../common/Avatar';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 import { MediaContent } from './MediaContent';
 import { MessageActions } from './MessageActions';
 import { ReplyQuote } from './ReplyQuote';
@@ -35,7 +35,6 @@ export function MessageBubble({
   repliedTo, repliedToName, onQuoteClick, isHighlighted,
 }: MessageBubbleProps) {
   const isMe = message.senderId === meId;
-  const isE2E = message.encryptionType === 'E2E';
   const isSending = message.metadata?.optimistic === true;
   const isFailed = message.metadata?.failed === true;
   const isSeen = isMe && !isSending && !isFailed && message.isView === true;
@@ -43,10 +42,10 @@ export function MessageBubble({
   const discardFailed = useDiscardFailedMessage();
   // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
   const isVisualMedia =
-    !isE2E && !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO');
-  // Menu hành động: mọi tin đã gửi xong, chưa gỡ, không E2E. Reply cho tất cả;
+    !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO');
+  // Menu hành động: mọi tin đã gửi xong, chưa gỡ. Reply cho tất cả;
   // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
-  const canActions = !isSending && !isFailed && !message.isDeleted && !isE2E;
+  const canActions = !isSending && !isFailed && !message.isDeleted;
   const actionsMenu = canActions && (
     <MessageActions
       message={message}
@@ -97,7 +96,7 @@ export function MessageBubble({
               onClick={onQuoteClick ?? (() => {})}
             />
           )}
-          <BubbleContent message={message} isE2E={isE2E} isMe={isMe} />
+          <BubbleContent message={message} isMe={isMe} />
           <div className={cn('mt-1 flex items-center justify-end gap-1', isVisualMedia && 'px-1 pb-0.5')}>
             {message.expireAt && !message.isDeleted && !isSending && !isFailed && (
               <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
@@ -168,15 +167,7 @@ export function MessageBubble({
   );
 }
 
-function BubbleContent({ message, isE2E, isMe }: { message: Message; isE2E: boolean; isMe: boolean }) {
-  if (isE2E) {
-    return (
-      <div className="flex items-center gap-1.5 text-[13.5px] italic opacity-90">
-        <Lock className="h-3.5 w-3.5" />
-        <span>Tin nhắn mã hoá — không có khoá để giải mã</span>
-      </div>
-    );
-  }
+function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   if (message.isDeleted) {
     return <span className="text-[13.5px] italic opacity-70">Tin nhắn đã thu hồi</span>;
   }

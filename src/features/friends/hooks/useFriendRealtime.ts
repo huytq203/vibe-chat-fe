@@ -6,7 +6,7 @@ import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, userKeys } from '@/services/keys';
-import type { FriendUpdateEvent } from '../types';
+import type { FriendUpdateEvent } from '@/features/friends/types';
 
 export function useFriendRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);

@@ -5,15 +5,46 @@ import { Download, ImageOff, Link as LinkIcon, Play } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { Progress } from '@/components/ui/progress/Progress';
 import { ImageLightbox, type LightboxSlide } from '@/components/common/ImageLightbox';
-import { fileExtFromName, formatFileSize, getFileIconMeta } from '../../utils';
-import { useMediaDownload } from '../../hooks/useMediaDownload';
-import { useRefreshableUrl } from '../../hooks/useRefreshableUrl';
-import { useSharedContent, type SharedMedia } from '../../hooks/useSharedContent';
+import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
+import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
+import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
+import { useSharedContent, type SharedMedia } from '@/features/chat/hooks/useSharedContent';
 
 const EMPTY_CLS = 'py-3 text-center text-[11.5px] text-muted-foreground';
 
+/** Số item hiển thị mỗi lần bấm "Xem thêm" (mở rộng phía FE, không gọi BE). */
+const EXPAND_STEP = 12;
+
+/** Mở rộng hiển thị dần phía FE: cắt `items` theo `visible`, "Xem thêm" tăng thêm EXPAND_STEP. */
+function useExpandable<T>(items: T[]): { visible: T[]; hasMore: boolean; showMore: () => void } {
+  const [count, setCount] = useState(EXPAND_STEP);
+  const visible = useMemo(() => items.slice(0, count), [items, count]);
+  return {
+    visible,
+    hasMore: count < items.length,
+    showMore: () => setCount((c) => c + EXPAND_STEP),
+  };
+}
+
+/** Nút "Xem thêm" — mở rộng hiển thị phía FE, không fetch BE. */
+function ShowMore({ hasMore, onClick }: { hasMore: boolean; onClick: () => void }) {
+  if (!hasMore) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-2 w-full rounded-lg py-1.5 text-[12px] font-semibold text-primary hover:bg-secondary"
+    >
+      Xem thêm
+    </button>
+  );
+}
+
 export function SharedTabs({ conversationId }: { conversationId: string }) {
   const { media, files, links } = useSharedContent(conversationId);
+  const mediaEx = useExpandable(media.items);
+  const filesEx = useExpandable(files.items);
+  const linksEx = useExpandable(links.items);
 
   return (
     <Tabs defaultValue="media">
@@ -24,31 +55,44 @@ export function SharedTabs({ conversationId }: { conversationId: string }) {
       </TabsList>
 
       <TabsContent value="media" className="pt-3">
-        {media.length === 0 ? (
-          <p className={EMPTY_CLS}>Chưa có ảnh hoặc video được chia sẻ</p>
+        {media.items.length === 0 ? (
+          <p className={EMPTY_CLS}>
+            {media.isLoading ? 'Đang tải…' : 'Chưa có ảnh hoặc video được chia sẻ'}
+          </p>
         ) : (
-          <MediaGrid conversationId={conversationId} items={media} />
+          <>
+            <MediaGrid conversationId={conversationId} items={mediaEx.visible} />
+            <ShowMore hasMore={mediaEx.hasMore} onClick={mediaEx.showMore} />
+          </>
         )}
       </TabsContent>
 
       <TabsContent value="files" className="pt-2">
-        {files.length === 0 ? (
-          <p className={EMPTY_CLS}>Chưa có tệp được chia sẻ</p>
+        {files.items.length === 0 ? (
+          <p className={EMPTY_CLS}>
+            {files.isLoading ? 'Đang tải…' : 'Chưa có tệp được chia sẻ'}
+          </p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {files.map((f) => (
-              <FileRow key={f.key} conversationId={conversationId} item={f} />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-1">
+              {filesEx.visible.map((f) => (
+                <FileRow key={f.key} conversationId={conversationId} item={f} />
+              ))}
+            </div>
+            <ShowMore hasMore={filesEx.hasMore} onClick={filesEx.showMore} />
+          </>
         )}
       </TabsContent>
 
       <TabsContent value="links" className="pt-2">
-        {links.length === 0 ? (
-          <p className={EMPTY_CLS}>Chưa có liên kết được chia sẻ</p>
+        {links.items.length === 0 ? (
+          <p className={EMPTY_CLS}>
+            {links.isLoading ? 'Đang tải…' : 'Chưa có liên kết được chia sẻ'}
+          </p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {links.map((l) => (
+          <>
+            <div className="flex flex-col gap-1">
+              {linksEx.visible.map((l) => (
               <a
                 key={l.key}
                 href={l.url}
@@ -64,8 +108,10 @@ export function SharedTabs({ conversationId }: { conversationId: string }) {
                   <span className="block truncate text-[11px] text-muted-foreground">{l.url}</span>
                 </span>
               </a>
-            ))}
-          </div>
+              ))}
+            </div>
+            <ShowMore hasMore={linksEx.hasMore} onClick={linksEx.showMore} />
+          </>
         )}
       </TabsContent>
     </Tabs>

@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { notificationsApi } from '@/services/notifications.api';
 import { notificationKeys } from '@/services/keys';
-import type { RegisterFcmTokenInput } from '../types';
+import type { RegisterFcmTokenInput } from '@/features/notifications/types';
 
 function invalidate(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: notificationKeys.all });

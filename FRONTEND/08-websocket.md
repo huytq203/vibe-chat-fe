@@ -229,6 +229,8 @@ socket.on('friend:update', ({ type, otherUserId, status }) => {
 
 ## Conversation deleted
 
+Emit khi conversation bị xoá. Với DIRECT + `scope="ME"`: chỉ người yêu cầu nhận. Với DIRECT + `scope="BOTH"` hoặc GROUP: tất cả member nhận.
+
 ```ts
 socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => {
   store.removeConversation(conversationId);
@@ -236,6 +238,26 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
     closeChat();
     showToast('Cuộc trò chuyện đã bị xoá');
   }
+});
+```
+
+> Xem chi tiết về `scope` → [03-conversations.md#xoá-conversation](./03-conversations.md#xoá-conversation).
+
+---
+
+## Conversation encryption changed
+
+Emit khi có member (hoặc owner) switch chế độ mã hoá của conversation — xem [17-switch-encryption.md](./17-switch-encryption.md) để biết toàn bộ flow.
+
+```ts
+socket.on('conversation:encryption_changed', ({
+  conversationId, encryptionType, encryptionKeyId, changedBy, at
+}) => {
+  store.updateConversation(conversationId, { encryptionType, encryptionKeyId });
+  showToast(changedBy === myUserId
+    ? `Bạn đã chuyển sang ${encryptionType === 'E2E' ? 'Secret Chat 🔒' : 'chat thường'}`
+    : `Cuộc trò chuyện đã chuyển sang ${encryptionType === 'E2E' ? 'Secret Chat 🔒' : 'chat thường'}`
+  );
 });
 ```
 
@@ -304,6 +326,7 @@ socket.on('conversation:join_request_resolved', ({ conversationId, status }) => 
 | S→C | `notification:cleared` | `{ scope, conversationId?, types?, actorId?, clearedCount }` | Server tự mark read noti — FE giảm badge ngay |
 | S→C | `friend:update` | `{ type, otherUserId, status, at }` | Friend lifecycle (send/accept/reject/cancel/unfriend) |
 | S→C | `conversation:deleted` | `{ conversationId, deletedBy, deletedAt }` | Conversation bị xoá — FE remove khỏi sidebar |
+| S→C | `conversation:encryption_changed` | `{ conversationId, encryptionType, encryptionKeyId, changedBy, at }` | Chế độ mã hoá thay đổi — cập nhật store, hiện toast |
 | S→C | `conversation:members_added` | `{ conversationId, addedUserIds, addedBy, at }` | Có thành viên mới — cập nhật member list |
 | S→C | `conversation:member_removed` | `{ conversationId, userId, removedBy, reason, at }` | Member bị kick (`KICKED`) / rời (`LEFT`) — nếu là mình thì rời nhóm khỏi sidebar |
 | S→C | `conversation:join_request` | `{ conversationId, requestId, requesterId, reason, at }` | (Admin) có yêu cầu vào nhóm mới |

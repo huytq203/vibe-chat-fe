@@ -20,7 +20,7 @@ Content-Type: application/json
 ```
 
 - `userId`: keycloakId của người kia.
-- `encryptionType`: `"SERVER"` (default, có preview/search) hoặc `"E2E"` (Secret Chat, FE encrypt — xem [09-encryption.md](./09-encryption.md)).
+- `encryptionType`: không cần truyền — luôn là `"SERVER"` (mặc định duy nhất).
 - **Idempotent**: gọi lại với cùng `userId` → trả conversation cũ.
 
 Response: `Conversation` object (xem mục [Conversation shape](#conversation-object--full-shape)).
@@ -68,8 +68,9 @@ Response:
         "id": "...",
         "senderId": "...",
         "type": "TEXT",
-        "preview": "Hi nha",       // NULL nếu E2E
-        "createdAt": "..."
+        "preview": "Hi nha",       // NULL nếu conversation bị lock, hoặc tin đã thu hồi
+        "createdAt": "...",
+        "expireAt": null            // ISO date nếu là tin tự huỷ, null nếu tin thường
       },
       "lastMessageAt": "2026-05-15T07:30:00Z",
       "unreadCount": 3,
@@ -133,14 +134,31 @@ Response `200`: `Conversation` object với `isPinned` đã cập nhật.
 ```http
 DELETE /api/v1/conversations/{id}
 Authorization: Bearer ...
+Content-Type: application/json
+
+{
+  "scope": "BOTH"
+}
 ```
+
+`scope` là optional, mặc định `"ME"`.
+
+### Tuỳ chọn scope
+
+| `scope` | Áp dụng | Hành vi |
+|---|---|---|
+| `"ME"` *(default)* | DIRECT | Ẩn conversation chỉ với **bạn** — đối phương vẫn thấy bình thường |
+| `"BOTH"` | DIRECT | Ẩn với **cả 2 phía** — đối phương nhận event real-time, conversation biến mất |
+| *(ignored)* | GROUP / CHANNEL | `scope` không có tác dụng — xoá toàn cục, tất cả member bị deactivate |
+
+> 💡 Hiện **UI thường** nên dùng `scope: "BOTH"` cho DIRECT để trải nghiệm đối xứng. Giữ `scope: "ME"` khi bạn muốn tính năng "xoá với tôi" (xoá lịch sử phía mình mà không ảnh hưởng đối phương).
 
 ### Quy tắc quyền
 
-| Loại | Ai được xoá | Side-effect |
-|---|---|---|
-| `DIRECT` | Bất kỳ thành viên | Xoá đối xứng — cả 2 bên không còn thấy conversation |
-| `GROUP` / `CHANNEL` | **Chỉ `ownerId`** | Tất cả member bị deactivate (`status='LEFT'`) |
+| Loại | Ai được xoá |
+|---|---|
+| `DIRECT` | Bất kỳ thành viên ACTIVE |
+| `GROUP` / `CHANNEL` | **Chỉ `ownerId`** |
 
 Response `200`:
 ```json
@@ -154,14 +172,14 @@ Response `200`:
 | `CONVERSATION_NOT_FOUND` | 404 | UUID sai hoặc đã xoá |
 | `CONVERSATION_MEMBER_REQUIRED` | 403 | Không phải thành viên |
 | `CONVERSATION_NOT_OWNER` | 403 | Group/Channel mà không phải owner |
-| `CONVERSATION_ALREADY_DELETED` | 400 | Gọi 2 lần |
 
 ### Side-effect realtime
 
-Server emit event `conversation:deleted` đến **mọi member** (cả vào room conv và user room). FE phải:
-1. Đóng tab chat nếu đang mở conv đó.
-2. Xoá conv khỏi sidebar.
-3. Show toast "Cuộc trò chuyện đã bị xoá".
+**`scope="BOTH"` (DIRECT):** Event `conversation:deleted` gửi đến **cả 2 member**.
+
+**`scope="ME"` (DIRECT):** Event chỉ gửi đến **người yêu cầu** — đối phương không nhận.
+
+**GROUP/CHANNEL:** Event gửi đến **tất cả member**.
 
 ```ts
 socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => {
@@ -173,7 +191,27 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 });
 ```
 
-> 💡 Member trong GROUP muốn **rời nhóm** (không xoá cả nhóm) — endpoint `leave` chưa public ở v1, sẽ thêm sau. Tạm thời chỉ owner xoá toàn bộ.
+### Sample — hiện dialog cho user chọn scope
+
+```ts
+async function deleteDirectConversation(convId: string) {
+  const choice = await showDialog({
+    title: 'Xoá cuộc trò chuyện?',
+    options: [
+      { label: 'Xoá với tôi', value: 'ME', hint: 'Đối phương vẫn thấy' },
+      { label: 'Xoá với cả hai', value: 'BOTH', hint: 'Cả hai bên xoá luôn' },
+    ],
+  });
+  if (!choice) return;
+
+  await api.delete(`/conversations/${convId}`, {
+    body: JSON.stringify({ scope: choice }),
+  });
+  // Không cần xoá store tay — WS event sẽ đến (nếu scope=ME chỉ mình nhận)
+}
+```
+
+> 💡 Member trong GROUP muốn **rời nhóm** (không xoá cả nhóm) — dùng endpoint `POST /conversations/:id/leave`.
 
 > 👥 **Thêm thành viên / xin vào nhóm / duyệt yêu cầu** → xem [16-group-members.md](./16-group-members.md).
 
@@ -189,20 +227,35 @@ socket.on('conversation:deleted', ({ conversationId, deletedBy, deletedAt }) => 
 | `description` | `string\|null` | |
 | `avatarUrl` | `string\|null` | |
 | `ownerId` | UUID keycloakId | người tạo |
-| `encryptionType` | `'SERVER'\|'E2E'` | quyết định FE gửi tin thế nào — xem [09-encryption.md](./09-encryption.md) |
+| `encryptionType` | `'SERVER'` | luôn là SERVER — BE tự mã hoá AES-256-GCM |
 | `memberCount` | number | |
 | `messageCount` | number | |
 | `memberIds` | UUID[] | keycloakId thành viên ACTIVE |
 | `members` | object[] (optional) | chi tiết — chỉ có ở endpoint detail |
-| `lastMessage` | object\|null | embed message cuối — `preview` null nếu E2E |
+| `lastMessage` | object\|null | embed message cuối — xem bảng bên dưới |
+| `lastMessage.preview` | string\|null | null khi: conversation bị lock, tin đã thu hồi, hoặc tin tự huỷ |
+| `lastMessage.expireAt` | ISO date\|null | null = tin thường; có giá trị = tin tự huỷ |
 | `lastMessageAt` | ISO date\|null | |
 | `unreadCount` | number | unread của user hiện tại |
 | `isPinned` | boolean | user hiện tại có ghim conversation lên đầu không |
+| `isLocked` | boolean | user hiện tại đã khoá conversation này bằng password chưa |
 | `createdAt` | ISO date | |
+
+### Khi nào `lastMessage` là `null`?
+
+| Trường hợp | `lastMessage` | FE nên hiện gì |
+|---|---|---|
+| Conversation mới, chưa có tin | `null` | "Chưa có tin nhắn" |
+| Tin cuối bị **thu hồi** | `null` | "Tin nhắn đã thu hồi" |
+| Tin cuối là **tự huỷ** và đã hết TTL | `null` tạm thời → sau đó cập nhật về tin trước đó | "..." hoặc skeleton |
+| Conversation bị **lock** (`isLocked: true`) | `null` | "🔒 Nhấn để mở" |
+
+> ⚠️ **Eventual consistency cho tin tự huỷ**: Khi TTL hết, request đầu tiên trả `null`. Server tự động refresh về tin trước đó ngay sau đó — FE nhận WS event `conversation:encryption_changed` hoặc gọi lại GET detail để lấy giá trị đúng.
 
 ---
 
 **Liên quan:**
 - 📨 Gửi/nhận tin nhắn → [04-messages.md](./04-messages.md)
 - 🔌 Realtime events → [08-websocket.md](./08-websocket.md)
-- 🔐 SERVER vs E2E → [09-encryption.md](./09-encryption.md)
+- 🔐 Mã hoá SERVER → [09-encryption.md](./09-encryption.md)
+- 🔒 Khoá conversation bằng password → [18-conversation-lock.md](./18-conversation-lock.md)

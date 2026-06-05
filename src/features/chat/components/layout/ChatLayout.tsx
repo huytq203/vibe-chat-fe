@@ -10,14 +10,13 @@ import {
   useNotificationRealtime,
 } from '@/features/notifications';
 import { useFriendRealtime } from '@/features/friends';
-import { useChatUIStore } from '../../stores/chat-ui.store';
-import { useSelectedConversation } from '../../hooks/useSelectedConversation';
-import { useConversations } from '../../hooks/use-query';
-import { useChatRealtime } from '../../hooks/useChatRealtime';
-import { ConversationList } from '../conversations/ConversationList';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
+import { useConversations } from '@/features/chat/hooks/use-query';
+import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
+import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
-import { ContactInfo } from '../contact/ContactInfo';
-import { MobileTabBar } from './MobileTabBar';
+import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -74,7 +73,6 @@ export function ChatLayout() {
         {mobilePanel === 'list' && <ConversationList />}
         {mobilePanel === 'chat' && <ChatPanel />}
         {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
-        <MobileTabBar />
       </div>
     );
   }

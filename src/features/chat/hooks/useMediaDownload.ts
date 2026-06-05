@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { mediaApi } from '@/services/media.api';
 import { chatApi } from '@/services/chat.api';
-import { triggerSave } from '../utils';
+import { triggerSave } from '@/features/chat/utils';
 
 /**
  * Tải attachment về máy kèm tiến độ (%). URL ký sẵn S3 cross-origin nên không

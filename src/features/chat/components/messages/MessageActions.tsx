@@ -20,11 +20,11 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { cn } from '@/lib/utils/cn';
-import type { Message } from '../../types';
-import { canEditMessage, getMessageSnippet } from '../../utils';
-import { useDeleteMessage } from '../../hooks/use-mutations';
-import { useMessageEditStore } from '../../stores/message-edit.store';
-import { useMessageReplyStore } from '../../stores/message-reply.store';
+import type { Message } from '@/features/chat/types';
+import { canEditMessage, getMessageSnippet } from '@/features/chat/utils';
+import { useDeleteMessage } from '@/features/chat/hooks/use-mutations';
+import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
+import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 
 type MessageActionsProps = {
   message: Message;

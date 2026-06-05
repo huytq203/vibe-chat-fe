@@ -5,9 +5,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { cn } from '@/lib/utils/cn';
-import type { Conversation, Presence } from '../../types';
-import { getConversationName, getConversationSeed } from '../../utils';
-import { Avatar } from '../common/Avatar';
+import type { Conversation, Presence } from '@/features/chat/types';
+import { getConversationName, getConversationSeed } from '@/features/chat/utils';
+import { Avatar } from '@/features/chat/components/common/Avatar';
+import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
+import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
 
 type ChatHeaderProps = {
   conversation: Conversation;
@@ -22,6 +24,7 @@ type ChatHeaderProps = {
 export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack }: ChatHeaderProps) {
   const [searching, setSearching] = useState(false);
   const [searchQ, setSearchQ] = useState('');
+  const requestJump = useMessageJumpStore((s) => s.requestJump);
 
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
@@ -66,7 +69,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
 
       <div className="flex items-center gap-1">
         {searching ? (
-          <div className="w-[230px]">
+          <div className="relative w-[230px]">
             <Input
               autoFocus
               variant="filled"
@@ -85,6 +88,15 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
               placeholder="Tìm tin nhắn..."
               className="h-8 text-[13px]"
             />
+            {searchQ.trim().length >= 1 && (
+              <div className="absolute right-0 top-full z-50 mt-1 max-h-[60vh] w-[320px] max-w-[85vw] overflow-y-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg">
+                <MessageSearchResults
+                  conversation={conversation}
+                  query={searchQ}
+                  onJump={(id, createdAt) => requestJump({ id, createdAt })}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -96,9 +108,6 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
             </Button>
             <Button variant="ghost" size="icon-sm" title="Tìm kiếm" aria-label="Tìm kiếm" onClick={() => setSearching(true)}>
               <Search className="h-[18px] w-[18px]" />
-            </Button>
-            <Button variant="ghost" size="icon-sm" title="Thêm" aria-label="Thêm">
-              <MoreVertical className="h-[18px] w-[18px]" />
             </Button>
           </>
         )}

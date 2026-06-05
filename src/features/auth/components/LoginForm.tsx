@@ -16,8 +16,8 @@ import {
   CardDescription,
 } from '@/components/ui/card/Card';
 import { toast } from 'sonner';
-import { loginSchema, type LoginInput } from '../schemas';
-import { useLogin } from '../hooks/use-mutations';
+import { loginSchema, type LoginInput } from '@/features/auth/schemas';
+import { useLogin } from '@/features/auth/hooks/use-mutations';
 import { ApiError } from '@/lib/api/client';
 
 export const LoginForm = () => {

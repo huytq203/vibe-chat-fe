@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useEditMessage, useSendMessage } from './use-mutations';
-import { useMessageEditStore } from '../stores/message-edit.store';
-import { useMessageReplyStore } from '../stores/message-reply.store';
+import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
+import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 import {
   buildOptimisticAttachment,
   useAttachments,
@@ -18,8 +18,8 @@ import {
   placeCaretAtEnd,
   MAX_LENGTH,
   TYPING_STOP_DEBOUNCE_MS,
-} from '../components/messages/composer-utils';
-import type { MessageType } from '../types';
+} from '@/features/chat/components/messages/composer-utils';
+import type { MessageType } from '@/features/chat/types';
 
 const KIND_TO_TYPE: Record<AttachmentKind, MessageType> = {
   image: 'IMAGE',

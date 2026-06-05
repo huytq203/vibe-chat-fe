@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { chatKeys } from '@/services/keys';
 import { serverNow } from '@/lib/time/server-clock';
-import type { Message, MessagesPage } from '../types';
+import type { Message, MessagesPage } from '@/features/chat/types';
 
 /**
  * Tự ẩn tin nhắn tự huỷ khi tới `expireAt` (xem 15-edit-recall-selfdestruct.md).

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { serverNow } from '@/lib/time/server-clock';
-import { formatTimeLeft } from '../../utils';
+import { formatTimeLeft } from '@/features/chat/utils';
 
 type SelfDestructTimerProps = {
   /** ISO thời điểm tin biến mất. */

@@ -17,8 +17,9 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { useAuthStore, useLogout } from '@/features/auth';
+import { SettingsModal } from '@/features/settings';
 import { Avatar } from './Avatar';
-import { ProfileDialog } from '../contact/ProfileDialog';
+import { ProfileDialog } from '@/features/chat/components/contact/ProfileDialog';
 
 export function UserMenu() {
   const me = useAuthStore((s) => s.user);
@@ -26,6 +27,7 @@ export function UserMenu() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const displayName = me?.displayName ?? me?.username ?? 'Tài khoản';
 
@@ -98,6 +100,7 @@ export function UserMenu() {
             </button>
             <button
               type="button"
+              onClick={() => { setPopoverOpen(false); setSettingsOpen(true); }}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -117,6 +120,8 @@ export function UserMenu() {
       </Popover>
 
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

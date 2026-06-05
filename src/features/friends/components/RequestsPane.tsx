@@ -2,7 +2,7 @@
 
 import { Users } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner/Spinner';
-import type { FriendRequest } from '../types';
+import type { FriendRequest } from '@/features/friends/types';
 import { IncomingRequestRow } from './IncomingRequestRow';
 import { EmptyState } from './EmptyState';
 

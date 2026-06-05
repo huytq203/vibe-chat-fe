@@ -44,7 +44,22 @@
       "WebFetch(domain:api.anthropic.com)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(git commit -q -m 'docs: spec thiết kế tính năng reply tin nhắn *)",
-      "Bash(bash *)"
+      "Bash(bash *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(node -c src/features/chat/components/conversations/ConversationItem.tsx)",
+      "Bash(node *)",
+      "Bash(chmod +x /tmp/verify_task12.sh)",
+      "Bash(chmod +x /tmp/verify_task12_v2.sh)",
+      "Bash(grep -i \"\\\\.md$\")",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(curl -s 'http://localhost:3005/api/v1/conversations/207dfa47-54d3-472f-9cfd-bc30f742ef56/shared?type=LINK&limit=12' -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJPUjYyamFETGRyNXE4Ql8yVnQwU05jWWV1VmFJRUZGZFlueEZYRzlDNkJNIn0.eyJleHAiOjE3ODA2NDIzMDgsImlhdCI6MTc4MDY0MDUwOCwianRpIjoiMzNmNjE3NWYtYjNkOC00MDcyLWI0ZDEtOGM4NDE4MzgyZTAyIiwiaXNzIjoiaHR0cHM6Ly9rZXljbG9hay5iYXNldGVjaC5pby52bi9yZWFsbXMvdmliZSIsImF1ZCI6ImJhc2V0ZWNoIiwic3ViIjoiOWQ4YjE0Y2YtNTM5Mi00NTJmLTljZTMtNTU3ZGVkNjVkMmQ2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYmFzZXRlY2giLCJzZXNzaW9uX3N0YXRlIjoiNWZiYTRjZjUtMTMyOS00MzE5LWI0MmItNTNkOWY0MjhlODk5IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sInNjb3BlIjoib3BlbmlkIGVtYWlsIHByb2ZpbGUiLCJzaWQiOiI1ZmJhNGNmNS0xMzI5LTQzMTktYjQyYi01M2Q5ZjQyOGU4OTkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGVybWlzc2lvbnMiOlsiZnVsbCJdLCJyb2xlcyI6WyJBRE1JTiJdLCJuYW1lIjoiVHLhuqduIFF1YW5nIEh1eSIsInByZWZlcnJlZF91c2VybmFtZSI6Imh1eXRxIiwiZ2l2ZW5fbmFtZSI6IlRy4bqnbiBRdWFuZyIsImZhbWlseV9uYW1lIjoiSHV5IiwiZW1haWwiOiJodXl0cTIwM0BnbWFpbC5jb20ifQ.mn5r_H4QfnoGyViqjewVQJW_hBnQissvpqLDdB72jhqkXnTBNRkvS0xjjWppe4ikAtQrTXRSMOP5t2vTPPiawD0F9_rFEgzhCMjCNDiFQ95-WwXKEF73BESbhzIIrsDCq8IgLYRJOCC1ENKsKpCvhh37fvN0BroASIeVkwrnzUW5gs8boU4Avp9U4JnJpGViAgXg8j2u3iTReqLsv54hNZB8buUOICjrV6XVzfHPaUInWjWxV5M0o0ypLTqiFRrov5ER9OZW28y3jZYG5agPeG-aIDucSakjr4GkrpU-ia0c7cTVnn0wuqV-qM3y-gFE-sIQ7n2VSXsOspKRDJFPww')",
+      "Bash(sed -n '625,710p' src/features/chat/hooks/use-mutations.ts)",
+      "Bash(sed -n '1,60p' FRONTEND/18-conversation-lock.md)",
+      "Bash(sed -n '1,60p' src/lib/theme/themes.ts)",
+      "Bash(sed -n '1,70p' src/lib/theme/ThemeProvider.tsx)",
+      "Bash(echo \"tsc exit=$?\")",
+      "Bash(timeout 300 npx next build)"
     ]
   }
 }

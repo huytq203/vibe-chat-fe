@@ -1,25 +1,33 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button/Button";
+import { forwardRef, type ReactNode } from "react";
+import { Button, type ButtonProps } from "@/components/ui/button/Button";
+import { cn } from "@/lib/utils/cn";
 
 type QuickActionProps = {
   icon: ReactNode;
   label: string;
   active?: boolean;
-  onClick?: () => void;
-};
+} & Omit<ButtonProps, "variant" | "children">;
 
-export function QuickAction({ icon, label, active, onClick }: QuickActionProps) {
-  return (
+/** Nút hành động nhanh (lưới ContactInfo). forwardRef + spread props → dùng được làm
+ *  trigger của Popover (Base UI merge props/ref vào Button). */
+export const QuickAction = forwardRef<HTMLButtonElement, QuickActionProps>(
+  ({ icon, label, active, className, ...props }, ref) => (
     <Button
+      ref={ref}
       variant={active ? "solid" : "ghost"}
-      onClick={onClick}
-      className="h-auto  rounded-lg px-1 py-2.5 text-muted-foreground bg-primary/10 hover:text-primary">
+      className={cn(
+        "h-auto rounded-lg px-1 py-2.5 text-muted-foreground bg-primary/10 hover:text-primary",
+        className,
+      )}
+      {...props}
+    >
       <div className="flex flex-col items-center gap-1">
         {icon}
         <span className="text-[10.5px] font-medium">{label}</span>
       </div>
     </Button>
-  );
-}
+  ),
+);
+QuickAction.displayName = "QuickAction";

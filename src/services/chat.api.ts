@@ -7,6 +7,7 @@ import type {
   MessagesPage,
   Presence,
   SendMessageInput,
+  SharedContentType,
 } from '@/features/chat/types';
 
 /**
@@ -25,8 +26,12 @@ export const chatApi = {
       body: { userId, encryptionType: 'SERVER' },
     }),
 
-  deleteConversation: (id: string) =>
-    apiClient.delete<{ ok: true }>(`/api/v1/conversations/${id}`),
+  // scope: "ME" (default, ẩn phía mình) | "BOTH" (ẩn cả 2) — chỉ áp dụng DIRECT.
+  // GROUP/CHANNEL: scope bị BE bỏ qua, luôn xoá toàn cục. Xem 03-conversations.md.
+  deleteConversation: (id: string, scope?: 'ME' | 'BOTH') =>
+    apiClient.delete<{ ok: true }>(`/api/v1/conversations/${id}`, {
+      body: scope ? { scope } : undefined,
+    }),
 
   listMessages: async (
     conversationId: string,
@@ -36,6 +41,50 @@ export const chatApi = {
       'GET',
       `/api/v1/conversations/${conversationId}/messages`,
       { query: { limit: params.limit ?? 30, before: params.before } },
+    );
+    return { items: data, nextCursor: meta?.nextCursor ?? null };
+  },
+
+  /**
+   * Nội dung chia sẻ của 1 conversation theo loại (toàn bộ lịch sử, BE filter sẵn) —
+   * cho tab "Ảnh & Video / Tài liệu / Liên kết". Trả Message[] cùng shape listMessages.
+   * Bỏ `limit` = lấy TẤT CẢ trong 1 lần gọi (mặc định cho tab Shared); chỉ truyền
+   * `limit`/`before` khi muốn phân trang. Xem FRONTEND/20-shared-content.md.
+   */
+  listShared: async (
+    conversationId: string,
+    params: { type: SharedContentType; limit?: number; before?: string },
+  ): Promise<MessagesPage> => {
+    const { data, meta } = await apiClient.rawWithMeta<Message[]>(
+      'GET',
+      `/api/v1/conversations/${conversationId}/shared`,
+      { query: { type: params.type, limit: params.limit, before: params.before } },
+    );
+    return { items: data, nextCursor: meta?.nextCursor ?? null };
+  },
+
+  /**
+   * Tìm tin nhắn TEXT trong 1 conversation theo từ khoá trên toàn bộ lịch sử (BE khớp
+   * trên contentPreview). Filter phụ senderId/from/to kết hợp AND. Trả Message[] cùng
+   * shape listMessages, phân trang cursor. Xem FRONTEND/21-message-search.md.
+   */
+  searchMessages: async (
+    conversationId: string,
+    params: { key: string; limit?: number; before?: string; senderId?: string; from?: string; to?: string },
+  ): Promise<MessagesPage> => {
+    const { data, meta } = await apiClient.rawWithMeta<Message[]>(
+      'GET',
+      `/api/v1/conversations/${conversationId}/messages/search`,
+      {
+        query: {
+          key: params.key,
+          limit: params.limit ?? 20,
+          before: params.before,
+          senderId: params.senderId,
+          from: params.from,
+          to: params.to,
+        },
+      },
     );
     return { items: data, nextCursor: meta?.nextCursor ?? null };
   },
@@ -61,8 +110,6 @@ export const chatApi = {
 
   // ─── Sửa / gỡ tin nhắn (conversation SERVER) ────────────────────────────
   // Endpoint & contract theo FRONTEND/15-edit-recall-selfdestruct.md.
-  // (E2E edit dùng PATCH /secret-messages/:id — chưa wire vì UI chưa hỗ trợ
-  //  quản lý khoá E2E; bổ sung khi có lớp encrypt client-side.)
 
   /** Sửa nội dung text của 1 tin SERVER (trong 5 phút). Trả Message đã cập nhật (isEdited=true). */
   editMessage: (conversationId: string, messageId: string, plaintext: string) =>
@@ -110,6 +157,12 @@ export const chatApi = {
     apiClient.patch<Conversation>(`/api/v1/conversations/${id}/pin`, {
       body: { pinned },
     }),
+
+  // ─── Mute thông báo (per-user) ──────────────────────────────────────────
+  // PATCH /mute body { isMuted, mutedUntil? } — trả Conversation đã normalize
+  // isMuted/mutedUntil. mutedUntil null/bỏ = vĩnh viễn. Xem 22-mute-notifications.md.
+  setMute: (id: string, body: { isMuted: boolean; mutedUntil?: string | null }) =>
+    apiClient.patch<Conversation>(`/api/v1/conversations/${id}/mute`, { body }),
 
   // ─── Thành viên nhóm ────────────────────────────────────────────────────
   // addMembers nhận mảng userId (1–100); removeMember xoá 1 user. Xem 16.
@@ -167,4 +220,30 @@ export const chatApi = {
     apiClient.delete<JoinRequest>(
       `/api/v1/conversations/${conversationId}/join-requests/${requestId}`,
     ),
+
+  // ─── Conversation Lock ───────────────────────────────────────────────────
+  // Contract theo FRONTEND/18-conversation-lock.md.
+
+  /** Bật lock (hoặc đổi password). Idempotent. Trả Conversation với isLocked: true. */
+  lockConversation: (id: string, password: string) =>
+    apiClient.put<Conversation>(`/api/v1/conversations/${id}/lock`, {
+      body: { password },
+    }),
+
+  /** Tắt lock — yêu cầu đúng password hiện tại. Trả { ok: true }. */
+  removeLock: (id: string, password: string) =>
+    apiClient.delete<{ ok: true }>(`/api/v1/conversations/${id}/lock`, {
+      body: { password },
+    }),
+
+  /** Verify password — không đổi trạng thái lock. Trả { ok: true } nếu đúng. */
+  verifyLock: (id: string, password: string) =>
+    apiClient.post<{ ok: true }>(`/api/v1/conversations/${id}/lock/verify`, {
+      body: { password },
+    }),
+
+  /** Danh sách conversation đang bị lock của user hiện tại. */
+  listLockedConversations: () =>
+    apiClient.get<Conversation[]>('/api/v1/conversations/locked'),
+
 } as const;

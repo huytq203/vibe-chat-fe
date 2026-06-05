@@ -7,7 +7,7 @@ import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, notificationKeys, userKeys } from '@/services/keys';
-import type { Notification, NotificationPage } from '../types';
+import type { Notification, NotificationPage } from '@/features/notifications/types';
 
 /**
  * Lắng nghe event `notification:new` từ WS — invalidate cache + show in-app toast.

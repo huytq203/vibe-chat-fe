@@ -50,7 +50,8 @@ export interface TooltipContentProps
 const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
   ({ className, sideOffset = 4, side = 'top', align = 'center', showArrow = true, children, ...props }, ref) => (
     <BaseTooltip.Portal>
-      <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
+      {/* z-50 ở Positioner (fixed) — nếu chỉ để z trên Popup, cụm bị vẽ ở tầng z:auto, dưới element positive-z gần đó. */}
+      <BaseTooltip.Positioner className="z-50" side={side} align={align} sideOffset={sideOffset}>
         <BaseTooltip.Popup ref={ref} className={cn(popup(), className)} role="tooltip" {...props}>
           {showArrow && <BaseTooltip.Arrow className={arrow()} />}
           {children}

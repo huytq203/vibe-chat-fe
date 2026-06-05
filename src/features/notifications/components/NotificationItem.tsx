@@ -5,8 +5,8 @@ import { vi } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { cn } from '@/lib/utils/cn';
-import type { Notification } from '../types';
-import { getNotificationIcon } from '../utils';
+import type { Notification } from '@/features/notifications/types';
+import { getNotificationIcon } from '@/features/notifications/utils';
 
 type Props = {
   notification: Notification;

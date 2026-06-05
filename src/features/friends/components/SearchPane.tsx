@@ -2,7 +2,7 @@
 
 import { Search, Users } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner/Spinner';
-import type { UserSearchItem } from '../types';
+import type { UserSearchItem } from '@/features/friends/types';
 import { UserResultRow } from './UserResultRow';
 import { EmptyState } from './EmptyState';
 

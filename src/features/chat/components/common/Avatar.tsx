@@ -1,6 +1,6 @@
 import { Avatar as BaseAvatar } from '@/components/ui/avatar/Avatar';
 import { cn } from '@/lib/utils/cn';
-import { getAvatarColor, getInitials } from '../../utils';
+import { getAvatarColor, getInitials } from '@/features/chat/utils';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
 export type AvatarStatus = 'online' | 'offline' | 'away';

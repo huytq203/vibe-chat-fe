@@ -6,6 +6,7 @@ export {
   useConversation,
   useMessages,
   usePresence,
+  useLockedConversations,
 } from './hooks/use-query';
 export {
   useSendMessage,
@@ -15,8 +16,14 @@ export {
   useDiscardFailedMessage,
   useEditMessage,
   useDeleteMessage,
+  useLockConversation,
+  useRemoveLock,
+  useChangeLockPassword,
 } from './hooks/use-mutations';
 export { useMessageEditStore } from './stores/message-edit.store';
+export { LockPasswordDialog } from './components/contact/PinDialog';
+export { ChangeLockPasswordDialog } from './components/contact/ChangeLockPasswordDialog';
+export { getConversationName } from './utils';
 export type {
   Conversation,
   Message,

@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu/DropdownMenu';
 import { EmojiPicker, prefetchEmojiPicker } from '@/components/common/EmojiPicker';
 import { cn } from '@/lib/utils/cn';
-import { useMessageComposer } from '../../hooks/useMessageComposer';
-import { SELF_DESTRUCT_OPTIONS } from '../../utils';
+import { useMessageComposer } from '@/features/chat/hooks/useMessageComposer';
+import { SELF_DESTRUCT_OPTIONS } from '@/features/chat/utils';
 import { AttachmentButtons } from './AttachmentButtons';
 import { AttachmentTray } from './AttachmentTray';
 

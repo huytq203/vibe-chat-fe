@@ -1,13 +1,11 @@
 'use client';
 
-import { ArrowLeft, Ban, Lock, MessageSquare, Pin, UserCheck, X } from 'lucide-react';
+import { ArrowLeft, Ban, MessageSquare, Pin, UserCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import type { Conversation } from '../../types';
-import { ToggleRow } from '../common/ToggleRow';
-import { OptionRow } from '../common/OptionRow';
+import { ToggleRow } from '@/features/chat/components/common/ToggleRow';
+import { OptionRow } from '@/features/chat/components/common/OptionRow';
 
 type GroupSettingsPanelProps = {
-  conversation: Conversation;
   onBack: () => void;
   onClose: () => void;
 };
@@ -29,9 +27,7 @@ function Section({ title, children }: SectionProps) {
  * Cài đặt nhóm — chỉ OWNER / ADMIN / MODERATOR thấy được entry point.
  * Tất cả toggle hiện là skeleton UI (disabled + comingSoon) chờ BE bổ sung endpoint.
  */
-export function GroupSettingsPanel({ conversation, onBack, onClose }: GroupSettingsPanelProps) {
-  const isSecret = conversation.encryptionType === 'E2E';
-
+export function GroupSettingsPanel({ onBack, onClose }: GroupSettingsPanelProps) {
   return (
     <aside className="flex h-full w-[300px] min-w-[260px] shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground">
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 pb-3 pt-[18px]">
@@ -57,21 +53,6 @@ export function GroupSettingsPanel({ conversation, onBack, onClose }: GroupSetti
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <Section title="Bảo mật">
-          <ToggleRow
-            icon={<Lock className="h-4 w-4" />}
-            label="Chế độ bí mật"
-            subtitle={
-              isSecret
-                ? 'Đang bật — tin nhắn mã hoá đầu cuối'
-                : 'Mã hoá đầu cuối — tin nhắn không lưu trên server'
-            }
-            checked={isSecret}
-            disabled
-            comingSoon
-          />
-        </Section>
-
         <Section title="Quyền thành viên">
           <ToggleRow
             icon={<MessageSquare className="h-4 w-4" />}

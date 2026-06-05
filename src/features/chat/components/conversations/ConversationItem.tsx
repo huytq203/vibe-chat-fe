@@ -1,12 +1,12 @@
 'use client';
 
-import { Lock, Pin } from 'lucide-react';
+import { BellOff, Lock, Pin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { EmojiText } from '@/components/common/EmojiText';
 import { cn } from '@/lib/utils/cn';
-import type { Conversation } from '../../types';
-import { formatListTime, getConversationName, getConversationSeed } from '../../utils';
-import { Avatar } from '../common/Avatar';
+import type { Conversation } from '@/features/chat/types';
+import { formatListTime, getConversationName, getConversationSeed } from '@/features/chat/utils';
+import { Avatar } from '@/features/chat/components/common/Avatar';
 
 type ConversationItemProps = {
   conversation: Conversation;
@@ -18,10 +18,16 @@ type ConversationItemProps = {
 export function ConversationItem({ conversation, selected, meId, onSelect }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
-  const preview = conversation.lastMessage?.preview
-    ?? (conversation.encryptionType === 'E2E' ? '🔒 Tin nhắn mã hoá' : 'Chưa có tin nhắn');
+  const isLocked = Boolean(conversation.isLocked);
+  const preview = isLocked
+    ? 'Cuộc hội thoại riêng tư'
+    : conversation.lastMessage?.preview
+      ?? (conversation.messageCount > 0
+        ? 'Tin nhắn đã thu hồi'
+        : 'Chưa có tin nhắn');
   const time = formatListTime(conversation.lastMessageAt);
   const unread = conversation.unreadCount;
+
   return (
     <button
       type="button"
@@ -40,8 +46,11 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
             {conversation.isPinned && (
               <Pin className="h-3 w-3 shrink-0 text-primary" aria-label="Đã ghim" />
             )}
-            {conversation.encryptionType === 'E2E' && (
-              <Lock className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="Secret chat" />
+            {isLocked && (
+              <Lock className="h-3 w-3 shrink-0 text-primary" aria-label="Đang khoá" />
+            )}
+            {conversation.isMuted && (
+              <BellOff className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="Đã tắt thông báo" />
             )}
             <span className="truncate text-[13.5px] font-semibold text-foreground">{name}</span>
           </span>
@@ -49,8 +58,8 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-muted-foreground">
-              <EmojiText text={preview} />
-            </span>
+            <EmojiText text={preview} />
+          </span>
           {unread > 0 && (
             <Badge variant="default" size="sm">
               {unread > 99 ? '99+' : unread}

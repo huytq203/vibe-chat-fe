@@ -28,7 +28,9 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 | [15-edit-recall-selfdestruct.md](./15-edit-recall-selfdestruct.md) | Sửa tin (5 phút), gỡ tin, tin tự huỷ |
 | [14-media-upload.md](./14-media-upload.md) | Upload ảnh/video/voice/file rồi gắn vào tin nhắn |
 | [08-websocket.md](./08-websocket.md) | Connect socket, lắng nghe event realtime |
-| [09-encryption.md](./09-encryption.md) | Phân biệt SERVER vs E2E, FE encrypt thế nào |
+| [09-encryption.md](./09-encryption.md) | Mã hoá SERVER — FE chỉ gửi plaintext, BE tự encrypt |
+| [18-conversation-lock.md](./18-conversation-lock.md) | **Khoá conversation** bằng password — ẩn khỏi list, mở bằng verify |
+| ~~[17-switch-encryption.md](./17-switch-encryption.md)~~ | ~~Switch E2E~~ — **DEPRECATED, đã xoá** |
 | [10-idempotency.md](./10-idempotency.md) | Retry tin nhắn an toàn với `clientNonce` |
 
 ### 👥 Bạn bè + Presence

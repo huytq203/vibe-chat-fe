@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { Button as BaseButton } from '@base-ui/react';
 import { tv, type VariantProps } from 'tailwind-variants';
-import { Spinner } from '../spinner/Spinner';
+import { Spinner } from '@/components/ui/spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 
 const buttonVariants = tv({

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiAuth, ApiError } from '@/lib/api/client';
 import { authApi } from '@/services/auth.api';
-import { useAuthStore } from '../stores/auth.store';
+import { useAuthStore } from '@/features/auth/stores/auth.store';
 
 type Props = { requireAuth?: boolean; redirectTo?: string };
 
