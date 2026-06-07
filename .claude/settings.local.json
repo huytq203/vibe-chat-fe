@@ -59,7 +59,14 @@
       "Bash(sed -n '1,60p' src/lib/theme/themes.ts)",
       "Bash(sed -n '1,70p' src/lib/theme/ThemeProvider.tsx)",
       "Bash(echo \"tsc exit=$?\")",
-      "Bash(timeout 300 npx next build)"
+      "Bash(timeout 300 npx next build)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(npm i *)",
+      "Bash(npx vitest *)",
+      "Bash(grep -aoE \"[^;{}]{0,160}path not found[^;{}]{0,160}\" node_modules/livekit-client/dist/livekit-client.esm.mjs)",
+      "Bash(perl -0pi -e 's/\\\\n\\\\s*mode=\"normal\"//g; s/\\\\n\\\\s*onCycleMode=\\\\{vi\\\\.fn\\\\\\(\\\\\\)\\\\}//g' src/features/call/test/CallControls.test.tsx)",
+      "Bash(sed -n '9,20p' src/features/call/test/CallControls.test.tsx)"
     ]
   }
 }

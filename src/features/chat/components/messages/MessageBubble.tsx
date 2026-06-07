@@ -1,6 +1,16 @@
 'use client';
 
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  CheckCheck,
+  Clock,
+  Phone,
+  PhoneMissed,
+  RotateCw,
+  Video,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { Message } from '@/features/chat/types';
 import { formatBubbleTime } from '@/features/chat/utils';
@@ -181,6 +191,9 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
       />
     );
   }
+  if (message.type === 'CALL') {
+    return <CallMessageContent message={message} />;
+  }
   if ((MEDIA_TYPES as readonly string[]).includes(message.type)) {
     const caption = message.plaintext?.trim();
     return (
@@ -200,6 +213,30 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   return (
     <span className="block text-[13.5px] italic opacity-80">
       [{message.type.toLowerCase()}]
+    </span>
+  );
+}
+
+/** Tin hệ thống loại CALL: icon theo loại/kết quả + preview do BE dựng sẵn. */
+function CallMessageContent({ message }: { message: Message }) {
+  const meta = (message.metadata ?? {}) as {
+    callType?: 'AUDIO' | 'VIDEO';
+    durationSec?: number;
+    endReason?: string;
+  };
+  const isVideo = meta.callType === 'VIDEO';
+  const isMissed =
+    meta.endReason === 'MISSED' ||
+    meta.endReason === 'CANCELLED' ||
+    meta.endReason === 'DECLINED' ||
+    (meta.durationSec ?? 0) === 0;
+  const Icon = isMissed ? PhoneMissed : isVideo ? Video : Phone;
+  const text =
+    message.contentPreview ?? (isVideo ? 'Cuộc gọi video' : 'Cuộc gọi thoại');
+  return (
+    <span className="inline-flex items-center gap-2 text-[13.5px]">
+      <Icon className={cn('h-4 w-4 shrink-0', isMissed && 'text-destructive')} />
+      <span>{text}</span>
     </span>
   );
 }

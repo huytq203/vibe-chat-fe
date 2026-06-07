@@ -66,3 +66,10 @@ export const chatKeys = {
   presence: (userIds: string[]) =>
     [...chatKeys.all, 'presence', [...userIds].sort()] as const,
 } as const;
+
+export const callKeys = {
+  all: ['call'] as const,
+  history: (conversationId?: string) =>
+    [...callKeys.all, 'history', conversationId ?? 'all'] as const,
+  detail: (callId: string) => [...callKeys.all, 'detail', callId] as const,
+} as const;

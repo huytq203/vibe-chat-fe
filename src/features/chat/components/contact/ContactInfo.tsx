@@ -10,6 +10,7 @@ import { useConvLockStore } from "@/features/chat/stores/conv-lock.store";
 import { useLockConversation, useRemoveLock } from "@/features/chat/hooks/use-mutations";
 import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
 import { useSettingsStore } from "@/features/settings";
+import { useStartCall } from "@/features/call";
 import { SharedTabs } from "./SharedTabs";
 import { Avatar, AvatarStatus } from "@/features/chat/components/common/Avatar";
 import { QuickAction } from "@/features/chat/components/common/QuickAction";
@@ -38,6 +39,7 @@ export function ContactInfo() {
   const lockMut = useLockConversation();
   const removeLockMut = useRemoveLock();
   const lockPin = useSettingsStore((s) => s.lockPin);
+  const { start: startCall, busy: callBusy } = useStartCall();
 
   if (!data) return null;
 
@@ -86,6 +88,13 @@ export function ContactInfo() {
 
   const isLocked = Boolean(conversation.isLocked);
   const lockDialogMode: 'lock' | 'unlock' = isLocked ? 'unlock' : 'lock';
+
+  // Gọi audio/video — chỉ hội thoại DIRECT (giống ChatHeader).
+  const canCall = isDirect && Boolean(otherUserId);
+  function handleCall(type: 'AUDIO' | 'VIDEO') {
+    if (!otherUserId) return;
+    void startCall(conversation.id, type, { id: otherUserId, name, avatarUrl: conversation.avatarUrl ?? null });
+  }
 
   function lockWith(password: string) {
     lockMut.mutate(
@@ -204,8 +213,18 @@ export function ContactInfo() {
         </section>
 
         <section className="grid grid-cols-4 gap-2 px-3 py-3">
-          <QuickAction icon={<Phone className="h-[18px] w-[18px]" />} label="Gọi" />
-          <QuickAction icon={<Video className="h-[18px] w-[18px]" />} label="Video" />
+          <QuickAction
+            icon={<Phone className="h-[18px] w-[18px]" />}
+            label="Gọi"
+            disabled={!canCall || callBusy}
+            onClick={() => handleCall("AUDIO")}
+          />
+          <QuickAction
+            icon={<Video className="h-[18px] w-[18px]" />}
+            label="Video"
+            disabled={!canCall || callBusy}
+            onClick={() => handleCall("VIDEO")}
+          />
           <QuickAction
             icon={<Search className="h-[18px] w-[18px]" />}
             label="Tìm"

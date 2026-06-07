@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, MoreVertical, PanelRight, Phone, Search, Video, X } from 'lucide-react';
+import { ArrowLeft, PanelRight, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
@@ -10,6 +10,7 @@ import { getConversationName, getConversationSeed } from '@/features/chat/utils'
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
+import { CallButtons } from '@/features/call';
 
 type ChatHeaderProps = {
   conversation: Conversation;
@@ -100,12 +101,16 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
           </div>
         ) : (
           <>
-            <Button variant="ghost" size="icon-sm" title="Gọi thoại" aria-label="Gọi thoại">
-              <Phone className="h-[18px] w-[18px]" />
-            </Button>
-            <Button variant="ghost" size="icon-sm" title="Gọi video" aria-label="Gọi video">
-              <Video className="h-[18px] w-[18px]" />
-            </Button>
+            {conversation.type === 'DIRECT' && (
+              <CallButtons
+                conversationId={conversation.id}
+                peer={{
+                  id: conversation.memberIds.find((id) => id !== meId) ?? '',
+                  name,
+                  avatarUrl: conversation.avatarUrl,
+                }}
+              />
+            )}
             <Button variant="ghost" size="icon-sm" title="Tìm kiếm" aria-label="Tìm kiếm" onClick={() => setSearching(true)}>
               <Search className="h-[18px] w-[18px]" />
             </Button>

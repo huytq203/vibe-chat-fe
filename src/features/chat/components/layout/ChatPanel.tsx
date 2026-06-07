@@ -9,6 +9,7 @@ import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConver
 import { useConversation, usePresence } from '@/features/chat/hooks/use-query';
 import { useMarkRead } from '@/features/chat/hooks/use-mutations';
 import { ChatHeader } from './ChatHeader';
+import { CallBanner } from '@/features/call';
 import { ConvLockScreen } from './ConvLockScreen';
 import { MessageList } from '@/features/chat/components/messages/MessageList';
 import { MessageInput } from '@/features/chat/components/messages/MessageInput';
@@ -113,6 +114,7 @@ export function ChatPanel() {
         onToggleRight={isMobile ? () => setMobilePanel('contact') : toggleRight}
         onBack={isMobile ? () => setMobilePanel('list') : undefined}
       />
+      <CallBanner />
       {isLocked ? (
         <ConvLockScreen conversationId={conversation.id} name={convName} />
       ) : (

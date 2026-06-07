@@ -9,6 +9,7 @@ const schema = z.object({
   NEXT_PUBLIC_AUTH_URL: z.string().url(),
   NEXT_PUBLIC_VIBE_URL: z.string().url(),
   NEXT_PUBLIC_WS_URL: z.string().url(),
+  NEXT_PUBLIC_CALL_WS_URL: z.string().url(),
   // true → client gọi same-origin (Next rewrites proxy). false → gọi thẳng BE.
   NEXT_PUBLIC_USE_PROXY: z
     .enum(['true', 'false'])
@@ -29,6 +30,7 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_AUTH_URL: process.env.NEXT_PUBLIC_AUTH_URL,
   NEXT_PUBLIC_VIBE_URL: process.env.NEXT_PUBLIC_VIBE_URL,
   NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+  NEXT_PUBLIC_CALL_WS_URL: process.env.NEXT_PUBLIC_CALL_WS_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

@@ -10,6 +10,7 @@ import {
   useNotificationRealtime,
 } from '@/features/notifications';
 import { useFriendRealtime } from '@/features/friends';
+import { CallContainer, useCallRealtime } from '@/features/call';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useConversations } from '@/features/chat/hooks/use-query';
@@ -30,6 +31,7 @@ export function ChatLayout() {
   useChatRealtime();
   useNotificationRealtime();
   useFriendRealtime();
+  useCallRealtime();
   useFcmSetup();
 
   useEffect(() => {
@@ -73,6 +75,7 @@ export function ChatLayout() {
         {mobilePanel === 'list' && <ConversationList />}
         {mobilePanel === 'chat' && <ChatPanel />}
         {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        <CallContainer />
       </div>
     );
   }
@@ -82,6 +85,7 @@ export function ChatLayout() {
       <ConversationList />
       <ChatPanel />
       {rightPanelOpen && selectedConversationId && <ContactInfo />}
+      <CallContainer />
     </div>
   );
 }

@@ -116,12 +116,14 @@ export function useJoinRequests(conversationId: string | null, enabled = true) {
 
 export function usePresence(userIds: string[]) {
   const enabled = userIds.length > 0;
+  // Realtime qua WebSocket (event `presence:update` trong useChatRealtime), KHÔNG poll.
+  // REST chỉ lấy snapshot ban đầu; sau reconnect onReconnect() invalidate chatKeys.all
+  // → query này tự refetch để bù event đã miss trong gap mất kết nối.
   return useQuery({
     queryKey: chatKeys.presence(userIds),
     queryFn: () => chatApi.getPresenceBulk(userIds),
     enabled,
     staleTime: 60_000,
-    refetchInterval: 60_000,
   });
 }
 
