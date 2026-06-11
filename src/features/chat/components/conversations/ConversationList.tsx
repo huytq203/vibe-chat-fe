@@ -102,7 +102,7 @@ export function ConversationList() {
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-primary/30 bg-primary/15">
             <MessageSquare className="h-[18px] w-[18px] text-primary" />
           </div>
-          <span className="text-lg font-bold tracking-tight">VibeChat</span>
+          <span className="text-lg font-bold tracking-tight">HaloChat</span>
         </div>
         
       </header>

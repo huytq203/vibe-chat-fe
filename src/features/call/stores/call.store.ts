@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  CallDirectory,
   CallParticipant,
   CallPeer,
   CallPhase,
@@ -11,7 +12,12 @@ type CallData = {
   callId: string | null;
   conversationId: string;
   type: CallType;
+  /** Group (≥3 người, không giới hạn) → render lưới video + decline không đóng UI. */
+  isGroup: boolean;
+  /** Tiêu đề cuộc gọi: 1-1 = peer đối phương; group = tên nhóm. */
   peer: CallPeer;
+  /** userId → tên/avatar để gắn nhãn ô trong lưới group. */
+  directory: CallDirectory;
 };
 type CallWindow = { mode: WindowMode; x: number; y: number };
 type PendingJoin = { url: string; token: string; type: CallType };
@@ -28,16 +34,30 @@ type CallState = {
   windowOpen: boolean;
   /** Token LiveKit của caller chờ CallContainer join (không persist, xoá ngay sau khi join). */
   pendingJoin: PendingJoin | null;
-  startOutgoing: (conversationId: string, type: CallType, peer: CallPeer) => void;
+  startOutgoing: (
+    conversationId: string,
+    type: CallType,
+    peer: CallPeer,
+    isGroup: boolean,
+    directory: CallDirectory,
+  ) => void;
   receiveIncoming: (
     callId: string,
     conversationId: string,
     type: CallType,
     peer: CallPeer,
+    isGroup: boolean,
+    directory: CallDirectory,
   ) => void;
   markOngoing: (callId: string, startedAt: number) => void;
   /** Gắn callId từ ack initiate cho caller (giữ nguyên phase outgoing). */
   attachCallId: (callId: string) => void;
+  /** Đồng bộ roster báo hiệu từ ack initiate/accept. */
+  setParticipants: (participants: CallParticipant[]) => void;
+  /** 1 người vào room (group) — upsert vào roster. */
+  participantJoined: (userId: string) => void;
+  /** 1 người rời room (group) — gỡ khỏi roster. */
+  participantLeft: (userId: string) => void;
   setMic: (on: boolean) => void;
   setCam: (on: boolean) => void;
   setWindowMode: (mode: WindowMode) => void;
@@ -59,10 +79,11 @@ export const useCallStore = create<CallState>((set) => ({
   window: INITIAL_WINDOW,
   windowOpen: true,
   pendingJoin: null,
-  startOutgoing: (conversationId, type, peer) =>
+  startOutgoing: (conversationId, type, peer, isGroup, directory) =>
     set({
       phase: 'outgoing',
-      call: { callId: null, conversationId, type, peer },
+      call: { callId: null, conversationId, type, isGroup, peer, directory },
+      participants: [],
       micOn: true,
       camOn: type === 'VIDEO',
       startedAt: null,
@@ -70,10 +91,11 @@ export const useCallStore = create<CallState>((set) => ({
       windowOpen: true,
       pendingJoin: null,
     }),
-  receiveIncoming: (callId, conversationId, type, peer) =>
+  receiveIncoming: (callId, conversationId, type, peer, isGroup, directory) =>
     set({
       phase: 'incoming',
-      call: { callId, conversationId, type, peer },
+      call: { callId, conversationId, type, isGroup, peer, directory },
+      participants: [],
       micOn: true,
       camOn: type === 'VIDEO',
       startedAt: null,
@@ -89,6 +111,22 @@ export const useCallStore = create<CallState>((set) => ({
     })),
   attachCallId: (callId) =>
     set((s) => ({ call: s.call ? { ...s.call, callId } : s.call })),
+  setParticipants: (participants) => set({ participants }),
+  participantJoined: (userId) =>
+    set((s) =>
+      s.participants.some((p) => p.userId === userId)
+        ? { participants: s.participants.map((p) =>
+            p.userId === userId ? { ...p, state: 'JOINED', leftAt: null } : p,
+          ) }
+        : {
+            participants: [
+              ...s.participants,
+              { userId, state: 'JOINED', joinedAt: null, leftAt: null },
+            ],
+          },
+    ),
+  participantLeft: (userId) =>
+    set((s) => ({ participants: s.participants.filter((p) => p.userId !== userId) })),
   setMic: (on) => set({ micOn: on }),
   setCam: (on) => set({ camOn: on }),
   setWindowMode: (mode) => set((s) => ({ window: { ...s.window, mode } })),

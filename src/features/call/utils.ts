@@ -1,3 +1,19 @@
+import type { Conversation } from '@/features/chat/types';
+import { getMemberName } from '@/features/chat/utils';
+import type { CallDirectory } from '@/features/call/types';
+
+/** Danh bạ userId → tên/avatar từ members của conversation (gắn nhãn ô trong lưới group). */
+export function buildCallDirectory(conv: Conversation | null | undefined): CallDirectory {
+  const dir: CallDirectory = {};
+  conv?.members?.forEach((m) => {
+    dir[m.userId] = {
+      name: getMemberName(m) ?? m.userId,
+      avatarUrl: m.avatarUrl,
+    };
+  });
+  return dir;
+}
+
 const ERROR_MESSAGES: Record<string, string> = {
   CALL_CALLEE_BUSY: 'Máy bận',
   CALL_ALREADY_ENDED: 'Cuộc gọi đã kết thúc',

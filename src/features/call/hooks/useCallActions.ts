@@ -9,7 +9,7 @@ import { useCallStore } from '@/features/call/stores/call.store';
 import { callTokenAckSchema } from '@/features/call/schemas';
 import { mapCallErrorCode } from '@/features/call/utils';
 import { logger } from '@/lib/logger';
-import type { CallPeer, CallTokenAck, CallType } from '@/features/call/types';
+import type { CallDirectory, CallPeer, CallTokenAck, CallType } from '@/features/call/types';
 
 type Ack = { ok: boolean; code?: string; message?: string } & Record<string, unknown>;
 
@@ -36,8 +36,10 @@ export function useCallActions() {
       conversationId: string,
       type: CallType,
       peer: CallPeer,
+      isGroup: boolean,
+      directory: CallDirectory,
     ): Promise<CallTokenAck | null> => {
-      store.getState().startOutgoing(conversationId, type, peer);
+      store.getState().startOutgoing(conversationId, type, peer, isGroup, directory);
       const ack = await emitWithAck('call:initiate', { conversationId, type });
       if (!ack.ok) {
         toast.error(mapCallErrorCode(ack.code ?? '', ack.message));
@@ -50,6 +52,7 @@ export function useCallActions() {
         store.getState().reset();
         return null;
       }
+      store.getState().setParticipants(parsed.data.participants);
       return parsed.data;
     },
     [store],
@@ -68,6 +71,7 @@ export function useCallActions() {
         store.getState().reset();
         return null;
       }
+      store.getState().setParticipants(parsed.data.participants);
       return parsed.data;
     },
     [store],

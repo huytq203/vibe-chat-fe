@@ -10,7 +10,7 @@ import { getConversationName, getConversationSeed } from '@/features/chat/utils'
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
-import { CallButtons } from '@/features/call';
+import { CallButtons, buildCallDirectory } from '@/features/call';
 
 type ChatHeaderProps = {
   conversation: Conversation;
@@ -101,11 +101,16 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
           </div>
         ) : (
           <>
-            {conversation.type === 'DIRECT' && (
+            {conversation.type !== 'CHANNEL' && (
               <CallButtons
                 conversationId={conversation.id}
+                isGroup={conversation.type === 'GROUP'}
+                directory={buildCallDirectory(conversation)}
                 peer={{
-                  id: conversation.memberIds.find((id) => id !== meId) ?? '',
+                  id:
+                    conversation.type === 'DIRECT'
+                      ? conversation.memberIds.find((id) => id !== meId) ?? ''
+                      : conversation.id,
                   name,
                   avatarUrl: conversation.avatarUrl,
                 }}

@@ -12,6 +12,11 @@ export type CallEndReason =
 
 export type CallPeer = { id: string; name: string; avatarUrl: string | null };
 
+/** Thông tin hiển thị 1 thành viên trong cuộc gọi (map theo userId). */
+export type CallMember = { name: string; avatarUrl: string | null };
+/** Danh bạ userId → tên/avatar để gắn nhãn ô video group (resolve từ conversation members). */
+export type CallDirectory = Record<string, CallMember>;
+
 export type CallParticipant = {
   userId: string;
   state: string;

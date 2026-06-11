@@ -26,9 +26,10 @@ export function CallContainer() {
   const startedAt = useCallStore((s) => s.startedAt);
   const pendingJoin = useCallStore((s) => s.pendingJoin);
   const windowOpen = useCallStore((s) => s.windowOpen);
+  const participants = useCallStore((s) => s.participants);
 
   const actions = useCallActions();
-  const { setRemoteEl, setLocalEl, join, leave } = useLiveKitRoom();
+  const { remoteIds, getRemoteRef, setLocalEl, join, leave } = useLiveKitRoom();
   const [elapsed, setElapsed] = useState(0);
   const ringTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -129,12 +130,17 @@ export function CallContainer() {
   const statusText =
     phase === 'outgoing' ? 'Đang gọi…' : phase === 'ongoing' ? formatDuration(elapsed) : '';
 
+  // "N người" = số đã JOINED theo roster báo hiệu; fallback theo media LiveKit (mình + remote).
+  const joinedCount = participants.filter((p) => p.state === 'JOINED').length;
+  const participantCount = joinedCount || remoteIds.length + 1;
+
   let content: ReactNode = null;
   if (phase === 'incoming') {
     content = (
       <IncomingCallDialog
         peer={call.peer}
         type={call.type}
+        isGroup={call.isGroup}
         onAccept={handleAccept}
         onDecline={handleDecline}
       />
@@ -145,13 +151,17 @@ export function CallContainer() {
       <CallWindow
         type={call.type}
         peer={call.peer}
+        isGroup={call.isGroup}
+        directory={call.directory}
+        remoteIds={remoteIds}
+        participantCount={participantCount}
         phase={phase}
         mode={mode}
         micOn={micOn}
         camOn={camOn}
         position={{ x: windowState.x, y: windowState.y }}
         statusText={statusText}
-        setRemoteEl={setRemoteEl}
+        getRemoteRef={getRemoteRef}
         setLocalEl={setLocalEl}
         onToggleMic={actions.toggleMic}
         onToggleCam={actions.toggleCam}

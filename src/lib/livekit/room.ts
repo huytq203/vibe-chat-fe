@@ -14,8 +14,12 @@ import { logger } from '@/lib/logger';
  */
 
 type TrackHandlers = {
-  onRemoteTrack?: (track: RemoteTrack) => void;
-  onRemoteTrackRemoved?: (track: RemoteTrack) => void;
+  onRemoteTrack?: (track: RemoteTrack, identity: string) => void;
+  onRemoteTrackRemoved?: (track: RemoteTrack, identity: string) => void;
+  /** Người vào room (kể cả audio-only chưa publish video) → tạo ô trong lưới. */
+  onParticipantConnected?: (identity: string) => void;
+  /** Người rời room → gỡ ô khỏi lưới. */
+  onParticipantDisconnected?: (identity: string) => void;
   onLocalVideo?: (track: LocalTrack | null) => void;
   onDisconnected?: () => void;
 };
@@ -35,8 +39,8 @@ export async function joinRoom(
   await leaveRoom();
   // adaptiveStream tắt: trong portal/fixed overlay, IntersectionObserver của adaptiveStream
   // dễ nhận nhầm element "không hiển thị" → pause video remote → màn đen. Tắt để luôn nhận stream.
-  // dynacast tắt: 1-1 không cần simulcast layer selection.
-  const r = new Room({ adaptiveStream: false, dynacast: false });
+  // dynacast bật: group đông người → cho phép SFU tắt layer không ai xem, tiết kiệm băng thông.
+  const r = new Room({ adaptiveStream: false, dynacast: true });
   room = r;
 
   r.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
@@ -44,11 +48,17 @@ export async function joinRoom(
       kind: track.kind,
       participant: participant.identity,
     });
-    handlers.onRemoteTrack?.(track);
+    handlers.onRemoteTrack?.(track, participant.identity);
   });
-  r.on(RoomEvent.TrackUnsubscribed, (track) => handlers.onRemoteTrackRemoved?.(track));
-  r.on(RoomEvent.ParticipantConnected, (p) =>
-    logger.info('[call] participant connected', { participant: p.identity }),
+  r.on(RoomEvent.TrackUnsubscribed, (track, _pub, participant) =>
+    handlers.onRemoteTrackRemoved?.(track, participant.identity),
+  );
+  r.on(RoomEvent.ParticipantConnected, (p) => {
+    logger.info('[call] participant connected', { participant: p.identity });
+    handlers.onParticipantConnected?.(p.identity);
+  });
+  r.on(RoomEvent.ParticipantDisconnected, (p) =>
+    handlers.onParticipantDisconnected?.(p.identity),
   );
   r.on(RoomEvent.Disconnected, () => handlers.onDisconnected?.());
 
@@ -98,6 +108,7 @@ export async function joinRoom(
   // Participant đã ở trong room TRƯỚC khi ta join → subscribe lại track đang publish của họ
   // (đảm bảo hiện video dù sự kiện TrackSubscribed đến sớm/đã qua).
   r.remoteParticipants.forEach((p) => {
+    handlers.onParticipantConnected?.(p.identity);
     p.trackPublications.forEach((pub) => {
       logger.info('[call] existing remote publication', {
         participant: p.identity,
@@ -105,7 +116,7 @@ export async function joinRoom(
         subscribed: pub.isSubscribed,
         hasTrack: Boolean(pub.track),
       });
-      if (pub.track) handlers.onRemoteTrack?.(pub.track);
+      if (pub.track) handlers.onRemoteTrack?.(pub.track, p.identity);
     });
   });
 

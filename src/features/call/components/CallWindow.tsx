@@ -5,20 +5,31 @@ import Draggable, { type DraggableData } from 'react-draggable';
 import { Maximize2, Minimize2, Minus, PhoneOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
-import type { CallPeer, CallPhase, CallType, WindowMode } from '@/features/call/types';
+import type {
+  CallDirectory,
+  CallPeer,
+  CallPhase,
+  CallType,
+  WindowMode,
+} from '@/features/call/types';
 import { CallStage } from './CallStage';
 import { CallControls } from './CallControls';
 
 type CallWindowProps = {
   type: CallType;
   peer: CallPeer;
+  isGroup: boolean;
+  directory: CallDirectory;
+  remoteIds: string[];
+  /** Số người trong cuộc gọi (roster báo hiệu) — hiển thị cho group. */
+  participantCount: number;
   phase: CallPhase;
   mode: WindowMode;
   micOn: boolean;
   camOn: boolean;
   position: { x: number; y: number };
   statusText: string;
-  setRemoteEl: (node: HTMLDivElement | null) => void;
+  getRemoteRef: (id: string) => (node: HTMLDivElement | null) => void;
   setLocalEl: (node: HTMLDivElement | null) => void;
   onToggleMic: () => void;
   onToggleCam: () => void;
@@ -35,9 +46,24 @@ const SIZE_CLASS: Record<WindowMode, string> = {
 };
 
 export function CallWindow(props: CallWindowProps) {
-  const { mode, peer, type, micOn, camOn, statusText, setRemoteEl, setLocalEl, position } = props;
+  const {
+    mode,
+    peer,
+    type,
+    isGroup,
+    directory,
+    remoteIds,
+    participantCount,
+    micOn,
+    camOn,
+    statusText,
+    getRemoteRef,
+    setLocalEl,
+    position,
+  } = props;
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const draggable = mode !== 'fullscreen';
+  const countLabel = isGroup ? `${participantCount} người` : '';
 
   // Điều khiển cửa sổ — LUÔN hiển thị ở mọi mode (đặt ngoài vùng kéo nhờ class no-drag).
   const windowControls = (
@@ -100,6 +126,7 @@ export function CallWindow(props: CallWindowProps) {
           )}
         >
           <span className="truncate font-medium">{peer.name}</span>
+          {countLabel && <span className="shrink-0">· {countLabel}</span>}
           <span className="shrink-0">{statusText}</span>
         </div>
         {windowControls}
@@ -108,7 +135,10 @@ export function CallWindow(props: CallWindowProps) {
       {mode === 'mini' ? (
         <div className="flex flex-1 items-center justify-between gap-2 px-3 pb-2 bg-sidebar">
           <Avatar name={peer.name} src={peer.avatarUrl} size="sm" />
-          <span className="min-w-0 flex-1 truncate text-sm text-foreground">{peer.name}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+            {peer.name}
+            {countLabel && <span className="text-muted-foreground"> · {countLabel}</span>}
+          </span>
           <button
             type="button"
             aria-label="Kết thúc"
@@ -123,7 +153,10 @@ export function CallWindow(props: CallWindowProps) {
           <CallStage
             type={type}
             peer={peer}
-            setRemoteEl={setRemoteEl}
+            isGroup={isGroup}
+            directory={directory}
+            remoteIds={remoteIds}
+            getRemoteRef={getRemoteRef}
             setLocalEl={setLocalEl}
             statusText={statusText}
           />

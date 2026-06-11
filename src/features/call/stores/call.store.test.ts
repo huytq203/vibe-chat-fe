@@ -12,7 +12,7 @@ describe('call.store state machine', () => {
   });
 
   it('startOutgoing → outgoing with call data', () => {
-    useCallStore.getState().startOutgoing('c1', 'VIDEO', peer);
+    useCallStore.getState().startOutgoing('c1', 'VIDEO', peer, false, {});
     const s = useCallStore.getState();
     expect(s.phase).toBe('outgoing');
     expect(s.call?.conversationId).toBe('c1');
@@ -20,13 +20,13 @@ describe('call.store state machine', () => {
   });
 
   it('receiveIncoming → incoming', () => {
-    useCallStore.getState().receiveIncoming('call1', 'c1', 'AUDIO', peer);
+    useCallStore.getState().receiveIncoming('call1', 'c1', 'AUDIO', peer, false, {});
     expect(useCallStore.getState().phase).toBe('incoming');
     expect(useCallStore.getState().call?.callId).toBe('call1');
   });
 
   it('markOngoing sets startedAt', () => {
-    useCallStore.getState().startOutgoing('c1', 'AUDIO', peer);
+    useCallStore.getState().startOutgoing('c1', 'AUDIO', peer, false, {});
     useCallStore.getState().markOngoing('call1', 1000);
     const s = useCallStore.getState();
     expect(s.phase).toBe('ongoing');
@@ -35,7 +35,7 @@ describe('call.store state machine', () => {
   });
 
   it('reset returns to idle', () => {
-    useCallStore.getState().startOutgoing('c1', 'AUDIO', peer);
+    useCallStore.getState().startOutgoing('c1', 'AUDIO', peer, false, {});
     useCallStore.getState().reset();
     expect(useCallStore.getState().phase).toBe('idle');
     expect(useCallStore.getState().call).toBeNull();
