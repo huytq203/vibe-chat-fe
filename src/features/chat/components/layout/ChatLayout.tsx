@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
 import { useAuthStore } from '@/features/auth';
@@ -19,6 +19,7 @@ import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
+import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -29,6 +30,7 @@ export function ChatLayout() {
   const isMobile = useIsMobile();
   const { data: conversations } = useConversations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   useChatRealtime();
   useNotificationRealtime();
   useFriendRealtime();
@@ -38,9 +40,10 @@ export function ChatLayout() {
 
   useEffect(() => {
     if (selectedConversationId) return;
+    if (searchParams.get('invite')) return;
     const first = conversations?.[0];
     if (first) setSelected(first.id);
-  }, [conversations, selectedConversationId, setSelected]);
+  }, [conversations, selectedConversationId, setSelected, searchParams]);
 
   // SW post message khi user click OS notification → điều hướng trong tab.
   useEffect(() => {
@@ -78,6 +81,7 @@ export function ChatLayout() {
         {mobilePanel === 'chat' && <ChatPanel />}
         {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
         <CallContainer />
+        <InviteProfileModal />
       </div>
     );
   }
@@ -88,6 +92,7 @@ export function ChatLayout() {
       <ChatPanel />
       {rightPanelOpen && selectedConversationId && <ContactInfo />}
       <CallContainer />
+      <InviteProfileModal />
     </div>
   );
 }

@@ -166,47 +166,47 @@
 @layer base {
     :root {
         /* GENERATED:theme-start */
-        /* Đồng bộ thủ công với themes.ts (theme "indigo" = Vibe Night) */
-        --background: #130f1a;              /* Nền chat sâu nhất */
-        --foreground: #fbfbfc;              /* Chữ sáng */
-        --primary: #7f49e0;                 /* Tím thương hiệu */
+        /* Đồng bộ thủ công với themes.ts (theme "indigo" = Halo Night — bớt tím, sáng hơn) */
+        --background: #17171f;              /* Charcoal trung tính */
+        --foreground: #f5f6f8;
+        --primary: #8b7cf0;                 /* Indigo nhạt — bớt bão hòa tím */
         --primary-foreground: #ffffff;
-        --secondary: #221a30;               /* Surface bubble / card */
-        --secondary-foreground: #9e75e7;    /* Lavender nhạt */
-        --muted: #1a1425;                   /* Surface header / sidebar / input */
-        --muted-foreground: #8778a0;        /* Silver tím */
-        --accent: #221a30;                  /* Hover surface */
-        --accent-foreground: #fbfbfc;
-        --success: #49e049;                 /* Online / xanh */
-        --success-foreground: #0e0c14;
-        --warning: #e0c849;                 /* Vàng (burn / cảnh báo) */
-        --warning-foreground: #1a1425;
-        --danger: #e04949;
+        --secondary: #242433;               /* Surface bubble / card */
+        --secondary-foreground: #b3b6f2;
+        --muted: #1d1d28;                   /* Surface header / sidebar / input */
+        --muted-foreground: #9a9db5;        /* Silver xám xanh */
+        --accent: #242433;                  /* Hover surface */
+        --accent-foreground: #f5f6f8;
+        --success: #3de87a;                 /* Online / xanh sáng */
+        --success-foreground: #0d1a13;
+        --warning: #f0d050;                 /* Vàng */
+        --warning-foreground: #1d1d28;
+        --danger: #f05050;
         --danger-foreground: #ffffff;
-        --destructive: #e04949;
+        --destructive: #f05050;
         --destructive-foreground: #ffffff;
-        --border: #2e2540;                  /* Viền tím tối */
-        --input: #221a30;
-        --ring: #7f49e0;
-        --popover: #1a1425;
-        --popover-foreground: #fbfbfc;
+        --border: #32334a;
+        --input: #242433;
+        --ring: #8b7cf0;
+        --popover: #1d1d28;
+        --popover-foreground: #f5f6f8;
         /* GENERATED:theme-end */
 
         /* Non-theme tokens (not managed by applyTheme) */
-        --switch-background: #2e2540;       /* Toggle nền tối */
+        --switch-background: #32334a;       /* Toggle nền */
 
-        --chart-1: #e04949;
-        --chart-2: #7f49e0;                 /* Tím thương hiệu */
-        --chart-3: #49e049;                 /* Xanh */
-        --chart-4: #e0c849;                 /* Vàng */
-        --chart-5: #9e75e7;                 /* Lavender */
+        --chart-1: #f05050;
+        --chart-2: #8b7cf0;                 /* Indigo thương hiệu */
+        --chart-3: #3de87a;                 /* Xanh */
+        --chart-4: #f0d050;                 /* Vàng */
+        --chart-5: #b3b6f2;                 /* Lavender nhạt */
 
-        --sidebar: #1a1425;
-        --sidebar-foreground: #fbfbfc;
-        --sidebar-border: #2e2540;
-        --sidebar-accent: #221a30;
-        --sidebar-accent-foreground: #9e75e7;
-        --sidebar-ring: #7f49e0;
+        --sidebar: #1d1d28;
+        --sidebar-foreground: #f5f6f8;
+        --sidebar-border: #32334a;
+        --sidebar-accent: #242433;
+        --sidebar-accent-foreground: #f5f6f8;
+        --sidebar-ring: #8b7cf0;
     }
 
     .dark {

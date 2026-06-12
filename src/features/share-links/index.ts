@@ -1,5 +1,6 @@
 export { ShareLinkDialog } from './components/ShareLinkDialog';
 export { InviteCard } from './components/InviteCard';
+export { InviteProfileModal } from './components/InviteProfileModal';
 export { useMyShareLinks, useResolveShareLink } from './hooks/use-query';
 export { useCreateShareLink, useRevokeShareLink, useUseShareLink } from './hooks/use-mutations';
 export type {

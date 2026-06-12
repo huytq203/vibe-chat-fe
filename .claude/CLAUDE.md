@@ -5,9 +5,10 @@
 > Khi xung đột: **CLAUDE.md > AGENTS.md > RULE.md > DESIGN.md > training data**.
 
 Tài liệu liên quan:
-- [RULE.md](./RULE.md) — quy tắc cốt lõi (giữ nguyên, không trùng lặp ở file này)
-- [WORKFLOW.md](./WORKFLOW.md) — hướng dẫn luồng hoạt động cho next js
-- [DESIGN.md](./DESIGN.md) — design system (Kraken-inspired, áp dụng full)
+
+- [RULE.md](./rules/RULE.md) — quy tắc cốt lõi (giữ nguyên, không trùng lặp ở file này)
+- [WORKFLOW.md](./Workflow/WORKFLOW.md) — hướng dẫn luồng hoạt động cho next js
+- [DESIGN.md](./Design/DESIGN.md) — design system (Kraken-inspired, áp dụng full)
 - [AGENTS.md](../AGENTS.md) — cảnh báo Next.js 16 breaking changes
 
 ---
@@ -22,6 +23,7 @@ Tài liệu liên quan:
 6. **Bảo mật mặc định bật** — không bao giờ có secrets ở client, luôn validate input ở boundary.
 7. **Mọi component < 200 dòng** — quá thì tách. Hook > 80 dòng → tách. File > 300 dòng → review tách module.
 8. **Không `any`** — dùng `unknown` + narrow, hoặc generic. `as` chỉ cho type assertion khi đã narrow.
+9. **Đọc quy tắc trước khi viết** - Bắt buộc phải đọc bộ quy tắc đã quy chuẩn trước khi code và luôn phải tuân thủ theo bộ này, tuyệt đối ko đc quên làm ảnh hưởng đến chất lượng và structure code
 
 ---
 
@@ -29,24 +31,24 @@ Tài liệu liên quan:
 
 > Khi sinh code, **chỉ** dùng những thư viện dưới đây. Muốn thêm lib → hỏi user.
 
-| Domain | Lib | Ghi chú |
-|---|---|---|
-| Framework | **Next.js 16 (App Router)** | Đọc docs trong `node_modules/next/dist/docs/` |
-| Runtime | React 19 + TypeScript 5 strict | |
-| UI components | **Basuicn** (`@basuicn/*` qua CLI `npx basuicn add <name>`) | Nguồn: https://github.com/Basuicn/basuicn-core — copy source vào repo, không phải lib runtime |
-| Headless primitives | `@base-ui/react` (đi kèm Basuicn) | Không tự cài Radix song song |
-| Styling | **Tailwind CSS v4** + `tailwind-variants` + `clsx` | Không CSS-in-JS, không CSS Modules trừ khi user yêu cầu |
-| Icons | `lucide-react` | |
-| Server state | **TanStack Query v5** (`@tanstack/react-query`) | Bắt buộc cho mọi fetch client-side |
-| Client state | **Zustand** (slice pattern) | Chỉ cho state thực sự global; còn lại `useState`/`useReducer` |
-| Forms | **React Hook Form** + **Zod** | Shared schema cho client + server (xem WORKFLOW.md) |
-| Tables | **TanStack Table v8** (qua component Basuicn `table`) | |
-| Date | `date-fns` | Không dùng moment |
-| HTTP | `fetch` native, wrap trong `lib/http/` | Không axios trừ khi cần interceptor phức tạp |
-| Auth | **NextAuth.js v5** (sẽ cài khi có provider), wrap trong `lib/auth/` | |
-| DB / ORM | **Prisma** (sẽ cài khi có DB), wrap trong `lib/db/` | |
-| Test | Vitest + Testing Library + Playwright (e2e) | |
-| Lint/Format | ESLint (config sẵn) + Prettier | |
+| Domain              | Lib                                                                 | Ghi chú                                                                                       |
+| ------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Framework           | **Next.js 16 (App Router)**                                         | Đọc docs trong `node_modules/next/dist/docs/`                                                 |
+| Runtime             | React 19 + TypeScript 5 strict                                      |                                                                                               |
+| UI components       | **Basuicn** (`@basuicn/*` qua CLI `npx basuicn add <name>`)         | Nguồn: https://github.com/Basuicn/basuicn-core — copy source vào repo, không phải lib runtime |
+| Headless primitives | `@base-ui/react` (đi kèm Basuicn)                                   | Không tự cài Radix song song                                                                  |
+| Styling             | **Tailwind CSS v4** + `tailwind-variants` + `clsx`                  | Không CSS-in-JS, không CSS Modules trừ khi user yêu cầu                                       |
+| Icons               | `lucide-react`                                                      |                                                                                               |
+| Server state        | **TanStack Query v5** (`@tanstack/react-query`)                     | Bắt buộc cho mọi fetch client-side                                                            |
+| Client state        | **Zustand** (slice pattern)                                         | Chỉ cho state thực sự global; còn lại `useState`/`useReducer`                                 |
+| Forms               | **React Hook Form** + **Zod**                                       | Shared schema cho client + server (xem WORKFLOW.md)                                           |
+| Tables              | **TanStack Table v8** (qua component Basuicn `table`)               |                                                                                               |
+| Date                | `date-fns`                                                          | Không dùng moment                                                                             |
+| HTTP                | `fetch` native, wrap trong `lib/http/`                              | Không axios trừ khi cần interceptor phức tạp                                                  |
+| Auth                | **NextAuth.js v5** (sẽ cài khi có provider), wrap trong `lib/auth/` |                                                                                               |
+| DB / ORM            | **Prisma** (sẽ cài khi có DB), wrap trong `lib/db/`                 |                                                                                               |
+| Test                | Vitest + Testing Library + Playwright (e2e)                         |                                                                                               |
+| Lint/Format         | ESLint (config sẵn) + Prettier                                      |                                                                                               |
 
 **Cấm dùng:** moment, lodash full bundle (chỉ import từng hàm), axios mặc định, styled-components, emotion, redux/redux-toolkit (đã có Zustand), react-query v4 trở xuống.
 
@@ -118,6 +120,7 @@ src/
 ```
 
 ### Nguyên tắc tách feature (theo WORKFLOW.md)
+
 - **Feature = bounded context kinh doanh** (chat, auth, billing, ...). KHÔNG tách theo technical layer.
 - **Colocation**: file liên quan ở cạnh nhau. Chỉ promote lên `src/components/shared/` hoặc `src/hooks/` khi ≥2 feature dùng.
 - **Max depth 3**: flat hơn nested. `features/chat/components/MessageList.tsx` OK, sâu hơn → tách feature mới.
@@ -125,6 +128,7 @@ src/
 - **Component thuộc 1 route duy nhất** → để trong `app/.../_components/`. Dùng prefix `_` để Next ignore khỏi routing.
 
 ### API & Query keys — tập trung (không tách per-feature)
+
 > Mục tiêu: share API giữa nhiều feature, không trùng key, dễ scale.
 
 - **API transport**: viết trong `src/services/<scope>.api.ts`. Mỗi scope export 1 object thuần (`chatApi`, `authApi`, ...). Không dính TanStack/Zustand/state.
@@ -137,21 +141,21 @@ src/
 
 ## 3. Quy ước đặt tên
 
-| Loại | Quy ước | Ví dụ |
-|---|---|---|
-| File component | `PascalCase.tsx` | `ChatMessage.tsx` |
-| File hook (1 hook) | `useCamelCase.ts` | `useChatRealtime.ts` |
-| File hook aggregator | `use-<kind>.ts` (kebab) | `use-query.ts`, `use-mutations.ts` |
-| File util/helper | `kebab-case.ts` | `format-date.ts` |
-| Folder | `kebab-case` | `modules/chat-history/` |
-| Type/Interface | `PascalCase`, không prefix `I` | `ChatMessage`, không `IChatMessage` |
-| Type cho props | `XxxProps` | `ChatMessageProps` |
-| Enum | `PascalCase` + value `SCREAMING_SNAKE` hoặc dùng `as const` object | preferred: `as const` + union |
-| Constant | `SCREAMING_SNAKE_CASE` | `MAX_MESSAGE_LENGTH` |
-| Query key | factory function lowercase | `chatKeys.list(filters)` |
-| Zod schema | `xxxSchema` | `chatMessageSchema` |
-| Boolean | tiền tố `is/has/can/should` | `isLoading`, `hasError` |
-| Event handler | `handleXxx` (trong component) hoặc `onXxx` (prop) | `onSubmit`, `handleClick` |
+| Loại                 | Quy ước                                                            | Ví dụ                               |
+| -------------------- | ------------------------------------------------------------------ | ----------------------------------- |
+| File component       | `PascalCase.tsx`                                                   | `ChatMessage.tsx`                   |
+| File hook (1 hook)   | `useCamelCase.ts`                                                  | `useChatRealtime.ts`                |
+| File hook aggregator | `use-<kind>.ts` (kebab)                                            | `use-query.ts`, `use-mutations.ts`  |
+| File util/helper     | `kebab-case.ts`                                                    | `format-date.ts`                    |
+| Folder               | `kebab-case`                                                       | `modules/chat-history/`             |
+| Type/Interface       | `PascalCase`, không prefix `I`                                     | `ChatMessage`, không `IChatMessage` |
+| Type cho props       | `XxxProps`                                                         | `ChatMessageProps`                  |
+| Enum                 | `PascalCase` + value `SCREAMING_SNAKE` hoặc dùng `as const` object | preferred: `as const` + union       |
+| Constant             | `SCREAMING_SNAKE_CASE`                                             | `MAX_MESSAGE_LENGTH`                |
+| Query key            | factory function lowercase                                         | `chatKeys.list(filters)`            |
+| Zod schema           | `xxxSchema`                                                        | `chatMessageSchema`                 |
+| Boolean              | tiền tố `is/has/can/should`                                        | `isLoading`, `hasError`             |
+| Event handler        | `handleXxx` (trong component) hoặc `onXxx` (prop)                  | `onSubmit`, `handleClick`           |
 
 ---
 
@@ -171,15 +175,16 @@ src/
 ## 5. TanStack — quy tắc dùng
 
 ### 5.1 TanStack Query (server state)
+
 - **Mọi fetch client-side phải qua `useQuery`/`useMutation`**. Cấm dùng `useEffect + fetch`.
 - Query key dùng factory pattern, **đặt tập trung ở `src/services/keys.ts`** (không tách per-feature):
   ```ts
   // src/services/keys.ts
   export const chatKeys = {
-    all: ['chat'] as const,
-    lists: () => [...chatKeys.all, 'list'] as const,
+    all: ["chat"] as const,
+    lists: () => [...chatKeys.all, "list"] as const,
     list: (filters: ChatFilters) => [...chatKeys.lists(), filters] as const,
-    detail: (id: string) => [...chatKeys.all, 'detail', id] as const,
+    detail: (id: string) => [...chatKeys.all, "detail", id] as const,
   };
   // Hook trong features/<x>/hooks/* import { chatKeys } from '@/services/keys'.
   ```
@@ -188,6 +193,7 @@ src/
 - Server Component: dùng `fetch` trực tiếp hoặc Server Action; **không** dùng TanStack Query trên server.
 
 ### 5.2 React Hook Form + Zod
+
 - Schema-first với Zod. Schema đặt ở `features/<x>/schemas.ts`, **share cho client + server action**.
 - Dùng `zodResolver` từ `@hookform/resolvers/zod`.
 - Form complex (nhiều step, dynamic field) → tách `useXxxForm` hook trong `features/<x>/hooks/`.
@@ -195,6 +201,7 @@ src/
 - Hiển thị lỗi bằng toast (Basuicn) hoặc inline `<FormMessage>`.
 
 ### 5.3 TanStack Table
+
 - Dùng qua wrapper Basuicn `table` (đã cài qua `npx basuicn add table`).
 - Column def đặt cùng file với view, hoặc tách `columns.tsx` nếu > 30 dòng.
 - Pagination/sort/filter: **server-side** mặc định khi data > 100 rows.
@@ -203,20 +210,21 @@ src/
 
 ## 6. State management — quyết định nhanh
 
-| Loại state | Dùng gì |
-|---|---|
-| Server data (list, detail, ...) | TanStack Query |
-| Form state | TanStack Form |
-| UI state cục bộ (modal open, input value) | `useState` |
-| State phức tạp 1 component | `useReducer` |
+| Loại state                                  | Dùng gì                                                      |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| Server data (list, detail, ...)             | TanStack Query                                               |
+| Form state                                  | TanStack Form                                                |
+| UI state cục bộ (modal open, input value)   | `useState`                                                   |
+| State phức tạp 1 component                  | `useReducer`                                                 |
 | State chia sẻ giữa nhiều component cùng cây | Context (React) — chỉ cho state ÍT THAY ĐỔI (theme, locale). |
-| State global thay đổi nhiều | Zustand slice |
-| URL state (filter, tab, search) | `useSearchParams` của Next.js — KHÔNG dup vào state |
+| State global thay đổi nhiều                 | Zustand slice                                                |
+| URL state (filter, tab, search)             | `useSearchParams` của Next.js — KHÔNG dup vào state          |
 
 **Zustand slice pattern** (mỗi feature 1 store riêng, không có store "god"):
+
 ```ts
 // features/chat/stores/chat-ui.store.ts
-import { create } from 'zustand';
+import { create } from "zustand";
 type ChatUIState = { sidebarOpen: boolean; toggleSidebar: () => void };
 export const useChatUIStore = create<ChatUIState>((set) => ({
   sidebarOpen: true,
@@ -241,15 +249,16 @@ Feature business **không** import trực tiếp từ `axios`, `next-auth`, `loc
 
 ## 8. Data fetching — quyết định Server vs Client
 
-| Kịch bản | Cách làm |
-|---|---|
-| SEO, public page | Server Component + `fetch` (caching mặc định của Next.js 16) |
-| Realtime, interactive | Client Component + TanStack Query |
-| Form submit | Server Action HOẶC Route Handler + `useMutation` |
-| Mutate + cần optimistic UI | TanStack Query `useMutation` với `onMutate` |
-| Streaming (chat) | Server Action streaming hoặc Route Handler trả `ReadableStream` |
+| Kịch bản                   | Cách làm                                                        |
+| -------------------------- | --------------------------------------------------------------- |
+| SEO, public page           | Server Component + `fetch` (caching mặc định của Next.js 16)    |
+| Realtime, interactive      | Client Component + TanStack Query                               |
+| Form submit                | Server Action HOẶC Route Handler + `useMutation`                |
+| Mutate + cần optimistic UI | TanStack Query `useMutation` với `onMutate`                     |
+| Streaming (chat)           | Server Action streaming hoặc Route Handler trả `ReadableStream` |
 
 **Quy tắc:**
+
 - Default = Server Component. Thêm `'use client'` chỉ khi cần state/effect/event handler/browser API.
 - KHÔNG đặt `'use client'` ở layout/page top-level — đẩy xuống component nhỏ nhất cần nó.
 - Truyền data Server → Client qua props (đã serialize). KHÔNG truyền function/class instance.
@@ -285,12 +294,12 @@ Feature business **không** import trực tiếp từ `axios`, `next-auth`, `loc
 
 ## 11. Testing
 
-| Loại | Khi nào | Tool |
-|---|---|---|
-| Unit | logic thuần (util, hook không I/O) | Vitest |
-| Component | UI có nhánh, có tương tác | Vitest + Testing Library |
-| Integration | flow trong 1 module (form submit + query) | Vitest + MSW |
-| E2E | critical path (login, checkout, gửi tin nhắn) | Playwright |
+| Loại        | Khi nào                                       | Tool                     |
+| ----------- | --------------------------------------------- | ------------------------ |
+| Unit        | logic thuần (util, hook không I/O)            | Vitest                   |
+| Component   | UI có nhánh, có tương tác                     | Vitest + Testing Library |
+| Integration | flow trong 1 module (form submit + query)     | Vitest + MSW             |
+| E2E         | critical path (login, checkout, gửi tin nhắn) | Playwright               |
 
 - Mỗi component public của module có ít nhất 1 test happy path + 1 test edge case.
 - Test file đặt cạnh source: `ChatMessage.tsx` ↔ `ChatMessage.test.tsx`.

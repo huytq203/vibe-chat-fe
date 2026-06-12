@@ -82,7 +82,10 @@
       "Bash(grep -E \"\\\\.\\(tsx?|mdx?\\)$\")",
       "Bash(awk '/[Bb]iệt danh|nickname|[Nn]ickname/{found=1} found{print NR\": \"$0}' FRONTEND/03-conversations.md)",
       "Bash(sed -n 1,60p /home/huytq/code/my/fe/vibe-chat-fe/src/features/friends/types.ts)",
-      "Bash(sed -n 1,40p /home/huytq/code/my/fe/vibe-chat-fe/src/services/chat.api.ts)"
+      "Bash(sed -n 1,40p /home/huytq/code/my/fe/vibe-chat-fe/src/services/chat.api.ts)",
+      "Bash(rm icon.ico icon.png)",
+      "Bash(mv \"icon copy.ico\" icon.ico)",
+      "Bash(mv \"icon copy.png\" icon.png)"
     ]
   }
 }
