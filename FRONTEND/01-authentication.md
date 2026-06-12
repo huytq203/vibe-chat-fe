@@ -121,11 +121,16 @@ FE sau đó clear access token trong memory + redirect login.
 
 ## 1.5. Hồ sơ user hiện tại
 
+> ⚠️ **Đổi endpoint:** trước đây là `GET /auth/me`. Identity (tài khoản: username/email/roles) do
+> Keycloak quản lý và đã nằm sẵn trong JWT; **hồ sơ chat** (displayName, avatar, bio…) là dữ liệu
+> của service này nên lấy ở `GET /api/v1/users/me`. **Không còn `GET /auth/me`.**
+
 ```http
-GET /api/v1/auth/me
+GET /api/v1/users/me
 Authorization: Bearer {accessToken}
 ```
 
+Response `200` — bản gọn (`UserResponseDto`), đã tự sync mirror từ Keycloak:
 ```json
 {
   "success": true,
@@ -133,18 +138,25 @@ Authorization: Bearer {accessToken}
     "id": "9d8b14cf-5392-452f-9ce3-557ded65d2d6",   // = keycloakId
     "username": "john_doe",
     "email": "john@example.com",
-    "phone": null,
     "displayName": "John Doe",
     "avatarUrl": null,
-    "status": "ACTIVE",
-    "isOnline": false,
-    "lastSeenAt": null,
-    "createdAt": "..."
+    "coverUrl": null,
+    "bio": null,
+    "gender": "UNDISCLOSED",        // MALE | FEMALE | OTHER | UNDISCLOSED
+    "dateOfBirth": null,            // YYYY-MM-DD | null
+    "status": "ACTIVE"              // ACTIVE | INACTIVE | BANNED | DELETED
   }
 }
 ```
 
+> ⚠️ Shape đã đổi so với bản cũ: **bỏ** `phone`, `isOnline`, `lastSeenAt`, `createdAt`;
+> **thêm** `coverUrl`, `bio`, `gender`, `dateOfBirth`. Trạng thái online/last-seen lấy qua Presence
+> ([08-websocket.md](./08-websocket.md)), không nằm ở hồ sơ.
+
 > **`id` ở response = `keycloakId`**. FE dùng `id` này cho `senderId`, `memberIds`, `userId`, lookup presence... ở mọi nơi khác.
+
+**Sửa hồ sơ / hồ sơ đầy đủ:** `PATCH /users/me`, `GET /users/:id` (kèm `isMe`, `friendship`),
+tìm `@username` → xem [24-profile.md](./24-profile.md).
 
 ## 1.6. Gửi JWT cho REST endpoint khác
 

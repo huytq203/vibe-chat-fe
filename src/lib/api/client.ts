@@ -160,10 +160,25 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, code, message, body?.error?.details);
 }
 
+/**
+ * 401 với code AUTH_SESSION_REVOKED = phiên bị thu hồi (login thiết bị khác)
+ * → logout ngay, KHÔNG retry refresh. Trả về ApiError nếu đúng case này.
+ */
+async function checkSessionRevoked(res: Response, path: string): Promise<ApiError | null> {
+  const err = await parseError(res.clone());
+  if (err.code !== 'AUTH_SESSION_REVOKED') return null;
+  logger.warn('Session revoked', { path });
+  applyToken(null);
+  onUnauthorized?.();
+  return err;
+}
+
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   let res = await rawRequest(method, path, options);
 
   if (res.status === 401 && options.auth !== false && accessToken) {
+    const revoked = await checkSessionRevoked(res, path);
+    if (revoked) throw revoked;
     try {
       await refreshAccessToken();
       res = await rawRequest(method, path, options);
@@ -199,6 +214,8 @@ export const apiClient = {
   rawWithMeta: async <T>(method: string, path: string, options: RequestOptions = {}) => {
     let res = await rawRequest(method, path, options);
     if (res.status === 401 && options.auth !== false && accessToken) {
+      const revoked = await checkSessionRevoked(res, path);
+      if (revoked) throw revoked;
       await refreshAccessToken();
       res = await rawRequest(method, path, options);
     }

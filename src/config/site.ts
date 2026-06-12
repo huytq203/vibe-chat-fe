@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: 'vibe-chat',
-  description: 'Vibe chat application',
+  name: 'halo-chat',
+  description: 'Halo messaging application',
   url: 'http://localhost:3000',
 } as const;
 

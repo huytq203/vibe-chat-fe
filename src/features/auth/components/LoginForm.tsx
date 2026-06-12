@@ -35,9 +35,14 @@ export const LoginForm = () => {
       toast.success('Đăng nhập thành công!');
       router.push('/chat');
     } catch (e) {
-      const msg =
-        e instanceof ApiError ? e.message : 'Không thể đăng nhập. Thử lại sau.';
-      toast.error(msg);
+      // Chưa xác thực email → đưa về màn nhập OTP. Tiền điền email nếu user đăng nhập bằng email.
+      if (e instanceof ApiError && e.code === 'AUTH_EMAIL_NOT_VERIFIED') {
+        toast.error('Tài khoản chưa xác thực email. Vui lòng nhập mã OTP.');
+        const emailHint = data.username.includes('@') ? data.username : '';
+        router.push(`/verify-email?email=${encodeURIComponent(emailHint)}`);
+        return;
+      }
+      toast.error(e instanceof ApiError ? e.message : 'Không thể đăng nhập. Thử lại sau.');
     }
   };
 
@@ -48,7 +53,7 @@ export const LoginForm = () => {
           <Lock className="h-7 w-7 text-primary" />
         </div>
         <CardTitle className="text-2xl">Chào mừng trở lại</CardTitle>
-        <CardDescription>Đăng nhập vào Vibe Chat</CardDescription>
+        <CardDescription>Đăng nhập vào Halo</CardDescription>
       </CardHeader>
 
       <CardContent className="px-6 pb-8">

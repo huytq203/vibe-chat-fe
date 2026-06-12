@@ -122,7 +122,7 @@ function FriendsSection({
       <EmptyState
         icon={<Search className="h-10 w-10" />}
         title="Bắt đầu tìm kiếm"
-        hint="Nhập username, email hoặc tên hiển thị (≥ 2 ký tự)"
+        hint="Nhập username, email hoặc tên (≥ 2 ký tự). Dùng @username để tìm chính xác."
       />
     );
   }

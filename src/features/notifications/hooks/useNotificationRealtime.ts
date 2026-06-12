@@ -7,12 +7,17 @@ import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, notificationKeys, userKeys } from '@/services/keys';
-import type { Notification, NotificationPage } from '@/features/notifications/types';
+import type {
+  Notification,
+  NotificationClearedEvent,
+  NotificationPage,
+} from '@/features/notifications/types';
 
 /**
- * Lắng nghe event `notification:new` từ WS — invalidate cache + show in-app toast.
- * FCM background push được xử lý độc lập trong service worker
- * (public/firebase-messaging-sw.js).
+ * Lắng nghe `notification:new` (prepend inbox + tăng badge + toast) và
+ * `notification:cleared` (server auto-mark-read khi user đã xem nội dung gốc —
+ * FE chỉ giảm badge + patch cache, KHÔNG gọi markRead). Xem 07-notifications.md.
+ * FCM background push xử lý độc lập trong service worker (public/firebase-messaging-sw.js).
  */
 export function useNotificationRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
@@ -24,6 +29,9 @@ export function useNotificationRealtime() {
     if (!socket) return;
 
     function onNotificationNew(n: Notification) {
+      // CALL_INCOMING là transient (không lưu inbox) — call UI đã xử lý qua call-socket.
+      if (n.type === 'CALL_INCOMING') return;
+
       // Tăng badge: bump unread-count cache trước, invalidate sau.
       qc.setQueryData<{ unreadCount: number } | undefined>(
         notificationKeys.unreadCount(),
@@ -60,14 +68,63 @@ export function useNotificationRealtime() {
           break;
       }
 
+      // List cuộn vô hạn (panel chuông) giữ shape InfiniteData → chỉ invalidate.
+      qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
+
       if (typeof document !== 'undefined' && document.hasFocus()) {
         toast(n.title, { description: n.body ?? undefined });
       }
     }
 
+    // Server tự mark read khi user đã xem nội dung gốc (đọc tin / xử lý lời mời...)
+    // → giảm badge + set isRead trong cache theo filter của scope.
+    function onNotificationCleared(e: NotificationClearedEvent) {
+      qc.setQueryData<{ unreadCount: number } | undefined>(
+        notificationKeys.unreadCount(),
+        (prev) => ({ unreadCount: Math.max(0, (prev?.unreadCount ?? 0) - e.clearedCount) }),
+      );
+
+      const matches = (n: Notification): boolean => {
+        if (e.scope === 'conversation') {
+          return (
+            Boolean(e.conversationId) &&
+            n.conversationId === e.conversationId &&
+            (!e.types || e.types.includes(n.type))
+          );
+        }
+        return n.type === 'FRIEND_REQUEST_RECEIVED' && (!e.actorId || n.actorId === e.actorId);
+      };
+
+      const now = new Date().toISOString();
+      const entries = qc.getQueriesData<NotificationPage>({
+        queryKey: notificationKeys.lists(),
+      });
+      for (const [key, page] of entries) {
+        if (!page) continue;
+        let cleared = 0;
+        const items = page.items.map((n) => {
+          if (n.isRead || !matches(n)) return n;
+          cleared += 1;
+          return { ...n, isRead: true, readAt: now };
+        });
+        if (cleared > 0) {
+          qc.setQueryData<NotificationPage>(key, {
+            ...page,
+            items,
+            unreadCount: Math.max(0, page.unreadCount - cleared),
+          });
+        }
+      }
+      // List unreadOnly cần loại bỏ item đã đọc → refetch cho chuẩn (patch trên chỉ là optimistic).
+      qc.invalidateQueries({ queryKey: notificationKeys.lists() });
+      qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
+    }
+
     socket.on('notification:new', onNotificationNew);
+    socket.on('notification:cleared', onNotificationCleared);
     return () => {
       socket.off('notification:new', onNotificationNew);
+      socket.off('notification:cleared', onNotificationCleared);
     };
   }, [isAuthed, qc]);
 }

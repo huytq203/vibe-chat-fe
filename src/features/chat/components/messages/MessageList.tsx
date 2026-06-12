@@ -8,8 +8,9 @@ import { useConversation, useMessages } from '@/features/chat/hooks/use-query';
 import { useSelfDestruct } from '@/features/chat/hooks/useSelfDestruct';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
+import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
 import type { Message } from '@/features/chat/types';
-import { buildMemberNameMap } from '@/features/chat/utils';
+import { buildMemberAvatarMap, buildMemberNameMap } from '@/features/chat/utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { LightboxProvider } from './LightboxProvider';
@@ -26,6 +27,9 @@ export function MessageList({ conversationId }: MessageListProps) {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const { data: conversation } = useConversation(conversationId);
   const memberNames = useMemo(() => buildMemberNameMap(conversation), [conversation]);
+  const memberAvatars = useMemo(() => buildMemberAvatarMap(conversation), [conversation]);
+  // Group/Channel: hiện tên người gửi trên tin đầu mỗi chuỗi để biết ai gửi.
+  const showSenderNames = conversation ? conversation.type !== 'DIRECT' : false;
   const {
     data,
     isLoading,
@@ -47,6 +51,9 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   // Tin tự huỷ: hẹn timer ẩn theo expireAt (không chờ server xoá nền).
   useSelfDestruct(conversationId, messages);
+
+  // Lỗi gửi (chặn, mất kết nối...) — hiện như thông báo hệ thống ở cuối danh sách.
+  const sendError = useSendErrorStore((s) => s.byConv[conversationId]);
 
   const typingUserIds = useTypingStore(
     (s) => s.byConv[conversationId] ?? EMPTY_TYPING,
@@ -136,6 +143,13 @@ export function MessageList({ conversationId }: MessageListProps) {
     el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // Thông báo lỗi gửi xuất hiện → cuộn xuống cho user thấy ngay.
+  useEffect(() => {
+    if (!sendError) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [sendError]);
+
   useEffect(() => {
     if (otherTypingIds.length === 0) return;
     const el = scrollRef.current;
@@ -196,6 +210,8 @@ export function MessageList({ conversationId }: MessageListProps) {
             meId={meId}
             showAvatar={showAvatar}
             senderName={memberNames[m.senderId] ?? null}
+            showSenderName={showSenderNames && showAvatar}
+            senderAvatarUrl={memberAvatars[m.senderId] ?? null}
             senderSeed={m.senderId}
             repliedTo={repliedTo}
             repliedToName={repliedToName}
@@ -204,6 +220,11 @@ export function MessageList({ conversationId }: MessageListProps) {
           />
         );
       })}
+      {sendError && (
+        <div className="px-6 py-1.5 text-center text-[11.5px] text-danger/90">
+          Gửi thất bại — {sendError}
+        </div>
+      )}
       {otherTypingIds.map((userId, i) => {
         const lastMsg = messages[messages.length - 1];
         const prevSenderId = i === 0 ? lastMsg?.senderId : otherTypingIds[i - 1];
@@ -214,6 +235,7 @@ export function MessageList({ conversationId }: MessageListProps) {
             userId={userId}
             showAvatar={showAvatar}
             senderName={memberNames[userId] ?? null}
+            senderAvatarUrl={memberAvatars[userId] ?? null}
           />
         );
       })}

@@ -324,7 +324,6 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
     addFiles,
     remove,
     isUploading,
-    sendError: send.error,
     isSavingEdit: editMut.isPending,
     handleInput,
     handleKey,

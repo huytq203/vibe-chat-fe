@@ -20,9 +20,12 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { cn } from '@/lib/utils/cn';
+import { EmojiText } from '@/components/common/EmojiText';
 import type { Message } from '@/features/chat/types';
 import { canEditMessage, getMessageSnippet } from '@/features/chat/utils';
 import { useDeleteMessage } from '@/features/chat/hooks/use-mutations';
+import { useToggleReaction } from '@/features/chat/hooks/useReactions';
+import { QUICK_REACTIONS, REACTIONS_ENABLED } from '@/features/chat/reactions';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 
@@ -48,6 +51,12 @@ export function MessageActions({ message, meId, isMe, senderName, className }: M
   const startEdit = useMessageEditStore((s) => s.startEdit);
   const startReply = useMessageReplyStore((s) => s.startReply);
   const deleteMut = useDeleteMessage();
+  const toggleReaction = useToggleReaction(message.conversationId);
+
+  function handleReact(emoji: string) {
+    const existing = message.reactions?.find((r) => r.emoji === emoji);
+    toggleReaction.mutate({ messageId: message.id, emoji, active: existing?.reactedByMe ?? false });
+  }
 
   // Sửa: tin TEXT của mình, còn trong cửa sổ 5 phút (xem doc 15). Gỡ: không giới hạn.
   const canEdit = isMe && canEditMessage(message, meId);
@@ -106,6 +115,25 @@ export function MessageActions({ message, meId, isMe, senderName, className }: M
           }
         />
         <DropdownMenuContent side="top" align="end" className="min-w-[150px]">
+          {/* Hàng cảm xúc nhanh — chờ API BE (xem reactions.ts). Ẩn khi REACTIONS_ENABLED=false. */}
+          {REACTIONS_ENABLED && (
+            <>
+              <div className="flex items-center gap-0.5 px-1 py-1">
+                {QUICK_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => handleReact(emoji)}
+                    aria-label={`Thả ${emoji}`}
+                    className="rounded-md px-1 py-0.5 text-base transition-transform hover:scale-125"
+                  >
+                    <EmojiText text={emoji} />
+                  </button>
+                ))}
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem onClick={handleReply}>
             <Reply className="h-4 w-4" />
             Trả lời

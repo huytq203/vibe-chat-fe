@@ -7,15 +7,17 @@ type TypingBubbleProps = {
   userId: string;
   showAvatar: boolean;
   senderName?: string | null;
+  senderAvatarUrl?: string | null;
 };
 
-export function TypingBubble({ userId, showAvatar, senderName }: TypingBubbleProps) {
+export function TypingBubble({ userId, showAvatar, senderName, senderAvatarUrl }: TypingBubbleProps) {
   return (
     <div className="flex items-end gap-1.5 justify-start">
       <div className="w-7 shrink-0">
         {showAvatar && (
           <Avatar
             name={senderName ?? null}
+            src={senderAvatarUrl}
             seed={userId}
             size="sm"
             className="!h-7 !w-7 !rounded-lg !text-[9px]"

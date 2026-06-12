@@ -16,7 +16,7 @@ const loginRes = await fetch('/api/v1/auth/login', {
 });
 const { data } = await loginRes.json();
 const accessToken = data.tokens.accessToken;   // giữ trong memory
-const me = data.user;                          // đã có sẵn user info, KHÔNG cần gọi /auth/me thêm
+const me = data.user;                          // đã có sẵn user info; hồ sơ chat đầy đủ lấy ở GET /users/me (xem 24-profile.md)
 
 // 2. Connect WebSocket
 const socket = io('/chat', { auth: { token: accessToken } });

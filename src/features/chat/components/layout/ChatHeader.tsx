@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { cn } from '@/lib/utils/cn';
 import type { Conversation, Presence } from '@/features/chat/types';
-import { getConversationName, getConversationSeed } from '@/features/chat/utils';
+import { getConversationAvatar, getConversationName, getConversationSeed } from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
@@ -29,6 +29,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
 
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
+  const avatarUrl = getConversationAvatar(conversation, meId);
 
   const status: 'online' | 'offline' | null = !presence
     ? null
@@ -61,7 +62,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         onClick={onToggleRight}
         className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
       >
-        <Avatar name={name} seed={seed} size="md" status={status} />
+        <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={status} />
         <div className="min-w-0">
           <div className="truncate text-[14.5px] font-bold text-foreground">{name}</div>
           <div className="truncate text-[11.5px] text-muted-foreground">{statusLabel}</div>

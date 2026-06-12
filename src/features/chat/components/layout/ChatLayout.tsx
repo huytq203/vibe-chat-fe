@@ -6,6 +6,7 @@ import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
 import { useAuthStore } from '@/features/auth';
 import {
+  useFaviconBadge,
   useFcmSetup,
   useNotificationRealtime,
 } from '@/features/notifications';
@@ -33,6 +34,7 @@ export function ChatLayout() {
   useFriendRealtime();
   useCallRealtime();
   useFcmSetup();
+  useFaviconBadge();
 
   useEffect(() => {
     if (selectedConversationId) return;

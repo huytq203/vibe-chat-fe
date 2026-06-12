@@ -6,17 +6,22 @@ URL prefix: `/api/v1/notifications`. Require JWT.
 
 ---
 
-## Notification được tạo cho 5 loại event
+## Các loại notification
 
-| `type` | Khi nào | Push FCM | Realtime WS |
-|---|---|---|---|
-| `FRIEND_REQUEST_RECEIVED` | Ai đó gửi lời mời kết bạn | ✅ luôn (kể cả online) | ✅ `notification:new` |
-| `FRIEND_REQUEST_ACCEPTED` | Lời mời của bạn được accept | ✅ luôn | ✅ |
-| `MESSAGE_MENTION` | Bạn bị `@tag` trong group | ✅ luôn | ✅ |
-| `MESSAGE_NEW` | Có tin mới ở conv bạn là member | 🟡 chỉ khi **bạn offline** | ✅ |
-| `CONVERSATION_DELETED` | (reserved, hiện chưa generate) | — | — |
+| `type` | Khi nào | Push FCM | Realtime WS | Có trong inbox |
+|---|---|---|---|---|
+| `FRIEND_REQUEST_RECEIVED` | Ai đó gửi lời mời kết bạn | ✅ luôn (kể cả online) | ✅ `notification:new` | ✅ |
+| `FRIEND_REQUEST_ACCEPTED` | Lời mời của bạn được accept | ✅ luôn | ✅ | ✅ |
+| `MESSAGE_MENTION` | Bạn bị `@tag` trong group | ✅ luôn | ✅ | ✅ |
+| `MESSAGE_NEW` | Có tin mới ở conv bạn là member | 🟡 chỉ tới **device không online** | ✅ | ✅ |
+| `CALL_INCOMING` | Cuộc gọi đến khi bạn offline | ✅ (đánh thức device) | — | ❌ **transient — KHÔNG lưu**, đừng render vào inbox |
+| `CALL_MISSED` | Cuộc gọi nhỡ (không bắt máy) | ✅ luôn | ✅ | ✅ |
+| `CONVERSATION_DELETED` | (reserved, hiện chưa generate) | — | — | — |
 
-> Logic: Online → đã thấy realtime trong app → không cần FCM. Offline → FCM nhảy badge ngoài hệ điều hành. Mention/friend luôn push để badge bật ngay kể cả app đang focus.
+> Logic push `MESSAGE_NEW` (từ 06/2026): lọc theo **device** chứ không theo user —
+> bạn online trên WEB thì token WEB không được push, nhưng token ANDROID/IOS của
+> cùng tài khoản **vẫn nhận push**. FE mobile nên tự bỏ qua/im lặng noti của
+> conversation đang mở. Mention/friend luôn push mọi device để badge bật ngay.
 
 ---
 

@@ -114,7 +114,9 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/icon-192.png',
     badge: '/badge.png',
     data: { ...data, link },
-    tag: data.conversationId || data.notificationId,   // group cùng conv → ghi đè noti cũ
+    // group cùng conv → ghi đè noti cũ. Lưu ý: push BULK (group chat) không có
+    // notificationId — chỉ noti đơn lẻ (friend, call) mới có.
+    tag: data.conversationId || data.notificationId || data.type,
   });
 });
 

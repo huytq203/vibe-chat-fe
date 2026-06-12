@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { AuthBootstrap } from '@/features/auth';
 import { ChatLayout } from '@/features/chat';
 
-export const metadata = { title: 'Vibe Chat' };
+export const metadata = { title: 'Halo' };
 
 export default function ChatPage() {
   return (

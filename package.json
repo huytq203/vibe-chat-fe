@@ -1,7 +1,14 @@
 {
-  "name": "vibe-chat",
+  "name": "halo-chat",
   "version": "0.1.0",
+  "description": "Halo — desktop messaging app",
+  "homepage": "https://github.com/huytq203/halo-chat",
+  "author": {
+    "name": "huytq203",
+    "email": "huytq203@gmail.com"
+  },
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=4096 next dev",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 next build",
@@ -11,7 +18,46 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "electron:build": "BUILD_TARGET=electron NODE_OPTIONS=--max-old-space-size=4096 next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
+    "electron:start": "electron .",
+    "electron:dev": "npm run electron:build && electron .",
+    "electron:pack:linux": "npm run electron:build && electron-builder --linux deb",
+    "electron:pack:win": "npm run electron:build && electron-builder --win nsis",
+    "electron:pack:all": "npm run electron:build && electron-builder --linux deb --win nsis"
+  },
+  "build": {
+    "appId": "com.halochat.desktop",
+    "productName": "Halo",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      ".next/standalone/**/*",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/resources/icons/512x512.png"
+    ],
+    "asar": false,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "electron/resources/icon.ico"
+    },
+    "linux": {
+      "target": [{ "target": "deb", "arch": ["x64"] }],
+      "icon": "electron/resources/icons",
+      "category": "Network"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "deb": {
+      "packageCategory": "net",
+      "afterInstall": "electron/deb-after-install.sh"
+    }
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -55,6 +101,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/ui": "^4.1.6",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",

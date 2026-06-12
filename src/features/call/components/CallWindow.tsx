@@ -161,7 +161,6 @@ export function CallWindow(props: CallWindowProps) {
             statusText={statusText}
           />
           <CallControls
-            type={type}
             micOn={micOn}
             camOn={camOn}
             onToggleMic={props.onToggleMic}

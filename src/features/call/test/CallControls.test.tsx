@@ -8,7 +8,6 @@ describe('CallControls', () => {
     const onToggleMic = vi.fn();
     render(
       <CallControls
-        type="VIDEO"
         micOn
         camOn
         onToggleMic={onToggleMic}
@@ -24,7 +23,6 @@ describe('CallControls', () => {
     const onHangup = vi.fn();
     render(
       <CallControls
-        type="AUDIO"
         micOn
         camOn={false}
         onToggleMic={vi.fn()}
@@ -36,18 +34,18 @@ describe('CallControls', () => {
     expect(onHangup).toHaveBeenCalledOnce();
   });
 
-  it('hides camera button for AUDIO calls', () => {
+  it('always shows camera button (cho phép nâng audio → video)', async () => {
+    const onToggleCam = vi.fn();
     render(
       <CallControls
-        type="AUDIO"
         micOn
         camOn={false}
         onToggleMic={vi.fn()}
-        onToggleCam={vi.fn()}
+        onToggleCam={onToggleCam}
         onHangup={vi.fn()}
       />,
     );
-    expect(screen.queryByLabelText('Tắt camera')).toBeNull();
-    expect(screen.queryByLabelText('Bật camera')).toBeNull();
+    await userEvent.click(screen.getByLabelText('Bật camera'));
+    expect(onToggleCam).toHaveBeenCalledOnce();
   });
 });

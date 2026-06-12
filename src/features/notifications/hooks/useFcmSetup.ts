@@ -69,7 +69,7 @@ export function useFcmSetup() {
       // Khi WS event 'notification:new' đã cập nhật cache, FCM foreground
       // chỉ cần đảm bảo invalidate (đa số trường hợp WS đã làm trước).
       qc.invalidateQueries({ queryKey: notificationKeys.all });
-      const title = payload.notification?.title ?? 'Vibe Chat';
+      const title = payload.notification?.title ?? 'Halo';
       const body = payload.notification?.body;
       if (typeof document !== 'undefined' && document.hasFocus()) {
         toast(title, { description: body });

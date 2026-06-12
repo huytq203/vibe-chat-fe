@@ -26,6 +26,6 @@ export const useSettingsStore = create<SettingsState>()(
       pushEnabled: true,
       setPushEnabled: (enabled) => set({ pushEnabled: enabled }),
     }),
-    { name: 'vibe-settings' },
+    { name: 'halo-settings' },
   ),
 );

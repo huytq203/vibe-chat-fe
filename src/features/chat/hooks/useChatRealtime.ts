@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
@@ -8,9 +9,11 @@ import {
   closeSocket,
   getSocket,
   refreshSocketAuth,
+  setForceLogoutHandler,
   setTokenProvider,
 } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
+import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { chatKeys } from '@/services/keys';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
@@ -82,6 +85,9 @@ const TYPING_AUTOCLEAR_MS = 6_000;
 
 export function useChatRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  const clearSession = useAuthStore((s) => s.clear);
+  const clearConvLocks = useConvLockStore((s) => s.clearAll);
+  const router = useRouter();
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const qc = useQueryClient();
   const joinedRef = useRef<string | null>(null);
@@ -90,10 +96,19 @@ export function useChatRealtime() {
   useEffect(() => {
     setTokenProvider(() => apiAuth.getToken());
     apiAuth.onTokenChange((t) => refreshSocketAuth(t));
+    // BE kick phiên cũ khi login thiết bị khác → xoá session local + về login ngay.
+    setForceLogoutHandler(() => {
+      clearSession();
+      clearConvLocks();
+      qc.clear();
+      toast.error('Tài khoản được đăng nhập trên thiết bị khác');
+      router.replace('/login');
+    });
     return () => {
       apiAuth.onTokenChange(null);
+      setForceLogoutHandler(null);
     };
-  }, []);
+  }, [clearSession, clearConvLocks, qc, router]);
 
   // Khi tab close / refresh: chủ động disconnect WS để BE đánh dấu offline ngay,
   // không phải đợi pingTimeout (~20s).

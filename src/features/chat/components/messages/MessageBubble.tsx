@@ -19,6 +19,7 @@ import { EmojiText } from '@/components/common/EmojiText';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { MediaContent } from './MediaContent';
 import { MessageActions } from './MessageActions';
+import { MessageReactions } from './MessageReactions';
 import { ReplyQuote } from './ReplyQuote';
 import { SelfDestructTimer } from './SelfDestructTimer';
 
@@ -29,6 +30,10 @@ type MessageBubbleProps = {
   meId: string | null;
   showAvatar: boolean;
   senderName?: string | null;
+  /** Hiện tên người gửi trên bubble (group, tin đầu của mỗi chuỗi tin). */
+  showSenderName?: boolean;
+  /** Avatar người gửi (URL đã ký, từ conversation.members). */
+  senderAvatarUrl?: string | null;
   senderSeed?: string;
   /** Tin gốc được trả lời, tra từ cache; null nếu tin không reply hoặc ngoài khung nhìn. */
   repliedTo?: Message | null;
@@ -41,7 +46,7 @@ type MessageBubbleProps = {
 };
 
 export function MessageBubble({
-  message, meId, showAvatar, senderName, senderSeed,
+  message, meId, showAvatar, senderName, showSenderName, senderAvatarUrl, senderSeed,
   repliedTo, repliedToName, onQuoteClick, isHighlighted,
 }: MessageBubbleProps) {
   const isMe = message.senderId === meId;
@@ -77,6 +82,7 @@ export function MessageBubble({
           {showAvatar && (
             <Avatar
               name={senderName ?? null}
+              src={senderAvatarUrl}
               seed={senderSeed ?? message.senderId}
               size="sm"
               className="!h-7 !w-7 !rounded-lg !text-[9px]"
@@ -85,6 +91,11 @@ export function MessageBubble({
         </div>
       )}
       <div className="max-w-[65%]">
+        {!isMe && showSenderName && senderName && (
+          <p className="mb-0.5 ml-1.5 text-[11px] font-semibold text-muted-foreground">
+            {senderName}
+          </p>
+        )}
         <div
           className={cn(
             'relative rounded-2xl transition-all',
@@ -141,6 +152,7 @@ export function MessageBubble({
             )}
           </div>
         </div>
+        {!message.isDeleted && <MessageReactions message={message} isMe={isMe} />}
         {isFailed && isMe && (
           <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-danger">
             <button

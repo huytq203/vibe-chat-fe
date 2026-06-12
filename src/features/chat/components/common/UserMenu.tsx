@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, QrCode, Settings, User } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button/Button';
 import { useAuthStore, useLogout } from '@/features/auth';
 import { SettingsModal } from '@/features/settings';
+import { ShareLinkDialog } from '@/features/share-links';
 import { Avatar } from './Avatar';
 import { ProfileDialog } from '@/features/chat/components/contact/ProfileDialog';
 
@@ -28,6 +29,7 @@ export function UserMenu() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const displayName = me?.displayName ?? me?.username ?? 'Tài khoản';
 
@@ -100,6 +102,14 @@ export function UserMenu() {
             </button>
             <button
               type="button"
+              onClick={() => { setPopoverOpen(false); setShareOpen(true); }}
+              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <QrCode className="h-4 w-4 text-muted-foreground" />
+              Chia sẻ hồ sơ
+            </button>
+            <button
+              type="button"
               onClick={() => { setPopoverOpen(false); setSettingsOpen(true); }}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
@@ -121,12 +131,14 @@ export function UserMenu() {
 
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
 
+      <ShareLinkDialog open={shareOpen} onOpenChange={setShareOpen} />
+
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Đăng xuất khỏi VibeChat?</AlertDialogTitle>
+            <AlertDialogTitle>Đăng xuất khỏi HaloChat?</AlertDialogTitle>
             <AlertDialogDescription>
               Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng. Mọi phiên realtime sẽ
               bị đóng.

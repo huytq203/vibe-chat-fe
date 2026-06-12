@@ -114,6 +114,7 @@ export function useCallActions() {
 
   const toggleCam = useCallback(() => {
     const next = !store.getState().camOn;
+    if (next) store.getState().promoteToVideo(); // audio → video khi bật cam giữa cuộc gọi
     store.getState().setCam(next);
     void setCam(next);
   }, [store]);

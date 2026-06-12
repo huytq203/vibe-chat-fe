@@ -30,6 +30,11 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 | [08-websocket.md](./08-websocket.md) | Connect socket, lắng nghe event realtime |
 | [09-encryption.md](./09-encryption.md) | Mã hoá SERVER — FE chỉ gửi plaintext, BE tự encrypt |
 | [18-conversation-lock.md](./18-conversation-lock.md) | **Khoá conversation** bằng password — ẩn khỏi list, mở bằng verify |
+| [19-media-url-caching.md](./19-media-url-caching.md) | Cache ảnh/video — signed URL bất biến theo time-window, không tải lại |
+| [20-shared-content.md](./20-shared-content.md) | Tab Ảnh & Video / Tài liệu / Liên kết — lấy toàn bộ lịch sử theo loại |
+| [21-message-search.md](./21-message-search.md) | **Tìm tin nhắn** theo từ khoá trong 1 conversation (group/direct) |
+| [22-mute-notifications.md](./22-mute-notifications.md) | **Tắt thông báo** (mute) per-conversation — chặn push FCM, vẫn giữ tin + badge |
+| [23-calls.md](./23-calls.md) | **Gọi audio/video** (LiveKit + Socket.IO `/call`) — ring/accept/decline, 1-1 + group |
 | ~~[17-switch-encryption.md](./17-switch-encryption.md)~~ | ~~Switch E2E~~ — **DEPRECATED, đã xoá** |
 | [10-idempotency.md](./10-idempotency.md) | Retry tin nhắn an toàn với `clientNonce` |
 
@@ -39,6 +44,8 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 |---|---|
 | [05-presence.md](./05-presence.md) | Trạng thái online + label "5 phút trước" |
 | [06-friends-blocks.md](./06-friends-blocks.md) | Search user, kết bạn, chặn |
+| [24-profile.md](./24-profile.md) | **Hồ sơ cá nhân** (sửa tên/bio/giới tính/ngày sinh/avatar/cover), xem profile user khác, tìm **`@username`** |
+| [25-share-links.md](./25-share-links.md) | **Chia sẻ link cá nhân & nhóm + QR** — thu hồi, hết hạn, giới hạn lượt |
 
 ### 🔔 Notification + Push
 

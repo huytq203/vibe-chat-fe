@@ -2,10 +2,8 @@
 
 import { Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import type { CallType } from '@/features/call/types';
 
 type CallControlsProps = {
-  type: CallType;
   micOn: boolean;
   camOn: boolean;
   onToggleMic: () => void;
@@ -14,7 +12,6 @@ type CallControlsProps = {
 };
 
 export function CallControls({
-  type,
   micOn,
   camOn,
   onToggleMic,
@@ -32,20 +29,18 @@ export function CallControls({
         {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5 text-destructive" />}
       </Button>
 
-      {type === 'VIDEO' && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={camOn ? 'Tắt camera' : 'Bật camera'}
-          onClick={onToggleCam}
-        >
-          {camOn ? (
-            <Video className="h-5 w-5" />
-          ) : (
-            <VideoOff className="h-5 w-5 text-destructive" />
-          )}
-        </Button>
-      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={camOn ? 'Tắt camera' : 'Bật camera'}
+        onClick={onToggleCam}
+      >
+        {camOn ? (
+          <Video className="h-5 w-5" />
+        ) : (
+          <VideoOff className="h-5 w-5 text-destructive" />
+        )}
+      </Button>
 
       <Button
         variant="solid"

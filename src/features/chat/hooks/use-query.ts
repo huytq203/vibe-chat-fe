@@ -2,7 +2,8 @@
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { chatApi } from '@/services/chat.api';
-import { chatKeys } from '@/services/keys';
+import { usersApi } from '@/services/users.api';
+import { chatKeys, userKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 import type { SharedContentType } from '@/features/chat/types';
 
@@ -134,5 +135,28 @@ export function useLockedConversations() {
     queryFn: () => chatApi.listLockedConversations(),
     enabled: isAuthed,
     staleTime: 30_000,
+  });
+}
+
+/** Hồ sơ user khác (kèm isMe, friendship) — dùng cho modal xem profile. */
+export function useUserProfile(userId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: userKeys.profile(userId ?? 'null'),
+    queryFn: () => usersApi.getProfile(userId as string),
+    enabled: Boolean(userId) && enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** Nhóm chung với userId — cursor-based. KHÔNG gọi với chính mình (BE trả 400). */
+export function useCommonGroups(userId: string | null, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: chatKeys.commonGroups(userId ?? 'null'),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      chatApi.listCommonGroups(userId as string, { limit: 20, cursor: pageParam }),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: Boolean(userId) && enabled,
+    staleTime: 60_000,
   });
 }

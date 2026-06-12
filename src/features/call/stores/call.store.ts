@@ -54,6 +54,8 @@ type CallState = {
   attachCallId: (callId: string) => void;
   /** Đồng bộ roster báo hiệu từ ack initiate/accept. */
   setParticipants: (participants: CallParticipant[]) => void;
+  /** Nâng audio → video khi 1 phía bật cam hoặc nhận video remote. KHÔNG đụng micOn/camOn. */
+  promoteToVideo: () => void;
   /** 1 người vào room (group) — upsert vào roster. */
   participantJoined: (userId: string) => void;
   /** 1 người rời room (group) — gỡ khỏi roster. */
@@ -112,6 +114,10 @@ export const useCallStore = create<CallState>((set) => ({
   attachCallId: (callId) =>
     set((s) => ({ call: s.call ? { ...s.call, callId } : s.call })),
   setParticipants: (participants) => set({ participants }),
+  promoteToVideo: () =>
+    set((s) =>
+      s.call && s.call.type === 'AUDIO' ? { call: { ...s.call, type: 'VIDEO' } } : {},
+    ),
   participantJoined: (userId) =>
     set((s) =>
       s.participants.some((p) => p.userId === userId)

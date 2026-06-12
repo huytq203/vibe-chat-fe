@@ -10,6 +10,7 @@ import { getSocket } from '@/lib/ws/socket';
 import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
+import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
 import type {
   DeleteMessageInput,
   EditMessageInput,
@@ -167,6 +168,9 @@ export function useSendMessage() {
         };
       });
 
+      // Lượt gửi mới → xoá thông báo lỗi hệ thống của lần gửi trước.
+      useSendErrorStore.getState().clear(input.conversationId);
+
       return { tempId, clientNonce, conversationId: input.conversationId, previous };
     },
 
@@ -202,6 +206,8 @@ export function useSendMessage() {
 
     onError: (err, vars, ctx) => {
       if (!ctx) return;
+      // Báo lỗi dạng "tin nhắn hệ thống" ở cuối MessageList.
+      useSendErrorStore.getState().setError(ctx.conversationId, err.message);
       const key = chatKeys.messages(ctx.conversationId);
       // Giữ message lỗi trong cache để user resend, không rollback.
       qc.setQueryData<MessagesCache>(key, (old) => {
@@ -240,6 +246,7 @@ export function useResendMessage() {
       const cache = qc.getQueryData<MessagesCache>(key);
       const msg = cache?.pages.flatMap((p) => p.items).find((m) => m.id === vars.tempId);
       if (!msg) throw new Error('Không tìm thấy tin nhắn để gửi lại');
+      useSendErrorStore.getState().clear(vars.conversationId);
       const meta = (msg.metadata ?? {}) as { clientNonce?: string };
       const nonce = meta.clientNonce ?? crypto.randomUUID();
       // Tin media đã upload xong (attachments có sẵn) → gửi lại nguyên attachmentIds + type.
@@ -305,6 +312,7 @@ export function useResendMessage() {
     },
 
     onError: (err, vars) => {
+      useSendErrorStore.getState().setError(vars.conversationId, err.message);
       const key = chatKeys.messages(vars.conversationId);
       qc.setQueryData<MessagesCache>(key, (old) => {
         if (!old) return old;
@@ -481,6 +489,7 @@ export function useCreateGroup() {
   });
 }
 
+/** Đặt/đổi biệt danh per-conversation cho 1 thành viên. BE trả Conversation đã cập nhật. */
 export function useSetNickname() {
   const qc = useQueryClient();
   return useMutation({
@@ -493,11 +502,14 @@ export function useSetNickname() {
       userId: string;
       nickname: string | null;
     }) => chatApi.setNickname(conversationId, userId, nickname),
-    onSuccess: (_, { conversationId }) => {
-      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      debouncedInvalidate(qc, chatKeys.conversationLists());
     },
+    onError: (e: Error) => toast.error(e.message || 'Đổi biệt danh thất bại'),
   });
 }
+
 
 /** Ghim / bỏ ghim hội thoại. Optimistic: set isPinned ngay để conv nổi lên đầu. */
 export function useTogglePinConversation() {

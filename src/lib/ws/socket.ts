@@ -14,9 +14,25 @@ const WS_URL = env.NEXT_PUBLIC_WS_URL;
 
 let socket: Socket | null = null;
 let tokenProvider: () => string | null = () => null;
+let forceLogoutHandler: (() => void) | null = null;
+// true sau khi BE thu hồi phiên (force_logout / AUTH_SESSION_REVOKED) — chặn auto-reconnect với token cũ.
+let sessionRevoked = false;
 
 export function setTokenProvider(fn: () => string | null): void {
   tokenProvider = fn;
+}
+
+/** Đăng ký callback khi BE thu hồi phiên (login trên thiết bị khác). App layer xử lý clear session + redirect. */
+export function setForceLogoutHandler(fn: (() => void) | null): void {
+  forceLogoutHandler = fn;
+}
+
+function handleSessionRevoked(source: string): void {
+  if (sessionRevoked) return;
+  sessionRevoked = true;
+  logger.info('WS session revoked', { source });
+  closeSocket();
+  forceLogoutHandler?.();
 }
 
 export function getSocket(token: string | null): Socket | null {
@@ -37,6 +53,7 @@ export function getSocket(token: string | null): Socket | null {
   }
 
   logger.info('WS connecting', { url: WS_URL });
+  sessionRevoked = false;
   socket = io(WS_URL, {
     auth: (cb) => cb({ token: tokenProvider() ?? token }),
     reconnection: true,
@@ -46,25 +63,29 @@ export function getSocket(token: string | null): Socket | null {
   });
 
   socket.on('connect', () => logger.info('WS connected', { id: socket?.id }));
+  // BE emit khi user login trên thiết bị khác (single-session kick) → logout ngay, không reconnect.
+  socket.on('force_logout', () => handleSessionRevoked('force_logout'));
   socket.on('disconnect', (reason, description) => {
     logger.info('WS disconnect', { reason, description });
     // BE chủ động đá (auth fail, kick...) → socket.io v4 KHÔNG tự reconnect.
     // Thử reconnect 1 lần sau 2s với token mới nhất; nếu vẫn fail BE sẽ đá tiếp.
-    if (reason === 'io server disconnect') {
+    // Riêng phiên đã bị thu hồi (force_logout) → KHÔNG reconnect.
+    if (reason === 'io server disconnect' && !sessionRevoked) {
       setTimeout(() => {
-        if (socket && tokenProvider()) {
+        if (socket && !sessionRevoked && tokenProvider()) {
           logger.info('WS manual reconnect after server kick');
           socket.connect();
         }
       }, 2000);
     }
   });
-  socket.on('connect_error', (err) =>
-    logger.warn('WS connect_error', {
-      msg: err.message,
-      data: (err as { data?: unknown }).data,
-    }),
-  );
+  socket.on('connect_error', (err) => {
+    const data = (err as { data?: { code?: string } }).data;
+    logger.warn('WS connect_error', { msg: err.message, data });
+    if (data?.code === 'AUTH_SESSION_REVOKED' || err.message === 'AUTH_SESSION_REVOKED') {
+      handleSessionRevoked('connect_error');
+    }
+  });
   socket.on('error', (err: unknown) => {
     let payload: unknown = err;
     if (err && typeof err === 'object') {

@@ -23,6 +23,9 @@ Authorization: Bearer ...
 | `limit` | ❌ | 20 | 1–50. |
 | `cursor` | ❌ | null | Của lần fetch trước (cursor pagination). |
 
+> 💡 **Tìm chính xác bằng `@username`**: nếu `q` bắt đầu bằng `@` (vd `@ad1`) → trả **đúng 1 user**
+> khớp tuyệt đối `username` (`nextCursor` luôn `null`). Chi tiết: [24-profile.md](./24-profile.md#5-tìm-chính-xác-bằng-username).
+
 **Rate limit:** 30 req/phút/IP (chống enumeration).
 
 Response `200`:
@@ -44,6 +47,9 @@ Response `200`:
   }
 }
 ```
+
+> Hiển thị tên: dùng `displayName`. Biệt danh riêng là **per-conversation** (đặt trong cuộc trò
+> chuyện) — xem [03-conversations.md](./03-conversations.md#đặt-biệt-danh-nickname-cho-thành-viên).
 
 ### `friendship` quyết định UI
 

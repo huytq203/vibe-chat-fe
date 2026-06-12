@@ -6,9 +6,19 @@ import { apiAuth, ApiError } from '@/lib/api/client';
 import { authApi } from '@/services/auth.api';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 
-type Props = { requireAuth?: boolean; redirectTo?: string };
+type Props = {
+  requireAuth?: boolean;
+  redirectTo?: string;
+  // Trang auth (login/register): đã có phiên hợp lệ → chuyển thẳng vào app,
+  // không bắt user nhìn form đăng nhập dù session 90 ngày vẫn còn sống.
+  redirectIfAuthed?: string;
+};
 
-export function AuthBootstrap({ requireAuth = false, redirectTo = '/login' }: Props) {
+export function AuthBootstrap({
+  requireAuth = false,
+  redirectTo = '/login',
+  redirectIfAuthed,
+}: Props) {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const setHydrated = useAuthStore((s) => s.setHydrated);
@@ -66,7 +76,8 @@ export function AuthBootstrap({ requireAuth = false, redirectTo = '/login' }: Pr
   useEffect(() => {
     if (!hydrated) return;
     if (requireAuth && !isAuthed) router.replace(redirectTo);
-  }, [hydrated, isAuthed, requireAuth, redirectTo, router]);
+    if (redirectIfAuthed && isAuthed) router.replace(redirectIfAuthed);
+  }, [hydrated, isAuthed, requireAuth, redirectTo, redirectIfAuthed, router]);
 
   return null;
 }

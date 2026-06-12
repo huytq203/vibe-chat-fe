@@ -1,9 +1,28 @@
+import type { Gender, UserStatus } from '@/features/auth/types';
+
 export type FriendshipStatus =
   | 'NONE'
   | 'PENDING_OUT'
   | 'PENDING_IN'
   | 'ACCEPTED'
   | 'BLOCKED_BY_ME';
+
+/** GET /users/:id — UserProfileResponseDto (viewer-scoped). Xem 24-profile.md §3. */
+export type UserProfile = {
+  id: string;
+  username: string;
+  /** Chỉ có giá trị khi isMe=true. */
+  email: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  bio: string | null;
+  gender: Gender | null;
+  dateOfBirth: string | null;
+  status: UserStatus;
+  isMe: boolean;
+  friendship: FriendshipStatus;
+};
 
 export type FriendRequestSource =
   | 'PHONE'

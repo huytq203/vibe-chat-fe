@@ -7,6 +7,7 @@ import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/cha
 import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
 import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
 import { useImageLightbox } from './LightboxProvider';
+import { VoicePlayer } from './VoicePlayer';
 import type { OptimisticMeta, Message } from '@/features/chat/types';
 
 type MediaContentProps = {
@@ -35,6 +36,11 @@ export function MediaContent({ message, isMe }: MediaContentProps) {
   }
   if (message.type === 'VIDEO') {
     return <VideoView url={url} name={name} onError={onError} />;
+  }
+  if (message.type === 'AUDIO') {
+    return (
+      <VoicePlayer url={url} durationSec={attachment?.duration ?? null} isMe={isMe} onError={onError} />
+    );
   }
   return (
     <FileView

@@ -4,6 +4,7 @@ export function getNotificationHref(n: Notification): string {
   switch (n.type) {
     case 'MESSAGE_NEW':
     case 'MESSAGE_MENTION':
+    case 'CALL_MISSED':
       return n.conversationId ? `/chat/${n.conversationId}` : '/chat';
     case 'FRIEND_REQUEST_RECEIVED':
       return '/chat?friends=requests';
@@ -20,6 +21,8 @@ const ICON_BY_TYPE: Record<NotificationType, string> = {
   FRIEND_REQUEST_ACCEPTED: '🤝',
   MESSAGE_NEW: '💬',
   MESSAGE_MENTION: '📣',
+  CALL_INCOMING: '📞',
+  CALL_MISSED: '📵',
   CONVERSATION_DELETED: '🗑️',
 };
 

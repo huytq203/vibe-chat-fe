@@ -16,11 +16,24 @@ Format response error xem [02-response-envelope.md](./02-response-envelope.md#er
 | `AUTH_REFRESH_TOKEN_INVALID` | 401 | Refresh cookie sai/hết hạn | Redirect login |
 | `AUTH_FORBIDDEN` | 403 | Token OK nhưng không đủ quyền | Show "Không có quyền" |
 
-## User
+## User & Profile (xem [24-profile.md](./24-profile.md))
 
 | Code | HTTP | Khi nào | FE nên làm |
 |---|---|---|---|
-| `USER_NOT_FOUND` | 404 | userId không tồn tại trong MySQL | Show "User không tồn tại" |
+| `USER_NOT_FOUND` | 404 | userId không tồn tại (hoặc user đó đang chặn bạn) | Show "User không tồn tại" |
+| `MEDIA_NOT_FOUND` | 404 | `avatarMediaId`/`coverMediaId` không tồn tại hoặc không thuộc bạn | Upload lại ảnh |
+| `MEDIA_NOT_UPLOADED` | 400 | Media chưa upload xong (chưa READY) | Confirm upload trước khi gán |
+
+## Share link (xem [25-share-links.md](./25-share-links.md))
+
+| Code | HTTP | Khi nào | FE nên làm |
+|---|---|---|---|
+| `SHARE_LINK_NOT_FOUND` | 404 | `code` sai | "Link không tồn tại" |
+| `SHARE_LINK_REVOKED` | 410 | Link đã bị thu hồi | "Link đã bị thu hồi" |
+| `SHARE_LINK_EXPIRED` | 410 | Link hết hạn | "Link đã hết hạn" |
+| `SHARE_LINK_EXHAUSTED` | 410 | Link hết lượt dùng | "Link đã hết lượt" |
+| `SHARE_LINK_FORBIDDEN` | 403 | Thu hồi link không phải của mình | — (logic FE sai) |
+| `SHARE_LINK_TARGET_INVALID` | 403 | Tạo link GROUP thiếu `targetId` | Bắt buộc chọn nhóm |
 
 ## Conversation
 
@@ -37,7 +50,7 @@ Format response error xem [02-response-envelope.md](./02-response-envelope.md#er
 | `CONVERSATION_MEMBER_EXISTS` | 409 | Xin vào nhóm khi đã là thành viên | Refresh, mở thẳng nhóm |
 | `CONVERSATION_MEMBER_BANNED` | 403 | User bị ban — không add/join được | Show "Bạn đã bị cấm khỏi nhóm" |
 | `CONVERSATION_FULL` | 400 | Vượt `maxMembers` | Show "Nhóm đã đầy" |
-| `CONVERSATION_TARGET_NOT_MEMBER` | 404 | Kick user không phải thành viên | Refresh member list |
+| `CONVERSATION_TARGET_NOT_MEMBER` | 404 | Thao tác (kick / đặt biệt danh) lên user không phải thành viên | Refresh member list |
 | `CONVERSATION_CANNOT_REMOVE_SELF` | 400 | Tự kick mình | Dùng nút "Rời nhóm" thay vì kick |
 | `CONVERSATION_CANNOT_REMOVE_OWNER` | 403 | Cố kick chủ nhóm | Ẩn nút kick trên OWNER |
 | `CONVERSATION_OWNER_CANNOT_LEAVE` | 403 | Owner rời nhóm | Bắt chuyển quyền hoặc xoá nhóm trước |

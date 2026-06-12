@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api/client';
 import type {
   AttachmentUrl,
+  CommonGroupsPage,
   Conversation,
   JoinRequest,
   Message,
@@ -140,8 +141,10 @@ export const chatApi = {
       query: { userIds: userIds.join(',') },
     }),
 
+  // Đặt/đổi biệt danh per-conversation cho 1 thành viên (null/'' để xoá). Mọi thành viên đều thấy.
+  // Trả Conversation đã cập nhật members[].nickname. Xem 03-conversations.md.
   setNickname: (conversationId: string, userId: string, nickname: string | null) =>
-    apiClient.patch<void>(
+    apiClient.put<Conversation>(
       `/api/v1/conversations/${conversationId}/members/${userId}/nickname`,
       { body: { nickname } },
     ),
@@ -245,5 +248,25 @@ export const chatApi = {
   /** Danh sách conversation đang bị lock của user hiện tại. */
   listLockedConversations: () =>
     apiClient.get<Conversation[]>('/api/v1/conversations/locked'),
+
+  /** Nhóm GROUP mà mình và userId cùng tham gia — cursor-based (xem 26-common-groups.md). */
+  listCommonGroups: (userId: string, params: { limit?: number; cursor?: string } = {}) =>
+    apiClient.get<CommonGroupsPage>(`/api/v1/conversations/common-groups/${userId}`, {
+      query: { limit: params.limit ?? 20, cursor: params.cursor },
+    }),
+
+  // ─── Reactions (thả cảm xúc emoji) ─────────────────────────────────────────
+  // ⚠️ CHƯA chốt API BE. Endpoint dưới là DỰ KIẾN — xác nhận với BE trước khi bật
+  // REACTIONS_ENABLED (features/chat/reactions.ts). Trả Message đã cập nhật reactions.
+  reactToMessage: (conversationId: string, messageId: string, emoji: string) =>
+    apiClient.post<Message>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions`,
+      { body: { emoji } },
+    ),
+
+  unreactFromMessage: (conversationId: string, messageId: string, emoji: string) =>
+    apiClient.delete<Message>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+    ),
 
 } as const;

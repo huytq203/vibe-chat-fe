@@ -105,6 +105,16 @@ export type AttachmentUrl = {
   expiresIn: number;
 };
 
+/** 1 emoji reaction tổng hợp trên 1 tin nhắn (gom theo emoji). BE chưa trả → optional. */
+export type MessageReaction = {
+  emoji: string;
+  count: number;
+  /** userId đã thả emoji này (xác định reactedByMe + tooltip). */
+  userIds: string[];
+  /** true nếu user hiện tại đã thả emoji này. */
+  reactedByMe: boolean;
+};
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -113,6 +123,8 @@ export type Message = {
   encryptionType: EncryptionType;
   plaintext: string | null;
   attachments: Attachment[];
+  /** Cảm xúc emoji trên tin. CHƯA có API BE — xem features/chat/reactions.ts (REACTIONS_ENABLED). */
+  reactions?: MessageReaction[];
   contentPreview: string | null;
   metadata: Record<string, unknown> | null;
   replyToMessageId: string | null;
@@ -228,3 +240,16 @@ export type MessagesPage = {
 
 /** Loại nội dung chia sẻ cho tab "Ảnh & Video / Tài liệu / Liên kết" (xem 20-shared-content.md). */
 export type SharedContentType = 'MEDIA' | 'FILE' | 'LINK';
+
+/** Nhóm chung giữa mình và 1 user khác (xem 26-common-groups.md). */
+export type CommonGroupItem = {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+  memberCount: number;
+};
+
+export type CommonGroupsPage = {
+  items: CommonGroupItem[];
+  nextCursor: string | null;
+};

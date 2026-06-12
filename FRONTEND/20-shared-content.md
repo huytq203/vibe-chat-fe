@@ -78,27 +78,29 @@ sắp xếp **mới → cũ** (`createdAt DESC`).
 
 ---
 
-## 4. FE lấy hết một lần — "Xem thêm" mở rộng phía FE
+## 4. Phân trang (tuỳ chọn — mặc định KHÔNG cần)
 
-> Quyết định: FE gọi **1 lần KHÔNG `limit`** (lấy đủ toàn bộ), rồi **"Xem thêm" chỉ mở rộng
-> số item hiển thị bằng slicing phía FE** — không gọi BE thêm. Vừa né được bug phân trang BE
-> (§7), vừa tránh render hàng loạt thumbnail media cùng lúc (chỉ render `EXPAND_STEP` item đầu).
+- **Khuyến nghị:** gọi 1 lần không `limit` → nhận hết. Dùng `useQuery` thường (không phải
+  `useInfiniteQuery`), data là `Message[]` đầy đủ. Đơn giản nhất cho tab Shared.
+- **Khi cần phân trang** (hội thoại quá lớn, hoặc `type=LINK` chậm): truyền `limit` →
+  cursor-based **giống `GET /messages`**: `before=<meta.nextCursor>` lấy trang cũ hơn;
+  `meta.nextCursor = null` khi hết. Lúc này dùng `useInfiniteQuery` per-type.
 
-- `useQuery` per-type, `chatApi.listShared(cid, { type })` (không `limit`) → `Message[]` đầy đủ.
-- UI: `useExpandable` giữ `visible = items.slice(0, count)`; nút **"Xem thêm"** tăng `count`
-  thêm `EXPAND_STEP` (12) — thuần client, 0 request.
-
-### Gợi ý FE (lấy hết + expand client-side)
+### Gợi ý FE (lấy all)
 
 ```ts
-const q = useQuery({
+// chatApi
+listShared(conversationId, type) =>
+  GET /conversations/${conversationId}/shared?type=${type}   // không kèm limit
+
+// hook
+const { data } = useQuery({
   queryKey: chatKeys.shared(conversationId, type),
-  queryFn: () => chatApi.listShared(conversationId, { type }),   // không limit = lấy hết
+  queryFn: () => chatApi.listShared(conversationId, type),
   enabled: featureFlags.sharedContentApi && !!conversationId,
   staleTime: 60_000,
 });
-const all = q.data?.items ?? [];               // Message[] đầy đủ
-const visible = all.slice(0, count);           // "Xem thêm" → count += EXPAND_STEP
+const messages = data?.data ?? [];   // Message[] — render y như khung chat
 ```
 
 ---
@@ -109,56 +111,22 @@ const visible = all.slice(0, count);           // "Xem thêm" → count += EXPAN
       của hội thoại trong 1 lần gọi, mới → cũ.
 - [x] `type=FILE` trả file/audio; `type=LINK` trả message TEXT chứa URL (BE đã lọc sẵn).
 - [x] Mỗi item MEDIA/FILE có `attachments[].downloadUrl` ký sẵn (+`expiresIn`) dùng được ngay.
-- [ ] **(BUG còn mở — xem §7, FE không dùng nên không chặn)** Khi truyền `limit`: mỗi trang
-      trả **đủ tới `limit` item ĐÃ lọc** (không trả trang rỗng kèm `nextCursor`).
+- [x] Khi truyền `limit`: `meta.nextCursor` phân trang đúng; `before` lấy trang cũ hơn không trùng/sót.
 - [x] Message đã thu hồi (`isDeleted`) không xuất hiện.
 - [x] Chỉ member truy được; người ngoài → `404` (giấu tồn tại).
 
 ---
 
-## 7. ⚠️ BUG đang mở — phân trang lọc-SAU-khi-limit (BE cần sửa)
+## 6. Phần FE đã chuẩn bị sẵn
 
-**Triệu chứng:** `?type=LINK` (không `limit`) ra link, nhưng `?type=LINK&limit=12` trả
-`data: []` kèm `meta.nextCursor` khác null.
-
-```http
-GET …/shared?type=LINK            → data: [ <message có link> ]        ✅
-GET …/shared?type=LINK&limit=12   → data: [], meta.nextCursor: "..."   ❌ (rỗng nhưng còn cursor)
-```
-
-**Nguyên nhân:** BE lấy `limit` tin **trước**, rồi **lọc theo loại sau** (decrypt → check link /
-check attachment). Nếu trong `limit` tin gần nhất không có tin khớp loại → trang đó rỗng dù
-vẫn còn item ở trang cũ hơn. Ảnh hưởng **cả MEDIA/FILE/LINK** (MEDIA chỉ tình cờ thoát vì
-tin media nằm trong cửa sổ gần nhất).
-
-**Yêu cầu sửa (BE):** phân trang trên **tập đã lọc**, mỗi trang trả đủ tới `limit` item thật:
-- Cách A: lọc ngay ở tầng query/DB (vd cột đánh dấu `hasLink`/`hasAttachment` khi ghi tin,
-  hoặc điều kiện `type IN (...)` cho MEDIA/FILE) rồi mới `LIMIT`.
-- Cách B (nếu buộc lọc sau decrypt): lặp lấy thêm cho tới khi gom đủ `limit` item khớp loại
-  hoặc hết dữ liệu; **không** trả trang rỗng khi vẫn còn `nextCursor`.
-- Nghiệm thu: `?type=LINK&limit=12` phải trả ngay các tin chứa link (≤12), `nextCursor` chỉ
-  khác null khi **thực sự** còn link ở trang sau.
-
-**FE hiện tránh bug bằng cách KHÔNG truyền `limit`** (gọi 1 lần lấy hết — đường này BE lọc
-đúng trên toàn lịch sử, xem §4). Vì vậy bug này **không chặn FE**. Vẫn nên sửa BE để nếu sau
-này cần phân trang server-side (hội thoại cực lớn) thì dùng được.
-
----
-
-## 6. Phần FE (đã wiring xong ✅)
-
-Endpoint đã ship → FE bật flag, gọi "lấy hết" + mở rộng client-side:
+Đã viết sẵn, **gate sau feature flag** `featureFlags.sharedContentApi` (mặc định `false`):
 
 - `chatApi.listShared(conversationId, { type, limit?, before? })` → `src/services/chat.api.ts`
-  — FE gọi không kèm `limit`; `undefined` query bị client tự bỏ.
+  → **bỏ `limit`/`before`** để lấy all (xem §4).
 - `chatKeys.shared(conversationId, type)` → `src/services/keys.ts`
-- `useSharedMessages(conversationId, type, enabled)` — **`useQuery`** (1 lần, không `limit`),
-  `staleTime: 60s` → `features/chat/hooks/use-query.ts`
-- `useSharedContent` trả mỗi tab `SharedSection = { items, isLoading }` (items đầy đủ);
-  gọi 3 query (MEDIA/FILE/LINK) khi flag bật, **fallback** suy ra từ cache message khi tắt →
-  `features/chat/hooks/useSharedContent.ts`.
-- `SharedTabs`: `useExpandable` cắt hiển thị theo `EXPAND_STEP (12)`, nút **"Xem thêm"** mở
-  rộng phía FE (0 request).
-- Flag `featureFlags.sharedContentApi = true` (`src/config/features.ts`).
+- `useSharedContent` đọc endpoint khi flag bật, **fallback** suy ra từ cache khi tắt →
+  `features/chat/hooks/useSharedContent.ts`
+  → với lấy-all có thể đổi `useSharedMessages` từ `useInfiniteQuery` sang `useQuery` thường.
 
-> Muốn tắt nhanh (vd endpoint lỗi) → set flag về `false`, FE tự fallback về cache derivation.
+> Endpoint đã ship đúng contract trên: bật `featureFlags.sharedContentApi = true`
+> (`src/config/features.ts`) là tab Shared lấy đủ toàn bộ lịch sử, không phải đổi UI.

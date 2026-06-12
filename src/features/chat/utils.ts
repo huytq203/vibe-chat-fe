@@ -171,6 +171,17 @@ export function buildMemberNameMap(conv: Conversation | null | undefined): Recor
   return map;
 }
 
+/** userId → avatarUrl (URL đã ký từ BE) lấy từ members — cho avatar cạnh bubble. */
+export function buildMemberAvatarMap(
+  conv: Conversation | null | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  conv?.members?.forEach((m) => {
+    if (m.avatarUrl) map[m.userId] = m.avatarUrl;
+  });
+  return map;
+}
+
 export function getConversationName(conv: Conversation, meId: string | null): string {
   if (conv.name) return conv.name;
   if (conv.type === 'DIRECT') {
@@ -184,9 +195,21 @@ export function getConversationName(conv: Conversation, meId: string | null): st
 
 export function getConversationSeed(conv: Conversation, meId: string | null): string {
   if (conv.type === 'DIRECT') {
-    const other = conv.members?.find((m) => m.userId !== conv.ownerId);
+    const other = conv.members?.find((m) => m.userId !== meId);
     if (other) return other.userId;
     return conv.memberIds.find((id) => id !== meId) ?? conv.id;
   }
   return conv.id;
+}
+
+/**
+ * Avatar hiển thị cho conversation: DIRECT = avatar người kia (member !== meId),
+ * GROUP = avatar nhóm. Trả null → Avatar tự fallback chữ cái theo seed.
+ */
+export function getConversationAvatar(conv: Conversation, meId: string | null): string | null {
+  if (conv.type === 'DIRECT') {
+    const other = conv.members?.find((m) => m.userId !== meId);
+    return other?.avatarUrl ?? null;
+  }
+  return conv.avatarUrl ?? null;
 }

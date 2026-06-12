@@ -62,6 +62,17 @@ export async function joinRoom(
   );
   r.on(RoomEvent.Disconnected, () => handlers.onDisconnected?.());
 
+  // Bật/tắt camera giữa cuộc gọi (nâng audio → video) tạo/gỡ local video track ngoài lúc join
+  // → đồng bộ PiP local qua chính các sự kiện này thay vì chỉ mount 1 lần lúc join.
+  r.on(RoomEvent.LocalTrackPublished, (pub) => {
+    if (pub.track?.kind === Track.Kind.Video) {
+      handlers.onLocalVideo?.(pub.track as LocalTrack);
+    }
+  });
+  r.on(RoomEvent.LocalTrackUnpublished, (pub) => {
+    if (pub.track?.kind === Track.Kind.Video) handlers.onLocalVideo?.(null);
+  });
+
   // Chạy SONG SONG getUserMedia (xin mic/cam) và connect SFU để giảm độ trễ.
   // allSettled để dù 1 bên fail vẫn dọn dẹp bên kia đúng cách.
   const [mediaRes, connRes] = await Promise.allSettled([

@@ -149,6 +149,18 @@
         0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
         30% { opacity: 1; transform: translateY(-2px); }
     }
+
+    /* Multi-step form: panel trượt vào khi đổi bước (register) */
+    --animate-step-in: step-in 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+    @keyframes step-in {
+        from { opacity: 0; transform: translateX(24px) scale(0.98); }
+        to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    --animate-step-in-back: step-in-back 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+    @keyframes step-in-back {
+        from { opacity: 0; transform: translateX(-24px) scale(0.98); }
+        to { opacity: 1; transform: translateX(0) scale(1); }
+    }
 }
 
 @layer base {

@@ -10,7 +10,8 @@ import { useConvLockStore } from "@/features/chat/stores/conv-lock.store";
 import { useLockConversation, useRemoveLock } from "@/features/chat/hooks/use-mutations";
 import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
 import { useSettingsStore } from "@/features/settings";
-import { useStartCall } from "@/features/call";
+import { buildCallDirectory, useStartCall } from "@/features/call";
+import { getConversationAvatar } from "@/features/chat/utils";
 import { SharedTabs } from "./SharedTabs";
 import { Avatar, AvatarStatus } from "@/features/chat/components/common/Avatar";
 import { QuickAction } from "@/features/chat/components/common/QuickAction";
@@ -27,12 +28,14 @@ import { GroupSettingsPanel } from "./GroupSettingsPanel";
 import { JoinRequestsPanel } from "./JoinRequestsPanel";
 import { MessageSearchPanel } from "./MessageSearchPanel";
 import { MuteButton } from "./MuteButton";
+import { UserProfileDialog } from "./UserProfileDialog";
 
 export function ContactInfo() {
   const data = useContactInfor();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "search">("info");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const convLockStore = useConvLockStore();
@@ -88,12 +91,25 @@ export function ContactInfo() {
 
   const isLocked = Boolean(conversation.isLocked);
   const lockDialogMode: 'lock' | 'unlock' = isLocked ? 'unlock' : 'lock';
+  // DIRECT → avatar người kia; GROUP → avatar nhóm (giống ConversationList/ChatHeader).
+  const avatarUrl = getConversationAvatar(conversation, meId);
 
-  // Gọi audio/video — chỉ hội thoại DIRECT (giống ChatHeader).
-  const canCall = isDirect && Boolean(otherUserId);
+  // Gọi audio/video — DIRECT và GROUP, chặn CHANNEL (giống ChatHeader).
+  const isGroup = conversation.type === 'GROUP';
+  const canCall = (isDirect && Boolean(otherUserId)) || isGroup;
   function handleCall(type: 'AUDIO' | 'VIDEO') {
-    if (!otherUserId) return;
-    void startCall(conversation.id, type, { id: otherUserId, name, avatarUrl: conversation.avatarUrl ?? null });
+    if (isDirect) {
+      if (!otherUserId) return;
+      void startCall(conversation.id, type, { id: otherUserId, name, avatarUrl });
+      return;
+    }
+    void startCall(
+      conversation.id,
+      type,
+      { id: conversation.id, name, avatarUrl },
+      true,
+      buildCallDirectory(conversation),
+    );
   }
 
   function lockWith(password: string) {
@@ -195,7 +211,19 @@ export function ContactInfo() {
 
       <div className="flex-1 overflow-y-auto">
         <section className="flex flex-col items-center border-b border-border px-4 pb-4 pt-5">
-          <Avatar name={name} seed={seed} size="lg" status={status as AvatarStatus} className="mb-3" />
+          {isDirect && otherUserId ? (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              aria-label="Xem trang cá nhân"
+              title="Xem trang cá nhân"
+              className="mb-3 rounded-full outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Avatar name={name} src={avatarUrl} seed={seed} size="lg" status={status as AvatarStatus} />
+            </button>
+          ) : (
+            <Avatar name={name} src={avatarUrl} seed={seed} size="lg" status={status as AvatarStatus} className="mb-3" />
+          )}
           <div className="text-[17px] font-bold text-foreground flex items-center gap-2">
             {name}
             <button
@@ -380,6 +408,14 @@ export function ContactInfo() {
         mode={lockDialogMode}
         onConfirm={handleLockConfirm}
       />
+
+      {isDirect && otherUserId && (
+        <UserProfileDialog
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          userId={otherUserId}
+        />
+      )}
     </aside>
   );
 }

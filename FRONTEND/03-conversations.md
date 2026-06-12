@@ -105,6 +105,41 @@ GET /api/v1/conversations/{id}
 }
 ```
 
+> **`nickname`** = biệt danh đặt cho thành viên này **trong cuộc trò chuyện** (per-conversation,
+> mọi thành viên đều thấy — giống Messenger). `null` nếu chưa đặt. Hiển thị tên gợi ý:
+> `nickname ?? displayName`. Cách đặt: xem mục dưới.
+
+## Đặt biệt danh (nickname) cho thành viên
+
+> Đặt/đổi tên gọi cho **1 thành viên trong conversation này**. Là **per-conversation** và
+> **mọi thành viên đều thấy** (không phải biệt danh riêng tư từng người). Dùng cho cả DIRECT
+> (đặt cho người kia) lẫn GROUP.
+
+```http
+PUT /api/v1/conversations/{id}/members/{userId}/nickname
+Authorization: Bearer ...
+Content-Type: application/json
+
+{ "nickname": "Sếp Tổng" }     // null hoặc "" để xoá biệt danh
+```
+
+- `{userId}` = Keycloak UUID của thành viên muốn đặt tên (có thể là chính mình).
+- `nickname`: tối đa 100 ký tự (tự trim). Gửi `null`/rỗng → xoá, field về `null`.
+- Người gọi và `{userId}` đều phải là thành viên **ACTIVE**.
+- Bất kỳ thành viên ACTIVE nào cũng đặt được (Messenger-style).
+
+Response `200`: `Conversation` object (chi tiết) với `members[].nickname` đã cập nhật.
+
+| Code | HTTP | Khi nào |
+|---|---|---|
+| `CONVERSATION_NOT_FOUND` | 404 | UUID sai / đã xoá |
+| `CONVERSATION_MEMBER_REQUIRED` | 403 | Bạn không phải thành viên |
+| `CONVERSATION_TARGET_NOT_MEMBER` | 404 | `{userId}` không phải thành viên ACTIVE |
+| `VALIDATION_ERROR` | 400 | `nickname` quá 100 ký tự |
+
+> ⚠️ Thay đổi nickname **chưa** đẩy realtime qua WebSocket — các thành viên khác sẽ thấy tên mới
+> ở lần fetch chi tiết/list kế tiếp.
+
 ## Ghim / bỏ ghim conversation
 
 Ghim **riêng cho từng user** — conversation đã ghim luôn nằm **đầu** danh sách (mục [list](#danh-sách-conversation-của-user)).

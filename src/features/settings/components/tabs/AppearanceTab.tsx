@@ -9,7 +9,7 @@ export function AppearanceTab() {
   const { currentTheme, setTheme, themes } = useTheme();
 
   return (
-    <SettingsSection title="Giao diện" desc="Chọn bảng màu hiển thị cho VibeChat.">
+    <SettingsSection title="Giao diện" desc="Chọn bảng màu hiển thị cho HaloChat.">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {themes.map((theme) => {
           const active = theme.name === currentTheme.name;

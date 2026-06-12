@@ -20,7 +20,7 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId) {
   const messaging = firebase.messaging();
 
   messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification?.title || 'Vibe Chat';
+    const title = payload.notification?.title || 'Halo';
     const body = payload.notification?.body || '';
     const data = payload.data || {};
     const link = payload.fcmOptions?.link || data.click_action || '/chat';
@@ -30,7 +30,9 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId) {
       icon: '/icon-192.png',
       badge: '/badge.png',
       data: { ...data, link },
-      tag: data.conversationId || data.notificationId,
+      // Group cùng conversation → ghi đè noti cũ. Push BULK (group chat) không có
+      // notificationId — fallback theo type. Xem 11-push-fcm.md §11.3.
+      tag: data.conversationId || data.notificationId || data.type,
     });
   });
 }

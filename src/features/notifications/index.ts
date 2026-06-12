@@ -1,5 +1,6 @@
 export { NotificationPanel } from './components/NotificationPanel';
-export { useNotifications, useUnreadCount } from './hooks/use-query';
+export { NotificationListPanel } from './components/NotificationListPanel';
+export { useNotifications, useNotificationsInfinite, useUnreadCount } from './hooks/use-query';
 export {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
@@ -9,6 +10,7 @@ export {
 } from './hooks/use-mutations';
 export { useNotificationRealtime } from './hooks/useNotificationRealtime';
 export { useFcmSetup } from './hooks/useFcmSetup';
+export { useFaviconBadge } from './hooks/useFaviconBadge';
 export type {
   Notification,
   NotificationType,

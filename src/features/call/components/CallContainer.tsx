@@ -58,7 +58,9 @@ export function CallContainer() {
   const joinMedia = useCallback(
     async (url: string, token: string, type: CallType) => {
       try {
-        await join(url, token, type, onDisconnected);
+        await join(url, token, type, onDisconnected, () =>
+          useCallStore.getState().promoteToVideo(),
+        );
       } catch (err) {
         // Log lỗi THẬT để chẩn đoán (secure-context / permission / LiveKit connect).
         logger.error('LiveKit join failed', {

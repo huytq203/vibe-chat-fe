@@ -13,6 +13,7 @@ export const userKeys = {
   all: ['users'] as const,
   search: (q: string, limit: number) =>
     [...userKeys.all, 'search', q, limit] as const,
+  profile: (id: string) => [...userKeys.all, 'profile', id] as const,
 } as const;
 
 export const friendKeys = {
@@ -32,6 +33,9 @@ export const notificationKeys = {
   lists: () => [...notificationKeys.all, 'list'] as const,
   list: (params: { page: number; limit: number; unreadOnly: boolean }) =>
     [...notificationKeys.lists(), params] as const,
+  // Tách khỏi lists(): realtime patch lists() theo shape NotificationPage,
+  // còn key này giữ InfiniteData — chỉ invalidate, không patch.
+  infinite: () => [...notificationKeys.all, 'infinite'] as const,
   unreadCount: () => [...notificationKeys.all, 'unread-count'] as const,
 } as const;
 
@@ -65,6 +69,8 @@ export const chatKeys = {
     ] as const,
   presence: (userIds: string[]) =>
     [...chatKeys.all, 'presence', [...userIds].sort()] as const,
+  commonGroups: (userId: string) =>
+    [...chatKeys.all, 'common-groups', userId] as const,
 } as const;
 
 export const callKeys = {
@@ -72,4 +78,10 @@ export const callKeys = {
   history: (conversationId?: string) =>
     [...callKeys.all, 'history', conversationId ?? 'all'] as const,
   detail: (callId: string) => [...callKeys.all, 'detail', callId] as const,
+} as const;
+
+export const shareLinkKeys = {
+  all: ['share-links'] as const,
+  my: () => [...shareLinkKeys.all, 'me'] as const,
+  resolve: (code: string) => [...shareLinkKeys.all, 'resolve', code] as const,
 } as const;

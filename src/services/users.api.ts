@@ -1,7 +1,12 @@
 import { apiClient } from '@/lib/api/client';
-import type { UserSearchPage } from '@/features/friends/types';
+import type { UserProfile, UserSearchPage } from '@/features/friends/types';
 
 export const usersApi = {
+  // Hồ sơ user khác (viewer-scoped: kèm isMe, friendship). 404 USER_NOT_FOUND nếu
+  // không tồn tại HOẶC user đó đang chặn mình. Xem 24-profile.md §3.
+  getProfile: (id: string) => apiClient.get<UserProfile>(`/api/v1/users/${id}`),
+
+  // q bắt đầu bằng '@' → BE tìm CHÍNH XÁC theo username (≥2 ký tự). Bình thường → prefix.
   search: async (params: {
     q: string;
     limit?: number;

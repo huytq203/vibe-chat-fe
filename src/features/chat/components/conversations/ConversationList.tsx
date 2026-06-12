@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
-import { MessageSquare, Search, Users } from 'lucide-react';
+import { Bell, MessageSquare, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { Badge } from '@/components/ui/badge/Badge';
@@ -14,7 +14,7 @@ import {
   useIncomingFriendRequests,
   type UserSearchItem,
 } from '@/features/friends';
-import { NotificationPanel, useUnreadCount } from '@/features/notifications';
+import { NotificationListPanel, useUnreadCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useConversations, useLockedConversations } from '@/features/chat/hooks/use-query';
@@ -43,6 +43,7 @@ export function ConversationList() {
   const { data: conversations = [], isLoading } = useConversations();
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
+  const unreadNotiCount = useUnreadCount().data?.unreadCount ?? 0;
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -119,6 +120,8 @@ export function ConversationList() {
             onSelectConversation={setSelected}
             onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
           />
+        ) : notiOpen ? (
+          <NotificationListPanel onBack={() => setNotiOpen(false)} />
         ) : (
           <>
             <div className="shrink-0 px-3 pb-2.5">
@@ -194,6 +197,21 @@ export function ConversationList() {
             </span>
           )}
         </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Thông báo"
+          aria-label="Thông báo"
+          onClick={() => setNotiOpen((v) => !v)}
+          className="relative"
+        >
+          <Bell className="h-5 w-5" />
+          {unreadNotiCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
+              {unreadNotiCount > 9 ? '9+' : unreadNotiCount}
+            </span>
+          )}
+        </Button>
 
         <UserMenu />
       </footer>
@@ -203,8 +221,6 @@ export function ConversationList() {
         onOpenChange={setFindOpen}
         onMessageUser={handleMessageUser}
       />
-
-      <NotificationPanel open={notiOpen} onOpenChange={setNotiOpen} />
     </aside>
   );
 }

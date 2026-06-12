@@ -47,7 +47,7 @@ export const themes: Theme[] = [
   // Palette lấy trực tiếp từ design (/Downloads/vibe-chat) — dark purple.
   {
     name: 'indigo',
-    label: 'Vibe Night (Default)',
+    label: 'Halo Night (Default)',
     colors: {
       background: '#130f1a',              
       foreground: '#fbfbfc',             

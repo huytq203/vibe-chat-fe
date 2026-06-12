@@ -8,7 +8,12 @@ import { closeSocket } from '@/lib/ws/socket';
 import { getFcmToken } from '@/lib/firebase/messaging';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
-import type { LoginInput, RegisterInput, UpdateMeInput } from '@/features/auth/schemas';
+import type {
+  LoginInput,
+  RegisterInput,
+  UpdateMeInput,
+  VerifyEmailInput,
+} from '@/features/auth/schemas';
 
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -18,19 +23,35 @@ export function useLogin() {
     onSuccess: (data) => {
       queryClient.clear();
       setSession(data.user, data.tokens);
+      // User trong response login (auth-service) thiếu avatarUrl presigned —
+      // đồng bộ lại profile đầy đủ từ /users/me (chat-service). Best-effort.
+      void authApi
+        .fetchMe()
+        .then((user) => {
+          queryClient.setQueryData(authKeys.me(), user);
+          useAuthStore.getState().setUser(user);
+        })
+        .catch(() => undefined);
     },
   });
 }
 
+// Đăng ký KHÔNG đăng nhập luôn — trả { message, email } để chuyển sang màn nhập OTP.
 export function useRegister() {
-  const queryClient = useQueryClient();
-  const setSession = useAuthStore((s) => s.setSession);
   return useMutation({
     mutationFn: (input: RegisterInput) => authApi.register(input),
-    onSuccess: (data) => {
-      queryClient.clear();
-      setSession(data.user, data.tokens);
-    },
+  });
+}
+
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: (input: VerifyEmailInput) => authApi.verifyEmail(input),
+  });
+}
+
+export function useResendOtp() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.resendOtp(email),
   });
 }
 

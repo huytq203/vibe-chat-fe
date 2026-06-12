@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,11 +33,15 @@ export function NicknameDialog({
   avatarSeed,
 }: NicknameDialogProps) {
   const [value, setValue] = useState(currentNickname ?? '');
-  const setNickname = useSetNickname();
-
-  useEffect(() => {
+  // Reset input mỗi lần dialog mở (sync-during-render thay vì setState trong effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setValue(currentNickname ?? '');
-  }, [open, currentNickname]);
+  }
+  // Biệt danh per-conversation: PUT /conversations/{id}/members/{userId}/nickname (xem 03-conversations.md).
+  const setNickname = useSetNickname();
+  const isPending = setNickname.isPending;
 
   const handleConfirm = () => {
     setNickname.mutate(
@@ -66,7 +70,7 @@ export function NicknameDialog({
           onChange={(e) => setValue((e.target as HTMLInputElement).value)}
           placeholder={displayName}
           maxLength={100}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !setNickname.isPending) handleConfirm(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !isPending) handleConfirm(); }}
         />
 
         <div className="flex justify-end gap-2 pt-1">
@@ -74,7 +78,7 @@ export function NicknameDialog({
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            disabled={setNickname.isPending}
+            disabled={isPending}
           >
             Huỷ
           </Button>
@@ -82,7 +86,7 @@ export function NicknameDialog({
             type="button"
             variant="solid"
             onClick={handleConfirm}
-            isLoading={setNickname.isPending}
+            isLoading={isPending}
           >
             Xác nhận
           </Button>

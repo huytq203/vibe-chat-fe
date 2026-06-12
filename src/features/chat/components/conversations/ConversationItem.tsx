@@ -5,7 +5,12 @@ import { Badge } from '@/components/ui/badge/Badge';
 import { EmojiText } from '@/components/common/EmojiText';
 import { cn } from '@/lib/utils/cn';
 import type { Conversation } from '@/features/chat/types';
-import { formatListTime, getConversationName, getConversationSeed } from '@/features/chat/utils';
+import {
+  formatListTime,
+  getConversationAvatar,
+  getConversationName,
+  getConversationSeed,
+} from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 
 type ConversationItemProps = {
@@ -18,6 +23,7 @@ type ConversationItemProps = {
 export function ConversationItem({ conversation, selected, meId, onSelect }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
+  const avatarUrl = getConversationAvatar(conversation, meId);
   const isLocked = Boolean(conversation.isLocked);
   const preview = isLocked
     ? 'Cuộc hội thoại riêng tư'
@@ -39,7 +45,7 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
           : 'hover:bg-muted',
       )}
     >
-      <Avatar name={name} seed={seed} size="md" status={null} />
+      <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={null} />
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1">

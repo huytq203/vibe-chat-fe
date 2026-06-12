@@ -1,16 +1,22 @@
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'UNDISCLOSED';
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED';
+
+/**
+ * Hồ sơ user — đúng shape `UserResponseDto` của `GET /api/v1/users/me` (chat backend).
+ * Xem 01-authentication.md §1.5: bỏ phone/isOnline/lastSeenAt/createdAt; online/last-seen lấy
+ * qua Presence. `id` = keycloakId, dùng cho senderId/memberIds/userId... ở mọi nơi.
+ */
 export type AuthUser = {
   id: string;
   username: string;
-  email: string;
-  phone: string | null;
+  email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
-  gender: 'MALE' | 'FEMALE' | null;
+  coverUrl: string | null;
+  bio: string | null;
+  gender: Gender | null;
   dateOfBirth: string | null;
-  status: string;
-  isOnline: boolean;
-  lastSeenAt: string | null;
-  createdAt: string;
+  status: UserStatus;
 };
 
 export type AuthTokens = {
@@ -23,4 +29,10 @@ export type AuthTokens = {
 export type AuthSession = {
   tokens: AuthTokens;
   user: AuthUser;
+};
+
+/** Đăng ký xong: BE chưa trả token — chuyển sang màn nhập OTP với email này. */
+export type RegisterResult = {
+  message: string;
+  email: string;
 };

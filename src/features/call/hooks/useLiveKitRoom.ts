@@ -89,7 +89,13 @@ export function useLiveKitRoom() {
   }, []);
 
   const join = useCallback(
-    async (url: string, token: string, type: CallType, onDisconnected: () => void) => {
+    async (
+      url: string,
+      token: string,
+      type: CallType,
+      onDisconnected: () => void,
+      onRemoteVideo?: () => void,
+    ) => {
       await joinRoom(
         url,
         token,
@@ -102,6 +108,7 @@ export function useLiveKitRoom() {
               videoTracks.current.set(id, track);
               addRemoteId(id);
               mountRemote(id);
+              onRemoteVideo?.(); // remote bật cam → nâng UI audio → video phía nhận
             } else if (track.kind === Track.Kind.Audio) {
               track.attach(); // audio tự phát, không cần DOM hiển thị
             }
