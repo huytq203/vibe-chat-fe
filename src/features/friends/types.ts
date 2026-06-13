@@ -1,4 +1,4 @@
-import type { Gender, UserStatus } from '@/features/auth/types';
+import type { Gender, ProfileVisibility, UserStatus } from '@/features/auth/types';
 
 export type FriendshipStatus =
   | 'NONE'
@@ -20,6 +20,8 @@ export type UserProfile = {
   gender: Gender | null;
   dateOfBirth: string | null;
   status: UserStatus;
+  /** Chế độ hiển thị hồ sơ (xem 30-profile-visibility.md). Chỉ chắc chắn có khi isMe=true. */
+  visibility?: ProfileVisibility;
   isMe: boolean;
   friendship: FriendshipStatus;
 };

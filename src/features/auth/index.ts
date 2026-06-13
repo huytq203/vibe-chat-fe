@@ -13,6 +13,6 @@ export {
 } from './hooks/use-mutations';
 export { useMe } from './hooks/use-query';
 export { useImageUpload } from './hooks/useImageUpload';
-export type { AuthUser, AuthSession, AuthTokens, RegisterResult, Gender } from './types';
+export type { AuthUser, AuthSession, AuthTokens, RegisterResult, Gender, ProfileVisibility } from './types';
 export { loginSchema, registerSchema, verifyEmailSchema, resendOtpSchema, updateMeSchema } from './schemas';
 export type { LoginInput, RegisterInput, VerifyEmailInput, ResendOtpInput, UpdateMeInput } from './schemas';

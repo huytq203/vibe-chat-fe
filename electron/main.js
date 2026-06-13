@@ -1,14 +1,53 @@
 'use strict';
 
-const { app, BrowserWindow, shell, Menu } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, Notification, nativeImage } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 
 const PORT = 4784;
+const APP_ID = 'com.halochat.desktop';
+const ICON_PATH = path.join(__dirname, 'resources/icons/512x512.png');
 let mainWindow = null;
 let serverProcess = null;
+
+/**
+ * IPC thông báo + badge taskbar (xem src/lib/electron). Đăng ký 1 lần khi app ready.
+ * - Badge: macOS/Linux dùng app.setBadgeCount (số); Windows dùng overlay icon từ data URL.
+ * - Notification: bắn native, click → focus lại cửa sổ.
+ */
+function registerIpc() {
+  ipcMain.on('badge:set', (_e, payload) => {
+    const count = Number(payload?.count) || 0;
+    if (process.platform === 'win32') {
+      if (!mainWindow) return;
+      const img =
+        count > 0 && payload?.iconDataUrl
+          ? nativeImage.createFromDataURL(payload.iconDataUrl)
+          : null;
+      mainWindow.setOverlayIcon(img, count > 0 ? `${count} thông báo chưa đọc` : '');
+    } else {
+      app.setBadgeCount(count);
+    }
+  });
+
+  ipcMain.on('notify:show', (_e, payload) => {
+    if (!Notification.isSupported() || !payload?.title) return;
+    const notif = new Notification({
+      title: String(payload.title),
+      body: payload.body ? String(payload.body) : undefined,
+      icon: ICON_PATH,
+    });
+    notif.on('click', () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    });
+    notif.show();
+  });
+}
 
 /**
  * Standalone dir path works in both dev (project root) and production (resources/app/).
@@ -103,6 +142,9 @@ function createWindow() {
 app.whenReady().then(() => {
   // Remove the default application menu (File, Edit, View, ...)
   Menu.setApplicationMenu(null);
+  // Cần cho Windows hiện đúng tên/icon thông báo + nhóm taskbar.
+  if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
+  registerIpc();
 
   startServer()
     .then(createWindow)

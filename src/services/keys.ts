@@ -50,8 +50,12 @@ export const chatKeys = {
   lockedConversations: () => [...chatKeys.conversations(), 'locked'] as const,
   joinRequests: (conversationId: string) =>
     [...chatKeys.conversations(), 'join-requests', conversationId] as const,
+  bannedMembers: (conversationId: string) =>
+    [...chatKeys.conversations(), 'banned', conversationId] as const,
   messages: (conversationId: string) =>
     [...chatKeys.all, 'messages', conversationId] as const,
+  pinnedMessages: (conversationId: string) =>
+    [...chatKeys.all, 'pinned', conversationId] as const,
   shared: (conversationId: string, type: string) =>
     [...chatKeys.all, 'shared', conversationId, type] as const,
   search: (

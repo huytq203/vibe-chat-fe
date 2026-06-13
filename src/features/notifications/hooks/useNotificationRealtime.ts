@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket } from '@/lib/ws/socket';
+import { isElectron, showElectronNotification } from '@/lib/electron';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, notificationKeys, userKeys } from '@/services/keys';
 import type {
@@ -71,8 +72,13 @@ export function useNotificationRealtime() {
       // List cuộn vô hạn (panel chuông) giữ shape InfiniteData → chỉ invalidate.
       qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
 
-      if (typeof document !== 'undefined' && document.hasFocus()) {
+      // App đang xem → toast trong app. App nền: web đã có FCM service worker đẩy,
+      // còn desktop (Electron) không có push nền → bắn native notification qua socket.
+      const focused = typeof document !== 'undefined' && document.hasFocus();
+      if (focused) {
         toast(n.title, { description: n.body ?? undefined });
+      } else if (isElectron()) {
+        showElectronNotification({ title: n.title, body: n.body ?? undefined });
       }
     }
 

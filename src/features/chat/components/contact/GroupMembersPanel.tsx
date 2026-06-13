@@ -1,21 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, MoreVertical, UserCheck, UserPlus, UserX, X } from "lucide-react";
+import { ArrowLeft, Ban, Crown, MoreVertical, Shield, ShieldOff, UserCheck, UserX, X } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu/DropdownMenu";
 import type { Conversation, ConversationMember } from "@/features/chat/types";
-import { useRemoveMember } from "@/features/chat/hooks/use-mutations";
+import {
+  useBanMember,
+  useRemoveMember,
+  useSetMemberRole,
+  useTransferOwnership,
+} from "@/features/chat/hooks/use-mutations";
 import { useJoinRequests } from "@/features/chat/hooks/use-query";
+import { isAdminRole } from "@/features/chat/utils";
 import { Avatar } from "@/features/chat/components/common/Avatar";
 import { AddMembersDialog } from "./AddMembersDialog";
 import { AlertRemoveMember } from "./AlertRemoveMember";
+import { AlertBanMember } from "./AlertBanMember";
+import { AlertTransferOwner } from "./AlertTransferOwner";
 
 type GroupMembersPanelProps = {
   conversation: Conversation;
@@ -32,17 +41,23 @@ const ROLE_ORDER: Record<ConversationMember["role"], number> = {
   MODERATOR: 2,
   MEMBER: 3,
 };
+// Chỉ 2 cấp quyền hiển thị: Trưởng nhóm (OWNER) và Phó nhóm (ADMIN/MODERATOR).
 const ROLE_LABEL: Record<ConversationMember["role"], string> = {
   OWNER: "Trưởng nhóm",
-  ADMIN: "Quản trị",
-  MODERATOR: "Điều hành",
+  ADMIN: "Phó nhóm",
+  MODERATOR: "Phó nhóm",
   MEMBER: "",
 };
 
 export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowRequests }: GroupMembersPanelProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ConversationMember | null>(null);
+  const [banTarget, setBanTarget] = useState<ConversationMember | null>(null);
+  const [transferTarget, setTransferTarget] = useState<ConversationMember | null>(null);
   const removeMut = useRemoveMember();
+  const banMut = useBanMember();
+  const setRoleMut = useSetMemberRole();
+  const transferMut = useTransferOwnership();
 
   const members = useMemo(
     () => (conversation.members ?? []).slice().sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
@@ -57,11 +72,38 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
   const canRemove = (m: ConversationMember) =>
     canManage && m.userId !== meId && ROLE_ORDER[myRole] < ROLE_ORDER[m.role];
 
+  // Phân quyền (cấp/gỡ phó nhóm, nhượng trưởng nhóm): chỉ OWNER thao tác (xem 28).
+  const isOwner = myRole === "OWNER";
+  const canGrantDeputy = (m: ConversationMember) => isOwner && m.userId !== meId && m.role === "MEMBER";
+  const canRevokeDeputy = (m: ConversationMember) => isOwner && isAdminRole(m.role) && m.role !== "OWNER";
+  const canTransfer = (m: ConversationMember) => isOwner && m.userId !== meId && m.role !== "OWNER";
+  const hasMenu = (m: ConversationMember) =>
+    canRemove(m) || canGrantDeputy(m) || canRevokeDeputy(m) || canTransfer(m);
+
+  const setRole = (m: ConversationMember, role: "ADMIN" | "MEMBER") =>
+    setRoleMut.mutate({ conversationId: conversation.id, userId: m.userId, role });
+
   const handleConfirmRemove = () => {
     if (!removeTarget) return;
     removeMut.mutate(
       { conversationId: conversation.id, userId: removeTarget.userId },
       { onSuccess: () => setRemoveTarget(null) },
+    );
+  };
+
+  const handleConfirmBan = () => {
+    if (!banTarget) return;
+    banMut.mutate(
+      { conversationId: conversation.id, userId: banTarget.userId },
+      { onSuccess: () => setBanTarget(null) },
+    );
+  };
+
+  const handleConfirmTransfer = () => {
+    if (!transferTarget) return;
+    transferMut.mutate(
+      { conversationId: conversation.id, userId: transferTarget.userId },
+      { onSuccess: () => setTransferTarget(null) },
     );
   };
 
@@ -124,7 +166,7 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
                   </Badge>
                 )}
               </div>
-              {canRemove(m) && (
+              {hasMenu(m) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
@@ -138,13 +180,44 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
                       </Button>
                     }
                   />
-                  <DropdownMenuContent align="end" className="min-w-[160px]">
-                    <DropdownMenuItem
-                      onClick={() => setRemoveTarget(m)}
-                      className="text-danger focus:text-danger">
-                      <UserX className="h-4 w-4" />
-                      Xoá khỏi nhóm
-                    </DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="min-w-[180px]">
+                    {canGrantDeputy(m) && (
+                      <DropdownMenuItem onClick={() => setRole(m, "ADMIN")}>
+                        <Shield className="h-4 w-4" />
+                        Cấp quyền phó nhóm
+                      </DropdownMenuItem>
+                    )}
+                    {canRevokeDeputy(m) && (
+                      <DropdownMenuItem onClick={() => setRole(m, "MEMBER")}>
+                        <ShieldOff className="h-4 w-4" />
+                        Gỡ quyền phó nhóm
+                      </DropdownMenuItem>
+                    )}
+                    {canTransfer(m) && (
+                      <DropdownMenuItem onClick={() => setTransferTarget(m)}>
+                        <Crown className="h-4 w-4" />
+                        Nhượng quyền trưởng nhóm
+                      </DropdownMenuItem>
+                    )}
+                    {(canGrantDeputy(m) || canRevokeDeputy(m) || canTransfer(m)) && canRemove(m) && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {canRemove(m) && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setRemoveTarget(m)}
+                          className="text-danger focus:text-danger">
+                          <UserX className="h-4 w-4" />
+                          Xoá khỏi nhóm
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setBanTarget(m)}
+                          className="text-danger focus:text-danger">
+                          <Ban className="h-4 w-4" />
+                          Chặn thành viên
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -172,6 +245,22 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
         name={removeTarget?.nickname || removeTarget?.displayName || removeTarget?.username || ""}
         isPending={removeMut.isPending}
         onConfirm={handleConfirmRemove}
+      />
+
+      <AlertBanMember
+        open={Boolean(banTarget)}
+        onOpenChange={(o) => !o && setBanTarget(null)}
+        name={banTarget?.nickname || banTarget?.displayName || banTarget?.username || ""}
+        isPending={banMut.isPending}
+        onConfirm={handleConfirmBan}
+      />
+
+      <AlertTransferOwner
+        open={Boolean(transferTarget)}
+        onOpenChange={(o) => !o && setTransferTarget(null)}
+        name={transferTarget?.nickname || transferTarget?.displayName || transferTarget?.username || ""}
+        isPending={transferMut.isPending}
+        onConfirm={handleConfirmTransfer}
       />
     </aside>
   );

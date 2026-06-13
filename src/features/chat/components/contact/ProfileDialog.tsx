@@ -29,6 +29,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       bio: null,
       avatarMediaId: undefined,
       coverMediaId: undefined,
+      visibility: undefined,
     },
   });
 

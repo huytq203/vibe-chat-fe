@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, MoreVertical, Pencil, Reply, Trash2 } from 'lucide-react';
+import { Copy, MoreVertical, Pencil, Pin, PinOff, Reply, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils/cn';
 import { EmojiText } from '@/components/common/EmojiText';
 import type { Message } from '@/features/chat/types';
 import { canEditMessage, getMessageSnippet } from '@/features/chat/utils';
-import { useDeleteMessage } from '@/features/chat/hooks/use-mutations';
+import { useDeleteMessage, usePinMessage, useUnpinMessage } from '@/features/chat/hooks/use-mutations';
 import { useToggleReaction } from '@/features/chat/hooks/useReactions';
 import { QUICK_REACTIONS, REACTIONS_ENABLED } from '@/features/chat/reactions';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
@@ -36,6 +36,10 @@ type MessageActionsProps = {
   isMe: boolean;
   /** Tên người gửi tin này (để dựng snapshot reply); null khi là tin của mình. */
   senderName?: string | null;
+  /** Có quyền ghim/bỏ ghim không (DIRECT luôn được; GROUP theo whoCanPin). */
+  canPin?: boolean;
+  /** Tin này đang được ghim (tra từ danh sách ghim ở MessageList). */
+  isPinned?: boolean;
   /** Chỉ hiện menu khi hover dòng tin (parent set qua group-hover). */
   className?: string;
 };
@@ -46,12 +50,22 @@ type MessageActionsProps = {
  * - Sửa: chỉ áp dụng tin TEXT → đẩy vào MessageInput qua store.
  * - Gỡ: xác nhận rồi gọi mutation (optimistic isDeleted=true).
  */
-export function MessageActions({ message, meId, isMe, senderName, className }: MessageActionsProps) {
+export function MessageActions({
+  message, meId, isMe, senderName, canPin, isPinned, className,
+}: MessageActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const startEdit = useMessageEditStore((s) => s.startEdit);
   const startReply = useMessageReplyStore((s) => s.startReply);
   const deleteMut = useDeleteMessage();
+  const pinMut = usePinMessage();
+  const unpinMut = useUnpinMessage();
   const toggleReaction = useToggleReaction(message.conversationId);
+
+  function handleTogglePin() {
+    const vars = { conversationId: message.conversationId, messageId: message.id };
+    if (isPinned) unpinMut.mutate(vars);
+    else pinMut.mutate(vars);
+  }
 
   function handleReact(emoji: string) {
     const existing = message.reactions?.find((r) => r.emoji === emoji);
@@ -138,6 +152,12 @@ export function MessageActions({ message, meId, isMe, senderName, className }: M
             <Reply className="h-4 w-4" />
             Trả lời
           </DropdownMenuItem>
+          {canPin && (
+            <DropdownMenuItem onClick={handleTogglePin}>
+              {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              {isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}
+            </DropdownMenuItem>
+          )}
           {(canEdit || canCopy || isMe) && <DropdownMenuSeparator />}
           {canEdit && (
             <DropdownMenuItem onClick={handleEdit}>

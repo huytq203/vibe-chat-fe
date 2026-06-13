@@ -2,7 +2,25 @@
 
 import { useState } from "react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
-import { Lock, LogOut, PenIcon, Phone, Pin, PinOff, Search, Settings, Trash2, UserMinus, UserPlus, Users, UserX, Video, X, Clock } from "lucide-react";
+import {
+  Link2,
+  Lock,
+  LogOut,
+  PenIcon,
+  Phone,
+  Pin,
+  PinOff,
+  Search,
+  Settings,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  Users,
+  UserX,
+  Video,
+  X,
+  Clock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
 import useContactInfor from "@/features/chat/hooks/useContactInfor";
@@ -11,7 +29,7 @@ import { useLockConversation, useRemoveLock } from "@/features/chat/hooks/use-mu
 import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
 import { useSettingsStore } from "@/features/settings";
 import { buildCallDirectory, useStartCall } from "@/features/call";
-import { getConversationAvatar } from "@/features/chat/utils";
+import { canEditGroupInfo, getConversationAvatar } from "@/features/chat/utils";
 import { SharedTabs } from "./SharedTabs";
 import { Avatar, AvatarStatus } from "@/features/chat/components/common/Avatar";
 import { QuickAction } from "@/features/chat/components/common/QuickAction";
@@ -25,16 +43,20 @@ import { AlertLeaveGroup } from "./AlertLeaveGroup";
 import { LockPasswordDialog } from "./PinDialog";
 import { GroupMembersPanel } from "./GroupMembersPanel";
 import { GroupSettingsPanel } from "./GroupSettingsPanel";
+import { BannedMembersPanel } from "./BannedMembersPanel";
+import { AdminsPanel } from "./AdminsPanel";
 import { JoinRequestsPanel } from "./JoinRequestsPanel";
 import { MessageSearchPanel } from "./MessageSearchPanel";
 import { MuteButton } from "./MuteButton";
 import { UserProfileDialog } from "./UserProfileDialog";
+import { GroupShareDialog } from "@/features/share-links";
 
 export function ContactInfo() {
   const data = useContactInfor();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "search">("info");
+  const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "banned" | "admins" | "search">("info");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
+  const [shareGroupOpen, setShareGroupOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
@@ -51,6 +73,7 @@ export function ContactInfo() {
     meId,
     otherUserId,
     name,
+    description,
     seed,
     isDirect,
     canUnfriend,
@@ -90,14 +113,14 @@ export function ContactInfo() {
   } = data;
 
   const isLocked = Boolean(conversation.isLocked);
-  const lockDialogMode: 'lock' | 'unlock' = isLocked ? 'unlock' : 'lock';
+  const lockDialogMode: "lock" | "unlock" = isLocked ? "unlock" : "lock";
   // DIRECT → avatar người kia; GROUP → avatar nhóm (giống ConversationList/ChatHeader).
   const avatarUrl = getConversationAvatar(conversation, meId);
 
   // Gọi audio/video — DIRECT và GROUP, chặn CHANNEL (giống ChatHeader).
-  const isGroup = conversation.type === 'GROUP';
+  const isGroup = conversation.type === "GROUP";
   const canCall = (isDirect && Boolean(otherUserId)) || isGroup;
-  function handleCall(type: 'AUDIO' | 'VIDEO') {
+  function handleCall(type: "AUDIO" | "VIDEO") {
     if (isDirect) {
       if (!otherUserId) return;
       void startCall(conversation.id, type, { id: otherUserId, name, avatarUrl });
@@ -140,7 +163,32 @@ export function ContactInfo() {
   if (!isDirect && view === "settings") {
     return (
       <GroupSettingsPanel
+        conversation={conversation}
+        meId={meId}
         onBack={() => setView("info")}
+        onClose={handleClose}
+        onManageBanned={() => setView("banned")}
+        onManageAdmins={() => setView("admins")}
+      />
+    );
+  }
+
+  if (!isDirect && view === "banned") {
+    return (
+      <BannedMembersPanel
+        conversationId={conversation.id}
+        onBack={() => setView("settings")}
+        onClose={handleClose}
+      />
+    );
+  }
+
+  if (!isDirect && view === "admins") {
+    return (
+      <AdminsPanel
+        conversation={conversation}
+        meId={meId}
+        onBack={() => setView("settings")}
         onClose={handleClose}
       />
     );
@@ -159,52 +207,37 @@ export function ContactInfo() {
   }
 
   if (!isDirect && view === "requests") {
-    return (
-      <JoinRequestsPanel
-        conversation={conversation}
-        onBack={() => setView("members")}
-        onClose={handleClose}
-      />
-    );
+    return <JoinRequestsPanel conversation={conversation} onBack={() => setView("members")} onClose={handleClose} />;
   }
 
   if (view === "search") {
-    return (
-      <MessageSearchPanel
-        conversation={conversation}
-        onBack={() => setView("info")}
-        onClose={handleClose}
-      />
-    );
+    return <MessageSearchPanel conversation={conversation} onBack={() => setView("info")} onClose={handleClose} />;
   }
 
   // Trên mobile, nút đóng panel quay về chat thay vì đóng sidebar.
   function handleClose() {
     if (isMobile) {
-      setMobilePanel('chat');
+      setMobilePanel("chat");
     } else {
       setRightOpen(false);
     }
   }
 
   // Role của mình trong group — dùng để gate entry point Settings.
-  const meRole = !isDirect
-    ? conversation.members?.find((m) => m.userId === meId)?.role
-    : undefined;
-  const canManageSettings =
-    meRole === 'OWNER' || meRole === 'ADMIN' || meRole === 'MODERATOR';
+  const meRole = !isDirect ? conversation.members?.find((m) => m.userId === meId)?.role : undefined;
+  const canManageSettings = meRole === "OWNER" || meRole === "ADMIN" || meRole === "MODERATOR";
+  // MEMBER cũng vào được Cài đặt nhóm khi whoCanEditInfo=ALL (chỉ để sửa tên/mô tả/ảnh).
+  const canOpenSettings =
+    !isDirect && (canManageSettings || canEditGroupInfo(conversation, meId));
+  // Mời qua link: chỉ OWNER/ADMIN/MODERATOR + nhóm đang bật joinByLink (xem 25/28).
+  const canShareGroup =
+    !isDirect && canManageSettings && conversation.settings?.joinByLink !== false;
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
         <span className="text-sm font-bold">Thông tin</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={handleClose}
-          title="Đóng"
-          aria-label="Đóng"
-        >
+        <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
           <X className="h-4 w-4" />
         </Button>
       </header>
@@ -217,23 +250,36 @@ export function ContactInfo() {
               onClick={() => setProfileOpen(true)}
               aria-label="Xem trang cá nhân"
               title="Xem trang cá nhân"
-              className="mb-3 rounded-full outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-primary"
-            >
+              className="mb-3 rounded-full outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-primary">
               <Avatar name={name} src={avatarUrl} seed={seed} size="lg" status={status as AvatarStatus} />
             </button>
           ) : (
-            <Avatar name={name} src={avatarUrl} seed={seed} size="lg" status={status as AvatarStatus} className="mb-3" />
+            <Avatar
+              name={name}
+              src={avatarUrl}
+              seed={seed}
+              size="lg"
+              status={status as AvatarStatus}
+              className="mb-3"
+            />
           )}
-          <div className="text-[17px] font-bold text-foreground flex items-center gap-2">
-            {name}
-            <button
-              type="button"
-              onClick={() => setNicknameOpen(true)}
-              className="border border-border p-1 rounded-md hover:bg-secondary transition-colors duration-200"
-              aria-label="Đặt tên gợi nhớ"
-            >
-              <PenIcon className="h-[14px] w-[14px] text-muted-foreground" />
-            </button>
+          <div className="text-[17px] text-foreground flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-bold">{name}</span>
+                {/* Nút đặt biệt danh chỉ cho DIRECT — group đổi tên trong Cài đặt nhóm. */}
+                {isDirect && otherUserId && (
+                  <button
+                    type="button"
+                    onClick={() => setNicknameOpen(true)}
+                    className="border border-border p-1 rounded-md hover:bg-secondary transition-colors duration-200"
+                    aria-label="Đặt tên gợi nhớ">
+                    <PenIcon className="h-[14px] w-[14px] text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+              {description && <div className="text-sm text-muted-foreground">{description}</div>}
+            </div>
           </div>
           <Badge variant={statusVariant} size="sm" className="mt-1.5">
             {statusText}
@@ -253,11 +299,7 @@ export function ContactInfo() {
             disabled={!canCall || callBusy}
             onClick={() => handleCall("VIDEO")}
           />
-          <QuickAction
-            icon={<Search className="h-[18px] w-[18px]" />}
-            label="Tìm"
-            onClick={() => setView("search")}
-          />
+          <QuickAction icon={<Search className="h-[18px] w-[18px]" />} label="Tìm" onClick={() => setView("search")} />
           <MuteButton conversation={conversation} />
         </section>
 
@@ -266,9 +308,7 @@ export function ContactInfo() {
         </section>
 
         <section className="px-3 pb-4 pt-2">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            Tuỳ chọn
-          </div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tuỳ chọn</div>
           <div className="flex flex-col gap-0.5">
             <OptionRow
               icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
@@ -278,11 +318,18 @@ export function ContactInfo() {
             {isDirect && (
               <OptionRow
                 icon={<Lock className="h-4 w-4" />}
-                label={isLocked ? 'Tắt khoá hội thoại' : 'Khoá hội thoại'}
+                label={isLocked ? "Tắt khoá hội thoại" : "Khoá hội thoại"}
                 onClick={handleLockToggle}
               />
             )}
-            {!isDirect && canManageSettings && (
+            {canShareGroup && (
+              <OptionRow
+                icon={<Link2 className="h-4 w-4" />}
+                label="Mời vào nhóm bằng link"
+                onClick={() => setShareGroupOpen(true)}
+              />
+            )}
+            {canOpenSettings && (
               <OptionRow
                 icon={<Settings className="h-4 w-4" />}
                 label="Cài đặt nhóm"
@@ -290,10 +337,18 @@ export function ContactInfo() {
               />
             )}
             {isDirect && canUnfriend && (
-              <OptionRow icon={<Users className="h-4 w-4" />} label="Tạo nhóm" onClick={() => setCreateGroupOpen(true)} />
+              <OptionRow
+                icon={<Users className="h-4 w-4" />}
+                label="Tạo nhóm"
+                onClick={() => setCreateGroupOpen(true)}
+              />
             )}
             {!isDirect && (
-              <OptionRow icon={<Users className="h-4 w-4" />} label="Thành viên nhóm" onClick={() => setView("members")} />
+              <OptionRow
+                icon={<Users className="h-4 w-4" />}
+                label="Thành viên nhóm"
+                onClick={() => setView("members")}
+              />
             )}
             {canUnfriend ? (
               <OptionRow
@@ -345,14 +400,27 @@ export function ContactInfo() {
         </section>
       </div>
 
+      {!isDirect && (
+        <GroupShareDialog
+          open={shareGroupOpen}
+          onOpenChange={setShareGroupOpen}
+          conversationId={conversation.id}
+          groupName={conversation.name}
+        />
+      )}
+
       <CreateGroupDialog
         open={createGroupOpen}
         onOpenChange={setCreateGroupOpen}
-        preselected={isDirect && otherUserId ? {
-          id: otherUserId,
-          name,
-          avatarUrl: conversation.members?.find((m) => m.userId === otherUserId)?.avatarUrl,
-        } : undefined}
+        preselected={
+          isDirect && otherUserId
+            ? {
+                id: otherUserId,
+                name,
+                avatarUrl: conversation.members?.find((m) => m.userId === otherUserId)?.avatarUrl,
+              }
+            : undefined
+        }
       />
 
       {isDirect && otherUserId && (
@@ -410,11 +478,7 @@ export function ContactInfo() {
       />
 
       {isDirect && otherUserId && (
-        <UserProfileDialog
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-          userId={otherUserId}
-        />
+        <UserProfileDialog open={profileOpen} onOpenChange={setProfileOpen} userId={otherUserId} />
       )}
     </aside>
   );

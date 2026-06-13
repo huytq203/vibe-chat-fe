@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Bell, MessageSquare, Search, Users } from 'lucide-react';
@@ -100,8 +101,15 @@ export function ConversationList() {
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[18px]">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-primary/30 bg-primary/15">
-            <MessageSquare className="h-[18px] w-[18px] text-primary" />
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
+            <Image
+              src="/icon-192.png"
+              alt="HaloChat"
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+              priority
+            />
           </div>
           <span className="text-lg font-bold tracking-tight">HaloChat</span>
         </div>

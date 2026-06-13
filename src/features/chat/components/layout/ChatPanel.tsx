@@ -13,7 +13,9 @@ import { CallBanner } from '@/features/call';
 import { ConvLockScreen } from './ConvLockScreen';
 import { MessageList } from '@/features/chat/components/messages/MessageList';
 import { MessageInput } from '@/features/chat/components/messages/MessageInput';
+import { PinnedBanner } from '@/features/chat/components/messages/PinnedBanner';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
+import { canSendMessage } from '@/features/chat/utils';
 
 export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
@@ -119,8 +121,15 @@ export function ChatPanel() {
         <ConvLockScreen conversationId={conversation.id} name={convName} />
       ) : (
         <>
+          <PinnedBanner conversation={conversation} meId={meId} />
           <MessageList conversationId={conversation.id} />
-          <MessageInput conversationId={conversation.id} />
+          {canSendMessage(conversation, meId) ? (
+            <MessageInput conversationId={conversation.id} />
+          ) : (
+            <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3 text-center text-[12.5px] text-muted-foreground">
+              Chỉ quản trị viên được nhắn trong nhóm này
+            </div>
+          )}
         </>
       )}
     </main>

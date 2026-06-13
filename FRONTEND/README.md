@@ -24,6 +24,8 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 |---|---|
 | [03-conversations.md](./03-conversations.md) | CRUD conversation (direct/group, list, **ghim**, **xoá**) |
 | [16-group-members.md](./16-group-members.md) | Thêm thành viên, **xin vào nhóm** (join request), duyệt/từ chối |
+| [28-group-settings.md](./28-group-settings.md) | **Cài đặt nhóm**: đổi tên, **quyền hạn** (join link/phê duyệt/quyền chat/ghim), **chặn thành viên** |
+| [29-pinned-messages.md](./29-pinned-messages.md) | **Ghim tin nhắn** (1-1 + nhóm, tối đa 5) |
 | [04-messages.md](./04-messages.md) | Gửi/nhận tin nhắn, mention `@user`, đánh dấu đọc |
 | [15-edit-recall-selfdestruct.md](./15-edit-recall-selfdestruct.md) | Sửa tin (5 phút), gỡ tin, tin tự huỷ |
 | [14-media-upload.md](./14-media-upload.md) | Upload ảnh/video/voice/file rồi gắn vào tin nhắn |
@@ -45,7 +47,9 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 | [05-presence.md](./05-presence.md) | Trạng thái online + label "5 phút trước" |
 | [06-friends-blocks.md](./06-friends-blocks.md) | Search user, kết bạn, chặn |
 | [24-profile.md](./24-profile.md) | **Hồ sơ cá nhân** (sửa tên/bio/giới tính/ngày sinh/avatar/cover), xem profile user khác, tìm **`@username`** |
+| [30-profile-visibility.md](./30-profile-visibility.md) | **Quyền riêng tư hồ sơ** PUBLIC/PRIVATE — PRIVATE ẩn khỏi search, chỉ qua link/QR (chia sẻ cá nhân = mobile) |
 | [25-share-links.md](./25-share-links.md) | **Chia sẻ link cá nhân & nhóm + QR** — thu hồi, hết hạn, giới hạn lượt |
+| [26-common-groups.md](./26-common-groups.md) | **Nhóm chung** với 1 user khác — tab "Nhóm chung" trong profile, cursor-based |
 
 ### 🔔 Notification + Push
 

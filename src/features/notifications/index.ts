@@ -11,6 +11,7 @@ export {
 export { useNotificationRealtime } from './hooks/useNotificationRealtime';
 export { useFcmSetup } from './hooks/useFcmSetup';
 export { useFaviconBadge } from './hooks/useFaviconBadge';
+export { useElectronBadge } from './hooks/useElectronBadge';
 export type {
   Notification,
   NotificationType,

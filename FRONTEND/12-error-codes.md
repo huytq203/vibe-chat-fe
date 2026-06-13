@@ -54,6 +54,22 @@ Format response error xem [02-response-envelope.md](./02-response-envelope.md#er
 | `CONVERSATION_CANNOT_REMOVE_SELF` | 400 | Tự kick mình | Dùng nút "Rời nhóm" thay vì kick |
 | `CONVERSATION_CANNOT_REMOVE_OWNER` | 403 | Cố kick chủ nhóm | Ẩn nút kick trên OWNER |
 | `CONVERSATION_OWNER_CANNOT_LEAVE` | 403 | Owner rời nhóm | Bắt chuyển quyền hoặc xoá nhóm trước |
+| `CONVERSATION_EDIT_INFO_RESTRICTED` | 403 | `whoCanEditInfo=ADMIN` mà MEMBER sửa tên/mô tả | Ẩn nút sửa info nếu không phải quản trị viên |
+| `CONVERSATION_SEND_RESTRICTED` | 403 | `whoCanSend=ADMIN` mà MEMBER gửi tin | Ẩn ô nhập + banner "Chỉ quản trị viên được nhắn" |
+| `CONVERSATION_PIN_RESTRICTED` | 403 | `whoCanPin=ADMIN` mà MEMBER ghim/bỏ ghim | Ẩn nút ghim nếu không đủ quyền |
+| `CONVERSATION_JOIN_LINK_DISABLED` | 403 | Nhóm tắt vào qua link/QR (`joinByLink=false`) | "Nhóm không cho tham gia qua link" |
+| `CONVERSATION_MEMBER_ALREADY_BANNED` | 409 | Chặn user đã bị chặn | Refresh member list |
+| `CONVERSATION_NOT_BANNED` | 404 | Bỏ chặn user chưa bị chặn | Refresh danh sách chặn |
+
+> Cài đặt nhóm + chặn thành viên → [28-group-settings.md](./28-group-settings.md).
+
+## Pin message (xem [29-pinned-messages.md](./29-pinned-messages.md))
+
+| Code | HTTP | Khi nào | FE nên làm |
+|---|---|---|---|
+| `PIN_LIMIT_REACHED` | 400 | Đã đủ 5 tin ghim | "Tối đa 5 tin ghim — bỏ bớt rồi ghim" |
+| `MESSAGE_ALREADY_PINNED` | 409 | Ghim tin đã ghim | Refresh danh sách ghim |
+| `MESSAGE_NOT_PINNED` | 404 | Bỏ ghim tin chưa ghim | Refresh danh sách ghim |
 
 ## Conversation — Join request (xem [16-group-members.md](./16-group-members.md))
 

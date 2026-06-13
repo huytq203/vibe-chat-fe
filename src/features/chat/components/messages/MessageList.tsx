@@ -4,13 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth';
-import { useConversation, useMessages } from '@/features/chat/hooks/use-query';
+import { useConversation, useMessages, usePinnedMessages } from '@/features/chat/hooks/use-query';
 import { useSelfDestruct } from '@/features/chat/hooks/useSelfDestruct';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
-import type { Message } from '@/features/chat/types';
-import { buildMemberAvatarMap, buildMemberNameMap } from '@/features/chat/utils';
+import type { MemberRole, Message } from '@/features/chat/types';
+import {
+  buildMemberAvatarMap,
+  buildMemberNameMap,
+  canPinMessage,
+  getLeaderLabel,
+} from '@/features/chat/utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { LightboxProvider } from './LightboxProvider';
@@ -30,6 +35,24 @@ export function MessageList({ conversationId }: MessageListProps) {
   const memberAvatars = useMemo(() => buildMemberAvatarMap(conversation), [conversation]);
   // Group/Channel: hiện tên người gửi trên tin đầu mỗi chuỗi để biết ai gửi.
   const showSenderNames = conversation ? conversation.type !== 'DIRECT' : false;
+
+  // Ghim tin (xem 29): quyền ghim + tập id đang ghim để hiện đúng nhãn Ghim/Bỏ ghim.
+  const canPin = conversation ? canPinMessage(conversation, meId) : false;
+  const hasPins = (conversation?.pinnedCount ?? 0) > 0;
+  const { data: pinnedData } = usePinnedMessages(conversationId, hasPins);
+  const pinnedIds = useMemo(
+    () => new Set((Array.isArray(pinnedData) ? pinnedData : []).map((m) => m.id)),
+    [pinnedData],
+  );
+
+  // Badge trưởng/phó nhóm (xem 28): chỉ khi bật markLeaderMessages ở GROUP/CHANNEL.
+  const showLeaderBadges =
+    !!conversation && conversation.type !== 'DIRECT' && conversation.settings?.markLeaderMessages === true;
+  const memberRoles = useMemo(() => {
+    const map: Record<string, MemberRole> = {};
+    conversation?.members?.forEach((m) => { map[m.userId] = m.role; });
+    return map;
+  }, [conversation]);
   const {
     data,
     isLoading,
@@ -217,6 +240,9 @@ export function MessageList({ conversationId }: MessageListProps) {
             repliedToName={repliedToName}
             onQuoteClick={scrollToMessage}
             isHighlighted={highlightId === m.id}
+            canPin={canPin}
+            isPinned={pinnedIds.has(m.id)}
+            leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
           />
         );
       })}

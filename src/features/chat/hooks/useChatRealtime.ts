@@ -80,6 +80,20 @@ type MuteUpdatedPayload = {
   isMuted: boolean;
   mutedUntil: string | null;
 };
+// Đổi tên/mô tả/settings/isPublic của nhóm (xem 28-group-settings.md).
+type ConversationUpdatedPayload = {
+  conversationId: string;
+  updatedBy?: string;
+  at?: string;
+};
+// Ghim/bỏ ghim tin (xem 29-pinned-messages.md).
+type PinUpdatedPayload = {
+  conversationId: string;
+  action: 'PINNED' | 'UNPINNED';
+  messageId: string;
+  by?: string;
+  at?: string;
+};
 const HEARTBEAT_MS = 30_000;
 const TYPING_AUTOCLEAR_MS = 6_000;
 
@@ -377,7 +391,21 @@ export function useChatRealtime() {
     }
 
 
+    // Tên/mô tả/settings/isPublic đổi → refetch detail để lấy bản mới.
+    function onConversationUpdated(payload: ConversationUpdatedPayload) {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    }
+
+    // Ghim/bỏ ghim tin → refetch danh sách ghim + detail (pinnedCount).
+    function onPinUpdated(payload: PinUpdatedPayload) {
+      qc.invalidateQueries({ queryKey: chatKeys.pinnedMessages(payload.conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
+    }
+
     socket.on('message:new', onMessageNew);
+    socket.on('conversation:updated', onConversationUpdated);
+    socket.on('conversation:pin_updated', onPinUpdated);
     socket.on('message:edited', onMessageEdited);
     socket.on('message:deleted', onMessageDeleted);
     socket.on('conversation:notify', onConversationNotify);
@@ -414,6 +442,8 @@ export function useChatRealtime() {
 
     return () => {
       socket.off('message:new', onMessageNew);
+      socket.off('conversation:updated', onConversationUpdated);
+      socket.off('conversation:pin_updated', onPinUpdated);
       socket.off('message:edited', onMessageEdited);
       socket.off('message:deleted', onMessageDeleted);
       socket.off('conversation:notify', onConversationNotify);

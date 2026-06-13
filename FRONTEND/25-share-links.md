@@ -166,7 +166,7 @@ Response `200` — **`UseShareLinkResponseDto`**:
   "success": true,
   "data": {
     "type": "USER",
-    "user": { "id": "...", "username": "huytq", "displayName": "Huy", "customName": null,
+    "user": { "id": "...", "username": "huytq", "displayName": "Huy",
               "avatarUrl": null, "coverUrl": null, "bio": null, "gender": "UNDISCLOSED",
               "dateOfBirth": null, "status": "ACTIVE", "isMe": false, "friendship": "NONE" },
     "group": null

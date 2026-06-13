@@ -7,6 +7,7 @@ import {
   Clock,
   Phone,
   PhoneMissed,
+  Pin,
   RotateCw,
   Video,
   X,
@@ -43,11 +44,17 @@ type MessageBubbleProps = {
   onQuoteClick?: (messageId: string) => void;
   /** Đang được nháy sáng do vừa cuộn tới từ một reply. */
   isHighlighted?: boolean;
+  /** Có quyền ghim/bỏ ghim tin trong conversation này (truyền xuống MessageActions). */
+  canPin?: boolean;
+  /** Tin này đang được ghim. */
+  isPinned?: boolean;
+  /** Nhãn "Trưởng nhóm"/"Phó nhóm" của người gửi (chỉ khi markLeaderMessages). */
+  leaderLabel?: string | null;
 };
 
 export function MessageBubble({
   message, meId, showAvatar, senderName, showSenderName, senderAvatarUrl, senderSeed,
-  repliedTo, repliedToName, onQuoteClick, isHighlighted,
+  repliedTo, repliedToName, onQuoteClick, isHighlighted, canPin, isPinned, leaderLabel,
 }: MessageBubbleProps) {
   const isMe = message.senderId === meId;
   const isSending = message.metadata?.optimistic === true;
@@ -67,6 +74,8 @@ export function MessageBubble({
       meId={meId}
       isMe={isMe}
       senderName={senderName}
+      canPin={canPin}
+      isPinned={isPinned}
       className="self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
     />
   );
@@ -91,9 +100,24 @@ export function MessageBubble({
         </div>
       )}
       <div className="max-w-[65%]">
+        {isPinned && (
+          <span
+            className={cn(
+              'mb-0.5 flex items-center gap-1 text-[10px] font-medium text-primary',
+              isMe ? 'justify-end pr-1' : 'ml-1.5',
+            )}
+          >
+            <Pin className="h-3 w-3" /> Đã ghim
+          </span>
+        )}
         {!isMe && showSenderName && senderName && (
-          <p className="mb-0.5 ml-1.5 text-[11px] font-semibold text-muted-foreground">
+          <p className="mb-0.5 ml-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
             {senderName}
+            {leaderLabel && (
+              <span className="rounded bg-primary/15 px-1.5 py-px text-[9.5px] font-bold text-primary">
+                {leaderLabel}
+              </span>
+            )}
           </p>
         )}
         <div

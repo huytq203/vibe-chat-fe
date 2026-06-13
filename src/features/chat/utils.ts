@@ -1,6 +1,6 @@
 import { format, isToday, isYesterday, differenceInDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import type { Conversation, ConversationMember, Message } from './types';
+import type { Conversation, ConversationMember, MemberRole, Message } from './types';
 
 // ─── Sửa / gỡ tin & tin tự huỷ ───────────────────────────────────────────────
 // Xem FRONTEND/15-edit-recall-selfdestruct.md
@@ -192,6 +192,12 @@ export function getConversationName(conv: Conversation, meId: string | null): st
   }
   return 'Nhóm chưa đặt tên';
 }
+export function getConversationDescription(conv: Conversation) {
+  if (conv.description) return conv.description;
+  if (conv.type === 'DIRECT') {
+   return conv.description || '';
+  }
+}
 
 export function getConversationSeed(conv: Conversation, meId: string | null): string {
   if (conv.type === 'DIRECT') {
@@ -212,4 +218,51 @@ export function getConversationAvatar(conv: Conversation, meId: string | null): 
     return other?.avatarUrl ?? null;
   }
   return conv.avatarUrl ?? null;
+}
+
+// ─── Quyền hạn nhóm (xem 28-group-settings.md) ───────────────────────────────
+
+const ADMIN_ROLES: readonly MemberRole[] = ['OWNER', 'ADMIN', 'MODERATOR'];
+
+/** Vai trò của mình trong nhóm; null nếu không tìm thấy (DIRECT hoặc chưa load members). */
+export function getMyRole(conv: Conversation, meId: string | null): MemberRole | null {
+  return conv.members?.find((m) => m.userId === meId)?.role ?? null;
+}
+
+/** OWNER/ADMIN/MODERATOR — nhóm "quản trị viên" theo phạm vi `ADMIN`. */
+export function isAdminRole(role: MemberRole | null | undefined): boolean {
+  return role != null && ADMIN_ROLES.includes(role);
+}
+
+/** Áp 1 quyền theo phạm vi: ALL = mọi thành viên; ADMIN = chỉ quản trị viên. */
+function allowByScope(
+  conv: Conversation,
+  meId: string | null,
+  scope: 'ADMIN' | 'ALL' | undefined,
+): boolean {
+  if (conv.type === 'DIRECT') return true;
+  if (scope === 'ALL') return true;
+  return isAdminRole(getMyRole(conv, meId));
+}
+
+/** Có được gửi tin không (DIRECT luôn được; GROUP theo `settings.whoCanSend`). */
+export function canSendMessage(conv: Conversation, meId: string | null): boolean {
+  return allowByScope(conv, meId, conv.settings?.whoCanSend ?? 'ALL');
+}
+
+/** Có được ghim/bỏ ghim không (DIRECT luôn được; GROUP theo `settings.whoCanPin`). */
+export function canPinMessage(conv: Conversation, meId: string | null): boolean {
+  return allowByScope(conv, meId, conv.settings?.whoCanPin ?? 'ADMIN');
+}
+
+/** Có được sửa tên/mô tả nhóm không (theo `settings.whoCanEditInfo`). */
+export function canEditGroupInfo(conv: Conversation, meId: string | null): boolean {
+  return allowByScope(conv, meId, conv.settings?.whoCanEditInfo ?? 'ADMIN');
+}
+
+/** Badge trưởng/phó nhóm cho tin của thành viên (chỉ khi `markLeaderMessages`). */
+export function getLeaderLabel(role: MemberRole | null | undefined): string | null {
+  if (role === 'OWNER') return 'Trưởng nhóm';
+  if (role === 'ADMIN' || role === 'MODERATOR') return 'Phó nhóm';
+  return null;
 }

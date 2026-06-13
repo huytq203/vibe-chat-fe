@@ -1,8 +1,10 @@
 import { apiClient } from '@/lib/api/client';
 import type {
   AttachmentUrl,
+  BannedMember,
   CommonGroupsPage,
   Conversation,
+  GroupSettings,
   JoinRequest,
   Message,
   MessagesPage,
@@ -10,6 +12,16 @@ import type {
   SendMessageInput,
   SharedContentType,
 } from '@/features/chat/types';
+
+/** Body cập nhật tên/mô tả/avatar/công khai nhóm (PATCH /conversations/{id}). Xem 28. */
+export type UpdateConversationInput = {
+  name?: string;
+  /** Gửi null để xoá mô tả. */
+  description?: string | null;
+  /** mediaId ảnh đã upload (xem 14-media-upload). Gửi null để gỡ avatar. */
+  avatarMediaId?: string | null;
+  isPublic?: boolean;
+};
 
 /**
  * Chat REST transport. Pure — không đụng cache/state.
@@ -254,6 +266,83 @@ export const chatApi = {
     apiClient.get<CommonGroupsPage>(`/api/v1/conversations/common-groups/${userId}`, {
       query: { limit: params.limit ?? 20, cursor: params.cursor },
     }),
+
+  // ─── Cài đặt nhóm (đổi tên/mô tả/công khai + quyền hạn) ─────────────────────
+  // Contract theo FRONTEND/28-group-settings.md. Trả Conversation đầy đủ đã cập nhật.
+
+  /** Đổi tên/mô tả/công khai nhóm. Quyền theo settings.whoCanEditInfo (isPublic luôn cần ADMIN). */
+  updateConversation: (id: string, input: UpdateConversationInput) =>
+    apiClient.patch<Conversation>(`/api/v1/conversations/${id}`, { body: input }),
+
+  /** Cập nhật quyền hạn nhóm (chỉ OWNER/ADMIN/MODERATOR). Tất cả field optional. */
+  updateSettings: (id: string, input: Partial<GroupSettings>) =>
+    apiClient.patch<Conversation>(`/api/v1/conversations/${id}/settings`, { body: input }),
+
+  // ─── Phân quyền thành viên (CONTRACT GIẢ ĐỊNH — chờ BE xác nhận) ────────────
+  // 2 cấp quyền: OWNER (trưởng nhóm) + ADMIN (phó nhóm). role='MEMBER' = gỡ quyền phó.
+
+  /** Đặt vai trò 1 thành viên (cấp/gỡ quyền phó nhóm). Chỉ OWNER. */
+  setMemberRole: (conversationId: string, userId: string, role: 'ADMIN' | 'MEMBER') =>
+    apiClient.patch<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/role`,
+      { body: { role } },
+    ),
+
+  /** Nhượng quyền trưởng nhóm cho 1 thành viên. Chỉ OWNER. */
+  transferOwnership: (conversationId: string, userId: string) =>
+    apiClient.post<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/transfer-owner`,
+      { body: { userId } },
+    ),
+
+  /** Chặn (ban) 1 thành viên — chỉ role thấp hơn. Trả { ok: true }. */
+  banMember: (conversationId: string, userId: string) =>
+    apiClient.post<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/ban`,
+    ),
+
+  /** Bỏ chặn 1 thành viên. Trả { ok: true }. */
+  unbanMember: (conversationId: string, userId: string) =>
+    apiClient.delete<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/ban`,
+    ),
+
+  /** Danh sách thành viên đang bị chặn. Chuẩn hoá về BannedMember[] dù BE trả
+   *  mảng trực tiếp hay bọc { items } / { data }. */
+  listBannedMembers: async (conversationId: string): Promise<BannedMember[]> => {
+    const res = await apiClient.get<unknown>(
+      `/api/v1/conversations/${conversationId}/banned-members`,
+    );
+    if (Array.isArray(res)) return res as BannedMember[];
+    const obj = res as { items?: BannedMember[]; data?: BannedMember[] } | null;
+    return obj?.items ?? obj?.data ?? [];
+  },
+
+  // ─── Ghim tin nhắn (pinned messages) ────────────────────────────────────────
+  // Contract theo FRONTEND/29-pinned-messages.md. Tối đa 5 tin / conversation.
+
+  /** Ghim 1 tin. Trả Message đã giải mã. */
+  pinMessage: (conversationId: string, messageId: string) =>
+    apiClient.post<Message>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/pin`,
+    ),
+
+  /** Bỏ ghim 1 tin. Trả { ok: true }. */
+  unpinMessage: (conversationId: string, messageId: string) =>
+    apiClient.delete<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/pin`,
+    ),
+
+  /** Danh sách tin đang ghim (mới ghim đứng đầu, tối đa 5). Chuẩn hoá về Message[]
+   *  dù BE trả mảng trực tiếp hay bọc trong { items } / { data }. */
+  listPinnedMessages: async (conversationId: string): Promise<Message[]> => {
+    const res = await apiClient.get<unknown>(
+      `/api/v1/conversations/${conversationId}/pinned-messages`,
+    );
+    if (Array.isArray(res)) return res as Message[];
+    const obj = res as { items?: Message[]; data?: Message[] } | null;
+    return obj?.items ?? obj?.data ?? [];
+  },
 
   // ─── Reactions (thả cảm xúc emoji) ─────────────────────────────────────────
   // ⚠️ CHƯA chốt API BE. Endpoint dưới là DỰ KIẾN — xác nhận với BE trước khi bật

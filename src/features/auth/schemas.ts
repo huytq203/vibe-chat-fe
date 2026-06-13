@@ -76,6 +76,8 @@ export const updateMeSchema = z.object({
   dateOfBirth: z.string().nullable().optional(),
   avatarMediaId: z.string().uuid().nullable().optional(),
   coverMediaId: z.string().uuid().nullable().optional(),
+  // Chế độ hiển thị hồ sơ (xem 30-profile-visibility.md).
+  visibility: z.enum(['PUBLIC', 'PRIVATE']).optional(),
 });
 
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;

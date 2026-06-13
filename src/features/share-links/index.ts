@@ -1,4 +1,5 @@
 export { ShareLinkDialog } from './components/ShareLinkDialog';
+export { GroupShareDialog } from './components/GroupShareDialog';
 export { InviteCard } from './components/InviteCard';
 export { InviteProfileModal } from './components/InviteProfileModal';
 export { useMyShareLinks, useResolveShareLink } from './hooks/use-query';

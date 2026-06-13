@@ -9,6 +9,7 @@ import {
   requestPushPermission,
 } from '@/lib/firebase/messaging';
 import { logger } from '@/lib/logger';
+import { isElectron } from '@/lib/electron';
 import { useAuthStore } from '@/features/auth';
 import { isFirebaseConfigured } from '@/config/env';
 import { notificationKeys } from '@/services/keys';
@@ -29,6 +30,12 @@ export function useFcmSetup() {
 
   useEffect(() => {
     if (!isAuthed || !userId) return;
+    // Desktop (Electron) không có push nền của trình duyệt → dùng native notification
+    // qua socket (useNotificationRealtime). Bỏ qua đăng ký FCM web ở đây.
+    if (isElectron()) {
+      logger.info('FCM skipped (running in Electron desktop)');
+      return;
+    }
     if (!isFirebaseConfigured()) {
       logger.info('FCM skipped (firebase env not configured)');
       return;

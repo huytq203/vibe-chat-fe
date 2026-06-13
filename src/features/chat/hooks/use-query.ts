@@ -115,6 +115,36 @@ export function useJoinRequests(conversationId: string | null, enabled = true) {
   });
 }
 
+/**
+ * Danh sách tin đang ghim của 1 conversation (tối đa 5, mới ghim đứng đầu).
+ * Realtime `conversation:pin_updated` invalidate key này (xem useChatRealtime).
+ */
+export function usePinnedMessages(conversationId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: conversationId
+      ? chatKeys.pinnedMessages(conversationId)
+      : ['chat', 'pinned', 'null'],
+    queryFn: () => chatApi.listPinnedMessages(conversationId as string),
+    enabled: Boolean(conversationId) && enabled,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Danh sách thành viên đang bị chặn của 1 nhóm (xem 28-group-settings.md §4).
+ * Chỉ fetch khi mở panel quản lý chặn (enabled).
+ */
+export function useBannedMembers(conversationId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: conversationId
+      ? chatKeys.bannedMembers(conversationId)
+      : ['chat', 'banned', 'null'],
+    queryFn: () => chatApi.listBannedMembers(conversationId as string),
+    enabled: Boolean(conversationId) && enabled,
+    staleTime: 60_000,
+  });
+}
+
 export function usePresence(userIds: string[]) {
   const enabled = userIds.length > 0;
   // Realtime qua WebSocket (event `presence:update` trong useChatRealtime), KHÔNG poll.

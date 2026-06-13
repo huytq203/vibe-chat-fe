@@ -72,4 +72,10 @@ export type ShareLinkProfile = {
 
 export type UseShareLinkResult =
   | { type: 'USER'; user: ShareLinkProfile; group: null }
-  | { type: 'GROUP'; user: null; group: { conversationId: string; joined: boolean } };
+  | {
+      type: 'GROUP';
+      user: null;
+      // `pending: true` khi nhóm bật joinApproval → tạo join-request chờ duyệt thay vì
+      // vào thẳng (xem 28-group-settings.md §5).
+      group: { conversationId: string; joined: boolean; pending?: boolean };
+    };

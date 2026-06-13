@@ -21,6 +21,12 @@ export function GroupInviteCard({ group, code, onBack, modal }: Props) {
     try {
       const result = await useLink.mutateAsync(code);
       if (result.type === 'GROUP') {
+        // joinApproval bật → tạo join-request chờ duyệt, KHÔNG vào thẳng (xem 28 §5).
+        if (result.group.pending) {
+          toast.success('Đã gửi yêu cầu vào nhóm, chờ duyệt');
+          onBack();
+          return;
+        }
         toast.success(result.group.joined ? 'Đã tham gia nhóm' : 'Mở nhóm');
         router.push(`/chat/${result.group.conversationId}`);
       }

@@ -1,20 +1,26 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Dialog as BaseDialog } from '@base-ui/react';
 import { InviteCard } from './InviteCard';
 
 export function InviteProfileModal() {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const router = useRouter();
   const code = searchParams.get('invite');
 
+  /**
+   * Đóng modal = rời khỏi URL `?invite=`.
+   * Dùng router.back() để về đúng /chat/:id trước đó (pathname KHÁC → tránh
+   * no-op của Next App Router khi replace về cùng static route `/chat` ở production).
+   * Mở thẳng từ QR (không có lịch sử app) → điều hướng cứng để chắc chắn thoát param.
+   */
   function handleClose() {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('invite');
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    window.location.replace('/chat');
   }
 
   if (!code) return null;

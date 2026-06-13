@@ -1,5 +1,7 @@
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'UNDISCLOSED';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED';
+/** Quyền riêng tư hồ sơ — PRIVATE thì ẩn khỏi search, chỉ tiếp cận qua link/QR (xem 30). */
+export type ProfileVisibility = 'PUBLIC' | 'PRIVATE';
 
 /**
  * Hồ sơ user — đúng shape `UserResponseDto` của `GET /api/v1/users/me` (chat backend).
@@ -17,6 +19,8 @@ export type AuthUser = {
   gender: Gender | null;
   dateOfBirth: string | null;
   status: UserStatus;
+  /** Chế độ hiển thị hồ sơ (xem 30-profile-visibility.md). */
+  visibility: ProfileVisibility;
 };
 
 export type AuthTokens = {

@@ -2,9 +2,10 @@
 
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { chatApi } from '@/services/chat.api';
+import { chatApi, type UpdateConversationInput } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { ApiError, apiAuth } from '@/lib/api/client';
+import { getErrorMessage } from '@/lib/api/error-message';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { getSocket } from '@/lib/ws/socket';
 import { serverNow } from '@/lib/time/server-clock';
@@ -12,8 +13,10 @@ import { useAuthStore } from '@/features/auth';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
 import type {
+  Conversation,
   DeleteMessageInput,
   EditMessageInput,
+  GroupSettings,
   Message,
   MessagesPage,
   SendMessageInput,
@@ -768,6 +771,146 @@ export function useChangeLockPassword() {
       } else {
         toast.error(e.message || 'Đổi mật khẩu thất bại');
       }
+    },
+  });
+}
+
+// ─── Cài đặt nhóm (xem 28-group-settings.md) ─────────────────────────────────
+
+/** Đổi tên/mô tả/công khai nhóm. BE trả Conversation đầy đủ đã cập nhật. */
+export function useUpdateConversation() {
+  const qc = useQueryClient();
+  return useMutation<
+    Conversation,
+    Error,
+    { conversationId: string; input: UpdateConversationInput }
+  >({
+    mutationFn: ({ conversationId, input }) =>
+      chatApi.updateConversation(conversationId, input),
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã cập nhật thông tin nhóm');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Cập nhật nhóm thất bại')),
+  });
+}
+
+/** Cập nhật quyền hạn nhóm (joinByLink, whoCanSend, …). BE trả Conversation đầy đủ. */
+export function useUpdateGroupSettings() {
+  const qc = useQueryClient();
+  return useMutation<
+    Conversation,
+    Error,
+    { conversationId: string; settings: Partial<GroupSettings> }
+  >({
+    mutationFn: ({ conversationId, settings }) =>
+      chatApi.updateSettings(conversationId, settings),
+    onSuccess: (conv, { conversationId }) => {
+      qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Cập nhật quyền nhóm thất bại')),
+  });
+}
+
+/** Chặn (ban) 1 thành viên. BE phát WS member_removed (reason KICKED) → refetch detail. */
+export function useBanMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.banMember(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.bannedMembers(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã chặn thành viên');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Chặn thành viên thất bại')),
+  });
+}
+
+/** Bỏ chặn 1 thành viên. */
+export function useUnbanMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.unbanMember(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.bannedMembers(conversationId) });
+      toast.success('Đã bỏ chặn thành viên');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Bỏ chặn thất bại')),
+  });
+}
+
+/** Cấp/gỡ quyền phó nhóm (ADMIN ↔ MEMBER). Chỉ OWNER. Refetch detail để cập nhật role. */
+export function useSetMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId, role }: {
+      conversationId: string; userId: string; role: 'ADMIN' | 'MEMBER';
+    }) => chatApi.setMemberRole(conversationId, userId, role),
+    onSuccess: (_res, { conversationId, role }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      toast.success(role === 'ADMIN' ? 'Đã cấp quyền phó nhóm' : 'Đã gỡ quyền phó nhóm');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Cập nhật quyền thất bại')),
+  });
+}
+
+/** Nhượng quyền trưởng nhóm. Chỉ OWNER. Refetch detail + list (role mình đổi). */
+export function useTransferOwnership() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.transferOwnership(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      toast.success('Đã nhượng quyền trưởng nhóm');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Nhượng quyền thất bại')),
+  });
+}
+
+// ─── Ghim tin nhắn (xem 29-pinned-messages.md) ───────────────────────────────
+
+/** Ghim 1 tin. Invalidate danh sách ghim + detail (pinnedCount). */
+export function usePinMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
+      chatApi.pinMessage(conversationId, messageId),
+    onSuccess: (_msg, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.pinnedMessages(conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      toast.success('Đã ghim tin nhắn');
+    },
+    onError: (e) => {
+      const code = e instanceof ApiError ? e.code : '';
+      // Đã ghim ở nơi khác → coi như xong, chỉ đồng bộ danh sách.
+      if (code === 'MESSAGE_ALREADY_PINNED') return;
+      toast.error(getErrorMessage(e, 'Ghim tin nhắn thất bại'));
+    },
+  });
+}
+
+/** Bỏ ghim 1 tin. */
+export function useUnpinMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
+      chatApi.unpinMessage(conversationId, messageId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.pinnedMessages(conversationId) });
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+    },
+    onError: (e) => {
+      const code = e instanceof ApiError ? e.code : '';
+      if (code === 'MESSAGE_NOT_PINNED') return;
+      toast.error(getErrorMessage(e, 'Bỏ ghim thất bại'));
     },
   });
 }
