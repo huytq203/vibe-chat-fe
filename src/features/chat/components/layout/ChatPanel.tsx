@@ -47,11 +47,22 @@ export function ChatPanel() {
     }
   }, [isMobile, mobilePanel, selectedConversationId, relock]);
 
+  // Subscribe vào unlockedIds (state) — KHÔNG phải method isUnlocked (ref cố định),
+  // để markUnlocked() trigger re-render mở khoá ngay, không phải đợi re-render khác.
+  const unlockedIds = useConvLockStore((s) => s.unlockedIds);
+  const isLocked =
+    conversation != null &&
+    Boolean(conversation.isLocked) &&
+    !unlockedIds.has(conversation.id);
+
   const convId = conversation?.id ?? null;
   const lastMessageId = conversation?.lastMessage?.id ?? null;
   const unreadCount = conversation?.unreadCount ?? 0;
 
+  // Chỉ đánh dấu đã đọc khi nội dung thực sự hiển thị (đã mở khoá). Nếu fire lúc còn
+  // khoá, lastReadRef bị "đầu độc" → sau khi mở khoá sẽ không mark-read lại được.
   useEffect(() => {
+    if (isLocked) return;
     if (!convId || !lastMessageId || unreadCount <= 0) return;
     const key = `${convId}:${lastMessageId}`;
     if (lastReadRef.current === key) return;
@@ -75,21 +86,13 @@ export function ChatPanel() {
       document.removeEventListener('visibilitychange', fire);
       window.removeEventListener('focus', fire);
     };
-  }, [convId, lastMessageId, unreadCount, markRead]);
+  }, [convId, lastMessageId, unreadCount, markRead, isLocked]);
 
   const otherIds = conversation && conversation.type === 'DIRECT'
     ? conversation.memberIds.filter((id) => id !== meId)
     : [];
   const { data: presenceList } = usePresence(otherIds);
   const otherPresence = presenceList?.[0] ?? null;
-
-  // Subscribe vào unlockedIds (state) — KHÔNG phải method isUnlocked (ref cố định),
-  // để markUnlocked() trigger re-render mở khoá ngay, không phải đợi re-render khác.
-  const unlockedIds = useConvLockStore((s) => s.unlockedIds);
-  const isLocked =
-    conversation != null &&
-    Boolean(conversation.isLocked) &&
-    !unlockedIds.has(conversation.id);
 
   if (!selectedConversationId || !conversation) {
     return (

@@ -1,8 +1,16 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import type { UIEvent } from 'react';
 import { useDebouncedValue } from './useDebounce';
-import { useFriends, useIncomingFriendRequests, useUserSearch } from './use-query';
+import {
+  useFriends,
+  useFriendsInfinite,
+  useIncomingFriendRequests,
+  useUserSearch,
+} from './use-query';
+import { useGroupsInfinite } from '@/features/chat';
+import type { Conversation } from '@/features/chat/types';
 import {
   useAcceptFriendRequest,
   useCancelFriendRequest,
@@ -11,7 +19,7 @@ import {
 } from './use-mutations';
 import type { SendFriendRequestInput, UserSearchItem } from '@/features/friends/types';
 
-export type FindFriendsTab = 'search' | 'requests';
+export type FindFriendsTab = 'search' | 'friends' | 'groups' | 'requests';
 
 export function useFindFriends() {
   const [query, setQuery] = useState('');
@@ -27,6 +35,8 @@ export function useFindFriends() {
   const search = useUserSearch(debouncedQuery);
   const incoming = useIncomingFriendRequests();
   const friends = useFriends();
+  const friendsList = useFriendsInfinite();
+  const groupsList = useGroupsInfinite();
 
   const sendMut = useSendFriendRequest();
   const cancelMut = useCancelFriendRequest();
@@ -92,6 +102,34 @@ export function useFindFriends() {
     return undefined;
   }, [acceptMut.isPending, acceptMut.variables, rejectMut.isPending, rejectMut.variables]);
 
+  const friendListItems = useMemo(
+    () => friendsList.data?.pages.flatMap((p) => p.items) ?? [],
+    [friendsList.data],
+  );
+
+  // Gom các trang conversation rồi lọc GROUP phía FE (xem useGroupsInfinite).
+  const groupItems = useMemo<Conversation[]>(
+    () =>
+      groupsList.data?.pages
+        .flat()
+        .filter((c) => c.type === 'GROUP') ?? [],
+    [groupsList.data],
+  );
+
+  // Lazy load chung cho tab đang mở: cuộn gần đáy → nạp trang kế của đúng query.
+  const handleScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight >= 80) return;
+      if (tab === 'friends' && friendsList.hasNextPage && !friendsList.isFetchingNextPage) {
+        void friendsList.fetchNextPage();
+      } else if (tab === 'groups' && groupsList.hasNextPage && !groupsList.isFetchingNextPage) {
+        void groupsList.fetchNextPage();
+      }
+    },
+    [tab, friendsList, groupsList],
+  );
+
   return {
     query,
     setQuery: handleQueryChange,
@@ -116,6 +154,19 @@ export function useFindFriends() {
       total: friendsItems.length,
       isLoading: friends.isLoading,
     },
+    friendsList: {
+      items: friendListItems,
+      isLoading: friendsList.isLoading,
+      isError: friendsList.isError,
+      isFetchingMore: friendsList.isFetchingNextPage,
+    },
+    groupsList: {
+      items: groupItems,
+      isLoading: groupsList.isLoading,
+      isError: groupsList.isError,
+      isFetchingMore: groupsList.isFetchingNextPage,
+    },
+    onScroll: handleScroll,
 
     nicknameTarget: targetForNickname,
     isSending: sendMut.isPending,

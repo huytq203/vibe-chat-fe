@@ -19,6 +19,8 @@ export const userKeys = {
 export const friendKeys = {
   all: ['friends'] as const,
   list: () => [...friendKeys.all, 'list'] as const,
+  // Tách khỏi list(): list() giữ shape FriendRequestPage 1 trang; key này giữ InfiniteData.
+  listInfinite: () => [...friendKeys.all, 'list', 'infinite'] as const,
   incoming: () => [...friendKeys.all, 'requests', 'incoming'] as const,
   outgoing: () => [...friendKeys.all, 'requests', 'outgoing'] as const,
 } as const;
@@ -45,6 +47,8 @@ export const chatKeys = {
   conversationLists: () => [...chatKeys.conversations(), 'list'] as const,
   conversationList: (params: { page: number; limit: number }) =>
     [...chatKeys.conversationLists(), params] as const,
+  // Danh sách nhóm (lazy-load) cho modal Tìm kiếm & Kết bạn — InfiniteData theo page.
+  groupList: () => [...chatKeys.conversations(), 'group-list'] as const,
   conversationDetail: (id: string) =>
     [...chatKeys.conversations(), 'detail', id] as const,
   lockedConversations: () => [...chatKeys.conversations(), 'locked'] as const,

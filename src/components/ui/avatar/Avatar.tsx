@@ -25,11 +25,21 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement>, Varia
   alt?: string;
   /** Text shown when the image fails to load or is not provided */
   fallback?: string;
+  /** Gọi khi ảnh lỗi (vd presigned URL hết hạn) — cho phép caller làm mới URL. */
+  onImageError?: () => void;
 }
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, size, src, alt, fallback, ...props }, ref) => {
+  ({ className, size, src, alt, fallback, onImageError, ...props }, ref) => {
     const [hasError, setHasError] = React.useState(false);
+
+    // Reset cờ lỗi khi src đổi (vd signed URL được ký lại sau refetch) để thử tải lại,
+    // tránh kẹt vĩnh viễn ở fallback dù đã có URL mới. Pattern "previous value" của React.
+    const [prevSrc, setPrevSrc] = React.useState(src);
+    if (prevSrc !== src) {
+      setPrevSrc(src);
+      setHasError(false);
+    }
 
     return (
       <div ref={ref} className={avatarVariants({ size, className })} {...props}>
@@ -38,7 +48,10 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
             src={src}
             alt={alt || "Avatar"}
             className="aspect-square h-full w-full object-cover"
-            onError={() => setHasError(true)}
+            onError={() => {
+              setHasError(true);
+              onImageError?.();
+            }}
           />
         ) : (
           <span className="font-medium uppercase tracking-wider">

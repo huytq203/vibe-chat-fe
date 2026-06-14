@@ -644,7 +644,6 @@ export function useLeaveConversation() {
       qc.removeQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
       qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
       debouncedInvalidate(qc, chatKeys.conversationLists());
-      toast.success('Đã rời nhóm');
     },
     onError: (e: Error) => toast.error(e.message || 'Rời nhóm thất bại'),
   });

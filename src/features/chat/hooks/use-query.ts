@@ -25,6 +25,23 @@ export function useConversations(params: { page?: number; limit?: number } = {})
   });
 }
 
+/**
+ * Danh sách nhóm (type GROUP) lazy-load cho modal Tìm kiếm & Kết bạn. Phân trang theo
+ * `page` của listConversations rồi lọc GROUP phía FE; còn trang kế khi page trả đủ limit.
+ */
+export function useGroupsInfinite(limit = 30) {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  return useInfiniteQuery({
+    queryKey: chatKeys.groupList(),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => chatApi.listConversations({ page: pageParam, limit }),
+    getNextPageParam: (last, _all, lastPageParam) =>
+      last.length === limit ? lastPageParam + 1 : undefined,
+    enabled: isAuthed,
+    staleTime: 30_000,
+  });
+}
+
 export function useConversation(id: string | null) {
   return useQuery({
     queryKey: id ? chatKeys.conversationDetail(id) : ['chat', 'conversation', 'null'],

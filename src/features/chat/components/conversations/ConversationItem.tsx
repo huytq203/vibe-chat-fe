@@ -18,9 +18,17 @@ type ConversationItemProps = {
   selected: boolean;
   meId: string | null;
   onSelect: (id: string) => void;
+  /** Avatar lỗi (presigned URL hết hạn) → cho phép list refetch lấy URL mới. */
+  onAvatarError?: () => void;
 };
 
-export function ConversationItem({ conversation, selected, meId, onSelect }: ConversationItemProps) {
+export function ConversationItem({
+  conversation,
+  selected,
+  meId,
+  onSelect,
+  onAvatarError,
+}: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
   const avatarUrl = getConversationAvatar(conversation, meId);
@@ -41,11 +49,11 @@ export function ConversationItem({ conversation, selected, meId, onSelect }: Con
       className={cn(
         'flex w-full items-center gap-2.5 rounded-xl px-2 py-2.5 text-left transition-colors',
         selected
-          ? 'bg-primary/10 border-l-2 border-primary pl-1.5'
+          ? 'bg-primary/10'
           : 'hover:bg-muted',
       )}
     >
-      <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={null} />
+      <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={null} onImageError={onAvatarError} />
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1">

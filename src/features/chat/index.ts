@@ -7,6 +7,7 @@ export {
   useMessages,
   usePresence,
   useLockedConversations,
+  useGroupsInfinite,
 } from './hooks/use-query';
 export {
   useSendMessage,

@@ -29,7 +29,7 @@ export function UserResultRow({
   variant = 'row',
 }: Props) {
   const name = user.displayName || user.username;
-  const subtitle = user.email || (user.phone ? `+${user.phone}` : `@${user.username}`);
+  const subtitle = `@${user.username}`
 
   if (variant === 'card') {
     return (

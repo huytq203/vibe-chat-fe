@@ -12,6 +12,7 @@ import {
   type UserSearchItem,
 } from '@/features/friends';
 import { NotificationPanel } from '@/features/notifications';
+import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { UserMenu } from '@/features/chat/components/common/UserMenu';
@@ -57,6 +58,7 @@ export function MobileTabBar() {
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { setSelected } = useSelectedConversation();
+  const meId = useAuthStore((s) => s.user?.id ?? null);
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
@@ -78,6 +80,13 @@ export function MobileTabBar() {
 
   function handleMessageUser(user: UserSearchItem) {
     openDirectMut.mutate(user.id);
+  }
+
+  function handleOpenConversation(id: string) {
+    setSelected(id);
+    setMobilePanel('chat');
+    setFriendsOpen(false);
+    setActiveTab('chat');
   }
 
   return (
@@ -125,7 +134,9 @@ export function MobileTabBar() {
           setFriendsOpen(open);
           if (!open) setActiveTab('chat');
         }}
+        meId={meId}
         onMessageUser={handleMessageUser}
+        onOpenConversation={handleOpenConversation}
       />
       <NotificationPanel
         open={notiOpen}

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
+import { Lock, Unlock } from 'lucide-react';
 
 type LockPasswordDialogProps = {
   open: boolean;
@@ -48,7 +49,7 @@ export function LockPasswordDialog({ open, onOpenChange, mode, onConfirm }: Lock
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {mode === 'lock' ? '🔒 Khoá hội thoại' : '🔓 Tắt khoá hội thoại'}
+            {mode === 'lock' ? <span className='flex items-center gap-2'><Lock className="h-6 w-6" /> Khóa cuộc hội thoại</span> : <span className='flex items-center gap-2'><Unlock className="h-6 w-6" /> Tắt khóa hội thoại</span>}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {mode === 'lock'

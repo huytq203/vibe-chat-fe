@@ -12,6 +12,8 @@ type ChatAvatarProps = {
   size?: AvatarSize;
   status?: AvatarStatus | null;
   className?: string;
+  /** Gọi khi ảnh lỗi (presigned URL hết hạn) — caller có thể refetch để lấy URL mới. */
+  onImageError?: () => void;
 };
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
@@ -32,7 +34,15 @@ const STATUS_BG: Record<AvatarStatus, string> = {
   offline: 'bg-muted-foreground',
 };
 
-export function Avatar({ name, src, seed, size = 'md', status, className }: ChatAvatarProps) {
+export function Avatar({
+  name,
+  src,
+  seed,
+  size = 'md',
+  status,
+  className,
+  onImageError,
+}: ChatAvatarProps) {
   const color = getAvatarColor(seed ?? name ?? '');
   const fallback = getInitials(name);
   return (
@@ -41,6 +51,7 @@ export function Avatar({ name, src, seed, size = 'md', status, className }: Chat
         src={src ?? undefined}
         alt={name ?? ''}
         fallback={fallback}
+        onImageError={onImageError}
         className={cn(SIZE_CLASS[size], 'font-bold', className)}
         style={{
           background: `${color}22`,

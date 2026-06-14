@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
@@ -72,8 +72,20 @@ export function ConversationList() {
     if (isMobile) setMobilePanel('chat');
   }
 
+  // Avatar lỗi = presigned URL hết hạn. Refetch list để BE ký lại URL mới (URL mới →
+  // base Avatar reset cờ lỗi và tải lại). Cooldown 60s tránh refetch dồn khi nhiều ảnh lỗi.
+  const lastAvatarRefetchRef = useRef(0);
+  const handleAvatarError = useCallback(() => {
+    const now = Date.now();
+    if (now - lastAvatarRefetchRef.current < 60_000) return;
+    lastAvatarRefetchRef.current = now;
+    void qc.refetchQueries({ queryKey: chatKeys.conversationLists() });
+  }, [qc]);
+
+  // Bỏ qua conv đang khoá: chúng bị ẩn khỏi danh sách nên không được tính vào
+  // badge tab "Chưa đọc" (nếu không badge đỏ sẽ kẹt vĩnh viễn, không cách nào xoá).
   const unreadTotal = useMemo(
-    () => conversations.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0),
+    () => conversations.reduce((sum, c) => sum + (!c.isLocked && c.unreadCount > 0 ? 1 : 0), 0),
     [conversations],
   );
 
@@ -178,6 +190,7 @@ export function ConversationList() {
                   selected={selectedConversationId === c.id}
                   meId={me?.id ?? null}
                   onSelect={handleSelectConversation}
+                  onAvatarError={handleAvatarError}
                 />
               ))}
          
@@ -227,7 +240,12 @@ export function ConversationList() {
       <FindFriendsPanel
         open={findOpen}
         onOpenChange={setFindOpen}
+        meId={me?.id ?? null}
         onMessageUser={handleMessageUser}
+        onOpenConversation={(id) => {
+          handleSelectConversation(id);
+          setFindOpen(false);
+        }}
       />
     </aside>
   );

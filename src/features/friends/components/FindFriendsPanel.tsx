@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, UserPlus, Users } from 'lucide-react';
+import { MessagesSquare, Search, UserPlus, UserRound, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,15 +15,26 @@ import { useFindFriends, type FindFriendsTab } from '@/features/friends/hooks/us
 import type { UserSearchItem } from '@/features/friends/types';
 import { SearchPane } from './SearchPane';
 import { RequestsPane } from './RequestsPane';
+import { FriendsPane } from './FriendsPane';
+import { GroupsPane } from './GroupsPane';
 import { SendRequestDialog } from './SendRequestDialog';
 
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  meId: string | null;
   onMessageUser?: (user: UserSearchItem) => void;
+  /** Mở 1 cuộc trò chuyện theo id (dùng cho tab Nhóm). */
+  onOpenConversation?: (id: string) => void;
 };
 
-export function FindFriendsPanel({ open, onOpenChange, onMessageUser }: Props) {
+export function FindFriendsPanel({
+  open,
+  onOpenChange,
+  meId,
+  onMessageUser,
+  onOpenConversation,
+}: Props) {
   const f = useFindFriends();
 
   return (
@@ -62,6 +73,12 @@ export function FindFriendsPanel({ open, onOpenChange, onMessageUser }: Props) {
                 <TabsTrigger value="search" className="flex-1 gap-1.5">
                   <Search className="h-3.5 w-3.5" /> Tìm kiếm
                 </TabsTrigger>
+                <TabsTrigger value="friends" className="flex-1 gap-1.5">
+                  <UserRound className="h-3.5 w-3.5" /> Bạn bè
+                </TabsTrigger>
+                <TabsTrigger value="groups" className="flex-1 gap-1.5">
+                  <MessagesSquare className="h-3.5 w-3.5" /> Nhóm
+                </TabsTrigger>
                 <TabsTrigger value="requests" className="flex-1 gap-1.5">
                   <Users className="h-3.5 w-3.5" /> Lời mời
                   {f.incoming.items.length > 0 && (
@@ -74,7 +91,7 @@ export function FindFriendsPanel({ open, onOpenChange, onMessageUser }: Props) {
             </Tabs>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
+          <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2" onScroll={f.onScroll}>
             {f.tab === 'search' && (
               <SearchPane
                 query={f.trimmedQuery}
@@ -88,6 +105,25 @@ export function FindFriendsPanel({ open, onOpenChange, onMessageUser }: Props) {
                 onAccept={f.onAcceptUser}
                 onReject={f.onRejectUser}
                 onMessage={onMessageUser}
+              />
+            )}
+            {f.tab === 'friends' && (
+              <FriendsPane
+                items={f.friendsList.items}
+                isLoading={f.friendsList.isLoading}
+                isError={f.friendsList.isError}
+                isFetchingMore={f.friendsList.isFetchingMore}
+                onMessage={(user) => onMessageUser?.(user)}
+              />
+            )}
+            {f.tab === 'groups' && (
+              <GroupsPane
+                items={f.groupsList.items}
+                meId={meId}
+                isLoading={f.groupsList.isLoading}
+                isError={f.groupsList.isError}
+                isFetchingMore={f.groupsList.isFetchingMore}
+                onOpen={(id) => onOpenConversation?.(id)}
               />
             )}
             {f.tab === 'requests' && (

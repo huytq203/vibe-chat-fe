@@ -86,7 +86,7 @@ export function UserMenu() {
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold">{displayName}</div>
               <div className="truncate text-xs text-muted-foreground">
-                {me?.email ?? me?.username ?? ''}
+                {`@${me?.username ?? ''}`}
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import {
   Link2,
   Lock,
+  LockOpen,
   LogOut,
   PenIcon,
   Phone,
@@ -61,6 +62,8 @@ export function ContactInfo() {
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const convLockStore = useConvLockStore();
+  // Subscribe vào unlockedIds (state) để khi markUnlocked() chạy thì re-render mở nội dung ngay.
+  const unlockedIds = useConvLockStore((s) => s.unlockedIds);
   const lockMut = useLockConversation();
   const removeLockMut = useRemoveLock();
   const lockPin = useSettingsStore((s) => s.lockPin);
@@ -113,9 +116,27 @@ export function ContactInfo() {
   } = data;
 
   const isLocked = Boolean(conversation.isLocked);
+  // Nội dung bị khoá: hội thoại đang khoá VÀ chưa mở khoá trong phiên này.
+  // Dùng để ẩn ảnh/tài liệu/liên kết + tìm kiếm tin nhắn cho tới khi mở khoá (giống ChatPanel).
+  const isContentLocked = isLocked && !unlockedIds.has(conversation.id);
   const lockDialogMode: "lock" | "unlock" = isLocked ? "unlock" : "lock";
   // DIRECT → avatar người kia; GROUP → avatar nhóm (giống ConversationList/ChatHeader).
   const avatarUrl = getConversationAvatar(conversation, meId);
+
+  // Hội thoại đang khoá & chưa mở trong phiên → chặn toàn bộ panel, chỉ cho nhập mật khẩu.
+  if (isContentLocked) {
+    return (
+      <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+        <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
+          <span className="text-sm font-bold">Thông tin</span>
+          <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
+            <X className="h-4 w-4" />
+          </Button>
+        </header>
+        <div className="flex-1" />
+      </aside>
+    );
+  }
 
   // Gọi audio/video — DIRECT và GROUP, chặn CHANNEL (giống ChatHeader).
   const isGroup = conversation.type === "GROUP";
@@ -317,7 +338,7 @@ export function ContactInfo() {
             />
             {isDirect && (
               <OptionRow
-                icon={<Lock className="h-4 w-4" />}
+                icon={isLocked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                 label={isLocked ? "Tắt khoá hội thoại" : "Khoá hội thoại"}
                 onClick={handleLockToggle}
               />

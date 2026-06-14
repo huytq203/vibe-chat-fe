@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { friendsApi } from '@/services/friends.api';
 import { blocksApi } from '@/services/blocks.api';
 import { usersApi } from '@/services/users.api';
@@ -46,6 +46,19 @@ export function useFriends() {
   return useQuery({
     queryKey: friendKeys.list(),
     queryFn: () => friendsApi.listFriends({ limit: 50 }),
+    enabled: isAuthed,
+    staleTime: 60_000,
+  });
+}
+
+/** Danh sách bạn bè phân trang cursor — lazy load cho modal Tìm kiếm & Kết bạn. */
+export function useFriendsInfinite(limit = 20) {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  return useInfiniteQuery({
+    queryKey: friendKeys.listInfinite(),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => friendsApi.listFriends({ limit, cursor: pageParam }),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: isAuthed,
     staleTime: 60_000,
   });
