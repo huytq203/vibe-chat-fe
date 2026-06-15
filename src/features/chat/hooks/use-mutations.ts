@@ -45,6 +45,20 @@ function patchMessageInCache(
   });
   return previous;
 }
+/**
+ * Gộp metadata khi sửa tin: thay `richText` bằng bản mới (hoặc gỡ bỏ nếu lần sửa
+ * này không còn định dạng), giữ nguyên các key metadata khác. Trả null nếu rỗng.
+ */
+function mergeEditMetadata(
+  old: Record<string, unknown> | null | undefined,
+  next: Record<string, unknown> | undefined,
+): Record<string, unknown> | null {
+  const merged: Record<string, unknown> = { ...(old ?? {}) };
+  delete merged.richText;
+  if (next?.richText) merged.richText = next.richText;
+  return Object.keys(merged).length > 0 ? merged : null;
+}
+
 type SendAck = { ok: true; messageId: string } | { ok: false; error?: string };
 
 type SendContext = {
@@ -74,6 +88,8 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
       // Bắt buộc với tin media; bỏ khi không có.
       attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
       replyToMessageId: input.replyToMessageId,
+      // Tag @user (group) — bỏ khi rỗng. Xem 04-messages.md.
+      mentions: input.mentions?.length ? input.mentions : undefined,
       metadata: input.metadata,
       // Tin tự huỷ — giống REST. Bỏ field nếu không set (xem doc 15).
       selfDestructTtl: input.selfDestructTtl,
@@ -145,6 +161,7 @@ export function useSendMessage() {
           clientNonce,
         },
         replyToMessageId: input.replyToMessageId ?? null,
+        mentions: input.mentions,
         isEdited: false,
         isDeleted: false,
         deletedFor: 'NONE',
@@ -362,7 +379,7 @@ export function useEditMessage() {
   const qc = useQueryClient();
   return useMutation<Message, Error, EditMessageInput, EditContext>({
     mutationFn: (vars) =>
-      chatApi.editMessage(vars.conversationId, vars.messageId, vars.plaintext),
+      chatApi.editMessage(vars.conversationId, vars.messageId, vars.plaintext, vars.metadata),
 
     onMutate: (vars): EditContext => {
       const now = new Date().toISOString();
@@ -370,6 +387,8 @@ export function useEditMessage() {
         ...m,
         plaintext: vars.plaintext,
         contentPreview: vars.plaintext,
+        // Gộp metadata mới (richText) — bỏ richText cũ nếu lần sửa này không còn định dạng.
+        metadata: mergeEditMetadata(m.metadata, vars.metadata),
         isEdited: true,
         editedAt: now,
       }));

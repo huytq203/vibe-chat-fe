@@ -22,8 +22,10 @@ import type {
   Conversation,
   JoinRequestStatus,
   Message,
+  MessageReaction,
   MessagesPage,
   Presence,
+  ReactionType,
 } from '@/features/chat/types';
 
 type NotifyPayload = { conversationId: string; message: Message };
@@ -92,6 +94,17 @@ type PinUpdatedPayload = {
   action: 'PINNED' | 'UNPINNED';
   messageId: string;
   by?: string;
+  at?: string;
+};
+// Thả/đổi/gỡ cảm xúc tin nhắn (xem reactions). BE gửi summary mới + actor.
+type ReactionUpdatedPayload = {
+  conversationId: string;
+  messageId: string;
+  userId: string;
+  action: 'SET' | 'REMOVED';
+  type: ReactionType | null;
+  reactions: MessageReaction[];
+  total: number;
   at?: string;
 };
 const HEARTBEAT_MS = 30_000;
@@ -397,6 +410,32 @@ export function useChatRealtime() {
       debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
+    // Cảm xúc tin nhắn thay đổi → patch summary tại chỗ. myReaction chỉ đổi khi
+    // chính mình là người thao tác (event của người khác không động tới cảm xúc của tôi).
+    function onReactionUpdated(payload: ReactionUpdatedPayload) {
+      const meId = useAuthStore.getState().user?.id ?? null;
+      const key = chatKeys.messages(payload.conversationId);
+      qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pages: prev.pages.map((p) => ({
+            ...p,
+            items: p.items.map((m) => {
+              if (m.id !== payload.messageId) return m;
+              const myReaction =
+                payload.userId === meId
+                  ? payload.action === 'SET'
+                    ? payload.type
+                    : null
+                  : (m.myReaction ?? null);
+              return { ...m, reactions: payload.reactions, myReaction };
+            }),
+          })),
+        };
+      });
+    }
+
     // Ghim/bỏ ghim tin → refetch danh sách ghim + detail (pinnedCount).
     function onPinUpdated(payload: PinUpdatedPayload) {
       qc.invalidateQueries({ queryKey: chatKeys.pinnedMessages(payload.conversationId) });
@@ -406,6 +445,7 @@ export function useChatRealtime() {
     socket.on('message:new', onMessageNew);
     socket.on('conversation:updated', onConversationUpdated);
     socket.on('conversation:pin_updated', onPinUpdated);
+    socket.on('message:reaction_updated', onReactionUpdated);
     socket.on('message:edited', onMessageEdited);
     socket.on('message:deleted', onMessageDeleted);
     socket.on('conversation:notify', onConversationNotify);
@@ -444,6 +484,7 @@ export function useChatRealtime() {
       socket.off('message:new', onMessageNew);
       socket.off('conversation:updated', onConversationUpdated);
       socket.off('conversation:pin_updated', onPinUpdated);
+      socket.off('message:reaction_updated', onReactionUpdated);
       socket.off('message:edited', onMessageEdited);
       socket.off('message:deleted', onMessageDeleted);
       socket.off('conversation:notify', onConversationNotify);

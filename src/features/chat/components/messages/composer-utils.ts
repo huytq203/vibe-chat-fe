@@ -1,84 +1,37 @@
-import { emojiToUrl } from '@/lib/utils/emoji';
+import type { ConversationMember, Mention } from '@/features/chat/types';
 
 export const MAX_LENGTH = 5000;
 export const TYPING_STOP_DEBOUNCE_MS = 3_000;
 
+/** Sentinel cho chip `@all` — submit sẽ expand thành toàn bộ userId member. */
+export const MENTION_ALL = '__ALL__';
+/** Nhãn hiển thị của chip `@all`. */
+export const MENTION_ALL_LABEL = 'all';
+
+/** Tên hiển thị ưu tiên nickname → displayName → username. */
+export function mentionLabel(member: ConversationMember): string {
+  return member.nickname || member.displayName || member.username;
+}
+
 /**
- * Duyệt DOM contenteditable → chuỗi text thuần.
- * text node → text gốc, <img data-emoji> → alt (ký tự emoji), <br> → \n.
+ * Khai triển sentinel `@all` thành mention cho từng `memberId` (giữ nguyên
+ * offset/length của token), gộp mention thường, khử trùng userId, cap `max`.
  */
-export function extractText(el: HTMLElement): string {
-  let text = '';
-  el.childNodes.forEach((node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      text += node.textContent ?? '';
-    } else if (node.nodeName === 'IMG') {
-      text += (node as HTMLImageElement).alt;
-    } else if (node.nodeName === 'BR') {
-      text += '\n';
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const inner = extractText(node as HTMLElement);
-      text += inner;
-      if (inner && ['DIV', 'P'].includes(node.nodeName)) text += '\n';
-    }
+export function expandAllMentions(
+  raw: Mention[],
+  memberIds: string[],
+  max: number,
+): Mention[] {
+  const out: Mention[] = [];
+  const seen = new Set<string>();
+  const push = (m: Mention) => {
+    if (seen.has(m.userId) || out.length >= max) return;
+    seen.add(m.userId);
+    out.push(m);
+  };
+  raw.forEach((m) => {
+    if (m.userId !== MENTION_ALL) return push(m);
+    memberIds.forEach((userId) => push({ userId, startOffset: m.startOffset, length: m.length }));
   });
-  return text;
-}
-
-/** Đặt caret về cuối nội dung của 1 element contenteditable. */
-export function placeCaretAtEnd(el: HTMLElement): void {
-  const range = document.createRange();
-  range.selectNodeContents(el);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel?.removeAllRanges();
-  sel?.addRange(range);
-}
-
-/**
- * Chèn emoji vào editor tại vị trí caret (ưu tiên `savedRange` lưu trước khi mở
- * picker). Dùng twemoji <img> nếu có URL, fallback ký tự unicode.
- */
-export function insertEmojiIntoEditor(
-  el: HTMLElement,
-  emoji: string,
-  savedRange: Range | null,
-): void {
-  el.focus();
-  const sel = window.getSelection();
-  const range =
-    savedRange ??
-    (() => {
-      const r = document.createRange();
-      r.selectNodeContents(el);
-      r.collapse(false);
-      return r;
-    })();
-  if (sel) {
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-  range.deleteContents();
-
-  const url = emojiToUrl(emoji);
-  if (url) {
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = emoji;
-    img.title = emoji;
-    img.className = 'inline-block h-[1.2em] w-[1.2em] align-[-0.2em]';
-    img.setAttribute('draggable', 'false');
-    range.insertNode(img);
-    range.setStartAfter(img);
-  } else {
-    const node = document.createTextNode(emoji);
-    range.insertNode(node);
-    range.setStartAfter(node);
-  }
-
-  range.collapse(true);
-  if (sel) {
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
+  return out;
 }

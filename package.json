@@ -41,11 +41,25 @@
     ],
     "asar": false,
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "electron/resources/icon.ico"
     },
     "linux": {
-      "target": [{ "target": "deb", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "electron/resources/icons",
       "category": "Network"
     },
@@ -67,6 +81,25 @@
     "@tanstack/react-query-devtools": "^5.100.10",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.24",
+    "@tiptap/core": "^3.26.1",
+    "@tiptap/extension-bold": "^3.26.1",
+    "@tiptap/extension-color": "^3.26.1",
+    "@tiptap/extension-document": "^3.26.1",
+    "@tiptap/extension-font-family": "^3.26.1",
+    "@tiptap/extension-highlight": "^3.26.1",
+    "@tiptap/extension-history": "^3.26.1",
+    "@tiptap/extension-italic": "^3.26.1",
+    "@tiptap/extension-link": "^3.26.1",
+    "@tiptap/extension-mention": "^3.26.1",
+    "@tiptap/extension-paragraph": "^3.26.1",
+    "@tiptap/extension-placeholder": "^3.26.1",
+    "@tiptap/extension-strike": "^3.26.1",
+    "@tiptap/extension-text": "^3.26.1",
+    "@tiptap/extension-text-align": "^3.26.1",
+    "@tiptap/extension-text-style": "^3.26.1",
+    "@tiptap/extension-underline": "^3.26.1",
+    "@tiptap/pm": "^3.26.1",
+    "@tiptap/react": "^3.26.1",
     "autoprefixer": "^10.5.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

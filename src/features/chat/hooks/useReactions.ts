@@ -4,46 +4,23 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { toast } from 'sonner';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
-import { useAuthStore } from '@/features/auth';
-import type { Message, MessageReaction, MessagesPage } from '@/features/chat/types';
+import { computeOptimistic } from './reactions-logic';
+import type {
+  Message,
+  MessagesPage,
+  ReactionState,
+  ReactionType,
+} from '@/features/chat/types';
 
 type MessagesCache = InfiniteData<MessagesPage, string | null>;
-type ToggleVars = { messageId: string; emoji: string; active: boolean };
+type ToggleVars = { messageId: string; type: ReactionType; current: ReactionType | null };
 
-/** Tính danh sách reactions mới sau khi toggle 1 emoji của user hiện tại (immutable). */
-function applyToggle(
-  list: MessageReaction[] | undefined,
-  emoji: string,
-  meId: string,
-  active: boolean,
-): MessageReaction[] {
-  const reactions = (list ?? []).map((r) => ({ ...r, userIds: [...r.userIds] }));
-  const idx = reactions.findIndex((r) => r.emoji === emoji);
-
-  if (active) {
-    // Đang có → bỏ.
-    if (idx === -1) return reactions;
-    const userIds = reactions[idx].userIds.filter((u) => u !== meId);
-    if (userIds.length === 0) return reactions.filter((_, i) => i !== idx);
-    reactions[idx] = { ...reactions[idx], userIds, count: userIds.length, reactedByMe: false };
-    return reactions;
-  }
-
-  // Chưa có → thêm.
-  if (idx === -1) {
-    return [...reactions, { emoji, userIds: [meId], count: 1, reactedByMe: true }];
-  }
-  if (reactions[idx].userIds.includes(meId)) return reactions;
-  const userIds = [...reactions[idx].userIds, meId];
-  reactions[idx] = { ...reactions[idx], userIds, count: userIds.length, reactedByMe: true };
-  return reactions;
-}
-
-function patchReactions(
+/** Cập nhật reactions/myReaction của 1 message trong cache infinite (immutable). */
+function patchMessage(
   qc: ReturnType<typeof useQueryClient>,
   conversationId: string,
   messageId: string,
-  next: (m: Message) => MessageReaction[] | undefined,
+  patch: Pick<Message, 'reactions' | 'myReaction'>,
 ): MessagesCache | undefined {
   const key = chatKeys.messages(conversationId);
   const previous = qc.getQueryData<MessagesCache>(key);
@@ -53,31 +30,28 @@ function patchReactions(
       ...old,
       pages: old.pages.map((p) => ({
         ...p,
-        items: p.items.map((m) => (m.id === messageId ? { ...m, reactions: next(m) } : m)),
+        items: p.items.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
       })),
     };
   });
   return previous;
 }
 
-/**
- * Toggle 1 emoji reaction trên tin nhắn (optimistic + reconcile theo Message BE trả về).
- * Chỉ chạy khi REACTIONS_ENABLED (gate ở UI) — endpoint còn chờ BE chốt.
- */
+/** Toggle cảm xúc trên tin nhắn (optimistic + reconcile theo ReactionState BE trả). */
 export function useToggleReaction(conversationId: string) {
   const qc = useQueryClient();
-  const meId = useAuthStore((s) => s.user?.id ?? '');
 
-  return useMutation<Message, Error, ToggleVars, { previous?: MessagesCache }>({
-    mutationFn: ({ messageId, emoji, active }) =>
-      active
-        ? chatApi.unreactFromMessage(conversationId, messageId, emoji)
-        : chatApi.reactToMessage(conversationId, messageId, emoji),
+  return useMutation<ReactionState, Error, ToggleVars, { previous?: MessagesCache }>({
+    mutationFn: ({ messageId, type, current }) =>
+      current === type
+        ? chatApi.removeReaction(conversationId, messageId)
+        : chatApi.setReaction(conversationId, messageId, type),
 
-    onMutate: ({ messageId, emoji, active }) => {
-      const previous = patchReactions(qc, conversationId, messageId, (m) =>
-        applyToggle(m.reactions, emoji, meId, active),
-      );
+    onMutate: ({ messageId, type, current }) => {
+      const key = chatKeys.messages(conversationId);
+      const previous = qc.getQueryData<MessagesCache>(key);
+      const msg = previous?.pages.flatMap((p) => p.items).find((m) => m.id === messageId);
+      patchMessage(qc, conversationId, messageId, computeOptimistic(msg?.reactions, current, type));
       return { previous };
     },
 
@@ -86,10 +60,11 @@ export function useToggleReaction(conversationId: string) {
       toast.error('Không thể cập nhật cảm xúc');
     },
 
-    onSuccess: (serverMsg, { messageId }) => {
-      if (serverMsg && typeof serverMsg === 'object' && 'id' in serverMsg) {
-        patchReactions(qc, conversationId, messageId, () => serverMsg.reactions);
-      }
+    onSuccess: (state, { messageId }) => {
+      patchMessage(qc, conversationId, messageId, {
+        reactions: state.reactions,
+        myReaction: state.myReaction,
+      });
     },
   });
 }

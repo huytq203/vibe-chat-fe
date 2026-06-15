@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import { toast } from 'sonner';
-import { Check, Clock, Mic, Pencil, Reply, Send, Smile, X } from 'lucide-react';
+import { Check, Clock, Maximize2, Mic, Minimize2, Pencil, Reply, Send, Smile, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import {
@@ -19,6 +20,9 @@ import { SELF_DESTRUCT_OPTIONS } from '@/features/chat/utils';
 import { AttachmentButtons } from './AttachmentButtons';
 import { AttachmentTray } from './AttachmentTray';
 import { VoiceRecorderBar } from './VoiceRecorderBar';
+import { MentionSuggestPopup } from './MentionSuggestPopup';
+import { RichMessageEditor } from './RichMessageEditor';
+import { MessageToolbar } from './MessageToolbar';
 
 type MessageInputProps = {
   conversationId: string;
@@ -28,6 +32,7 @@ type MessageInputProps = {
 export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const {
     editorRef,
+    mention,
     hasContent,
     emojiOpen,
     setEmojiOpen,
@@ -41,15 +46,16 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
     remove,
     isUploading,
     isSavingEdit,
-    handleInput,
-    handleKey,
-    handlePaste,
+    handleUpdate,
+    handlePasteFiles,
     submit,
     exitEdit,
     handleEmojiButtonClick,
     handleEmojiSelect,
   } = useMessageComposer(conversationId, disabled);
 
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
@@ -96,8 +102,9 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           </button>
         </div>
       )}
+      <MentionSuggestPopup mention={mention.popup} />
       {!isEditing && <AttachmentTray attachments={attachments} onRemove={remove} />}
-      <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-muted px-2 py-1.5">
+      <div className="rounded-2xl border border-border bg-muted px-2 py-1.5">
         {recorder.isRecording || sending ? (
           <VoiceRecorderBar
             elapsedMs={recorder.elapsedMs}
@@ -107,6 +114,8 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           />
         ) : (
         <>
+        <MessageToolbar editor={editor} disabled={disabled} />
+        <div className="flex items-end gap-1.5">
         <div className="flex items-center">
           {!isEditing && (
             <>
@@ -171,32 +180,41 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
               <EmojiPicker onSelect={handleEmojiSelect} />
             </PopoverContent>
           </Popover>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            disabled={disabled}
+            title={expanded ? 'Thu gọn' : 'Mở rộng vùng soạn'}
+            aria-label={expanded ? 'Thu gọn vùng soạn' : 'Mở rộng vùng soạn'}
+            aria-pressed={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            className={cn(
+              expanded ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-primary',
+            )}
+          >
+            {expanded ? (
+              <Minimize2 className="h-[18px] w-[18px]" />
+            ) : (
+              <Maximize2 className="h-[18px] w-[18px]" />
+            )}
+          </Button>
         </div>
 
-        {/* Contenteditable editor with absolute placeholder */}
-        <div className="relative min-h-[32px] max-h-32 flex-1 overflow-y-auto">
-          {!hasContent && (
-            <span className="pointer-events-none absolute left-1.5 top-[5px] select-none text-[13.5px] text-muted-foreground">
-              {isEditing ? 'Chỉnh sửa tin nhắn (Enter để lưu, Esc để huỷ)...' : 'Nhập tin nhắn...'}
-            </span>
-          )}
-          <div
-            ref={editorRef}
-            contentEditable={disabled ? 'false' : 'true'}
-            suppressContentEditableWarning
-            onInput={handleInput}
-            onKeyDown={handleKey}
-            onPaste={handlePaste}
-            role="textbox"
-            aria-multiline="true"
-            aria-label="Nhập tin nhắn"
-            className={cn(
-              'min-h-[32px] max-h-32 overflow-y-auto px-1.5 py-[5px] text-[13.5px] leading-relaxed',
-              'whitespace-pre-wrap break-words outline-none ',
-              disabled && 'cursor-not-allowed opacity-50',
-            )}
-          />
-        </div>
+        <RichMessageEditor
+          ref={editorRef}
+          placeholder={
+            isEditing ? 'Chỉnh sửa tin nhắn (Enter để lưu, Esc để huỷ)...' : 'Nhập tin nhắn...'
+          }
+          disabled={disabled}
+          expanded={expanded}
+          mentionSuggestion={mention.suggestion}
+          isMentionOpen={mention.isMentionOpen}
+          onUpdate={handleUpdate}
+          onEnter={() => void submit()}
+          onEscape={isEditing ? exitEdit : undefined}
+          onPasteFiles={handlePasteFiles}
+          onEditor={setEditor}
+        />
 
         {hasContent || attachments.length > 0 ? (
           <Button
@@ -226,6 +244,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
             <Mic className="h-[18px] w-[18px]" />
           </Button>
         ) : null}
+        </div>
         </>
         )}
       </div>

@@ -17,6 +17,9 @@ import type { Message } from '@/features/chat/types';
 import { formatBubbleTime } from '@/features/chat/utils';
 import { useDiscardFailedMessage, useResendMessage } from '@/features/chat/hooks/use-mutations';
 import { EmojiText } from '@/components/common/EmojiText';
+import { MentionText } from './MentionText';
+import { RichText } from './RichText';
+import { getRichText } from './rich-text-utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { MediaContent } from './MediaContent';
 import { MessageActions } from './MessageActions';
@@ -68,6 +71,8 @@ export function MessageBubble({
   // Menu hành động: mọi tin đã gửi xong, chưa gỡ. Reply cho tất cả;
   // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
   const canActions = !isSending && !isFailed && !message.isDeleted;
+  // Thanh action (emoji + ⋮) nổi absolute phía trên bubble — chỉ hiện khi hover
+  // ĐÚNG bubble (group/msg), không chiếm layout, không trigger theo cả dòng.
   const actionsMenu = canActions && (
     <MessageActions
       message={message}
@@ -76,16 +81,26 @@ export function MessageBubble({
       senderName={senderName}
       canPin={canPin}
       isPinned={isPinned}
-      className="self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+      className={cn(
+        // w-max: rộng theo nội dung, không bị shrink-to-fit co theo bubble hẹp.
+        // pointer-events-none khi ẩn: bar opacity-0 nằm phía trên bubble nhưng KHÔNG
+        // bắt chuột → rê vào vùng trên bubble không bị tính là hover. Khi hover đúng
+        // bubble mới bật pointer-events-auto để bấm emoji. -top-6: đè nhẹ mép trên
+        // bubble (không tạo khe) nên vẫn rê lên bar bấm được.
+        // KHÔNG dùng focus-within (gây kẹt mở sau khi click emoji); MessageActions
+        // tự ép hiện khi dropdown đang mở.
+        'pointer-events-none absolute -top-6 z-20 w-max opacity-0 transition-opacity',
+        'group-hover/msg:pointer-events-auto group-hover/msg:opacity-100',
+        isMe ? 'right-0' : 'left-0',
+      )}
     />
   );
 
   return (
     <div
       data-message-id={message.id}
-      className={cn('group flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}
+      className={cn('flex items-end gap-1.5', isMe ? 'justify-end' : 'justify-start')}
     >
-      {isMe && actionsMenu}
       {!isMe && (
         <div className="w-7 shrink-0">
           {showAvatar && (
@@ -122,7 +137,7 @@ export function MessageBubble({
         )}
         <div
           className={cn(
-            'relative rounded-2xl transition-all',
+            'group/msg relative rounded-2xl transition-all',
             isVisualMedia ? 'p-1.5' : 'px-3.5 py-2.5',
             isMe
               ? 'rounded-br-md bg-primary text-primary-foreground'
@@ -132,6 +147,7 @@ export function MessageBubble({
             isHighlighted && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
           )}
         >
+          {actionsMenu}
           {message.replyToMessageId && (
             <ReplyQuote
               repliedTo={repliedTo ?? null}
@@ -208,7 +224,6 @@ export function MessageBubble({
           </div>
         )}
       </div>
-      {!isMe && actionsMenu}
     </div>
   );
 }
@@ -218,14 +233,25 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
     return <span className="text-[13.5px] italic opacity-70">Tin nhắn đã thu hồi</span>;
   }
   if (message.type === 'TEXT') {
-    return (
-      <EmojiText
-        text={message.plaintext ?? message.contentPreview ?? ''}
-        className="block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed"
-        largeEmoji
-        linkify
-      />
-    );
+    const body = message.plaintext ?? message.contentPreview ?? '';
+    const textClass = 'block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed';
+    const richText = getRichText(message.metadata);
+    if (richText) {
+      return (
+        <RichText
+          text={body}
+          mentions={message.mentions ?? []}
+          richText={richText}
+          className={textClass}
+          largeEmoji
+          isMe={isMe}
+        />
+      );
+    }
+    if (message.mentions?.length) {
+      return <MentionText text={body} mentions={message.mentions} className={textClass} largeEmoji isMe={isMe} />;
+    }
+    return <EmojiText text={body} className={textClass} largeEmoji linkify />;
   }
   if (message.type === 'CALL') {
     return <CallMessageContent message={message} />;
@@ -235,14 +261,23 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
     return (
       <>
         <MediaContent message={message} isMe={isMe} />
-        {caption && (
-          <EmojiText
-            text={caption}
-            className="mt-1.5 block whitespace-pre-wrap break-words px-1 text-[13.5px] leading-relaxed"
-            largeEmoji
-            linkify
-          />
-        )}
+        {caption &&
+          (message.mentions?.length ? (
+            <MentionText
+              text={caption}
+              mentions={message.mentions}
+              className="mt-1.5 block whitespace-pre-wrap break-words px-1 text-[13.5px] leading-relaxed"
+              largeEmoji
+              isMe={isMe}
+            />
+          ) : (
+            <EmojiText
+              text={caption}
+              className="mt-1.5 block whitespace-pre-wrap break-words px-1 text-[13.5px] leading-relaxed"
+              largeEmoji
+              linkify
+            />
+          ))}
       </>
     );
   }

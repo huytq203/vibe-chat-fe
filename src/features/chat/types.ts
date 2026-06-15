@@ -140,14 +140,27 @@ export type AttachmentUrl = {
   expiresIn: number;
 };
 
-/** 1 emoji reaction tổng hợp trên 1 tin nhắn (gom theo emoji). BE chưa trả → optional. */
+/** 7 loại cảm xúc cố định (whitelist) — khớp ReactionType của BE. */
+export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY' | 'THANKS';
+
+/** 1 dòng summary cảm xúc trên 1 tin nhắn (gom theo loại). */
 export type MessageReaction = {
-  emoji: string;
+  type: ReactionType;
   count: number;
-  /** userId đã thả emoji này (xác định reactedByMe + tooltip). */
-  userIds: string[];
-  /** true nếu user hiện tại đã thả emoji này. */
-  reactedByMe: boolean;
+};
+
+/** Trạng thái cảm xúc của 1 tin dưới góc nhìn người gọi — BE trả khi set/remove. */
+export type ReactionState = {
+  reactions: MessageReaction[];
+  total: number;
+  myReaction: ReactionType | null;
+};
+
+/** 1 người đã thả cảm xúc — dùng cho popup "ai đã react". */
+export type Reactor = {
+  userId: string;
+  type: ReactionType;
+  reactedAt: string;
 };
 
 export type Message = {
@@ -158,11 +171,15 @@ export type Message = {
   encryptionType: EncryptionType;
   plaintext: string | null;
   attachments: Attachment[];
-  /** Cảm xúc emoji trên tin. CHƯA có API BE — xem features/chat/reactions.ts (REACTIONS_ENABLED). */
+  /** Summary cảm xúc gom theo loại (BE luôn trả; có thể rỗng). */
   reactions?: MessageReaction[];
+  /** Cảm xúc của chính người gọi trên tin này. NULL nếu chưa thả. */
+  myReaction?: ReactionType | null;
   contentPreview: string | null;
   metadata: Record<string, unknown> | null;
   replyToMessageId: string | null;
+  /** Danh sách @user được tag (group). BE đã filter chỉ giữ member hợp lệ. */
+  mentions?: Mention[];
   isEdited: boolean;
   /** Thời điểm sửa gần nhất (BE set khi edit). NULL nếu chưa sửa. */
   editedAt?: string | null;
@@ -175,10 +192,51 @@ export type Message = {
   createdAt: string;
 };
 
+/**
+ * Tag @user trong group. Offset tính theo độ dài chuỗi `plaintext` (UTF-16 code
+ * unit của JS) — startOffset là vị trí ký tự '@', length là độ dài '@DisplayName'.
+ * Xem FRONTEND/04-messages.md.
+ */
+export type Mention = {
+  userId: string;
+  startOffset: number;
+  length: number;
+};
+
+/** Loại mark inline của rich text (xem spec rich-text-editor). */
+export type RichMarkType =
+  | 'bold' | 'italic' | 'underline' | 'strike'
+  | 'color' | 'highlight' | 'link' | 'font';
+
+/** 1 đoạn định dạng inline; offset theo UTF-16 của plaintext (đồng bộ Mention). */
+export type RichMark = {
+  start: number;
+  end: number; // exclusive
+  type: RichMarkType;
+  /** color/highlight = preset key; link = URL; font = preset key. */
+  value?: string;
+};
+
+/** Căn lề theo block (đoạn). */
+export type RichBlock = {
+  start: number;
+  end: number;
+  align: 'left' | 'center' | 'right';
+};
+
+/** Định dạng rich text lưu trong metadata.richText. */
+export type RichText = {
+  v: 1;
+  marks: RichMark[];
+  blocks: RichBlock[];
+};
+
 export type EditMessageInput = {
   conversationId: string;
   messageId: string;
   plaintext: string;
+  /** Định dạng rich text mới (đặt vào metadata.richText). */
+  metadata?: Record<string, unknown>;
 };
 
 export type DeleteMessageInput = {
@@ -195,6 +253,8 @@ export type SendMessageInput = {
   replyToMessageId?: string;
   /** UUID media đã READY (≤10). Bắt buộc khi type là IMAGE/VIDEO/AUDIO/FILE. */
   attachmentIds?: string[];
+  /** Tag @user (group, ≤50). BE filter bỏ user không phải member. */
+  mentions?: Mention[];
   /** Metadata không nhạy cảm gửi kèm cho BE (optional). */
   metadata?: Record<string, unknown>;
   /** Tin tự huỷ sau N giây kể từ lúc gửi (5–2592000). Bỏ trống = tin thường.
