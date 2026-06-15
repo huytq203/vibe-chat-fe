@@ -18,6 +18,8 @@ import { formatBubbleTime } from '@/features/chat/utils';
 import { useDiscardFailedMessage, useResendMessage } from '@/features/chat/hooks/use-mutations';
 import { EmojiText } from '@/components/common/EmojiText';
 import { MentionText } from './MentionText';
+import { RichText } from './RichText';
+import type { RichText as RichTextData } from '@/features/chat/types';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { MediaContent } from './MediaContent';
 import { MessageActions } from './MessageActions';
@@ -26,6 +28,14 @@ import { ReplyQuote } from './ReplyQuote';
 import { SelfDestructTimer } from './SelfDestructTimer';
 
 const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
+
+/** Lấy richText hợp lệ từ metadata (tin cũ / không định dạng → null). */
+function getRichText(metadata: Record<string, unknown> | null): RichTextData | null {
+  const rt = metadata?.richText as RichTextData | undefined;
+  if (!rt || rt.v !== 1 || !Array.isArray(rt.marks) || !Array.isArray(rt.blocks)) return null;
+  if (rt.marks.length === 0 && rt.blocks.length === 0) return null;
+  return rt;
+}
 
 type MessageBubbleProps = {
   message: Message;
@@ -233,6 +243,19 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   if (message.type === 'TEXT') {
     const body = message.plaintext ?? message.contentPreview ?? '';
     const textClass = 'block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed';
+    const richText = getRichText(message.metadata);
+    if (richText) {
+      return (
+        <RichText
+          text={body}
+          mentions={message.mentions ?? []}
+          richText={richText}
+          className={textClass}
+          largeEmoji
+          isMe={isMe}
+        />
+      );
+    }
     if (message.mentions?.length) {
       return <MentionText text={body} mentions={message.mentions} className={textClass} largeEmoji isMe={isMe} />;
     }
