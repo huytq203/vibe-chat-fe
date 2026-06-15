@@ -70,9 +70,13 @@ Content-Type: application/json
 
 {
   "username": "john_doe",          // hoặc email
-  "password": "Password123"
+  "password": "Password123",
+  "deviceType": "WEB",             // BẮT BUỘC: WEB | MOBILE | DESKTOP
+  "deviceName": "Chrome trên Windows"   // optional, ≤ 100 ký tự
 }
 ```
+
+> 📱 Đa thiết bị: gửi `deviceType` mỗi lần login — xem [31-multi-device-sessions.md](./31-multi-device-sessions.md).
 
 Rate-limit: **5 request / phút / IP**.
 
@@ -183,7 +187,7 @@ async function login(username: string, password: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',                   // ← phải có để nhận cookie
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, deviceType: 'WEB' }),
   });
   const { data } = await res.json();
   accessToken = data.tokens.accessToken;
