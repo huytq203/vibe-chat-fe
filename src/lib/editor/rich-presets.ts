@@ -34,6 +34,14 @@ export const colorCssVar = (key: string): string =>
 export const fontCssFamily = (key: string): string =>
   RICH_FONTS.find((f) => f.key === key)?.cssFamily ?? 'inherit';
 
+/** CSS var (Tiptap lưu) → preset key màu. undefined nếu không khớp whitelist. */
+export const colorKeyFromCss = (css: string): string | undefined =>
+  RICH_COLORS.find((c) => c.cssVar === css)?.key;
+
+/** cssFamily (Tiptap lưu) → preset key font. undefined nếu không khớp. */
+export const fontKeyFromCss = (css: string): string | undefined =>
+  RICH_FONTS.find((f) => f.cssFamily === css)?.key;
+
 const SAFE_SCHEMES = ['http:', 'https:', 'mailto:'];
 
 /**
