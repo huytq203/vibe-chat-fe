@@ -1,6 +1,8 @@
 export { LoginForm } from './components/LoginForm';
 export { RegisterForm } from './components/RegisterForm';
 export { VerifyEmailForm } from './components/VerifyEmailForm';
+export { ForgotPasswordForm } from './components/ForgotPasswordForm';
+export { DeleteAccountDialog } from './components/DeleteAccountDialog';
 export { AuthBootstrap } from './components/AuthBootstrap';
 export { useAuthStore } from './stores/auth.store';
 export {
@@ -10,6 +12,11 @@ export {
   useVerifyEmail,
   useResendOtp,
   useUpdateMe,
+  useForgotPassword,
+  useResetPassword,
+  useRequestRestore,
+  useConfirmRestore,
+  useDeleteAccount,
 } from './hooks/use-mutations';
 export { useMe } from './hooks/use-query';
 export { useImageUpload } from './hooks/useImageUpload';

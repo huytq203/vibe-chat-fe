@@ -141,7 +141,7 @@ export function MessageActions({
             title={REACTION_LABEL[type]}
             className={cn(
               'rounded-full px-1 py-0.5 text-base leading-none transition-transform hover:scale-125',
-              message.myReaction === type && 'bg-primary/10',
+              message.myReaction === type && 'bg-primary/25',
             )}
           >
             <EmojiText text={REACTION_EMOJI[type]} />
@@ -156,7 +156,7 @@ export function MessageActions({
               size="icon-sm"
               aria-label="Tùy chọn tin nhắn"
               title="Tùy chọn"
-              className="h-6 w-6 text-muted-foreground"
+              className="h-6 w-6 text-muted-foreground bg-accent"
             >
               <MoreVertical className="h-[15px] w-[15px]" />
             </Button>

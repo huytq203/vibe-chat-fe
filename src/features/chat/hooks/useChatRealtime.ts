@@ -442,7 +442,30 @@ export function useChatRealtime() {
       qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(payload.conversationId) });
     }
 
+    // Tin hẹn giờ thay đổi vòng đời (tạo/sửa/huỷ/gửi/lỗi) ở thiết bị khác của chính
+    // mình → đồng bộ danh sách hẹn giờ. scheduled.conversationId là UUID conversation.
+    function onScheduledUpdate(payload: {
+      scheduled?: { conversationId?: string };
+    }) {
+      const convId = payload?.scheduled?.conversationId;
+      if (convId) {
+        qc.invalidateQueries({ queryKey: chatKeys.scheduledMessages(convId) });
+      }
+    }
+
+    // Tin hẹn giờ đã tới giờ & gửi: tin thật tới qua 'message:new', còn đây để
+    // chuyển trạng thái PENDING → SENT trong danh sách hẹn giờ.
+    function onScheduledSent(payload: { conversationId?: string }) {
+      if (payload?.conversationId) {
+        qc.invalidateQueries({
+          queryKey: chatKeys.scheduledMessages(payload.conversationId),
+        });
+      }
+    }
+
     socket.on('message:new', onMessageNew);
+    socket.on('scheduled_message:update', onScheduledUpdate);
+    socket.on('scheduled_message:sent', onScheduledSent);
     socket.on('conversation:updated', onConversationUpdated);
     socket.on('conversation:pin_updated', onPinUpdated);
     socket.on('message:reaction_updated', onReactionUpdated);
@@ -495,6 +518,8 @@ export function useChatRealtime() {
       socket.off('conversation:join_request', onJoinRequest);
       socket.off('conversation:join_request_resolved', onJoinRequestResolved);
       socket.off('message:read', onMessageRead);
+      socket.off('scheduled_message:update', onScheduledUpdate);
+      socket.off('scheduled_message:sent', onScheduledSent);
       socket.off('presence:update', onPresenceUpdate);
       socket.off('typing', onTyping);
       socket.off('connect', onReconnect);

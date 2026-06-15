@@ -49,7 +49,7 @@ export function LockPasswordDialog({ open, onOpenChange, mode, onConfirm }: Lock
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {mode === 'lock' ? <span className='flex items-center gap-2'><Lock className="h-6 w-6" /> Khóa cuộc hội thoại</span> : <span className='flex items-center gap-2'><Unlock className="h-6 w-6" /> Tắt khóa hội thoại</span>}
+            {mode === 'lock' ? <span className='flex items-center gap-2'> Khóa cuộc hội thoại</span> : <span className='flex items-center gap-2'>Tắt khóa hội thoại</span>}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {mode === 'lock'

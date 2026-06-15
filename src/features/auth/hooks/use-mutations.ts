@@ -69,6 +69,51 @@ export function useUpdateMe() {
   });
 }
 
+// ── Quên mật khẩu ──────────────────────────────────────────────────────────
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.forgotPassword(email),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (input: { email: string; otp: string; newPassword: string }) =>
+      authApi.resetPassword(input),
+  });
+}
+
+// ── Khôi phục tài khoản (sau khi login bị chặn vì đã xoá) ────────────────────
+export function useRequestRestore() {
+  return useMutation({
+    mutationFn: (restoreToken: string) => authApi.requestRestore(restoreToken),
+  });
+}
+
+export function useConfirmRestore() {
+  return useMutation({
+    mutationFn: (input: { restoreToken: string; otp: string }) =>
+      authApi.confirmRestore(input),
+  });
+}
+
+// ── Xoá tài khoản (xoá mềm) ──────────────────────────────────────────────────
+// BE đã đá mọi phiên → sau khi xoá, dọn session phía client như logout.
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  const clear = useAuthStore((s) => s.clear);
+  const clearLockSession = useConvLockStore((s) => s.clearAll);
+  return useMutation({
+    mutationFn: () => authApi.deleteAccount(),
+    onSettled: () => {
+      closeSocket();
+      clearLockSession();
+      clear();
+      queryClient.clear();
+    },
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
   const clear = useAuthStore((s) => s.clear);

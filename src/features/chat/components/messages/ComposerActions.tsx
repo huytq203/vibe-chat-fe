@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Clock, Maximize2, Minimize2, Smile } from 'lucide-react';
+import { CalendarClock, Check, Clock, Smile, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import {
@@ -23,6 +23,7 @@ type ComposerActionsProps = {
   selfDestructTtl: number | null;
   onFiles: (files: FileList | File[], kind: AttachmentKind) => void;
   onSelfDestruct: (seconds: number | null) => void;
+  onScheduleClick: () => void;
   onEmojiOpenChange: (open: boolean) => void;
   onEmojiButtonClick: () => void;
   onEmojiSelect: (emoji: string) => void;
@@ -38,6 +39,7 @@ export function ComposerActions({
   selfDestructTtl,
   onFiles,
   onSelfDestruct,
+  onScheduleClick,
   onEmojiOpenChange,
   onEmojiButtonClick,
   onEmojiSelect,
@@ -80,6 +82,17 @@ export function ComposerActions({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            disabled={disabled}
+            title="Hẹn giờ gửi"
+            aria-label="Hẹn giờ gửi tin nhắn"
+            onClick={onScheduleClick}
+            className="text-muted-foreground hover:text-primary"
+          >
+            <CalendarClock className="h-[18px] w-[18px]" />
+          </Button>
         </>
       )}
       <Popover open={emojiOpen} onOpenChange={onEmojiOpenChange}>
@@ -113,7 +126,7 @@ export function ComposerActions({
           expanded ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-primary',
         )}
       >
-        {expanded ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
+        {expanded ? <Type className="h-[18px] w-[18px]" /> : <Type className="h-[18px] w-[18px]" />}
       </Button>
     </div>
   );

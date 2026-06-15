@@ -42,6 +42,34 @@ export const authApi = {
       auth: false,
       body: { email },
     }),
+  // ── Quên mật khẩu ──────────────────────────────────────────────────────
+  forgotPassword: (email: string) =>
+    apiClient.post<{ message: string }>('/api/v1/auth/forgot-password', {
+      auth: false,
+      body: { email },
+    }),
+  resetPassword: (input: { email: string; otp: string; newPassword: string }) =>
+    apiClient.post<{ message: string }>('/api/v1/auth/reset-password', {
+      auth: false,
+      body: input,
+    }),
+
+  // ── Xoá / khôi phục tài khoản ──────────────────────────────────────────
+  // Xoá mềm tài khoản hiện tại (cần đăng nhập). BE đá mọi phiên + lên lịch purge 7 ngày.
+  deleteAccount: () =>
+    apiClient.delete<{ message: string }>('/api/v1/auth/account'),
+  // Gửi OTP khôi phục — dùng restoreToken nhận được khi login bị chặn (AUTH_ACCOUNT_DELETED).
+  requestRestore: (restoreToken: string) =>
+    apiClient.post<{ message: string; email: string | null }>(
+      '/api/v1/auth/account/restore/request',
+      { auth: false, body: { restoreToken } },
+    ),
+  confirmRestore: (input: { restoreToken: string; otp: string }) =>
+    apiClient.post<{ message: string }>('/api/v1/auth/account/restore/confirm', {
+      auth: false,
+      body: input,
+    }),
+
   logout: () => apiClient.post<void>('/api/v1/auth/logout'),
   refreshAccessToken: () =>
     apiClient.post<AuthTokens>('/api/v1/auth/refresh', {

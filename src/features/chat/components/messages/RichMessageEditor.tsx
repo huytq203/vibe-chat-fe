@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import type { SuggestionOptions } from '@tiptap/suggestion';
+import { splitBlock } from '@tiptap/pm/commands';
 import { baseEditorExtensions } from '@/lib/editor/extensions';
 import { createMentionExtension } from '@/lib/editor/mention-extension';
 import { jsonToMessage, type SerializedMessage } from '@/lib/editor/serializer';
@@ -68,13 +69,18 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
           'aria-multiline': 'true',
           'aria-label': 'Nhập tin nhắn',
         },
-        handleKeyDown: (_view, event) => {
+        handleKeyDown: (view, event) => {
           if (event.key === 'Enter' && !event.shiftKey) {
             // Mention popup đang mở → nhường Enter cho plugin chọn mention.
             if (isMentionOpen()) return false;
             event.preventDefault();
             onEnter();
             return true;
+          }
+          // Shift+Enter → tách paragraph mới (serializer xuất '\n' theo paragraph).
+          if (event.key === 'Enter' && event.shiftKey) {
+            event.preventDefault();
+            return splitBlock(view.state, view.dispatch);
           }
           if (event.key === 'Escape' && onEscape && !isMentionOpen()) {
             event.preventDefault();

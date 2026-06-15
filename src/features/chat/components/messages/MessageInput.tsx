@@ -13,6 +13,7 @@ import { MentionSuggestPopup } from './MentionSuggestPopup';
 import { RichMessageEditor } from './RichMessageEditor';
 import { MessageToolbar } from './MessageToolbar';
 import { ComposerActions } from './ComposerActions';
+import { ScheduleMessageDialog } from './ScheduleMessageDialog';
 
 type MessageInputProps = {
   conversationId: string;
@@ -46,6 +47,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
 
   const [editor, setEditor] = useState<Editor | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
@@ -62,6 +64,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
       selfDestructTtl={selfDestructTtl}
       onFiles={addFiles}
       onSelfDestruct={setSelfDestructTtl}
+      onScheduleClick={() => setScheduleOpen(true)}
       onEmojiOpenChange={setEmojiOpen}
       onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
@@ -120,7 +123,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   return (
     <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3">
       {isEditing && (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-l-[3px] border-primary/40 border-l-primary bg-primary/10 px-3 py-2">
+        <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
           <Pencil className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="flex-1 text-[12.5px] font-semibold text-primary">
             Đang chỉnh sửa tin nhắn
@@ -137,7 +140,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         </div>
       )}
       {replying && (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-l-[3px] border-primary/40 border-l-primary bg-primary/10 px-3 py-2">
+        <div className="mb-2 flex items-center gap-2 rounded-lg  bg-primary/10 px-3 py-2">
           <Reply className="h-3.5 w-3.5 shrink-0 text-primary" />
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="text-[12.5px] font-semibold text-primary">
@@ -177,7 +180,6 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           </>
         ) : (
           <>
-            <MessageToolbar editor={editor} disabled={disabled} />
             <div className="flex items-end gap-1.5">
               {actions}
               {editorEl}
@@ -186,6 +188,11 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           </>
         )}
       </div>
+      <ScheduleMessageDialog
+        conversationId={conversationId}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+      />
     </div>
   );
 }

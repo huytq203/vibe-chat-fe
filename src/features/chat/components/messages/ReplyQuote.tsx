@@ -33,7 +33,7 @@ export function ReplyQuote({
       type="button"
       onClick={() => onClick(replyToMessageId)}
       className={cn(
-        'mb-1.5 flex w-full flex-col gap-0.5 rounded-md border-l-[3px] px-2 py-1 text-left transition-colors',
+        'mb-1.5 flex w-full flex-col gap-0.5  border-l-[3px] px-2 py-1 text-left transition-colors',
         isMe
           ? 'border-primary-foreground/60 bg-primary-foreground/10 hover:bg-primary-foreground/20'
           : 'border-primary/60 bg-primary/10 hover:bg-primary/20',

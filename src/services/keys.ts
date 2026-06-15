@@ -67,6 +67,9 @@ export const chatKeys = {
     [...chatKeys.all, 'pinned', conversationId] as const,
   shared: (conversationId: string, type: string) =>
     [...chatKeys.all, 'shared', conversationId, type] as const,
+  // Tin nhắn hẹn giờ của chính mình trong 1 conversation.
+  scheduledMessages: (conversationId: string) =>
+    [...chatKeys.all, 'scheduled', conversationId] as const,
   search: (
     conversationId: string,
     filters: { key: string; senderId?: string; from?: string; to?: string },

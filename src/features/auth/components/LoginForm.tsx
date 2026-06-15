@@ -19,10 +19,14 @@ import { toast } from 'sonner';
 import { loginSchema, type LoginInput } from '@/features/auth/schemas';
 import { useLogin } from '@/features/auth/hooks/use-mutations';
 import { ApiError } from '@/lib/api/client';
+import { RestoreAccountDialog } from './RestoreAccountDialog';
+
+type RestoreInfo = { restoreToken: string; maskedEmail: string | null };
 
 export const LoginForm = () => {
   const router = useRouter();
   const login = useLogin();
+  const [restoreInfo, setRestoreInfo] = React.useState<RestoreInfo | null>(null);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -41,6 +45,19 @@ export const LoginForm = () => {
         const emailHint = data.username.includes('@') ? data.username : '';
         router.push(`/verify-email?email=${encodeURIComponent(emailHint)}`);
         return;
+      }
+      // Tài khoản đã xoá (còn trong 7 ngày) → mở luồng khôi phục bằng restoreToken.
+      if (e instanceof ApiError && e.code === 'AUTH_ACCOUNT_DELETED') {
+        const d = e.details as
+          | { restoreToken?: string; email?: string | null }
+          | undefined;
+        if (d?.restoreToken) {
+          setRestoreInfo({
+            restoreToken: d.restoreToken,
+            maskedEmail: d.email ?? null,
+          });
+          return;
+        }
       }
       toast.error(e instanceof ApiError ? e.message : 'Không thể đăng nhập. Thử lại sau.');
     }
@@ -89,8 +106,8 @@ export const LoginForm = () => {
               )}
             />
 
-            <div className="flex items-center justify-between">
-              <FormField
+            <div className="flex items-center justify-center">
+              {/* <FormField
                 control={form.control}
                 name="rememberMe"
                 render={({ field }) => (
@@ -102,8 +119,12 @@ export const LoginForm = () => {
                     }
                   />
                 )}
-              />
-              <Button variant="link" type="button">
+              /> */}
+              <Button
+                variant="link"
+                type="button"
+                onClick={() => router.push('/forgot-password')}
+              >
                 Quên mật khẩu?
               </Button>
             </div>
@@ -131,6 +152,17 @@ export const LoginForm = () => {
           </Button>
         </p>
       </CardContent>
+
+      {restoreInfo && (
+        <RestoreAccountDialog
+          open={!!restoreInfo}
+          onOpenChange={(o) => {
+            if (!o) setRestoreInfo(null);
+          }}
+          restoreToken={restoreInfo.restoreToken}
+          maskedEmail={restoreInfo.maskedEmail}
+        />
+      )}
     </Card>
   );
 };

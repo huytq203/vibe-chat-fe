@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
@@ -23,6 +24,14 @@ import type {
 export function useNotificationRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const qc = useQueryClient();
+  const router = useRouter();
+  const params = useParams<{ id?: string }>();
+  const activeConversationId = params.id ?? null;
+
+  // Ref giữ hội thoại đang mở để handler socket đọc giá trị mới nhất
+  // mà không phải re-subscribe mỗi lần đổi hội thoại.
+  const activeConvRef = useRef(activeConversationId);
+  activeConvRef.current = activeConversationId;
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -72,11 +81,22 @@ export function useNotificationRealtime() {
       // List cuộn vô hạn (panel chuông) giữ shape InfiniteData → chỉ invalidate.
       qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
 
+      // Đang mở đúng hội thoại của tin → không cần toast (user đã thấy tin).
+      const inActiveConv = Boolean(n.conversationId) && n.conversationId === activeConvRef.current;
+
       // App đang xem → toast trong app. App nền: web đã có FCM service worker đẩy,
       // còn desktop (Electron) không có push nền → bắn native notification qua socket.
       const focused = typeof document !== 'undefined' && document.hasFocus();
       if (focused) {
-        toast(n.title, { description: n.body ?? undefined });
+        if (inActiveConv) return;
+        const convId = n.conversationId;
+        toast(n.title, {
+          description: n.body ?? undefined,
+          // Click "Xem" → nhảy sang hội thoại của tin (chỉ hiện khi đang ở hội thoại khác).
+          action: convId
+            ? { label: 'Xem', onClick: () => router.replace(`/chat/${convId}`, { scroll: false }) }
+            : undefined,
+        });
       } else if (isElectron()) {
         showElectronNotification({ title: n.title, body: n.body ?? undefined });
       }
@@ -132,5 +152,5 @@ export function useNotificationRealtime() {
       socket.off('notification:new', onNotificationNew);
       socket.off('notification:cleared', onNotificationCleared);
     };
-  }, [isAuthed, qc]);
+  }, [isAuthed, qc, router]);
 }
