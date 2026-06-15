@@ -8,7 +8,7 @@ export type RichColor = { key: string; label: string; cssVar: string };
 /** Màu chữ & highlight — bám token theme. `cssVar` map sang style runtime. */
 export const RICH_COLORS: readonly RichColor[] = [
   { key: 'default', label: 'Mặc định', cssVar: 'var(--color-foreground)' },
-  { key: 'primary', label: 'Tím', cssVar: 'var(--color-primary)' },
+  { key: 'blue', label: 'Xanh dương', cssVar: 'var(--color-info)' },
   { key: 'success', label: 'Xanh lá', cssVar: 'var(--color-success)' },
   { key: 'warning', label: 'Vàng', cssVar: 'var(--color-warning)' },
   { key: 'danger', label: 'Đỏ', cssVar: 'var(--color-danger)' },

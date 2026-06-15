@@ -80,6 +80,8 @@
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
 
+    --color-info: var(--info);
+
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
 
@@ -194,6 +196,7 @@
 
         /* Non-theme tokens (not managed by applyTheme) */
         --switch-background: #32334a;       /* Toggle nền */
+        --info: #3b9cff;                    /* Xanh dương — màu chữ rich text (khác bubble tím) */
 
         --chart-1: #f05050;
         --chart-2: #8b7cf0;                 /* Indigo thương hiệu */
@@ -257,6 +260,8 @@
         --sidebar-accent: #1c1929;
         --sidebar-accent-foreground: #c4b0ff;
         --sidebar-ring: #9b72ff;
+
+        --info: #5fa8ff;                    /* Xanh dương sáng hơn cho nền tối */
     }
 }
 
