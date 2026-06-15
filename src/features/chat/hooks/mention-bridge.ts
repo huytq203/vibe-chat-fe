@@ -4,7 +4,20 @@ import {
   MENTION_ALL_LABEL,
 } from '@/features/chat/components/messages/composer-utils';
 import type { ConversationMember } from '@/features/chat/types';
-import type { MentionItem } from './useMentionSuggest';
+
+/** 1 dòng gợi ý: `@all` hoặc 1 member cụ thể. */
+export type MentionItem =
+  | { kind: 'all' }
+  | { kind: 'member'; member: ConversationMember };
+
+/** Phần tối thiểu MentionSuggestPopup cần để render danh sách gợi ý. */
+export type MentionListView = {
+  isOpen: boolean;
+  items: MentionItem[];
+  activeIndex: number;
+  setActiveIndex: (i: number) => void;
+  select: (item: MentionItem) => void;
+};
 
 export const MAX_MENTION_SUGGESTIONS = 8;
 /** Trần số mention 1 tin theo BE (04-messages.md). */

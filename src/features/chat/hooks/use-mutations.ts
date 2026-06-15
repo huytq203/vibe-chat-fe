@@ -45,6 +45,20 @@ function patchMessageInCache(
   });
   return previous;
 }
+/**
+ * Gộp metadata khi sửa tin: thay `richText` bằng bản mới (hoặc gỡ bỏ nếu lần sửa
+ * này không còn định dạng), giữ nguyên các key metadata khác. Trả null nếu rỗng.
+ */
+function mergeEditMetadata(
+  old: Record<string, unknown> | null | undefined,
+  next: Record<string, unknown> | undefined,
+): Record<string, unknown> | null {
+  const merged: Record<string, unknown> = { ...(old ?? {}) };
+  delete merged.richText;
+  if (next?.richText) merged.richText = next.richText;
+  return Object.keys(merged).length > 0 ? merged : null;
+}
+
 type SendAck = { ok: true; messageId: string } | { ok: false; error?: string };
 
 type SendContext = {
@@ -365,7 +379,7 @@ export function useEditMessage() {
   const qc = useQueryClient();
   return useMutation<Message, Error, EditMessageInput, EditContext>({
     mutationFn: (vars) =>
-      chatApi.editMessage(vars.conversationId, vars.messageId, vars.plaintext),
+      chatApi.editMessage(vars.conversationId, vars.messageId, vars.plaintext, vars.metadata),
 
     onMutate: (vars): EditContext => {
       const now = new Date().toISOString();
@@ -373,6 +387,8 @@ export function useEditMessage() {
         ...m,
         plaintext: vars.plaintext,
         contentPreview: vars.plaintext,
+        // Gộp metadata mới (richText) — bỏ richText cũ nếu lần sửa này không còn định dạng.
+        metadata: mergeEditMetadata(m.metadata, vars.metadata),
         isEdited: true,
         editedAt: now,
       }));

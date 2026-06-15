@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import type { SuggestionOptions } from '@tiptap/suggestion';
 import { baseEditorExtensions } from '@/lib/editor/extensions';
@@ -26,12 +26,25 @@ type RichMessageEditorProps = {
   isMentionOpen: () => boolean;
   onUpdate: (hasContent: boolean) => void;
   onEnter: () => void;
+  onEscape?: () => void;
   onPasteFiles: (files: File[]) => boolean;
+  /** Phát instance editor lên cha (toolbar cần reactive, ref không đủ). */
+  onEditor?: (editor: Editor | null) => void;
 };
 
 export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps>(
   function RichMessageEditor(
-    { placeholder, disabled, mentionSuggestion, isMentionOpen, onUpdate, onEnter, onPasteFiles },
+    {
+      placeholder,
+      disabled,
+      mentionSuggestion,
+      isMentionOpen,
+      onUpdate,
+      onEnter,
+      onEscape,
+      onPasteFiles,
+      onEditor,
+    },
     ref,
   ) {
     const editor = useEditor({
@@ -57,6 +70,11 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
             if (isMentionOpen()) return false;
             event.preventDefault();
             onEnter();
+            return true;
+          }
+          if (event.key === 'Escape' && onEscape && !isMentionOpen()) {
+            event.preventDefault();
+            onEscape();
             return true;
           }
           return false;
@@ -89,6 +107,10 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
       }),
       [editor],
     );
+
+    useEffect(() => {
+      onEditor?.(editor);
+    }, [editor, onEditor]);
 
     return (
       <EditorContent

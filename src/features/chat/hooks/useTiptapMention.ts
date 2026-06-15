@@ -9,8 +9,9 @@ import {
   computeMentionItems,
   mentionItemToAttrs,
   MAX_MENTIONS,
+  type MentionItem,
+  type MentionListView,
 } from './mention-bridge';
-import type { MentionItem, MentionListView } from './useMentionSuggest';
 import type { ConversationMember, Mention } from '@/features/chat/types';
 
 type PopupState = { open: boolean; items: MentionItem[]; activeIndex: number };

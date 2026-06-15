@@ -28,6 +28,7 @@ import { useToggleReaction } from '@/features/chat/hooks/useReactions';
 import { QUICK_REACTIONS, REACTION_EMOJI, REACTION_LABEL } from '@/features/chat/reactions';
 import type { ReactionType } from '@/features/chat/types';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
+import { getRichText } from './rich-text-utils';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 
 type MessageActionsProps = {
@@ -110,6 +111,8 @@ export function MessageActions({
       conversationId: message.conversationId,
       messageId: message.id,
       text: message.plaintext ?? message.contentPreview ?? '',
+      mentions: message.mentions,
+      richText: getRichText(message.metadata) ?? undefined,
     });
   }
 

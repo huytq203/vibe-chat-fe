@@ -130,10 +130,15 @@ export const chatApi = {
   // Endpoint & contract theo FRONTEND/15-edit-recall-selfdestruct.md.
 
   /** Sửa nội dung text của 1 tin SERVER (trong 5 phút). Trả Message đã cập nhật (isEdited=true). */
-  editMessage: (conversationId: string, messageId: string, plaintext: string) =>
+  editMessage: (
+    conversationId: string,
+    messageId: string,
+    plaintext: string,
+    metadata?: Record<string, unknown>,
+  ) =>
     apiClient.patch<Message>(
       `/api/v1/conversations/${conversationId}/messages/${messageId}`,
-      { body: { plaintext } },
+      { body: { plaintext, metadata } },
     ),
 
   /** Gỡ (thu hồi) 1 tin đã gửi. Trả về Message tombstone (isDeleted=true). */
