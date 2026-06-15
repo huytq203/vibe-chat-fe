@@ -14,11 +14,13 @@ import {
 } from './useAttachments';
 import {
   extractText,
+  extractTextWithMentions,
   insertEmojiIntoEditor,
   placeCaretAtEnd,
   MAX_LENGTH,
   TYPING_STOP_DEBOUNCE_MS,
 } from '@/features/chat/components/messages/composer-utils';
+import { useMentionSuggest } from './useMentionSuggest';
 import type { MessageType } from '@/features/chat/types';
 
 const KIND_TO_TYPE: Record<AttachmentKind, MessageType> = {
@@ -40,6 +42,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
   // Hẹn giờ tự huỷ (giây) — null = tắt. Giữ giữa các tin trong cùng conv.
   const [selfDestructTtl, setSelfDestructTtl] = useState<number | null>(null);
 
+  const mention = useMentionSuggest(editorRef, conversationId);
   const send = useSendMessage();
   const editMut = useEditMessage();
   const editing = useMessageEditStore((s) => s.editing);
@@ -154,6 +157,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
   function handleInput() {
     const el = editorRef.current;
     if (!el) return;
+    mention.refresh();
     const has = extractText(el).trim().length > 0;
     setHasContent(has);
     if (disabled || isEditing) return;
@@ -167,6 +171,8 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
   }
 
   function handleKey(e: KeyboardEvent<HTMLDivElement>) {
+    // Popup mention ưu tiên điều hướng (Up/Down/Enter/Tab/Esc) khi đang mở.
+    if (mention.handleKeyDown(e)) return;
     if (e.key === 'Escape' && isEditing) {
       e.preventDefault();
       exitEdit();
@@ -228,7 +234,15 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
       saveEdit();
       return;
     }
-    const text = extractText(el).trim();
+    // Trích text + mentions cùng lúc; trim đầu chuỗi thì dời offset tương ứng.
+    const { text: rawText, mentions: rawMentions } = extractTextWithMentions(el);
+    const leadingWs = rawText.length - rawText.trimStart().length;
+    const text = rawText.trim();
+    const mentions = mention.expandMentions(
+      rawMentions
+        .map((m) => ({ ...m, startOffset: m.startOffset - leadingWs }))
+        .filter((m) => m.startOffset >= 0 && m.startOffset + m.length <= text.length),
+    );
     const hasAttachments = attachments.length > 0;
     if (!text && !hasAttachments) return;
     submittingRef.current = true;
@@ -246,6 +260,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
           clientNonce: crypto.randomUUID(),
           type: 'TEXT',
           replyToMessageId: replying?.messageId,
+          mentions: mentions.length ? mentions : undefined,
           selfDestructTtl: selfDestructTtl ?? undefined,
         });
         cancelReply();
@@ -271,6 +286,8 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
         if (a.status !== 'done' || !a.media) return; // item lỗi → giữ lại tray để thử lại
         // Caption & reply chỉ gắn vào tin media đầu tiên gửi thành công.
         const caption = !captionUsed && text ? text : undefined;
+        // Mentions đi cùng caption → chỉ gắn vào đúng tin media mang caption.
+        const captionMentions = caption && mentions.length ? mentions : undefined;
         if (caption) captionUsed = true;
         const replyToMessageId = !replyUsed ? replying?.messageId : undefined;
         if (replyToMessageId) replyUsed = true;
@@ -281,6 +298,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
           clientNonce: crypto.randomUUID(),
           type: KIND_TO_TYPE[a.kind],
           attachmentIds: [a.media.id],
+          mentions: captionMentions,
           replyToMessageId,
           selfDestructTtl: selfDestructTtl ?? undefined,
           previewUrl: a.kind === 'file' ? undefined : URL.createObjectURL(a.file),
@@ -312,6 +330,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
 
   return {
     editorRef,
+    mention,
     hasContent,
     emojiOpen,
     setEmojiOpen,

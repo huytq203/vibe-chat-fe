@@ -19,6 +19,7 @@ import { SELF_DESTRUCT_OPTIONS } from '@/features/chat/utils';
 import { AttachmentButtons } from './AttachmentButtons';
 import { AttachmentTray } from './AttachmentTray';
 import { VoiceRecorderBar } from './VoiceRecorderBar';
+import { MentionSuggestPopup } from './MentionSuggestPopup';
 
 type MessageInputProps = {
   conversationId: string;
@@ -28,6 +29,7 @@ type MessageInputProps = {
 export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const {
     editorRef,
+    mention,
     hasContent,
     emojiOpen,
     setEmojiOpen,
@@ -96,6 +98,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
           </button>
         </div>
       )}
+      {!isEditing && <MentionSuggestPopup mention={mention} />}
       {!isEditing && <AttachmentTray attachments={attachments} onRemove={remove} />}
       <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-muted px-2 py-1.5">
         {recorder.isRecording || sending ? (

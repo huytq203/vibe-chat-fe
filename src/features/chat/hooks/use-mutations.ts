@@ -74,6 +74,8 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
       // Bắt buộc với tin media; bỏ khi không có.
       attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
       replyToMessageId: input.replyToMessageId,
+      // Tag @user (group) — bỏ khi rỗng. Xem 04-messages.md.
+      mentions: input.mentions?.length ? input.mentions : undefined,
       metadata: input.metadata,
       // Tin tự huỷ — giống REST. Bỏ field nếu không set (xem doc 15).
       selfDestructTtl: input.selfDestructTtl,
@@ -145,6 +147,7 @@ export function useSendMessage() {
           clientNonce,
         },
         replyToMessageId: input.replyToMessageId ?? null,
+        mentions: input.mentions,
         isEdited: false,
         isDeleted: false,
         deletedFor: 'NONE',

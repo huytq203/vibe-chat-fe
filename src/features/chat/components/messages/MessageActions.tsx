@@ -25,7 +25,8 @@ import type { Message } from '@/features/chat/types';
 import { canEditMessage, getMessageSnippet } from '@/features/chat/utils';
 import { useDeleteMessage, usePinMessage, useUnpinMessage } from '@/features/chat/hooks/use-mutations';
 import { useToggleReaction } from '@/features/chat/hooks/useReactions';
-import { QUICK_REACTIONS, REACTIONS_ENABLED } from '@/features/chat/reactions';
+import { QUICK_REACTIONS, REACTION_EMOJI, REACTION_LABEL } from '@/features/chat/reactions';
+import type { ReactionType } from '@/features/chat/types';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 
@@ -40,7 +41,7 @@ type MessageActionsProps = {
   canPin?: boolean;
   /** Tin này đang được ghim (tra từ danh sách ghim ở MessageList). */
   isPinned?: boolean;
-  /** Chỉ hiện menu khi hover dòng tin (parent set qua group-hover). */
+  /** Vị trí + hiệu ứng hiện khi hover bubble (parent set qua group-hover/msg). */
   className?: string;
 };
 
@@ -54,6 +55,8 @@ export function MessageActions({
   message, meId, isMe, senderName, canPin, isPinned, className,
 }: MessageActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Kiểm soát mở dropdown để giữ bar hiện khi menu đang mở (dù chuột đã rê ra ngoài).
+  const [menuOpen, setMenuOpen] = useState(false);
   const startEdit = useMessageEditStore((s) => s.startEdit);
   const startReply = useMessageReplyStore((s) => s.startReply);
   const deleteMut = useDeleteMessage();
@@ -67,9 +70,12 @@ export function MessageActions({
     else pinMut.mutate(vars);
   }
 
-  function handleReact(emoji: string) {
-    const existing = message.reactions?.find((r) => r.emoji === emoji);
-    toggleReaction.mutate({ messageId: message.id, emoji, active: existing?.reactedByMe ?? false });
+  function handleReact(type: ReactionType) {
+    toggleReaction.mutate({
+      messageId: message.id,
+      type,
+      current: message.myReaction ?? null,
+    });
   }
 
   // Sửa: tin TEXT của mình, còn trong cửa sổ 5 phút (xem doc 15). Gỡ: không giới hạn.
@@ -113,8 +119,33 @@ export function MessageActions({
   }
 
   return (
-    <div className={cn('flex items-center', className)}>
-      <DropdownMenu>
+    <div
+      className={cn(
+        'flex items-center gap-1',
+        className,
+        // Menu đang mở → ép hiện + nhận chuột, bất kể đã rê ra ngoài bubble (case 1).
+        menuOpen && '!pointer-events-auto !opacity-100',
+      )}
+    >
+      {/* Thanh cảm xúc nhanh dạng pill nổi — hiện ngay khi hover tin (không cần mở "..."). */}
+      <div className="flex items-center gap-0.5 rounded-full border border-border bg-popover px-1 py-0.5 shadow-sm">
+        {QUICK_REACTIONS.map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => handleReact(type)}
+            aria-label={`Thả ${REACTION_LABEL[type]}`}
+            title={REACTION_LABEL[type]}
+            className={cn(
+              'rounded-full px-1 py-0.5 text-base leading-none transition-transform hover:scale-125',
+              message.myReaction === type && 'bg-primary/10',
+            )}
+          >
+            <EmojiText text={REACTION_EMOJI[type]} />
+          </button>
+        ))}
+      </div>
+      <DropdownMenu open={menuOpen} onOpenChange={(o) => setMenuOpen(o)}>
         <DropdownMenuTrigger
           render={
             <Button
@@ -128,26 +159,7 @@ export function MessageActions({
             </Button>
           }
         />
-        <DropdownMenuContent side="top" align="end" className="min-w-[150px]">
-          {/* Hàng cảm xúc nhanh — chờ API BE (xem reactions.ts). Ẩn khi REACTIONS_ENABLED=false. */}
-          {REACTIONS_ENABLED && (
-            <>
-              <div className="flex items-center gap-0.5 px-1 py-1">
-                {QUICK_REACTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => handleReact(emoji)}
-                    aria-label={`Thả ${emoji}`}
-                    className="rounded-md px-1 py-0.5 text-base transition-transform hover:scale-125"
-                  >
-                    <EmojiText text={emoji} />
-                  </button>
-                ))}
-              </div>
-              <DropdownMenuSeparator />
-            </>
-          )}
+        <DropdownMenuContent side="top" align="start" className="min-w-[150px]">
           <DropdownMenuItem onClick={handleReply}>
             <Reply className="h-4 w-4" />
             Trả lời

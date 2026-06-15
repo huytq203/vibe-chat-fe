@@ -9,6 +9,9 @@ import type {
   Message,
   MessagesPage,
   Presence,
+  ReactionState,
+  ReactionType,
+  Reactor,
   SendMessageInput,
   SharedContentType,
 } from '@/features/chat/types';
@@ -114,6 +117,8 @@ export const chatApi = {
           // Bắt buộc với tin media (≤10 id) — xem 04/14-*.md.
           attachmentIds: input.attachmentIds?.length ? input.attachmentIds : undefined,
           replyToMessageId: input.replyToMessageId,
+          // Tag @user (group) — bỏ field nếu rỗng. Xem 04-messages.md.
+          mentions: input.mentions?.length ? input.mentions : undefined,
           metadata: input.metadata,
           // Tin tự huỷ (giây, 5–2592000). Bỏ field nếu không set. Xem doc 15.
           selfDestructTtl: input.selfDestructTtl,
@@ -345,17 +350,28 @@ export const chatApi = {
   },
 
   // ─── Reactions (thả cảm xúc emoji) ─────────────────────────────────────────
-  // ⚠️ CHƯA chốt API BE. Endpoint dưới là DỰ KIẾN — xác nhận với BE trước khi bật
-  // REACTIONS_ENABLED (features/chat/reactions.ts). Trả Message đã cập nhật reactions.
-  reactToMessage: (conversationId: string, messageId: string, emoji: string) =>
-    apiClient.post<Message>(
+  // Mỗi user 1 cảm xúc/tin: PUT để thả/đổi (ghi đè), DELETE để gỡ. BE trả
+  // ReactionState { reactions[], total, myReaction } sau mỗi thao tác.
+  setReaction: (conversationId: string, messageId: string, type: ReactionType) =>
+    apiClient.put<ReactionState>(
       `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions`,
-      { body: { emoji } },
+      { body: { type } },
     ),
 
-  unreactFromMessage: (conversationId: string, messageId: string, emoji: string) =>
-    apiClient.delete<Message>(
-      `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+  removeReaction: (conversationId: string, messageId: string) =>
+    apiClient.delete<ReactionState>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions`,
+    ),
+
+  /** Danh sách người đã thả cảm xúc (popup). Lọc theo loại, cursor theo thời gian. */
+  listReactors: (
+    conversationId: string,
+    messageId: string,
+    params?: { type?: ReactionType; limit?: number; before?: string },
+  ) =>
+    apiClient.get<{ data: Reactor[]; meta: { limit: number; nextCursor: string | null } }>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions`,
+      { query: { ...params } },
     ),
 
 } as const;
