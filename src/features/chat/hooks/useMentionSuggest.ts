@@ -22,6 +22,15 @@ export type MentionItem =
   | { kind: 'all' }
   | { kind: 'member'; member: ConversationMember };
 
+/** Phần tối thiểu MentionSuggestPopup cần — chung cho contenteditable & Tiptap. */
+export type MentionListView = {
+  isOpen: boolean;
+  items: MentionItem[];
+  activeIndex: number;
+  setActiveIndex: (i: number) => void;
+  select: (item: MentionItem) => void;
+};
+
 /**
  * Gợi ý @mention cho ô soạn group: dò token `@query` trước caret → lọc member
  * (+ `@all`) → điều hướng bàn phím + chèn chip. Chỉ bật với GROUP/CHANNEL.

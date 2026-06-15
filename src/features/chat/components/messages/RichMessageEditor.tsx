@@ -1,0 +1,100 @@
+'use client';
+
+import { forwardRef, useImperativeHandle } from 'react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import type { SuggestionOptions } from '@tiptap/suggestion';
+import { baseEditorExtensions } from '@/lib/editor/extensions';
+import { createMentionExtension } from '@/lib/editor/mention-extension';
+import { jsonToMessage, type SerializedMessage } from '@/lib/editor/serializer';
+import { MAX_LENGTH } from '@/features/chat/components/messages/composer-utils';
+import { cn } from '@/lib/utils/cn';
+
+const EMPTY: SerializedMessage = { plaintext: '', mentions: [], richText: null };
+
+export type EditorHandle = {
+  editor: Editor | null;
+  serialize: () => SerializedMessage;
+  clear: () => void;
+  focus: () => void;
+  insertText: (text: string) => void;
+};
+
+type RichMessageEditorProps = {
+  placeholder: string;
+  disabled?: boolean;
+  mentionSuggestion: Omit<SuggestionOptions, 'editor'>;
+  isMentionOpen: () => boolean;
+  onUpdate: (hasContent: boolean) => void;
+  onEnter: () => void;
+  onPasteFiles: (files: File[]) => boolean;
+};
+
+export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps>(
+  function RichMessageEditor(
+    { placeholder, disabled, mentionSuggestion, isMentionOpen, onUpdate, onEnter, onPasteFiles },
+    ref,
+  ) {
+    const editor = useEditor({
+      immediatelyRender: false,
+      editable: !disabled,
+      extensions: [
+        ...baseEditorExtensions(placeholder),
+        createMentionExtension(mentionSuggestion),
+      ],
+      editorProps: {
+        attributes: {
+          class: cn(
+            'min-h-[32px] max-h-32 overflow-y-auto px-1.5 py-[5px] text-[13.5px] leading-relaxed outline-none',
+            disabled && 'cursor-not-allowed opacity-50',
+          ),
+          role: 'textbox',
+          'aria-multiline': 'true',
+          'aria-label': 'Nhập tin nhắn',
+        },
+        handleKeyDown: (_view, event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            // Mention popup đang mở → nhường Enter cho plugin chọn mention.
+            if (isMentionOpen()) return false;
+            event.preventDefault();
+            onEnter();
+            return true;
+          }
+          return false;
+        },
+        handlePaste: (_view, event) => {
+          const files = Array.from(event.clipboardData?.files ?? []).filter((f) =>
+            f.type.startsWith('image/'),
+          );
+          return files.length > 0 ? onPasteFiles(files) : false;
+        },
+      },
+      onUpdate: ({ editor: ed }) => {
+        const { plaintext } = jsonToMessage(ed.getJSON());
+        if (plaintext.length > MAX_LENGTH) {
+          ed.commands.undo();
+          return;
+        }
+        onUpdate(plaintext.trim().length > 0);
+      },
+    });
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        editor,
+        serialize: () => (editor ? jsonToMessage(editor.getJSON()) : EMPTY),
+        clear: () => editor?.commands.clearContent(true),
+        focus: () => editor?.commands.focus('end'),
+        insertText: (text: string) => editor?.commands.insertContent(text),
+      }),
+      [editor],
+    );
+
+    return (
+      <EditorContent
+        editor={editor}
+        className="min-h-[32px] max-h-32 flex-1 overflow-y-auto"
+      />
+    );
+  },
+);

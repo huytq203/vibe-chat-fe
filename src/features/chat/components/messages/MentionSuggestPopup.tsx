@@ -4,10 +4,10 @@ import { AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { mentionLabel } from './composer-utils';
-import type { MentionItem, MentionSuggest } from '@/features/chat/hooks/useMentionSuggest';
+import type { MentionItem, MentionListView } from '@/features/chat/hooks/useMentionSuggest';
 
 type MentionSuggestPopupProps = {
-  mention: MentionSuggest;
+  mention: MentionListView;
 };
 
 function itemKey(item: MentionItem): string {
