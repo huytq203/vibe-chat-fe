@@ -6,6 +6,7 @@ import { authKeys } from '@/services/keys';
 import { notificationsApi } from '@/services/notifications.api';
 import { closeSocket } from '@/lib/ws/socket';
 import { getFcmToken } from '@/lib/firebase/messaging';
+import { getDeviceName, getDeviceType } from '@/lib/device/device-info';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import type {
@@ -19,7 +20,8 @@ export function useLogin() {
   const queryClient = useQueryClient();
   const setSession = useAuthStore((s) => s.setSession);
   return useMutation({
-    mutationFn: (input: LoginInput) => authApi.login(input),
+    mutationFn: (input: LoginInput) =>
+      authApi.login({ ...input, deviceType: getDeviceType(), deviceName: getDeviceName() }),
     onSuccess: (data) => {
       queryClient.clear();
       setSession(data.user, data.tokens);
