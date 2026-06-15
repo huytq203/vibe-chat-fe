@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ComponentType } from 'react';
-import { Bell, Cloud, MessageSquare, Palette, ShieldCheck, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import { Bell, Cloud, MessageSquare, MonitorSmartphone, Palette, ShieldCheck, SlidersHorizontal, type LucideIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog/Dialog';
 import { cn } from '@/lib/utils/cn';
 import { GeneralTab } from './tabs/GeneralTab';
@@ -9,9 +9,10 @@ import { AppearanceTab } from './tabs/AppearanceTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
 import { MessagesTab } from './tabs/MessagesTab';
 import { PrivacyTab } from './tabs/PrivacyTab';
+import { DevicesTab } from './tabs/DevicesTab';
 import { BackupTab } from './tabs/BackupTab';
 
-type TabId = 'general' | 'appearance' | 'notifications' | 'messages' | 'privacy' | 'backup';
+type TabId = 'general' | 'appearance' | 'notifications' | 'messages' | 'privacy' | 'devices' | 'backup';
 
 type TabDef = { id: TabId; label: string; icon: LucideIcon; Component: ComponentType };
 
@@ -21,6 +22,7 @@ const TABS: readonly TabDef[] = [
   { id: 'notifications', label: 'Thông báo', icon: Bell, Component: NotificationsTab },
   { id: 'messages', label: 'Tin nhắn', icon: MessageSquare, Component: MessagesTab },
   { id: 'privacy', label: 'Quyền riêng tư & bảo mật', icon: ShieldCheck, Component: PrivacyTab },
+  { id: 'devices', label: 'Thiết bị đăng nhập', icon: MonitorSmartphone, Component: DevicesTab },
   { id: 'backup', label: 'Backup', icon: Cloud, Component: BackupTab },
 ] as const;
 

@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client';
+import type { DeviceType } from '@/lib/device/device-info';
 import type {
   AuthSession,
   AuthTokens,
@@ -15,10 +16,15 @@ import type {
  * Hook (TanStack Query) ở features/auth/hooks/*.
  */
 export const authApi = {
-  login: (input: LoginInput) =>
+  login: (input: LoginInput & { deviceType: DeviceType; deviceName?: string }) =>
     apiClient.post<AuthSession>('/api/v1/auth/login', {
       auth: false,
-      body: { username: input.username, password: input.password },
+      body: {
+        username: input.username,
+        password: input.password,
+        deviceType: input.deviceType,
+        ...(input.deviceName ? { deviceName: input.deviceName } : {}),
+      },
     }),
   // Đăng ký KHÔNG trả token — tài khoản INACTIVE, BE gửi OTP qua email. Xem docs/fe-auth-otp-guide.md.
   register: (input: RegisterInput) =>

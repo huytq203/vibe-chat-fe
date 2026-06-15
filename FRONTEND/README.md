@@ -15,6 +15,7 @@ Folder này tách theo **chủ đề**. Đọc cái cần dùng — không cần
 | File | Đọc khi |
 |---|---|
 | [01-authentication.md](./01-authentication.md) | Setup login/logout/refresh token, JWT |
+| [31-multi-device-sessions.md](./31-multi-device-sessions.md) | Đăng nhập đa thiết bị (`deviceType`), bị đá phiên, quản lý "Thiết bị đăng nhập" |
 | [02-response-envelope.md](./02-response-envelope.md) | Hiểu format success/error response |
 | [12-error-codes.md](./12-error-codes.md) | Tra cứu code lỗi để bắt đúng |
 
