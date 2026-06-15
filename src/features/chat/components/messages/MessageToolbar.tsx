@@ -8,14 +8,13 @@ import {
   Bold,
   Highlighter,
   Italic,
-  Link as LinkIcon,
   Strikethrough,
   Underline,
 } from 'lucide-react';
-import { sanitizeLinkUrl } from '@/lib/editor/rich-presets';
 import { ToolbarButton } from './ToolbarButton';
 import { ColorPopover } from './ColorPopover';
 import { FontPopover } from './FontPopover';
+import { LinkPopover } from './LinkPopover';
 
 type MessageToolbarProps = {
   editor: Editor | null;
@@ -46,19 +45,6 @@ export function MessageToolbar({ editor, disabled }: MessageToolbarProps) {
 
   const run = (fn: (e: Editor) => void) => () => fn(editor);
 
-  const handleLink = () => {
-    const prev = (editor.getAttributes('link').href as string | undefined) ?? '';
-    const input = window.prompt('Nhập URL liên kết', prev);
-    if (input === null) return;
-    if (input.trim() === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    const href = sanitizeLinkUrl(input);
-    if (!href) return;
-    editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
-  };
-
   return (
     <div className="flex flex-wrap items-center gap-0.5 px-1 pb-1.5">
       <ToolbarButton icon={<Bold className="h-[17px] w-[17px]" />} label="Đậm" active={state.bold} disabled={disabled} onClick={run((e) => e.chain().focus().toggleBold().run())} />
@@ -77,7 +63,7 @@ export function MessageToolbar({ editor, disabled }: MessageToolbarProps) {
       <ToolbarButton icon={<AlignRight className="h-[17px] w-[17px]" />} label="Căn phải" active={state.right} disabled={disabled} onClick={run((e) => e.chain().focus().setTextAlign('right').run())} />
 
       <span className="mx-0.5 h-5 w-px bg-border" />
-      <ToolbarButton icon={<LinkIcon className="h-[17px] w-[17px]" />} label="Chèn liên kết" active={state.link} disabled={disabled} onClick={handleLink} />
+      <LinkPopover editor={editor} active={state.link} disabled={disabled} />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { toast } from 'sonner';
-import { Check, Clock, Mic, Pencil, Reply, Send, Smile, X } from 'lucide-react';
+import { Check, Clock, Maximize2, Mic, Minimize2, Pencil, Reply, Send, Smile, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import {
@@ -55,6 +55,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   } = useMessageComposer(conversationId, disabled);
 
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
@@ -179,6 +180,24 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
               <EmojiPicker onSelect={handleEmojiSelect} />
             </PopoverContent>
           </Popover>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            disabled={disabled}
+            title={expanded ? 'Thu gọn' : 'Mở rộng vùng soạn'}
+            aria-label={expanded ? 'Thu gọn vùng soạn' : 'Mở rộng vùng soạn'}
+            aria-pressed={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            className={cn(
+              expanded ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-primary',
+            )}
+          >
+            {expanded ? (
+              <Minimize2 className="h-[18px] w-[18px]" />
+            ) : (
+              <Maximize2 className="h-[18px] w-[18px]" />
+            )}
+          </Button>
         </div>
 
         <RichMessageEditor
@@ -187,6 +206,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
             isEditing ? 'Chỉnh sửa tin nhắn (Enter để lưu, Esc để huỷ)...' : 'Nhập tin nhắn...'
           }
           disabled={disabled}
+          expanded={expanded}
           mentionSuggestion={mention.suggestion}
           isMentionOpen={mention.isMentionOpen}
           onUpdate={handleUpdate}

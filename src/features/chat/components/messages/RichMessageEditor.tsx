@@ -22,6 +22,8 @@ export type EditorHandle = {
 type RichMessageEditorProps = {
   placeholder: string;
   disabled?: boolean;
+  /** Mở rộng vùng soạn (cao hơn, thoáng) — toggle từ toolbar. */
+  expanded?: boolean;
   mentionSuggestion: Omit<SuggestionOptions, 'editor'>;
   isMentionOpen: () => boolean;
   onUpdate: (hasContent: boolean) => void;
@@ -37,6 +39,7 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
     {
       placeholder,
       disabled,
+      expanded,
       mentionSuggestion,
       isMentionOpen,
       onUpdate,
@@ -56,8 +59,9 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
       ],
       editorProps: {
         attributes: {
+          // Chiều cao/scroll do wrapper EditorContent điều khiển (động theo expanded).
           class: cn(
-            'min-h-[32px] max-h-32 overflow-y-auto px-1.5 py-[5px] text-[13.5px] leading-relaxed outline-none',
+            'min-h-[32px] px-1.5 py-[5px] text-[13.5px] leading-relaxed outline-none',
             disabled && 'cursor-not-allowed opacity-50',
           ),
           role: 'textbox',
@@ -115,7 +119,10 @@ export const RichMessageEditor = forwardRef<EditorHandle, RichMessageEditorProps
     return (
       <EditorContent
         editor={editor}
-        className="min-h-[32px] max-h-32 flex-1 overflow-y-auto"
+        className={cn(
+          'flex-1 overflow-y-auto transition-[max-height] duration-200',
+          expanded ? 'min-h-[240px] max-h-[55vh]' : 'min-h-[32px] max-h-32',
+        )}
       />
     );
   },
