@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, MoreVertical, Pencil, Pin, PinOff, Reply, Trash2 } from 'lucide-react';
+import { Copy, Flag, MoreVertical, Pencil, Pin, PinOff, Reply, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import type { ReactionType } from '@/features/chat/types';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { getRichText } from './rich-text-utils';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
+import { ReportDialog } from '@/features/reports/components/ReportDialog';
 
 type MessageActionsProps = {
   message: Message;
@@ -56,6 +57,7 @@ export function MessageActions({
   message, meId, isMe, senderName, canPin, isPinned, className,
 }: MessageActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   // Kiểm soát mở dropdown để giữ bar hiện khi menu đang mở (dù chuột đã rê ra ngoài).
   const [menuOpen, setMenuOpen] = useState(false);
   const startEdit = useMessageEditStore((s) => s.startEdit);
@@ -186,6 +188,19 @@ export function MessageActions({
               Sao chép
             </DropdownMenuItem>
           )}
+          {/* Báo cáo: chỉ tin của người khác (không tự báo cáo tin của mình). */}
+          {!isMe && (
+            <>
+              {(canEdit || canCopy) && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                onClick={() => setReportOpen(true)}
+                className="text-danger focus:text-danger"
+              >
+                <Flag className="h-4 w-4" />
+                Báo cáo
+              </DropdownMenuItem>
+            </>
+          )}
           {/* Gỡ tin: chỉ tin của mình. */}
           {isMe && (
             <>
@@ -226,6 +241,15 @@ export function MessageActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {!isMe && (
+        <ReportDialog
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          targetType="MESSAGE"
+          targetId={message.id}
+        />
+      )}
     </div>
   );
 }
