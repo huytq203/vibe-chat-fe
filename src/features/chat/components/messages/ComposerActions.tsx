@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, Check, Clock, Smile, Type } from 'lucide-react';
+import { CalendarClock, Check, Clock, IdCard, Smile, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import {
@@ -24,6 +24,7 @@ type ComposerActionsProps = {
   onFiles: (files: FileList | File[], kind: AttachmentKind) => void;
   onSelfDestruct: (seconds: number | null) => void;
   onScheduleClick: () => void;
+  onContactClick: () => void;
   onEmojiOpenChange: (open: boolean) => void;
   onEmojiButtonClick: () => void;
   onEmojiSelect: (emoji: string) => void;
@@ -40,6 +41,7 @@ export function ComposerActions({
   onFiles,
   onSelfDestruct,
   onScheduleClick,
+  onContactClick,
   onEmojiOpenChange,
   onEmojiButtonClick,
   onEmojiSelect,
@@ -92,6 +94,17 @@ export function ComposerActions({
             className="text-muted-foreground hover:text-primary"
           >
             <CalendarClock className="h-[18px] w-[18px]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            disabled={disabled}
+            title="Chia sẻ danh thiếp"
+            aria-label="Chia sẻ danh thiếp"
+            onClick={onContactClick}
+            className="text-muted-foreground hover:text-primary"
+          >
+            <IdCard className="h-[18px] w-[18px]" />
           </Button>
         </>
       )}

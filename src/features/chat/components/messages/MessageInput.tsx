@@ -14,6 +14,8 @@ import { RichMessageEditor } from './RichMessageEditor';
 import { MessageToolbar } from './MessageToolbar';
 import { ComposerActions } from './ComposerActions';
 import { ScheduleMessageDialog } from './ScheduleMessageDialog';
+import { ContactPickerDialog } from '@/features/chat/components/contact/ContactPickerDialog';
+import { useShareContact } from '@/features/chat/hooks/useShareContact';
 
 type MessageInputProps = {
   conversationId: string;
@@ -35,6 +37,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
     attachments,
     addFiles,
     remove,
+    removeAll,
     isUploading,
     isSavingEdit,
     handleUpdate,
@@ -48,6 +51,8 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const shareContact = useShareContact(conversationId);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
@@ -65,6 +70,7 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
       onFiles={addFiles}
       onSelfDestruct={setSelfDestructTtl}
       onScheduleClick={() => setScheduleOpen(true)}
+      onContactClick={() => setContactOpen(true)}
       onEmojiOpenChange={setEmojiOpen}
       onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
@@ -160,7 +166,9 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         </div>
       )}
       <MentionSuggestPopup mention={mention.popup} />
-      {!isEditing && <AttachmentTray attachments={attachments} onRemove={remove} />}
+      {!isEditing && (
+        <AttachmentTray attachments={attachments} onRemove={remove} onRemoveAll={removeAll} />
+      )}
       <div className="rounded-2xl border border-border bg-muted px-2 py-1.5">
         {recorder.isRecording || sending ? (
           <VoiceRecorderBar
@@ -192,6 +200,11 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         conversationId={conversationId}
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
+      />
+      <ContactPickerDialog
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        onPick={shareContact}
       />
     </div>
   );
