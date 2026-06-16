@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import {
   AlertCircle,
   Check,
@@ -14,8 +15,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { Message } from '@/features/chat/types';
+import { readContactCard } from '@/features/chat/types';
 import { formatBubbleTime } from '@/features/chat/utils';
-import { useDiscardFailedMessage, useResendMessage } from '@/features/chat/hooks/use-mutations';
+import {
+  useDiscardFailedMessage,
+  useOpenDirectConversation,
+  useResendMessage,
+} from '@/features/chat/hooks/use-mutations';
+import { ContactCardBubble } from './ContactCardBubble';
 import { EmojiText } from '@/components/common/EmojiText';
 import { MentionText } from './MentionText';
 import { RichText } from './RichText';
@@ -55,7 +62,7 @@ type MessageBubbleProps = {
   leaderLabel?: string | null;
 };
 
-export function MessageBubble({
+function MessageBubbleImpl({
   message, meId, showAvatar, senderName, showSenderName, senderAvatarUrl, senderSeed,
   repliedTo, repliedToName, onQuoteClick, isHighlighted, canPin, isPinned, leaderLabel,
 }: MessageBubbleProps) {
@@ -256,6 +263,10 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   if (message.type === 'CALL') {
     return <CallMessageContent message={message} />;
   }
+  if (message.type === 'CONTACT') {
+    const contact = readContactCard(message);
+    if (contact) return <ContactCardContent contact={contact} />;
+  }
   if ((MEDIA_TYPES as readonly string[]).includes(message.type)) {
     const caption = message.plaintext?.trim();
     return (
@@ -288,6 +299,18 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   );
 }
 
+/** Danh thiếp: mở/tạo direct conversation với user được chia sẻ khi bấm "Nhắn tin". */
+function ContactCardContent({ contact }: { contact: ReturnType<typeof readContactCard> }) {
+  const openDirect = useOpenDirectConversation();
+  if (!contact) return null;
+  return (
+    <ContactCardBubble
+      contact={contact}
+      onMessage={(contactUserId) => openDirect.mutate(contactUserId)}
+    />
+  );
+}
+
 /** Tin hệ thống loại CALL: icon theo loại/kết quả + preview do BE dựng sẵn. */
 function CallMessageContent({ message }: { message: Message }) {
   const meta = (message.metadata ?? {}) as {
@@ -311,4 +334,9 @@ function CallMessageContent({ message }: { message: Message }) {
     </span>
   );
 }
+
+// Memo: MessageList re-render mỗi tin mới / typing / sendError. Không memo → MỌI bubble
+// re-render lại. Props gần như primitive và ổn định (onQuoteClick là useCallback ở parent)
+// nên so sánh nông cắt phần lớn re-render thừa, mượt hơn khi hội thoại dài (P1).
+export const MessageBubble = memo(MessageBubbleImpl);
 

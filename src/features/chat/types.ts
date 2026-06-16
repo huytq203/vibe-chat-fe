@@ -163,6 +163,12 @@ export type Reactor = {
   reactedAt: string;
 };
 
+/** 1 trang danh sách người đã thả cảm xúc (cursor-based). */
+export type ReactorsPage = {
+  items: Reactor[];
+  nextCursor: string | null;
+};
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -264,7 +270,34 @@ export type SendMessageInput = {
   previewUrl?: string;
   /** Attachment dựng sẵn để hiển thị optimistic ngay, KHÔNG gửi lên BE. */
   optimisticAttachment?: Attachment;
+  /** Nhiều attachment optimistic (tin gộp nhiều file). Ưu tiên hơn optimisticAttachment. */
+  optimisticAttachments?: Attachment[];
 };
+
+// ─── Contact card (chia sẻ danh thiếp) ─────────────────────────────────────────
+// BE: message.type='CONTACT', metadata.contact = snapshot hồ sơ user được chia sẻ.
+
+export type ContactCardMetadata = {
+  contactUserId: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+};
+
+/** Đọc contact card từ message.metadata; null nếu không hợp lệ. */
+export function readContactCard(message: Message): ContactCardMetadata | null {
+  if (message.type !== 'CONTACT' || !message.metadata) return null;
+  const c = (message.metadata as Record<string, unknown>).contact as
+    | Partial<ContactCardMetadata>
+    | undefined;
+  if (!c || typeof c.contactUserId !== 'string') return null;
+  return {
+    contactUserId: c.contactUserId,
+    displayName: typeof c.displayName === 'string' ? c.displayName : 'Người dùng',
+    username: typeof c.username === 'string' ? c.username : '',
+    avatarUrl: typeof c.avatarUrl === 'string' ? c.avatarUrl : null,
+  };
+}
 
 // ─── Media ────────────────────────────────────────────────────────────────────
 // Tham chiếu doc FRONTEND/14-media-upload.md
