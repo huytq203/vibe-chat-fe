@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, Play, X } from 'lucide-react';
+import { AlertCircle, Play, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { getFileIconMeta } from '@/features/chat/utils';
 import type { Attachment } from '@/features/chat/hooks/useAttachments';
@@ -8,6 +8,7 @@ import type { Attachment } from '@/features/chat/hooks/useAttachments';
 type AttachmentTrayProps = {
   attachments: Attachment[];
   onRemove: (id: string) => void;
+  onRemoveAll?: () => void;
 };
 
 const KIND_LABEL: Record<Attachment['kind'], string> = {
@@ -16,14 +17,32 @@ const KIND_LABEL: Record<Attachment['kind'], string> = {
   file: 'Tệp',
 };
 
-export function AttachmentTray({ attachments, onRemove }: AttachmentTrayProps) {
+export function AttachmentTray({ attachments, onRemove, onRemoveAll }: AttachmentTrayProps) {
   if (attachments.length === 0) return null;
 
   return (
-    <div className="mb-2 flex gap-2 overflow-x-auto rounded-xl border border-border bg-background p-2">
-      {attachments.map((a) => (
-        <AttachmentPreview key={a.id} attachment={a} onRemove={() => onRemove(a.id)} />
-      ))}
+    <div className="mb-2 rounded-xl border border-border bg-background p-2">
+      {/* Khi đính kèm nhiều file → cho phép xoá tất cả 1 lần. */}
+      {attachments.length > 1 && onRemoveAll && (
+        <div className="mb-1.5 flex items-center justify-between px-0.5">
+          <span className="text-[11px] text-muted-foreground">
+            {attachments.length} tệp đính kèm
+          </span>
+          <button
+            type="button"
+            onClick={onRemoveAll}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-danger transition-colors hover:bg-danger/10"
+          >
+            <Trash2 className="h-3 w-3" />
+            Xoá tất cả
+          </button>
+        </div>
+      )}
+      <div className="flex gap-2 overflow-x-auto p-1">
+        {attachments.map((a) => (
+          <AttachmentPreview key={a.id} attachment={a} onRemove={() => onRemove(a.id)} />
+        ))}
+      </div>
     </div>
   );
 }

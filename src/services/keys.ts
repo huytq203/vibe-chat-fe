@@ -19,6 +19,7 @@ export const userKeys = {
   search: (q: string, limit: number) =>
     [...userKeys.all, 'search', q, limit] as const,
   profile: (id: string) => [...userKeys.all, 'profile', id] as const,
+  privacy: () => [...userKeys.all, 'privacy'] as const,
 } as const;
 
 export const friendKeys = {
@@ -65,6 +66,9 @@ export const chatKeys = {
     [...chatKeys.all, 'messages', conversationId] as const,
   pinnedMessages: (conversationId: string) =>
     [...chatKeys.all, 'pinned', conversationId] as const,
+  // Danh sách người đã thả cảm xúc trên 1 tin (popup), lọc theo loại (rỗng = tất cả).
+  reactors: (messageId: string, type?: string) =>
+    [...chatKeys.all, 'reactors', messageId, type ?? 'ALL'] as const,
   shared: (conversationId: string, type: string) =>
     [...chatKeys.all, 'shared', conversationId, type] as const,
   // Tin nhắn hẹn giờ của chính mình trong 1 conversation.

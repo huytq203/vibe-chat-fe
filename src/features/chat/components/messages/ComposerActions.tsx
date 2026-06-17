@@ -1,6 +1,7 @@
 'use client';
 
-import { CalendarClock, Check, Clock, IdCard, Smile, Type } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { CalendarClock, Check, Clock, IdCard, MoreHorizontal, Smile, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import {
@@ -14,6 +15,29 @@ import { cn } from '@/lib/utils/cn';
 import { SELF_DESTRUCT_OPTIONS } from '@/features/chat/utils';
 import type { AttachmentKind } from '@/features/chat/hooks/useAttachments';
 import { AttachmentButtons } from './AttachmentButtons';
+
+type ActionItemProps = {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+};
+
+function ActionItem({ icon, label, onClick, active }: ActionItemProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-[11px] font-medium transition-colors hover:bg-muted',
+        active ? 'text-primary' : 'text-muted-foreground',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 type ComposerActionsProps = {
   disabled?: boolean;
@@ -47,6 +71,13 @@ export function ComposerActions({
   onEmojiSelect,
   onToggleExpanded,
 }: ComposerActionsProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  function handleMoreAction(fn: () => void) {
+    setMoreOpen(false);
+    fn();
+  }
+
   return (
     <div className="flex items-center">
       {!isEditing && (
@@ -84,28 +115,32 @@ export function ComposerActions({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={disabled}
-            title="Hẹn giờ gửi"
-            aria-label="Hẹn giờ gửi tin nhắn"
-            onClick={onScheduleClick}
-            className="text-muted-foreground hover:text-primary"
-          >
-            <CalendarClock className="h-[18px] w-[18px]" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={disabled}
-            title="Chia sẻ danh thiếp"
-            aria-label="Chia sẻ danh thiếp"
-            onClick={onContactClick}
-            className="text-muted-foreground hover:text-primary"
-          >
-            <IdCard className="h-[18px] w-[18px]" />
-          </Button>
+          <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+            <PopoverTrigger>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={disabled}
+                title="Thêm tuỳ chọn"
+                aria-label="Thêm tuỳ chọn"
+                className="text-muted-foreground hover:text-primary"
+              >
+                <MoreHorizontal className="h-[18px] w-[18px]" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" sideOffset={8} showArrow={false} className="w-auto p-1.5">
+              <div className="flex items-center gap-0.5">
+                <ActionItem icon={<IdCard className="h-[18px] w-[18px]" />} label="Danh thiếp" onClick={() => handleMoreAction(onContactClick)} />
+                <ActionItem
+                  icon={<Type className={cn('h-[18px] w-[18px]', expanded && 'text-primary')} />}
+                  label={expanded ? 'Thu gọn' : 'Mở rộng'}
+                  onClick={() => handleMoreAction(onToggleExpanded)}
+                  active={expanded}
+                />
+                <ActionItem icon={<CalendarClock className="h-[18px] w-[18px]" />} label="Hẹn giờ" onClick={() => handleMoreAction(onScheduleClick)} />
+              </div>
+            </PopoverContent>
+          </Popover>
         </>
       )}
       <Popover open={emojiOpen} onOpenChange={onEmojiOpenChange}>
@@ -127,20 +162,6 @@ export function ComposerActions({
           <EmojiPicker onSelect={onEmojiSelect} />
         </PopoverContent>
       </Popover>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        disabled={disabled}
-        title={expanded ? 'Thu gọn' : 'Mở rộng vùng soạn'}
-        aria-label={expanded ? 'Thu gọn vùng soạn' : 'Mở rộng vùng soạn'}
-        aria-pressed={expanded}
-        onClick={onToggleExpanded}
-        className={cn(
-          expanded ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-primary',
-        )}
-      >
-        {expanded ? <Type className="h-[18px] w-[18px]" /> : <Type className="h-[18px] w-[18px]" />}
-      </Button>
     </div>
   );
 }

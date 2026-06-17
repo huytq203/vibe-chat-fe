@@ -12,6 +12,7 @@ import type {
   ReactionState,
   ReactionType,
   Reactor,
+  ReactorsPage,
   SendMessageInput,
   SharedContentType,
 } from '@/features/chat/types';
@@ -369,14 +370,17 @@ export const chatApi = {
     ),
 
   /** Danh sách người đã thả cảm xúc (popup). Lọc theo loại, cursor theo thời gian. */
-  listReactors: (
+  listReactors: async (
     conversationId: string,
     messageId: string,
     params?: { type?: ReactionType; limit?: number; before?: string },
-  ) =>
-    apiClient.get<{ data: Reactor[]; meta: { limit: number; nextCursor: string | null } }>(
+  ): Promise<ReactorsPage> => {
+    const { data, meta } = await apiClient.rawWithMeta<Reactor[]>(
+      'GET',
       `/api/v1/conversations/${conversationId}/messages/${messageId}/reactions`,
       { query: { ...params } },
-    ),
+    );
+    return { items: data, nextCursor: meta?.nextCursor ?? null };
+  },
 
 } as const;

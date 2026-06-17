@@ -1,11 +1,11 @@
 'use client';
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '@/services/chat.api';
 import { usersApi } from '@/services/users.api';
 import { chatKeys, userKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
-import type { SharedContentType } from '@/features/chat/types';
+import type { Conversation, ReactionType, SharedContentType } from '@/features/chat/types';
 
 // Cache tin nhắn giữ lâu (2h): realtime WS đã upsert tin mới vào cache nên không
 // cần refetch REST mỗi lần mở lại conversation → tránh reload tin & media nặng.
@@ -43,11 +43,26 @@ export function useGroupsInfinite(limit = 30) {
 }
 
 export function useConversation(id: string | null) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: id ? chatKeys.conversationDetail(id) : ['chat', 'conversation', 'null'],
     queryFn: () => chatApi.getConversation(id as string),
     enabled: Boolean(id),
     staleTime: 30_000,
+    // Seed từ cache danh sách conversation (đã có members/lastMessage/settings) để
+    // panel render NGAY khi mở chat — detail fetch chỉ chạy nền để làm tươi
+    // (unread/isUnlocked). Tránh màn trống chờ round-trip GET /conversations/:id.
+    placeholderData: () => {
+      if (!id) return undefined;
+      const lists = queryClient.getQueriesData<Conversation[]>({
+        queryKey: chatKeys.conversationLists(),
+      });
+      for (const [, data] of lists) {
+        const found = data?.find((c) => c.id === id);
+        if (found) return found;
+      }
+      return undefined;
+    },
   });
 }
 
@@ -205,5 +220,26 @@ export function useCommonGroups(userId: string | null, enabled = true) {
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: Boolean(userId) && enabled,
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Danh sách người đã thả cảm xúc trên 1 tin (popup "ai đã react"), lọc theo loại.
+ * Cursor theo thời gian (`before` = nextCursor BE trả). type rỗng = tất cả.
+ */
+export function useReactors(
+  conversationId: string,
+  messageId: string,
+  type: ReactionType | undefined,
+  enabled = true,
+) {
+  return useInfiniteQuery({
+    queryKey: chatKeys.reactors(messageId, type),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      chatApi.listReactors(conversationId, messageId, { type, limit: 30, before: pageParam }),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: Boolean(conversationId) && Boolean(messageId) && enabled,
+    staleTime: 30_000,
   });
 }

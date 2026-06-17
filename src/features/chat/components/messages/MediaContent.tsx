@@ -2,20 +2,38 @@
 
 import { useEffect } from 'react';
 import { Download, ImageOff } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 import { Progress } from '@/components/ui/progress/Progress';
 import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
 import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
 import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
 import { useImageLightbox } from './LightboxProvider';
 import { VoicePlayer } from './VoicePlayer';
-import type { OptimisticMeta, Message } from '@/features/chat/types';
+import type { Attachment, OptimisticMeta, Message } from '@/features/chat/types';
 
 type MediaContentProps = {
   message: Message;
   isMe: boolean;
 };
 
+// Phân loại render theo MIME của TỪNG attachment (tin gộp nhiều file có thể lẫn loại).
+function mimeKind(mime: string | null | undefined): 'image' | 'video' | 'file' {
+  if (mime?.startsWith('image/')) return 'image';
+  if (mime?.startsWith('video/')) return 'video';
+  return 'file';
+}
+
 export function MediaContent({ message, isMe }: MediaContentProps) {
+  const attachments = message.attachments ?? [];
+  // Tin gộp nhiều file (ví dụ gửi 3 ảnh 1 lúc) → lưới. 0/1 → render đơn.
+  // Tách 2 nhánh thành component con để hook (useRefreshableUrl) luôn gọi đúng thứ tự.
+  if (attachments.length > 1) {
+    return <MediaGrid message={message} attachments={attachments} isMe={isMe} />;
+  }
+  return <SingleMedia message={message} isMe={isMe} />;
+}
+
+function SingleMedia({ message, isMe }: MediaContentProps) {
   const attachment = message.attachments?.[0] ?? null;
   const meta = (message.metadata ?? {}) as OptimisticMeta;
   const localPreview = meta.previewUrl ?? null;
@@ -54,6 +72,89 @@ export function MediaContent({ message, isMe }: MediaContentProps) {
   );
 }
 
+// Lưới nhiều attachment trong 1 tin. Ảnh/video xếp lưới 2 cột; file xếp dọc.
+function MediaGrid({
+  message,
+  attachments,
+  isMe,
+}: {
+  message: Message;
+  attachments: Attachment[];
+  isMe: boolean;
+}) {
+  const visuals = attachments.filter((a) => mimeKind(a.mimeType) !== 'file');
+  const files = attachments.filter((a) => mimeKind(a.mimeType) === 'file');
+  return (
+    <div className="flex flex-col gap-1">
+      {visuals.length > 0 && (
+        <div
+          className={cn(
+            'grid w-[260px] max-w-full gap-1',
+            visuals.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
+          )}
+        >
+          {visuals.map((att) => (
+            <MediaCell key={att.mediaId} message={message} attachment={att} isMe={isMe} grid />
+          ))}
+        </div>
+      )}
+      {files.map((att) => (
+        <MediaCell key={att.mediaId} message={message} attachment={att} isMe={isMe} />
+      ))}
+    </div>
+  );
+}
+
+// 1 ô trong lưới — tự ký lại URL theo mediaId (hook không gọi trong vòng lặp được nên
+// tách thành component con). Optimistic dùng blob (downloadUrl bắt đầu bằng 'blob:').
+function MediaCell({
+  message,
+  attachment,
+  isMe,
+  grid,
+}: {
+  message: Message;
+  attachment: Attachment;
+  isMe: boolean;
+  grid?: boolean;
+}) {
+  const initialUrl = attachment.downloadUrl ?? null;
+  const isBlob = initialUrl?.startsWith('blob:') ?? false;
+  const canRefresh = !isBlob && Boolean(attachment.mediaId);
+  const { url, onError } = useRefreshableUrl(
+    message.conversationId,
+    attachment.mediaId,
+    initialUrl,
+    canRefresh,
+  );
+  const kind = mimeKind(attachment.mimeType);
+  if (kind === 'image') {
+    return (
+      <ImageView
+        id={`${message.id}:${attachment.mediaId}`}
+        sortKey={`${message.createdAt}:${attachment.mediaId}`}
+        url={url}
+        name={attachment.fileName}
+        onError={onError}
+        className={grid ? 'aspect-square h-full w-full object-cover' : undefined}
+      />
+    );
+  }
+  if (kind === 'video') {
+    return <VideoView url={url} name={attachment.fileName} onError={onError} className={grid ? 'aspect-square h-full w-full object-cover' : undefined} />;
+  }
+  return (
+    <FileView
+      conversationId={message.conversationId}
+      mediaId={attachment.mediaId}
+      url={url}
+      name={attachment.fileName}
+      size={attachment.fileSize}
+      isMe={isMe}
+    />
+  );
+}
+
 function MediaPlaceholder({ name }: { name: string }) {
   return (
     <div className="flex h-[140px] w-[220px] flex-col items-center justify-center gap-1.5 rounded-[10px] bg-border/40 px-3 text-muted-foreground">
@@ -70,12 +171,14 @@ function ImageView({
   url,
   name,
   onError,
+  className,
 }: {
   id: string;
   sortKey: string;
   url: string | null;
   name: string;
   onError: () => void;
+  className?: string;
 }) {
   const lightbox = useImageLightbox();
 
@@ -91,7 +194,7 @@ function ImageView({
     <button
       type="button"
       onClick={() => lightbox.open(id)}
-      className="block cursor-zoom-in"
+      className={cn('block cursor-zoom-in', className ? 'h-full w-full' : '')}
       aria-label="Phóng to ảnh"
     >
       {/* URL ký sẵn (S3) hoặc blob: cục bộ — next/image không phù hợp, dùng <img>. */}
@@ -100,20 +203,33 @@ function ImageView({
         src={url}
         alt={name}
         onError={onError}
-        className="block w-full max-h-[260px] max-w-[260px] rounded-[10px] object-cover"
+        className={cn(
+          'block rounded-[10px] object-cover',
+          className ?? 'w-full max-h-[260px] max-w-[260px]',
+        )}
       />
     </button>
   );
 }
 
-function VideoView({ url, name, onError }: { url: string | null; name: string; onError: () => void }) {
+function VideoView({
+  url,
+  name,
+  onError,
+  className,
+}: {
+  url: string | null;
+  name: string;
+  onError: () => void;
+  className?: string;
+}) {
   if (!url) return <MediaPlaceholder name={name} />;
   return (
     <video
       src={url}
       controls
       onError={onError}
-      className="block w-full max-h-[260px] max-w-[260px] rounded-[10px]"
+      className={cn('block rounded-[10px]', className ?? 'w-full max-h-[260px] max-w-[260px]')}
     />
   );
 }

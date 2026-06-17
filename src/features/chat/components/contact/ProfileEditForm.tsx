@@ -2,11 +2,18 @@
 
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import { ChevronLeft } from 'lucide-react';
+import { format } from 'date-fns';
 import { Form, FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import type { UpdateMeInput, AuthUser } from '@/features/auth';
 import { ProfileImageUploader } from './ProfileImageUploader';
+
+/** Chuỗi yyyy-MM-dd → Date (local, tránh lệch timezone do parse UTC). */
+function toDate(value?: string | null): Date | undefined {
+  return value ? new Date(`${value}T00:00:00`) : undefined;
+}
 
 const GENDER_OPTIONS = [
   { value: 'MALE', label: 'Nam' },
@@ -67,6 +74,23 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
             />
 
             <Controller
+              name="phone"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Input
+                  label="Số điện thoại"
+                  type="tel"
+                  placeholder="VD: 0901234567"
+                  error={fieldState.error?.message}
+                  value={field.value ?? ''}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                />
+              )}
+            />
+
+            <Controller
               name="bio"
               control={form.control}
               render={({ field, fieldState }) => (
@@ -104,22 +128,21 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
                 )}
               />
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Ngày sinh</label>
-                <Controller
-                  name="dateOfBirth"
-                  control={form.control}
-                  render={({ field }) => (
-                    <input
-                      type="date"
-                      value={field.value ?? ''}
-                      max={new Date().toISOString().slice(0, 10)}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                      className={selectCls}
-                    />
-                  )}
-                />
-              </div>
+              <Controller
+                name="dateOfBirth"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    label="Ngày sinh"
+                    placeholder="Chọn ngày sinh"
+                    captionLayout="dropdown"
+                    value={toDate(field.value)}
+                    onChange={(d) =>
+                      field.onChange(d instanceof Date ? format(d, 'yyyy-MM-dd') : null)
+                    }
+                  />
+                )}
+              />
             </div>
 
             <div className="flex justify-end gap-2 pt-1">

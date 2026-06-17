@@ -24,6 +24,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     resolver: zodResolver(updateMeSchema),
     defaultValues: {
       displayName: '',
+      phone: '',
       gender: undefined,
       dateOfBirth: null,
       bio: null,
@@ -42,6 +43,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const handleOpenEdit = () => {
     form.reset({
       displayName: me?.displayName ?? '',
+      phone: me?.phone ?? '',
       gender: me?.gender ?? undefined,
       dateOfBirth: me?.dateOfBirth ?? null,
       bio: me?.bio ?? null,
@@ -53,7 +55,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   };
 
   const onSubmit = (data: UpdateMeInput) => {
-    updateMe.mutate(data, {
+    // Phone rỗng → null để BE xoá số (BE từ chối chuỗi rỗng vì regex).
+    const payload: UpdateMeInput =
+      data.phone === '' ? { ...data, phone: null } : data;
+    updateMe.mutate(payload, {
       onSuccess: () => {
         toast.success('Cập nhật thành công!');
         setView('info');
@@ -66,8 +71,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      {/* Thêm h-fit hoặc cố định h để tránh Dialog nhảy giật chiều cao khi trượt */}
-      <DialogContent className="max-w-sm overflow-hidden p-0 transition-[height] duration-300">
+      {/* max-h + cuộn dọc: khi zoom to / màn thấp, nội dung không bị cắt mất.
+          overflow-x-hidden vẫn clip panel trượt ngang. */}
+      <DialogContent className="max-w-sm max-h-[85vh] overflow-x-hidden overflow-y-auto p-0 transition-[height] duration-300">
         <DialogTitle className="sr-only">
           {view === 'info' ? 'Thông tin tài khoản' : 'Cập nhật thông tin cá nhân'}
         </DialogTitle>

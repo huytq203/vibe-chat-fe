@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import {
   AlertCircle,
   Check,
@@ -23,6 +23,7 @@ import {
   useResendMessage,
 } from '@/features/chat/hooks/use-mutations';
 import { ContactCardBubble } from './ContactCardBubble';
+import { UserProfileDialog } from '@/features/chat/components/contact/UserProfileDialog';
 import { EmojiText } from '@/components/common/EmojiText';
 import { MentionText } from './MentionText';
 import { RichText } from './RichText';
@@ -74,7 +75,7 @@ function MessageBubbleImpl({
   const discardFailed = useDiscardFailedMessage();
   // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
   const isVisualMedia =
-    !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO');
+    !message.isDeleted && (message.type === 'IMAGE' || message.type === 'VIDEO' || message.type === 'CONTACT');
   // Menu hành động: mọi tin đã gửi xong, chưa gỡ. Reply cho tất cả;
   // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
   const canActions = !isSending && !isFailed && !message.isDeleted;
@@ -299,15 +300,24 @@ function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
   );
 }
 
-/** Danh thiếp: mở/tạo direct conversation với user được chia sẻ khi bấm "Nhắn tin". */
+/** Danh thiếp: xem hồ sơ khi click card, nhắn tin khi bấm "Nhắn tin". */
 function ContactCardContent({ contact }: { contact: ReturnType<typeof readContactCard> }) {
+  const [profileOpen, setProfileOpen] = useState(false);
   const openDirect = useOpenDirectConversation();
   if (!contact) return null;
   return (
-    <ContactCardBubble
-      contact={contact}
-      onMessage={(contactUserId) => openDirect.mutate(contactUserId)}
-    />
+    <>
+      <ContactCardBubble
+        contact={contact}
+        onMessage={(contactUserId) => openDirect.mutate(contactUserId)}
+        onCardClick={() => setProfileOpen(true)}
+      />
+      <UserProfileDialog
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        userId={contact.contactUserId}
+      />
+    </>
   );
 }
 

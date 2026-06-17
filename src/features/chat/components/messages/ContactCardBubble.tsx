@@ -1,27 +1,28 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button/Button';
-import { Avatar } from '@/features/chat/components/common/Avatar';
-import { toQrDataUrl } from '@/lib/qr';
-import type { ContactCardMetadata } from '@/features/chat/types';
+import { useEffect, useState } from "react";
+import { MessageSquare, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button/Button";
+import { Avatar } from "@/features/chat/components/common/Avatar";
+import { toQrDataUrl } from "@/lib/qr";
+import type { ContactCardMetadata } from "@/features/chat/types";
 
 type ContactCardBubbleProps = {
   contact: ContactCardMetadata;
-  /** Mở/tạo cuộc trò chuyện trực tiếp với user trong danh thiếp. */
   onMessage: (contactUserId: string) => void;
+  onCardClick?: () => void;
 };
 
-/** Build deep-link tới user được chia sẻ. Chưa có route hồ sơ công khai →
- *  dùng query `?contact=<id>` trên app chat (xem báo cáo: follow-up route). */
 function buildContactLink(contactUserId: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
   return `${origin}/chat?contact=${encodeURIComponent(contactUserId)}`;
 }
 
-/** Bong bóng tin nhắn loại CONTACT: avatar + tên + @username + QR + nút Nhắn tin. */
-export function ContactCardBubble({ contact, onMessage }: ContactCardBubbleProps) {
+export function ContactCardBubble({
+  contact,
+  onMessage,
+  onCardClick,
+}: ContactCardBubbleProps) {
   const [qr, setQr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,36 +36,59 @@ export function ContactCardBubble({ contact, onMessage }: ContactCardBubbleProps
   }, [contact.contactUserId]);
 
   return (
-    <div className="w-[230px]">
-      <div className="flex items-center gap-2.5">
-        <Avatar
-          name={contact.displayName}
-          src={contact.avatarUrl}
-          seed={contact.contactUserId}
-          size="md"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13.5px] font-semibold">{contact.displayName}</p>
-          {contact.username && (
-            <p className="truncate text-[11.5px] opacity-70">@{contact.username}</p>
-          )}
-        </div>
+    <div className="w-[270px] overflow-hidden rounded-xl ">
+      <div className="flex bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20">
+        {" "}
+        {/* Avatar + info */}
+        <button
+          type="button"
+          onClick={onCardClick}
+          disabled={!onCardClick}
+          className="flex w-full  items-center px-4 pb-3 pt-0 text-center disabled:cursor-default bg-card"
+        >
+          <div className="pr-2">
+            <Avatar
+              name={contact.displayName}
+              src={contact.avatarUrl}
+              seed={contact.contactUserId}
+              size="md"
+            />
+          </div>
+          <span className="text-[14px] font-bold leading-tight text-card-foreground">
+            {contact.displayName}
+            {contact.username && (
+              <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                @{contact.username}
+              </p>
+            )}
+          </span>
+        </button>
+        {/* QR code */}
+        {qr && (
+          <div className="bg-card px-4 p-3">
+            <div className="flex justify-center  rounded-lg bg-white p-2.5 shadow-inner flex-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- QR là data URL cục bộ */}
+              <img
+                src={qr}
+                alt={`Mã QR danh thiếp ${contact.displayName}`}
+                className="w-28 object-contain"
+              />
+            </div>
+          </div>
+        )}
       </div>
-      {qr && (
-        <div className="mt-2.5 flex justify-center rounded-lg bg-white p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element -- QR là data URL cục bộ */}
-          <img src={qr} alt={`Mã QR danh thiếp ${contact.displayName}`} className="h-[120px] w-[120px]" />
-        </div>
-      )}
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-2.5 w-full"
-        onClick={() => onMessage(contact.contactUserId)}
-      >
-        <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
-        Nhắn tin
-      </Button>
+
+      {/* Nhắn tin button */}
+      <div className="border-t border-border bg-card px-3 py-2.5 bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20">
+        <Button
+          size="sm"
+          className="w-full  via-accent/20 to-secondary/20"
+          onClick={() => onMessage(contact.contactUserId)}
+        >
+          <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+          Nhắn tin
+        </Button>
+      </div>
     </div>
   );
 }

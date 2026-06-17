@@ -341,7 +341,6 @@ export function useChatRealtime() {
       if (joinedRef.current === payload.conversationId) {
         joinedRef.current = null;
         setSelected(null);
-        toast.info('Cuộc trò chuyện đã bị xoá');
       }
     }
 

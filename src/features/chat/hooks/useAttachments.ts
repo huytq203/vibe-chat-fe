@@ -207,10 +207,10 @@ export function useAttachments() {
         };
       });
       sync((prev) => [...prev, ...next]);
-      // Upload NGAY trong nền → lúc bấm Gửi media đã READY, gửi tức thì.
-      next.forEach((a) => void startUpload(a));
+      // KHÔNG upload ngay (giữ file trong RAM trình duyệt). Chỉ upload S3 lúc bấm Gửi
+      // (uploadAll) → ảnh chọn rồi huỷ KHÔNG bao giờ chạm S3, tránh rác/tràn dữ liệu.
     },
-    [sync, startUpload],
+    [sync],
   );
 
   const remove = useCallback(
@@ -242,6 +242,13 @@ export function useAttachments() {
     });
   }, [sync]);
 
+  // Xoá TẤT CẢ attachment đang preview (nút "Xoá tất cả"). Đi qua remove() từng cái để
+  // vẫn dọn media mồ côi nếu lỡ có file đã upload (defensive). Snapshot id trước khi lặp.
+  const removeAll = useCallback(() => {
+    const ids = ref.current.map((a) => a.id);
+    ids.forEach((id) => remove(id, true));
+  }, [remove]);
+
   /**
    * Chờ các upload nền settle trước khi gửi. CHỈ khởi động item `idle` (chưa từng
    * chạy) — KHÔNG tự up lại item `error`: presign tạo media PENDING + object mới
@@ -265,5 +272,5 @@ export function useAttachments() {
 
   const isUploading = attachments.some((a) => a.status === 'uploading');
 
-  return { attachments, addFiles, remove, clear, uploadAll, isUploading };
+  return { attachments, addFiles, remove, removeAll, clear, uploadAll, isUploading };
 }

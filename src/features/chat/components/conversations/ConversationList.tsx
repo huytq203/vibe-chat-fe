@@ -22,8 +22,11 @@ import { useConversations, useLockedConversations } from '@/features/chat/hooks/
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { getConversationName } from '@/features/chat/utils';
+import { useStrangerConversations } from '@/features/chat/hooks/useStrangerConversations';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
+import { StrangerInboxItem } from './StrangerInboxItem';
+import { StrangerOverlay } from './StrangerOverlay';
 import { UserMenu } from '@/features/chat/components/common/UserMenu';
 
 const TABS = [
@@ -49,8 +52,15 @@ export function ConversationList() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
+  const strangerOpen = useChatUIStore((s) => s.strangerOpen);
+  const setStrangerOpen = useChatUIStore((s) => s.setStrangerOpen);
   const [lockedExpanded, setLockedExpanded] = useState(false);
   const { data: lockedConversations = [] } = useLockedConversations();
+
+  const { isStranger, strangerConversations, strangerUnreadCount } = useStrangerConversations(
+    conversations,
+    me?.id ?? null,
+  );
 
   const qc = useQueryClient();
   const openDirectMut = useMutation({
@@ -93,6 +103,8 @@ export function ConversationList() {
     const query = search.trim().toLowerCase();
     const matched = conversations.filter((conversation) => {
       if (conversation.isLocked) return false;
+      // Hội thoại người lạ gom vào mục riêng — không hiện ở danh sách chính.
+      if (isStranger(conversation)) return false;
       if (activeTab === 'unread' && conversation.unreadCount === 0) return false;
       if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
       if (!query) return true;
@@ -107,7 +119,7 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id]);
+  }, [conversations, activeTab, search, me?.id, isStranger]);
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
@@ -142,6 +154,15 @@ export function ConversationList() {
           />
         ) : notiOpen ? (
           <NotificationListPanel onBack={() => setNotiOpen(false)} />
+        ) : strangerOpen ? (
+          <StrangerOverlay
+            conversations={strangerConversations}
+            meId={me?.id ?? null}
+            selectedConversationId={selectedConversationId}
+            onBack={() => setStrangerOpen(false)}
+            onSelectConversation={handleSelectConversation}
+            onAvatarError={handleAvatarError}
+          />
         ) : (
           <>
             <div className="shrink-0 px-3 pb-2.5">
@@ -178,7 +199,13 @@ export function ConversationList() {
               {isLoading && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
               )}
-              {!isLoading && filtered.length === 0 && (
+              {!isLoading && !search && strangerConversations.length > 0 && (
+                <StrangerInboxItem
+                  unreadCount={strangerUnreadCount}
+                  onClick={() => setStrangerOpen(true)}
+                />
+              )}
+              {!isLoading && filtered.length === 0 && (Boolean(search) || strangerConversations.length === 0) && (
                 <div className="px-3 py-10 text-center text-xs text-muted-foreground">
                   {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
                 </div>

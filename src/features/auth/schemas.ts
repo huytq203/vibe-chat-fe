@@ -72,6 +72,13 @@ export type ResendOtpInput = z.infer<typeof resendOtpSchema>;
 export const updateMeSchema = z.object({
   displayName: z.string().min(1, 'Tên hiển thị không được để trống').max(100).optional(),
   bio: z.string().max(255, 'Giới thiệu tối đa 255 ký tự').nullable().optional(),
+  // 8–15 chữ số, có thể tiền tố +. Cho phép rỗng (chuyển thành null để xoá) và null.
+  phone: z
+    .string()
+    .regex(/^\+?[0-9]{8,15}$/, 'Số điện thoại không hợp lệ')
+    .nullable()
+    .optional()
+    .or(z.literal('')),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'UNDISCLOSED']).optional(),
   dateOfBirth: z.string().nullable().optional(),
   avatarMediaId: z.string().uuid().nullable().optional(),

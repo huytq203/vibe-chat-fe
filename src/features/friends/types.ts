@@ -13,6 +13,8 @@ export type UserProfile = {
   username: string;
   /** Chỉ có giá trị khi isMe=true. */
   email: string | null;
+  /** Chỉ hiện cho chính chủ hoặc bạn bè (khi bật showPhone), ngược lại null. */
+  phone: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   coverUrl: string | null;
@@ -24,6 +26,21 @@ export type UserProfile = {
   visibility?: ProfileVisibility;
   isMe: boolean;
   friendship: FriendshipStatus;
+  /** Số bạn chung với người xem (0 khi xem hồ sơ của chính mình). */
+  mutualFriendsCount: number;
+  /**
+   * Field CÓ giá trị nhưng bị ẩn với người xem (do privacy/chưa là bạn). Dùng để
+   * phân biệt "đã ẩn" (mask) vs "chưa nhập" (—). Gồm: phone, dateOfBirth, bio, gender.
+   */
+  hiddenFields: string[];
+};
+
+/**
+ * GET/PATCH /users/me/privacy — bảo mật dữ liệu cá nhân.
+ * privateInfo=true → ẩn toàn bộ phone/ngày sinh/bio/giới tính khỏi người khác.
+ */
+export type PrivacySettings = {
+  privateInfo: boolean;
 };
 
 export type FriendRequestSource =

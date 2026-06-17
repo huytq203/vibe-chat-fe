@@ -49,7 +49,8 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
       ? replyingState
       : null;
 
-  const { attachments, addFiles, remove, uploadAll, isUploading } = useAttachments();
+  const { attachments, addFiles, remove, removeAll, uploadAll, isUploading } =
+    useAttachments();
   const typingStateRef = useRef<'start' | 'stop'>('stop');
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefilledIdRef = useRef<string | null>(null);
@@ -201,33 +202,41 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
         toast.error('Có tệp tải lên thất bại. Hãy xoá tệp lỗi rồi gửi lại.');
         return;
       }
+      // GỘP tất cả file đã upload vào MỘT tin (như Messenger/Zalo) — trước đây mỗi
+      // file tạo 1 tin riêng. BE nhận tối đa 10 attachmentIds/tin. Caption + reply gắn
+      // 1 lần cho cả tin. type: cùng loại → loại đó; lẫn loại → FILE (grid render theo
+      // mimeType từng attachment).
+      const done = uploaded.filter(
+        (a): a is typeof a & { media: NonNullable<typeof a.media> } =>
+          a.status === 'done' && a.media != null,
+      );
+      if (done.length === 0) return;
       editorRef.current.clear();
       setHasContent(false);
-      let captionUsed = false;
-      let replyUsed = false;
-      uploaded.forEach((a) => {
-        if (a.status !== 'done' || !a.media) return;
-        const caption = !captionUsed && hasText ? plaintext : undefined;
-        const captionMentions = caption && mentions.length ? mentions : undefined;
-        const captionMetadata = caption ? metadata : undefined;
-        if (caption) captionUsed = true;
-        const replyToMessageId = !replyUsed ? replying?.messageId : undefined;
-        if (replyToMessageId) replyUsed = true;
-        send.mutate({
-          conversationId,
-          plaintext: caption,
-          clientNonce: crypto.randomUUID(),
-          type: KIND_TO_TYPE[a.kind],
-          attachmentIds: [a.media.id],
-          mentions: captionMentions,
-          metadata: captionMetadata,
-          replyToMessageId,
-          selfDestructTtl: selfDestructTtl ?? undefined,
-          previewUrl: a.kind === 'file' ? undefined : URL.createObjectURL(a.file),
-          optimisticAttachment: buildOptimisticAttachment(a.media),
-        });
-        remove(a.id, false);
+
+      const kinds = new Set(done.map((a) => a.kind));
+      const bundleType: MessageType =
+        kinds.size === 1 ? KIND_TO_TYPE[done[0].kind] : 'FILE';
+      const optimisticAttachments = done.map((a) => {
+        const base = buildOptimisticAttachment(a.media);
+        // Ảnh/video: render tức thì bằng blob cục bộ (blob mới — tray revoke blob cũ khi remove).
+        const preview = a.kind === 'file' ? null : URL.createObjectURL(a.file);
+        return preview ? { ...base, downloadUrl: preview } : base;
       });
+
+      send.mutate({
+        conversationId,
+        plaintext: hasText ? plaintext : undefined,
+        clientNonce: crypto.randomUUID(),
+        type: bundleType,
+        attachmentIds: done.map((a) => a.media.id),
+        mentions: hasText && mentions.length ? mentions : undefined,
+        metadata: hasText ? metadata : undefined,
+        replyToMessageId: replying?.messageId,
+        selfDestructTtl: selfDestructTtl ?? undefined,
+        optimisticAttachments,
+      });
+      done.forEach((a) => remove(a.id, false));
       cancelReply();
     } finally {
       submittingRef.current = false;
@@ -257,6 +266,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
     attachments,
     addFiles,
     remove,
+    removeAll,
     isUploading,
     isSavingEdit: editMut.isPending,
     handleUpdate,

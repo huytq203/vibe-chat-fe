@@ -12,6 +12,8 @@ export type AuthUser = {
   id: string;
   username: string;
   email: string | null;
+  /** Số điện thoại — chỉ trả cho chính chủ ở /users/me; user tự cập nhật được. */
+  phone: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   coverUrl: string | null;

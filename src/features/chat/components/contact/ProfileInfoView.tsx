@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AtSign, Cake, Mail, Pen, User } from 'lucide-react';
+import { AtSign, Cake, Mail, Pen, Phone, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import type { AuthUser, Gender } from '@/features/auth';
@@ -79,6 +79,7 @@ export function ProfileInfoView({ me, isLoading, onEdit }: ProfileInfoViewProps)
           <div className="space-y-3">
             <InfoRow icon={<AtSign className="h-4 w-4 text-muted-foreground" />} label="Tên đăng nhập" value={me?.username} isLoading={isLoading} />
             <InfoRow icon={<Mail className="h-4 w-4 text-muted-foreground" />} label="Email" value={me?.email} isLoading={isLoading} />
+            <InfoRow icon={<Phone className="h-4 w-4 text-muted-foreground" />} label="Số điện thoại" value={me?.phone} isLoading={isLoading} />
             <InfoRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Giới tính" value={genderText} isLoading={isLoading} />
             <InfoRow icon={<Cake className="h-4 w-4 text-muted-foreground" />} label="Ngày sinh" value={dobText} isLoading={isLoading} />
           </div>

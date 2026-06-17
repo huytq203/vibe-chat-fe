@@ -7,7 +7,7 @@ import { tv, type VariantProps } from 'tailwind-variants';
 const dialogVariants = tv({
   slots: {
     overlay:
-      'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+      'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm pointer-events-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
    content: [
       'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 p-6',
       'w-full max-w-lg rounded-xl border border-border bg-background shadow-2xl',

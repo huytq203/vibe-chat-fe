@@ -1,16 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, Ban, Crown, MoreVertical, Shield, ShieldOff, UserCheck, UserX, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
-import { Badge } from "@/components/ui/badge/Badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu/DropdownMenu";
 import type { Conversation, ConversationMember } from "@/features/chat/types";
 import {
   useBanMember,
@@ -19,8 +11,11 @@ import {
   useTransferOwnership,
 } from "@/features/chat/hooks/use-mutations";
 import { useJoinRequests } from "@/features/chat/hooks/use-query";
+import { useMemberFriendship } from "@/features/chat/hooks/useMemberFriendship";
 import { isAdminRole } from "@/features/chat/utils";
-import { Avatar } from "@/features/chat/components/common/Avatar";
+import { GroupManageActions } from "./GroupManageActions";
+import { GroupMemberRow } from "./GroupMemberRow";
+import { UserProfileDialog } from "./UserProfileDialog";
 import { AddMembersDialog } from "./AddMembersDialog";
 import { AlertRemoveMember } from "./AlertRemoveMember";
 import { AlertBanMember } from "./AlertBanMember";
@@ -54,10 +49,12 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
   const [removeTarget, setRemoveTarget] = useState<ConversationMember | null>(null);
   const [banTarget, setBanTarget] = useState<ConversationMember | null>(null);
   const [transferTarget, setTransferTarget] = useState<ConversationMember | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const removeMut = useRemoveMember();
   const banMut = useBanMember();
   const setRoleMut = useSetMemberRole();
   const transferMut = useTransferOwnership();
+  const { getState, sendFriend, cancelFriend, isSending, isCancelling } = useMemberFriendship();
 
   const members = useMemo(
     () => (conversation.members ?? []).slice().sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
@@ -77,9 +74,6 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
   const canGrantDeputy = (m: ConversationMember) => isOwner && m.userId !== meId && m.role === "MEMBER";
   const canRevokeDeputy = (m: ConversationMember) => isOwner && isAdminRole(m.role) && m.role !== "OWNER";
   const canTransfer = (m: ConversationMember) => isOwner && m.userId !== meId && m.role !== "OWNER";
-  const hasMenu = (m: ConversationMember) =>
-    canRemove(m) || canGrantDeputy(m) || canRevokeDeputy(m) || canTransfer(m);
-
   const setRole = (m: ConversationMember, role: "ADMIN" | "MEMBER") =>
     setRoleMut.mutate({ conversationId: conversation.id, userId: m.userId, role });
 
@@ -120,110 +114,42 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
       </header>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 ">
-        <div className="pb-2 border-b ">
-          {canManage && (
-            <Button
-              onClick={() => setAddOpen(true)}
-              className="mb-3 flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm font-medium  ">
-              Thêm thành viên
-            </Button>
-          )}
-
-          {canManage && (
-            <button
-              type="button"
-              onClick={onShowRequests}
-              className="mb-1 flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm font-medium hover:bg-muted cursor-pointer border border-border ">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-primary">
-                <UserCheck className="h-[18px] w-[18px]" />
-              </span>
-              <span className="flex-1">Yêu cầu vào nhóm</span>
-              {pendingCount > 0 && (
-                <Badge variant="danger" size="sm">
-                  {pendingCount}
-                </Badge>
-              )}
-            </button>
-          )}
-        </div>
+        {canManage && (
+          <GroupManageActions
+            pendingCount={pendingCount}
+            onAddMember={() => setAddOpen(true)}
+            onShowRequests={onShowRequests}
+          />
+        )}
         <div className="py-2">
           <p className="text-xs font-semibold text-foreground">Tất cả thành viên ({members.length})</p>
         </div>
-        {members.map((m) => {
-          const label = m.nickname || m.displayName || m.username;
-          const roleLabel = ROLE_LABEL[m.role];
-          return (
-            <div key={m.userId} className="group flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted">
-              <Avatar name={label} src={m.avatarUrl} seed={m.userId} size="md" status={null} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="truncate text-[13.5px] font-semibold text-foreground">{label}</span>
-                  {m.userId === meId && <span className="text-[11px] text-muted-foreground">(Bạn)</span>}
-                </div>
-                {roleLabel && (
-                  <Badge variant="secondary" size="sm" className="mt-0.5">
-                    {roleLabel}
-                  </Badge>
-                )}
-              </div>
-              {hasMenu(m) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 data-popup-open:opacity-100"
-                        title="Tùy chọn"
-                        aria-label={`Tùy chọn cho ${label}`}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <DropdownMenuContent align="end" className="min-w-[180px]">
-                    {canGrantDeputy(m) && (
-                      <DropdownMenuItem onClick={() => setRole(m, "ADMIN")}>
-                        <Shield className="h-4 w-4" />
-                        Cấp quyền phó nhóm
-                      </DropdownMenuItem>
-                    )}
-                    {canRevokeDeputy(m) && (
-                      <DropdownMenuItem onClick={() => setRole(m, "MEMBER")}>
-                        <ShieldOff className="h-4 w-4" />
-                        Gỡ quyền phó nhóm
-                      </DropdownMenuItem>
-                    )}
-                    {canTransfer(m) && (
-                      <DropdownMenuItem onClick={() => setTransferTarget(m)}>
-                        <Crown className="h-4 w-4" />
-                        Nhượng quyền trưởng nhóm
-                      </DropdownMenuItem>
-                    )}
-                    {(canGrantDeputy(m) || canRevokeDeputy(m) || canTransfer(m)) && canRemove(m) && (
-                      <DropdownMenuSeparator />
-                    )}
-                    {canRemove(m) && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => setRemoveTarget(m)}
-                          className="text-danger focus:text-danger">
-                          <UserX className="h-4 w-4" />
-                          Xoá khỏi nhóm
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setBanTarget(m)}
-                          className="text-danger focus:text-danger">
-                          <Ban className="h-4 w-4" />
-                          Chặn thành viên
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          );
-        })}
+        {members.map((m) => (
+          <GroupMemberRow
+            key={m.userId}
+            member={m}
+            label={m.nickname || m.displayName || m.username}
+            roleLabel={ROLE_LABEL[m.role]}
+            isMe={m.userId === meId}
+            friendState={getState(m.userId)}
+            isSending={isSending(m.userId)}
+            isCancelling={isCancelling(m.userId)}
+            menu={{
+              canGrantDeputy: canGrantDeputy(m),
+              canRevokeDeputy: canRevokeDeputy(m),
+              canTransfer: canTransfer(m),
+              canRemove: canRemove(m),
+            }}
+            onViewProfile={() => setProfileUserId(m.userId)}
+            onAddFriend={() => sendFriend(m.userId)}
+            onCancelFriend={() => cancelFriend(m.userId)}
+            onGrantDeputy={() => setRole(m, "ADMIN")}
+            onRevokeDeputy={() => setRole(m, "MEMBER")}
+            onTransfer={() => setTransferTarget(m)}
+            onRemove={() => setRemoveTarget(m)}
+            onBan={() => setBanTarget(m)}
+          />
+        ))}
 
         {members.length === 0 && (
           <p className="px-3 py-10 text-center text-xs text-muted-foreground">Chưa tải được danh sách thành viên</p>
@@ -238,6 +164,12 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
           existingMemberIds={conversation.memberIds}
         />
       )}
+
+      <UserProfileDialog
+        open={Boolean(profileUserId)}
+        onOpenChange={(o) => !o && setProfileUserId(null)}
+        userId={profileUserId}
+      />
 
       <AlertRemoveMember
         open={Boolean(removeTarget)}

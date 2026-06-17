@@ -37,13 +37,11 @@ export function ContactPickerDialog({ open, onOpenChange, onPick }: ContactPicke
           <DialogTitle>Chia sẻ danh thiếp</DialogTitle>
         </DialogHeader>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Tìm người dùng theo tên hoặc @username"
-            className="pl-9"
           />
         </div>
         <div className="max-h-[320px] overflow-y-auto">

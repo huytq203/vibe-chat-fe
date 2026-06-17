@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/dialog/Dialog';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
+import { ComboBox } from '@/components/ui/combobox/ComboBox';
 import { ApiError } from '@/lib/api/client';
-import { cn } from '@/lib/utils/cn';
 import { reportsApi } from '@/services/reports.api';
 import {
   REPORT_REASON_LABELS,
@@ -24,7 +24,9 @@ import {
 
 const DESCRIPTION_MAX = 1000;
 
-const REASONS = Object.entries(REPORT_REASON_LABELS) as [ReportReason, string][];
+const REASON_OPTIONS = (Object.entries(REPORT_REASON_LABELS) as [ReportReason, string][]).map(
+  ([value, label]) => ({ value, label }),
+);
 
 type ReportDialogProps = {
   open: boolean;
@@ -88,25 +90,17 @@ export function ReportDialog({ open, onOpenChange, targetType, targetId }: Repor
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5" role="radiogroup" aria-label="Lý do báo cáo">
-            {REASONS.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={reason === value}
-                onClick={() => setReason(value)}
-                className={cn(
-                  'flex w-full items-center rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-                  reason === value
-                    ? 'border-primary bg-primary/5 font-medium text-foreground'
-                    : 'border-border text-muted-foreground hover:bg-accent',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ComboBox
+            label="Lý do báo cáo"
+            placeholder="Chọn lý do báo cáo…"
+            options={REASON_OPTIONS}
+            value={reason ?? ''}
+            onValueChange={(v) =>
+              setReason(((typeof v === 'string' ? v : '') as ReportReason) || null)
+            }
+            emptyText="Không tìm thấy lý do phù hợp."
+            required
+          />
 
           <Textarea
             label="Mô tả thêm (không bắt buộc)"

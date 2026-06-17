@@ -10,6 +10,7 @@ import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { getSocket } from '@/lib/ws/socket';
 import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
+import { useSelectedConversation } from './useSelectedConversation';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
 import type {
@@ -152,7 +153,9 @@ export function useSendMessage() {
         type: input.type ?? 'TEXT',
         encryptionType: 'SERVER',
         plaintext: input.plaintext ?? null,
-        attachments: input.optimisticAttachment ? [input.optimisticAttachment] : [],
+        attachments:
+          input.optimisticAttachments ??
+          (input.optimisticAttachment ? [input.optimisticAttachment] : []),
         contentPreview: input.plaintext ?? null,
         metadata: {
           ...(input.metadata ?? {}),
@@ -951,5 +954,19 @@ export function useVerifyLock() {
         toast.error(e.message || 'Xác thực thất bại');
       }
     },
+  });
+}
+
+/** Tạo (hoặc mở) hội thoại DIRECT với 1 user rồi chuyển sang hội thoại đó. */
+export function useOpenDirectConversation() {
+  const qc = useQueryClient();
+  const { setSelected } = useSelectedConversation();
+  return useMutation({
+    mutationFn: (userId: string) => chatApi.createDirect(userId),
+    onSuccess: (conv) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      setSelected(conv.id);
+    },
+    onError: (e: Error) => toast.error(e.message || 'Không mở được cuộc trò chuyện'),
   });
 }
