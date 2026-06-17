@@ -104,6 +104,8 @@ function MessageBubbleImpl({
     />
   );
 
+  const [senderProfileOpen, setSenderProfileOpen] = useState(false);
+
   return (
     <div
       data-message-id={message.id}
@@ -112,13 +114,19 @@ function MessageBubbleImpl({
       {!isMe && (
         <div className="w-7 shrink-0">
           {showAvatar && (
-            <Avatar
-              name={senderName ?? null}
-              src={senderAvatarUrl}
-              seed={senderSeed ?? message.senderId}
-              size="sm"
-              className="!h-7 !w-7 !rounded-lg !text-[9px]"
-            />
+            <button
+              type="button"
+              onClick={() => setSenderProfileOpen(true)}
+              className="cursor-pointer"
+            >
+              <Avatar
+                name={senderName ?? null}
+                src={senderAvatarUrl}
+                seed={senderSeed ?? message.senderId}
+                size="sm"
+                className="!h-7 !w-7 !rounded-lg !text-[9px]"
+              />
+            </button>
           )}
         </div>
       )}
@@ -232,6 +240,11 @@ function MessageBubbleImpl({
           </div>
         )}
       </div>
+      <UserProfileDialog
+        open={senderProfileOpen}
+        onOpenChange={setSenderProfileOpen}
+        userId={message.senderId}
+      />
     </div>
   );
 }
