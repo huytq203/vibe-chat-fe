@@ -8,11 +8,18 @@ import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useFriends } from '@/features/friends/hooks/use-query';
 import type { FriendRequest } from '@/features/friends/types';
 
+export type ContactSnapshot = {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+};
+
 type ContactPickerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Chọn 1 bạn bè để chia sẻ danh thiếp (contactUserId = keycloakId). */
-  onPick: (contactUserId: string) => void;
+  /** Chọn 1 bạn bè để chia sẻ danh thiếp. */
+  onPick: (contact: ContactSnapshot) => void;
 };
 
 /** Dialog chọn bạn bè để gửi danh thiếp (type=CONTACT) vào conversation hiện tại. */
@@ -31,7 +38,12 @@ export function ContactPickerDialog({ open, onOpenChange, onPick }: ContactPicke
   }, [data, search]);
 
   function handlePick(friend: FriendRequest) {
-    onPick(friend.user.id);
+    onPick({
+      id: friend.user.id,
+      displayName: friend.user.displayName ?? friend.user.username,
+      username: friend.user.username,
+      avatarUrl: friend.user.avatarUrl,
+    });
     onOpenChange(false);
     setSearch('');
   }

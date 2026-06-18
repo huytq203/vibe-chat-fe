@@ -15,21 +15,28 @@ import { useFriendRealtime } from '@/features/friends';
 import { CallContainer, useCallRealtime } from '@/features/call';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
-import { useConversations } from '@/features/chat/hooks/use-query';
+import { useConversation, useConversations } from '@/features/chat/hooks/use-query';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
+import { MyStoreInfoPanel, MyStoreFolderView } from '@/features/my-store';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
+  const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
+  const myStoreFilesOpen = useChatUIStore((s) => s.myStoreFilesOpen);
+  const setMyStoreFilesOpen = useChatUIStore((s) => s.setMyStoreFilesOpen);
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
+  const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations } = useConversations();
+  const { data: selectedConv } = useConversation(selectedConversationId);
+  const isSelfConv = selectedConv?.type === 'SELF';
   const router = useRouter();
   const searchParams = useSearchParams();
   useChatRealtime();
@@ -40,12 +47,18 @@ export function ChatLayout() {
   useFaviconBadge();
   useElectronBadge();
 
+  // Rời Kho của tôi (chọn hội thoại khác) → thoát chế độ Tệp toàn màn hình.
   useEffect(() => {
+    if (!isSelfConv && myStoreFilesOpen) setMyStoreFilesOpen(false);
+  }, [isSelfConv, myStoreFilesOpen, setMyStoreFilesOpen]);
+
+  useEffect(() => {
+    if (myStoreOpen) return;
     if (selectedConversationId) return;
     if (searchParams.get('invite')) return;
     const first = conversations?.[0];
     if (first) setSelected(first.id);
-  }, [conversations, selectedConversationId, setSelected, searchParams]);
+  }, [conversations, myStoreOpen, selectedConversationId, setSelected, searchParams]);
 
   // SW post message khi user click OS notification → điều hướng trong tab.
   useEffect(() => {
@@ -76,12 +89,24 @@ export function ChatLayout() {
     );
   }
 
+  const showFilesView = isSelfConv && myStoreFilesOpen;
+
   if (isMobile) {
     return (
       <div className="flex h-full w-full flex-col overflow-hidden">
         {mobilePanel === 'list' && <ConversationList />}
-        {mobilePanel === 'chat' && <ChatPanel />}
-        {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        {mobilePanel === 'chat' && (
+          showFilesView ? <MyStoreFolderView onBack={() => setMyStoreFilesOpen(false)} /> : <ChatPanel />
+        )}
+        {mobilePanel === 'contact' && selectedConversationId && (
+          isSelfConv
+            ? <MyStoreInfoPanel
+                conversationId={selectedConversationId}
+                onClose={() => setMobilePanel('chat')}
+                onOpenFiles={() => { setMyStoreFilesOpen(true); setMobilePanel('chat'); }}
+              />
+            : <ContactInfo />
+        )}
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -91,8 +116,22 @@ export function ChatLayout() {
   return (
     <div className="flex h-full w-full overflow-hidden">
       <ConversationList />
-      <ChatPanel />
-      {rightPanelOpen && selectedConversationId && <ContactInfo />}
+      {showFilesView ? (
+        <MyStoreFolderView  onBack={() => setMyStoreFilesOpen(false)} />
+      ) : (
+        <>
+          <ChatPanel />
+          {rightPanelOpen && selectedConversationId && (
+            isSelfConv
+              ? <MyStoreInfoPanel
+                  conversationId={selectedConversationId}
+                  onClose={() => useChatUIStore.getState().setRightOpen(false)}
+                  onOpenFiles={() => setMyStoreFilesOpen(true)}
+                />
+              : <ContactInfo />
+          )}
+        </>
+      )}
       <CallContainer />
       <InviteProfileModal />
     </div>

@@ -22,8 +22,9 @@ export function ChatPanel() {
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
   const toggleRight = useChatUIStore((s) => s.toggleRight);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
-  const isMobile = useIsMobile();
+  const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
+  const isMobile = useIsMobile();
   const { selectedConversationId } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
   const { mutate: markRead } = useMarkRead();
@@ -94,6 +95,8 @@ export function ChatPanel() {
   const { data: presenceList } = usePresence(otherIds);
   const otherPresence = presenceList?.[0] ?? null;
 
+  const isSelfConv = conversation?.type === 'SELF';
+
   if (!selectedConversationId || !conversation) {
     return (
       <main className="flex h-full flex-1 flex-col items-center justify-center bg-background text-center">
@@ -110,7 +113,7 @@ export function ChatPanel() {
     'Cuộc trò chuyện';
 
   return (
-    <main className="flex h-full min-w-0 flex-1 flex-col bg-background">
+    <main className="flex h-full min-w-0 flex-1 flex-col bg-background ">
       <ChatHeader
         conversation={conversation}
         meId={meId}
@@ -126,8 +129,8 @@ export function ChatPanel() {
         <>
           <PinnedBanner conversation={conversation} meId={meId} />
           <MessageList conversationId={conversation.id} />
-          {canSendMessage(conversation, meId) ? (
-            <MessageInput conversationId={conversation.id} />
+          {isSelfConv || canSendMessage(conversation, meId) ? (
+            <MessageInput conversationId={conversation.id} selfConv={isSelfConv} />
           ) : (
             <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3 text-center text-[12.5px] text-muted-foreground">
               Chỉ quản trị viên được nhắn trong nhóm này

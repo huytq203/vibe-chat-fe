@@ -188,6 +188,17 @@ export function useChatRealtime() {
             const mNonce = (m.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
             if (incomingNonce && mNonce && mNonce === incomingNonce) {
               replaced = true;
+              // CONTACT: BE echo thiếu avatarUrl (enrichContactCards chỉ chạy lúc REST).
+              // Giữ lại avatarUrl từ optimistic cho đến khi REST refetch enrich lại.
+              if (message.type === 'CONTACT') {
+                const existingContact = (m.metadata as Record<string, unknown> | null)
+                  ?.contact as Record<string, unknown> | undefined;
+                const incomingContact = (message.metadata as Record<string, unknown> | null)
+                  ?.contact as Record<string, unknown> | undefined;
+                if (existingContact?.avatarUrl != null && incomingContact && !incomingContact.avatarUrl) {
+                  return [{ ...message, metadata: { ...message.metadata, contact: { ...incomingContact, avatarUrl: existingContact.avatarUrl } } }];
+                }
+              }
               return [message];
             }
             return [m];

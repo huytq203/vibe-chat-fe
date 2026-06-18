@@ -16,13 +16,19 @@ import { ComposerActions } from './ComposerActions';
 import { ScheduleMessageDialog } from './ScheduleMessageDialog';
 import { ContactPickerDialog } from '@/features/chat/components/contact/ContactPickerDialog';
 import { useShareContact } from '@/features/chat/hooks/useShareContact';
+import { Bell, CheckSquare, Bookmark } from 'lucide-react';
+import { ReminderDialog } from '@/features/my-store/components/ReminderDialog';
+import { ChecklistDialog } from '@/features/my-store/components/ChecklistDialog';
+import { BookmarkDialog } from '@/features/my-store/components/BookmarkDialog';
 
 type MessageInputProps = {
   conversationId: string;
   disabled?: boolean;
+  /** Khi true (SELF conv) hiện thêm nút Nhắc nhở / Checklist / Bookmark bên dưới. */
+  selfConv?: boolean;
 };
 
-export function MessageInput({ conversationId, disabled }: MessageInputProps) {
+export function MessageInput({ conversationId, disabled, selfConv }: MessageInputProps) {
   const {
     editorRef,
     mention,
@@ -52,6 +58,9 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
   const [expanded, setExpanded] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
+  const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const shareContact = useShareContact(conversationId);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
 
@@ -206,6 +215,40 @@ export function MessageInput({ conversationId, disabled }: MessageInputProps) {
         onOpenChange={setContactOpen}
         onPick={shareContact}
       />
+      {selfConv && (
+        <>
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground mr-1">Tạo:</span>
+            <button
+              type="button"
+              onClick={() => setReminderOpen(true)}
+              className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 text-[11.5px] font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
+            >
+              <Bell className="h-3 w-3" />
+              Nhắc nhở
+            </button>
+            <button
+              type="button"
+              onClick={() => setChecklistOpen(true)}
+              className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11.5px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              <CheckSquare className="h-3 w-3" />
+              Checklist
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookmarkOpen(true)}
+              className="flex items-center gap-1 rounded-full border border-blue-400/30 bg-blue-50 dark:bg-blue-950/20 px-2.5 py-1 text-[11.5px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors"
+            >
+              <Bookmark className="h-3 w-3" />
+              Bookmark
+            </button>
+          </div>
+          <ReminderDialog open={reminderOpen} onClose={() => setReminderOpen(false)} />
+          <ChecklistDialog open={checklistOpen} onClose={() => setChecklistOpen(false)} />
+          <BookmarkDialog open={bookmarkOpen} onClose={() => setBookmarkOpen(false)} />
+        </>
+      )}
     </div>
   );
 }

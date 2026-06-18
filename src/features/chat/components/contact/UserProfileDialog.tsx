@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AtSign, Cake, Phone, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog/Dialog';
@@ -8,6 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useUserProfile } from '@/features/chat/hooks/use-query';
 import { useOpenDirectConversation } from '@/features/chat/hooks/use-mutations';
+import { useShareContactToFriend } from '@/features/chat/hooks/useShareContactToFriend';
+import { ReportDialog } from '@/features/reports/components/ReportDialog';
+import { FriendPickerDialog } from './FriendPickerDialog';
 import type { FriendshipStatus } from '@/features/friends/types';
 import type { Gender } from '@/features/auth';
 import { UserProfileActions } from './UserProfileActions';
@@ -39,9 +43,13 @@ function formatDob(value: string | null | undefined): string | null {
 /** Modal xem hồ sơ user khác: GET /users/:id + nhóm chung + hành động kết bạn/nhắn tin. */
 export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDialogProps) {
   const router = useRouter();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [friendPickerOpen, setFriendPickerOpen] = useState(false);
+
   const { data: profile, isLoading, isError } = useUserProfile(userId, open);
   const openDirectMut = useOpenDirectConversation();
-  // BE trả 400 nếu hỏi nhóm chung với chính mình → chỉ bật khi đã biết isMe=false.
+  const { share, isPending: isSharing } = useShareContactToFriend(userId ?? '');
+
   const groupsEnabled = open && Boolean(profile) && !profile?.isMe;
 
   const name = profile?.displayName ?? profile?.username ?? '—';
@@ -49,7 +57,6 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
   const genderText = profile?.gender ? GENDER_LABEL[profile.gender] : null;
   const dobText = formatDob(profile?.dateOfBirth);
 
-  // Field bị ẩn (có giá trị nhưng privacy/chưa-bạn-bè) → mask; null mà không bị ẩn = chưa nhập → '—'.
   const isHidden = (field: string) => profile?.hiddenFields?.includes(field) ?? false;
   const maskOrValue = (value: string | null | undefined, field: string, mask: string) =>
     value ?? (isHidden(field) ? mask : null);
@@ -65,90 +72,111 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm overflow-hidden p-0">
-        <DialogTitle className="sr-only">Thông tin người dùng</DialogTitle>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-sm overflow-hidden p-0">
+          <DialogTitle className="sr-only">Thông tin người dùng</DialogTitle>
 
-        {isError ? (
-          <p className="px-6 py-10 text-center text-sm text-muted-foreground">
-            Không tìm thấy người dùng
-          </p>
-        ) : (
-          <div className="max-h-[80vh] overflow-y-auto">
-            <div className="h-28 overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary">
-              {profile?.coverUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.coverUrl} alt="" className="h-full w-full object-cover" />
-              )}
-            </div>
+          {isError ? (
+            <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+              Không tìm thấy người dùng
+            </p>
+          ) : (
+            <div className="max-h-[80vh] overflow-y-auto">
+              <div className="h-28 overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary">
+                {profile?.coverUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.coverUrl} alt="" className="h-full w-full object-cover" />
+                )}
+              </div>
 
-            <div className="-mt-10 flex flex-col items-center px-6">
-              {isLoading ? (
-                <Skeleton rounded="full" className="h-[72px] w-[72px]" />
-              ) : (
-                <Avatar
-                  name={name}
-                  src={profile?.avatarUrl}
-                  seed={profile?.id ?? 'user'}
-                  size="lg"
-                  className="ring-4 ring-background"
+              <div className="-mt-10 flex flex-col items-center px-6">
+                {isLoading ? (
+                  <Skeleton rounded="full" className="h-[72px] w-[72px]" />
+                ) : (
+                  <Avatar
+                    name={name}
+                    src={profile?.avatarUrl}
+                    seed={profile?.id ?? 'user'}
+                    size="lg"
+                    className="ring-4 ring-background"
+                  />
+                )}
+                <div className="mt-2 text-center">
+                  {isLoading ? (
+                    <Skeleton className="mx-auto h-5 w-40" />
+                  ) : (
+                    <p className="text-[17px] font-bold text-foreground">{name}</p>
+                  )}
+                  {friendshipText && (
+                    <Badge variant="secondary" size="sm" className="mt-1.5">
+                      {friendshipText}
+                    </Badge>
+                  )}
+                  {profile && !profile.isMe && profile.mutualFriendsCount > 0 && (
+                    <p className="mt-1.5 text-[12.5px] text-muted-foreground">
+                      {profile.mutualFriendsCount} bạn chung
+                    </p>
+                  )}
+                  {profile?.bio && (
+                    <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] text-muted-foreground">
+                      {profile.bio}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {profile && !profile.isMe && userId && (
+                <UserProfileActions
+                  userId={userId}
+                  friendship={profile.friendship}
+                  onMessage={handleMessage}
+                  isMessaging={openDirectMut.isPending}
                 />
               )}
-              <div className="mt-2 text-center">
-                {isLoading ? (
-                  <Skeleton className="mx-auto h-5 w-40" />
-                ) : (
-                  <p className="text-[17px] font-bold text-foreground">{name}</p>
-                )}
-                {friendshipText && (
-                  <Badge variant="secondary" size="sm" className="mt-1.5">
-                    {friendshipText}
-                  </Badge>
-                )}
-                {profile && !profile.isMe && profile.mutualFriendsCount > 0 && (
-                  <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-                    {profile.mutualFriendsCount} bạn chung
-                  </p>
-                )}
-                {profile?.bio && (
-                  <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] text-muted-foreground">
-                    {profile.bio}
-                  </p>
-                )}
+
+              <div className="px-6 pb-2 pt-4">
+                <p className="mb-3 text-sm font-bold">Thông tin cá nhân</p>
+                <div className="space-y-3">
+                  <InfoRow icon={<AtSign className="h-4 w-4 text-muted-foreground" />} label="Tên đăng nhập" value={profile?.username} isLoading={isLoading} />
+                  <InfoRow icon={<Phone className="h-4 w-4 text-muted-foreground" />} label="Số điện thoại" value={maskOrValue(profile?.phone ?? null, 'phone', '*********')} isLoading={isLoading} />
+                  <InfoRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Giới tính" value={maskOrValue(genderText, 'gender', '****')} isLoading={isLoading} />
+                  <InfoRow icon={<Cake className="h-4 w-4 text-muted-foreground" />} label="Ngày sinh" value={maskOrValue(dobText, 'dateOfBirth', '**/**/****')} isLoading={isLoading} />
+                </div>
               </div>
+
+              <CommonGroupsSection userId={userId} enabled={groupsEnabled} onOpenGroup={openGroup} />
+
+              {profile && !profile.isMe && userId && (
+                <UserProfileExtraActions
+                  isFriend={profile.friendship === 'ACCEPTED'}
+                  isPending={isSharing}
+                  onShareContact={() => setFriendPickerOpen(true)}
+                  onReport={() => setReportOpen(true)}
+                />
+              )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-            {profile && !profile.isMe && userId && (
-              <UserProfileActions
-                userId={userId}
-                friendship={profile.friendship}
-                onMessage={handleMessage}
-                isMessaging={openDirectMut.isPending}
-              />
-            )}
-
-            <div className="px-6 pb-2 pt-4">
-              <p className="mb-3 text-sm font-bold">Thông tin cá nhân</p>
-              <div className="space-y-3">
-                <InfoRow icon={<AtSign className="h-4 w-4 text-muted-foreground" />} label="Tên đăng nhập" value={profile?.username} isLoading={isLoading} />
-                <InfoRow icon={<Phone className="h-4 w-4 text-muted-foreground" />} label="Số điện thoại" value={maskOrValue(profile?.phone ?? null, 'phone', '*********')} isLoading={isLoading} />
-                <InfoRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Giới tính" value={maskOrValue(genderText, 'gender', '****')} isLoading={isLoading} />
-                <InfoRow icon={<Cake className="h-4 w-4 text-muted-foreground" />} label="Ngày sinh" value={maskOrValue(dobText, 'dateOfBirth', '**/**/****')} isLoading={isLoading} />
-              </div>
-            </div>
-
-            <CommonGroupsSection userId={userId} enabled={groupsEnabled} onOpenGroup={openGroup} />
-
-            {profile && !profile.isMe && userId && (
-              <UserProfileExtraActions
-                isFriend={profile.friendship === 'ACCEPTED'}
-                userId={userId}
-              />
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      {/* Render ngoài Dialog chính để thoát khỏi nested dialog context của Base UI */}
+      {userId && (
+        <>
+          <ReportDialog
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            targetType="USER"
+            targetId={userId}
+          />
+          <FriendPickerDialog
+            open={friendPickerOpen}
+            onOpenChange={setFriendPickerOpen}
+            onPick={(targets) => { void share(targets); }}
+          />
+        </>
+      )}
+    </>
   );
 }
 

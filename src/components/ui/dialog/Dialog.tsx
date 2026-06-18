@@ -13,6 +13,7 @@ const dialogVariants = tv({
       'w-full max-w-lg rounded-xl border border-border bg-background shadow-2xl',
       'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 ',
       'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+      'data-[nested-dialog-open]:pointer-events-none',
     ].join(' '),
     header: 'flex flex-col space-y-1.5 text-center sm:text-left',
     footer: 'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-auto',

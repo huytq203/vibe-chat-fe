@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { cn } from '@/lib/utils/cn';
-import { EmojiText } from '@/components/common/EmojiText';
-import { REACTION_EMOJI, REACTION_LABEL } from '@/features/chat/reactions';
-import type { Message, ReactionType } from '@/features/chat/types';
-import { ReactionViewerDialog } from './ReactionViewerDialog';
+import { useState } from "react";
+import { cn } from "@/lib/utils/cn";
+import { EmojiText } from "@/components/common/EmojiText";
+import { REACTION_EMOJI, REACTION_LABEL } from "@/features/chat/reactions";
+import type { Message, ReactionType } from "@/features/chat/types";
+import { ReactionViewerDialog } from "./ReactionViewerDialog";
+import { MessageLikeButton } from "./MessageLikeButton";
 
 type MessageReactionsProps = {
   message: Message;
@@ -27,7 +28,21 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
 
   return (
     <>
-      <div className={cn('mt-1 flex flex-wrap gap-1', isMe ? 'justify-end' : 'justify-start')}>
+      <div
+        className={cn(
+          "mt-1 flex flex-wrap gap-1",
+          isMe ? "justify-end" : "justify-end",
+        )}
+      >
+         {isMe&&!message.metadata?.optimistic &&
+          !message.metadata?.failed &&
+          !message.isDeleted && (
+            <MessageLikeButton
+              message={message}
+              isMe={isMe}
+              className="ml-0.5 opacity-100 "
+            />
+          )}
         {reactions.map((r) => {
           const mine = myReaction === r.type;
           return (
@@ -37,17 +52,30 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
               onClick={() => openViewer(r.type)}
               title={`Xem ai đã thả ${REACTION_LABEL[r.type]}`}
               className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors',
+                "inline-flex items-center gap-1 rounded-full border p-0.5 text-[13px] transition-colors",
                 mine
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-border bg-muted text-foreground hover:bg-accent',
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-muted text-foreground hover:bg-accent",
               )}
             >
-              <EmojiText text={REACTION_EMOJI[r.type]} className="leading-none" />
-              {r.count > 1 && <span className="tabular-nums">{r.count}</span>}
+              <EmojiText
+                text={REACTION_EMOJI[r.type]}
+                className="leading-none"
+              />
+              {r.count >= 1 && <span className="tabular-nums">{r.count}</span>}
             </button>
           );
         })}
+        
+        {!isMe&&!message.metadata?.optimistic &&
+          !message.metadata?.failed &&
+          !message.isDeleted && (
+            <MessageLikeButton
+              message={message}
+              isMe={isMe}
+              className="ml-0.5 opacity-100 "
+            />
+          )}
       </div>
 
       {open && (

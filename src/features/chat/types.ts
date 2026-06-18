@@ -1,4 +1,4 @@
-export type ConversationType = 'DIRECT' | 'GROUP' | 'CHANNEL';
+export type ConversationType = 'DIRECT' | 'GROUP' | 'CHANNEL' | 'SELF';
 export type EncryptionType = 'SERVER';
 export type MessageType =
   | 'TEXT'
@@ -10,7 +10,10 @@ export type MessageType =
   | 'LOCATION'
   | 'CONTACT'
   | 'SYSTEM'
-  | 'CALL';
+  | 'CALL'
+  | 'REMINDER'
+  | 'CHECKLIST'
+  | 'BOOKMARK';
 
 export type LastMessagePreview = {
   id: string;
@@ -275,6 +278,11 @@ export type SendMessageInput = {
 };
 
 // ─── Contact card (chia sẻ danh thiếp) ─────────────────────────────────────────
+/** Target khi chia sẻ danh thiếp: tới bạn bè (tạo direct) hoặc thẳng vào nhóm. */
+export type ShareContactTarget =
+  | { type: 'friend'; userId: string }
+  | { type: 'group'; conversationId: string };
+
 // BE: message.type='CONTACT', metadata.contact = snapshot hồ sơ user được chia sẻ.
 
 export type ContactCardMetadata = {

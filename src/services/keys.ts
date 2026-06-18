@@ -105,3 +105,13 @@ export const shareLinkKeys = {
   my: () => [...shareLinkKeys.all, 'me'] as const,
   resolve: (code: string) => [...shareLinkKeys.all, 'resolve', code] as const,
 } as const;
+
+export const myStoreKeys = {
+  all: ['my-store'] as const,
+  conversation: () => [...myStoreKeys.all, 'conversation'] as const,
+  messages: () => [...myStoreKeys.all, 'messages'] as const,
+  folders: () => [...myStoreKeys.all, 'folders'] as const,
+  folder: (id: string) => [...myStoreKeys.all, 'folder', id] as const,
+  files: (folderId: string) => [...myStoreKeys.all, 'files', folderId] as const,
+  quota: () => [...myStoreKeys.all, 'quota'] as const,
+} as const;

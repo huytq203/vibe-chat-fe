@@ -17,9 +17,9 @@ type ChatAvatarProps = {
 };
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
-  sm: 'h-9 w-9 rounded-lg text-[11px]',
-  md: 'h-11 w-11 rounded-xl text-[13px]',
-  lg: 'h-[72px] w-[72px] rounded-2xl text-[22px]',
+  sm: 'h-9 w-9 rounded-full text-[11px]',
+  md: 'h-11 w-11 rounded-full text-[13px]',
+  lg: 'h-[72px] w-[72px] rounded-full text-[22px]',
 };
 
 const DOT_CLASS: Record<AvatarSize, string> = {
@@ -55,7 +55,7 @@ export function Avatar({
         className={cn(SIZE_CLASS[size], 'font-bold', className)}
         style={{
           background: `${color}22`,
-          border: `1.5px solid ${color}44`,
+          border: `2px solid ${color}44`,
           color,
         }}
       />

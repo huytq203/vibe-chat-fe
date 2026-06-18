@@ -58,6 +58,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FRIEND_BLOCKED: 'Không thể thực hiện thao tác này',
   FRIEND_ALREADY_FRIENDS: 'Hai bạn đã là bạn bè',
 
+  // myStore
+  MY_STORE_QUOTA_EXCEEDED: 'Kho lưu trữ đã đầy — bạn đã sử dụng hết 5 GB',
+  MY_STORE_FOLDER_NOT_FOUND: 'Thư mục không tồn tại',
+  MY_STORE_FOLDER_CYCLE: 'Không thể di chuyển thư mục vào chính nó hoặc thư mục con',
+  MY_STORE_FILE_NOT_FOUND: 'File không tồn tại trong thư mục này',
+  MY_STORE_REMINDER_PAST: 'Thời gian nhắc nhở phải là tương lai',
+  MY_STORE_CONV_NOT_FOUND: 'Kho lưu trữ chưa được khởi tạo — vui lòng thử lại',
+
   // Generic
   INTERNAL_ERROR: 'Có lỗi xảy ra. Vui lòng thử lại sau.',
 };

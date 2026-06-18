@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Flag, MoreVertical, Pencil, Pin, PinOff, Reply, Trash2 } from 'lucide-react';
+import { Copy, Flag, Forward, MoreVertical, Pencil, Pin, PinOff, Quote, Reply, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -20,17 +20,15 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { cn } from '@/lib/utils/cn';
-import { EmojiText } from '@/components/common/EmojiText';
 import type { Message } from '@/features/chat/types';
 import { canEditMessage, getMessageSnippet } from '@/features/chat/utils';
 import { useDeleteMessage, usePinMessage, useUnpinMessage } from '@/features/chat/hooks/use-mutations';
-import { useToggleReaction } from '@/features/chat/hooks/useReactions';
-import { QUICK_REACTIONS, REACTION_EMOJI, REACTION_LABEL } from '@/features/chat/reactions';
-import type { ReactionType } from '@/features/chat/types';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { getRichText } from './rich-text-utils';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 import { ReportDialog } from '@/features/reports/components/ReportDialog';
+import { FriendPickerDialog } from '@/features/chat/components/contact/FriendPickerDialog';
+import { useForwardMessage } from '@/features/chat/hooks/useForwardMessage';
 
 type MessageActionsProps = {
   message: Message;
@@ -58,6 +56,8 @@ export function MessageActions({
 }: MessageActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const { forward } = useForwardMessage(message);
   // Kiểm soát mở dropdown để giữ bar hiện khi menu đang mở (dù chuột đã rê ra ngoài).
   const [menuOpen, setMenuOpen] = useState(false);
   const startEdit = useMessageEditStore((s) => s.startEdit);
@@ -65,20 +65,11 @@ export function MessageActions({
   const deleteMut = useDeleteMessage();
   const pinMut = usePinMessage();
   const unpinMut = useUnpinMessage();
-  const toggleReaction = useToggleReaction(message.conversationId);
 
   function handleTogglePin() {
     const vars = { conversationId: message.conversationId, messageId: message.id };
     if (isPinned) unpinMut.mutate(vars);
     else pinMut.mutate(vars);
-  }
-
-  function handleReact(type: ReactionType) {
-    toggleReaction.mutate({
-      messageId: message.id,
-      type,
-      current: message.myReaction ?? null,
-    });
   }
 
   // Sửa: tin TEXT của mình, còn trong cửa sổ 5 phút (xem doc 15). Gỡ: không giới hạn.
@@ -126,30 +117,34 @@ export function MessageActions({
   return (
     <div
       className={cn(
-        'flex items-center gap-1',
+        'flex  items-center gap-1',
         className,
         // Menu đang mở → ép hiện + nhận chuột, bất kể đã rê ra ngoài bubble (case 1).
         menuOpen && '!pointer-events-auto !opacity-100',
       )}
     >
-      {/* Thanh cảm xúc nhanh dạng pill nổi — hiện ngay khi hover tin (không cần mở "..."). */}
-      <div className="flex items-center gap-0.5 rounded-full border border-border bg-popover px-1 py-0.5 shadow-sm">
-        {QUICK_REACTIONS.map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => handleReact(type)}
-            aria-label={`Thả ${REACTION_LABEL[type]}`}
-            title={REACTION_LABEL[type]}
-            className={cn(
-              'rounded-full px-1 py-0.5 text-base leading-none transition-transform hover:scale-125',
-              message.myReaction === type && 'bg-primary/25',
-            )}
-          >
-            <EmojiText text={REACTION_EMOJI[type]} />
-          </button>
-        ))}
-      </div>
+      {/* Reply nhanh — không cần mở menu "...". */}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={handleReply}
+        aria-label="Trả lời"
+        title="Trả lời"
+        className="h-6 w-6 bg-accent text-muted-foreground"
+      >
+        <Quote className="h-[15px] w-[15px]" />
+      </Button>
+      {/* Chuyển tiếp tới bạn bè / nhóm. */}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => setForwardOpen(true)}
+        aria-label="Chuyển tiếp"
+        title="Chuyển tiếp"
+        className="h-6 w-6 bg-accent text-muted-foreground"
+      >
+        <Forward className="h-[15px] w-[15px]" />
+      </Button>
       <DropdownMenu open={menuOpen} onOpenChange={(o) => setMenuOpen(o)}>
         <DropdownMenuTrigger
           render={
@@ -165,10 +160,6 @@ export function MessageActions({
           }
         />
         <DropdownMenuContent side="top" align="start" className="min-w-[150px]">
-          <DropdownMenuItem onClick={handleReply}>
-            <Reply className="h-4 w-4" />
-            Trả lời
-          </DropdownMenuItem>
           {canPin && (
             <DropdownMenuItem onClick={handleTogglePin}>
               {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
@@ -250,6 +241,14 @@ export function MessageActions({
           targetId={message.id}
         />
       )}
+
+      <FriendPickerDialog
+        open={forwardOpen}
+        onOpenChange={setForwardOpen}
+        onPick={(targets) => void forward(targets)}
+        title="Chuyển tiếp tới"
+        actionLabel="Chuyển tiếp"
+      />
     </div>
   );
 }

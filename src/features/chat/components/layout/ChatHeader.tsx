@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, PanelRight, Search, X } from 'lucide-react';
+import { Archive, ArrowLeft, PanelRight, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
@@ -27,9 +27,10 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
   const [searchQ, setSearchQ] = useState('');
   const requestJump = useMessageJumpStore((s) => s.requestJump);
 
-  const name = getConversationName(conversation, meId);
+  const isSelfConv = conversation.type === 'SELF';
+  const name = isSelfConv ? 'Kho của tôi' : getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
-  const avatarUrl = getConversationAvatar(conversation, meId);
+  const avatarUrl = isSelfConv ? null : getConversationAvatar(conversation, meId);
 
   const status: 'online' | 'offline' | null = !presence
     ? null
@@ -37,11 +38,13 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
       ? 'online'
       : 'offline';
 
-  const statusLabel = !presence
-    ? conversation.type === 'DIRECT' ? '​' : `${conversation.memberCount} thành viên`
-    : presence.isOnline
-      ? 'Đang hoạt động'
-      : presence.lastSeenLabel ?? 'Ngoại tuyến';
+  const statusLabel = isSelfConv
+    ? 'Ghi chú · Nhắc nhở · Bookmark'
+    : !presence
+      ? conversation.type === 'DIRECT' ? '​' : `${conversation.memberCount} thành viên`
+      : presence.isOnline
+        ? 'Đang hoạt động'
+        : presence.lastSeenLabel ?? 'Ngoại tuyến';
 
   return (
     <div className="flex shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 py-3">
@@ -62,7 +65,13 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         onClick={onToggleRight}
         className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
       >
-        <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={status} />
+        {isSelfConv ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary border border-primary/30">
+            <Archive className="h-4 w-4" />
+          </span>
+        ) : (
+          <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={status} />
+        )}
         <div className="min-w-0">
           <div className="truncate text-[14.5px] font-bold text-foreground">{name}</div>
           <div className="truncate text-[11.5px] text-muted-foreground">{statusLabel}</div>
@@ -102,7 +111,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
           </div>
         ) : (
           <>
-            {conversation.type !== 'CHANNEL' && (
+            {!isSelfConv && conversation.type !== 'CHANNEL' && (
               <CallButtons
                 conversationId={conversation.id}
                 isGroup={conversation.type === 'GROUP'}
@@ -117,9 +126,11 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
                 }}
               />
             )}
-            <Button variant="ghost" size="icon-sm" title="Tìm kiếm" aria-label="Tìm kiếm" onClick={() => setSearching(true)}>
-              <Search className="h-[18px] w-[18px]" />
-            </Button>
+            {!isSelfConv && (
+              <Button variant="ghost" size="icon-sm" title="Tìm kiếm" aria-label="Tìm kiếm" onClick={() => setSearching(true)}>
+                <Search className="h-[18px] w-[18px]" />
+              </Button>
+            )}
           </>
         )}
         {!onBack && (
