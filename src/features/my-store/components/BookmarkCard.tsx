@@ -24,19 +24,19 @@ export function BookmarkCard({ message }: BookmarkCardProps) {
       href={meta.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block rounded-xl border border-blue-400/30 bg-blue-50/60 dark:bg-blue-950/20 p-4 max-w-sm hover:border-blue-400/60 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+      className="group block rounded-xl border border-border bg-background p-4 max-w-sm shadow-sm hover:border-primary/50 hover:bg-accent/50 transition-colors"
     >
       <div className="flex items-start gap-3">
-        <div className="shrink-0 rounded-lg bg-blue-100 dark:bg-blue-900 p-1.5 text-blue-600 dark:text-blue-400 mt-0.5">
+        <div className="shrink-0 rounded-lg bg-blue-500/15 p-1.5 text-blue-600 dark:text-blue-400 mt-0.5">
           <Bookmark className="h-3.5 w-3.5" />
         </div>
         <div className="flex-1 min-w-0">
           {meta.title ? (
-            <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+            <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
               {meta.title}
             </p>
           ) : (
-            <p className="text-sm font-medium truncate text-blue-600 dark:text-blue-400">{domain}</p>
+            <p className="text-sm font-semibold truncate text-blue-600 dark:text-blue-400">{domain}</p>
           )}
           {meta.description && (
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{meta.description}</p>

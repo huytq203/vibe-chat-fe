@@ -11,6 +11,7 @@ import type {
   CreateReminderInput,
   CreateChecklistInput,
   CreateBookmarkInput,
+  StoreNoteType,
   PatchChecklistItemInput,
   SendStoreMessageInput,
   EditStoreMessageInput,
@@ -62,6 +63,18 @@ export const myStoreApi = {
 
   patchChecklistItem: (messageId: string, dto: PatchChecklistItemInput): Promise<StoreMessage> =>
     apiClient.patch<StoreMessage>(`/api/v1/my-store/messages/${messageId}/checklist-item`, { body: dto }),
+
+  /** Xoá 1 ghi chú (reminder/checklist/bookmark) — endpoint chuyên biệt theo type. */
+  deleteNote: (type: StoreNoteType, messageId: string): Promise<StoreMessage> => {
+    const segment: Record<StoreNoteType, string> = {
+      REMINDER: 'reminder',
+      CHECKLIST: 'checklist',
+      BOOKMARK: 'bookmark',
+    };
+    return apiClient.delete<StoreMessage>(
+      `/api/v1/my-store/messages/${segment[type]}/${messageId}`,
+    );
+  },
 
   // ─── Folders ──────────────────────────────────────────────────────────────
 

@@ -3,14 +3,17 @@
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { myStoreApi } from '@/services/my-store.api';
+import { mediaApi } from '@/services/media.api';
 import { myStoreKeys } from '@/services/keys';
 import { getErrorMessage } from '@/lib/api/error-message';
+import type { MediaResponse } from '@/features/chat/types';
 import type {
   StoreMessage,
   StoreMessagesPage,
   CreateReminderInput,
   CreateChecklistInput,
   CreateBookmarkInput,
+  StoreNoteType,
   PatchChecklistItemInput,
   SendStoreMessageInput,
   EditStoreMessageInput,
@@ -31,6 +34,20 @@ function prependMessage(qc: ReturnType<typeof useQueryClient>, message: StoreMes
         { ...old.pages[0], items: [message, ...(old.pages[0]?.items ?? [])] },
         ...old.pages.slice(1),
       ],
+    };
+  });
+}
+
+/** Gỡ hẳn 1 message khỏi cache infinite (dùng cho xoá ghi chú → biến mất ngay). */
+function removeMessage(qc: ReturnType<typeof useQueryClient>, messageId: string) {
+  qc.setQueryData<MessagesCache>(myStoreKeys.messages(), (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.filter((m) => m.id !== messageId),
+      })),
     };
   });
 }
@@ -80,6 +97,20 @@ export function useDeleteStoreMessage() {
     mutationFn: (messageId: string) => myStoreApi.deleteMessage(messageId),
     onSuccess: (_, messageId) =>
       patchMessage(qc, messageId, (m) => ({ ...m, isDeleted: true, plaintext: null })),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+/** Xoá 1 ghi chú (reminder/checklist/bookmark) — gỡ ngay khỏi list, không cần reload. */
+export function useDeleteStoreNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ type, messageId }: { type: StoreNoteType; messageId: string }) =>
+      myStoreApi.deleteNote(type, messageId),
+    onSuccess: (_, { messageId }) => {
+      removeMessage(qc, messageId);
+      toast.success('Đã xoá');
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
@@ -167,6 +198,52 @@ export function useDeleteFolder() {
 }
 
 // ─── File mutations ────────────────────────────────────────────────────────
+
+// > 10MB hoặc video → presigned URL (Cách B); còn lại upload trực tiếp (Cách A).
+const DIRECT_UPLOAD_MAX = 10 * 1024 * 1024;
+
+/** Upload 1 file lên media storage rồi trả về MediaAsset đã READY. */
+async function uploadStoreMedia(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<MediaResponse> {
+  const isVideo = file.type.startsWith('video/');
+  if (!isVideo && file.size <= DIRECT_UPLOAD_MAX) {
+    return mediaApi.uploadDirect(file, 'ATTACHMENT', onProgress);
+  }
+  const pre = await mediaApi.presign({
+    category: isVideo ? 'VIDEO' : 'ATTACHMENT',
+    fileName: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    fileSize: file.size,
+  });
+  await mediaApi.putToStorage(pre.uploadUrl, file, pre.contentType, onProgress);
+  return mediaApi.confirm(pre.id);
+}
+
+/** Upload 1 file rồi đính (attach) vào folder myStore. onProgress báo % upload (0-100). */
+export function useUploadStoreFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      folderId,
+      file,
+      onProgress,
+    }: {
+      folderId: string;
+      file: File;
+      onProgress?: (percent: number) => void;
+    }) => {
+      const media = await uploadStoreMedia(file, onProgress);
+      return myStoreApi.attachFile(folderId, { mediaId: media.id, name: file.name });
+    },
+    onSuccess: (_ref, { folderId }) => {
+      qc.invalidateQueries({ queryKey: myStoreKeys.files(folderId) });
+      qc.invalidateQueries({ queryKey: myStoreKeys.quota() });
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
 
 export function useAttachFile() {
   const qc = useQueryClient();

@@ -1,14 +1,15 @@
 'use client';
 
-import { ArrowLeft, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { useStoreMessages } from '@/features/my-store/hooks/use-query';
+import { useDeleteStoreNote } from '@/features/my-store/hooks/use-mutations';
 import { ReminderCard } from './ReminderCard';
 import { ChecklistCard } from './ChecklistCard';
 import { BookmarkCard } from './BookmarkCard';
-import type { StoreMessage } from '@/features/my-store/types';
+import type { StoreMessage, StoreNoteType } from '@/features/my-store/types';
 
-export type NoteType = 'REMINDER' | 'CHECKLIST' | 'BOOKMARK';
+export type NoteType = StoreNoteType;
 
 type Props = {
   type: NoteType;
@@ -18,10 +19,31 @@ type Props = {
   onClose: () => void;
 };
 
-function NoteCard({ message }: { message: StoreMessage }) {
+function NoteCardBody({ message }: { message: StoreMessage }) {
   if (message.type === 'REMINDER') return <ReminderCard message={message} />;
   if (message.type === 'CHECKLIST') return <ChecklistCard message={message} />;
   return <BookmarkCard message={message} />;
+}
+
+/** 1 item trong list: card + nút xoá riêng (hiện khi hover). */
+function NoteCard({ message, type }: { message: StoreMessage; type: NoteType }) {
+  const del = useDeleteStoreNote();
+
+  return (
+    <div className="group relative">
+      <NoteCardBody message={message} />
+      <button
+        type="button"
+        onClick={() => del.mutate({ type, messageId: message.id })}
+        disabled={del.isPending}
+        aria-label="Xoá"
+        title="Xoá"
+        className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-0 transition-colors transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-50 dark:hover:bg-red-950/30"
+      >
+        {del.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
 }
 
 /** Sub-view: danh sách đầy đủ của 1 loại ghi chú (reminder/checklist/bookmark). */
@@ -65,7 +87,7 @@ export function MyStoreNoteListView({ type, title, emptyLabel, onBack, onClose }
       ) : (
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-3">
           {items.map((m) => (
-            <NoteCard key={m.id} message={m} />
+            <NoteCard key={m.id} message={m} type={type} />
           ))}
           {hasNextPage && (
             <button

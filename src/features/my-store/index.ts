@@ -22,6 +22,7 @@ export {
   useSendStoreMessage,
   useEditStoreMessage,
   useDeleteStoreMessage,
+  useDeleteStoreNote,
   useCreateReminder,
   useCreateChecklist,
   useCreateBookmark,
@@ -30,6 +31,7 @@ export {
   useUpdateFolder,
   useDeleteFolder,
   useAttachFile,
+  useUploadStoreFile,
   useRenameFile,
   useDeleteFile,
 } from './hooks/use-mutations';

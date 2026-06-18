@@ -5,6 +5,9 @@ export type { MessageType };
 
 export type StoreMessageType = MessageType | 'REMINDER' | 'CHECKLIST' | 'BOOKMARK';
 
+/** Các loại ghi chú myStore có endpoint xoá chuyên biệt. */
+export type StoreNoteType = 'REMINDER' | 'CHECKLIST' | 'BOOKMARK';
+
 // ─── Conversation ─────────────────────────────────────────────────────────
 export type StoreConversation = {
   id: string;

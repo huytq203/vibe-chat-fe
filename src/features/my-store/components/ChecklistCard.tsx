@@ -23,10 +23,10 @@ export function ChecklistCard({ message }: ChecklistCardProps) {
   }
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 flex flex-col gap-3 max-w-sm">
-      <div className="flex items-center gap-2">
+    <div className="rounded-xl border border-border bg-background p-4 flex flex-col gap-3 max-w-sm shadow-sm">
+      <div className="flex items-center gap-2 pr-7">
         <CheckSquare className="h-4 w-4 text-primary shrink-0" />
-        <p className="text-sm font-semibold truncate flex-1">{meta?.title ?? 'Checklist'}</p>
+        <p className="text-sm font-semibold truncate flex-1 text-foreground">{meta?.title ?? 'Checklist'}</p>
         <span className="text-xs text-muted-foreground shrink-0">
           {checkedCount}/{total}
         </span>
