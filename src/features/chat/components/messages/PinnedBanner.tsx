@@ -21,6 +21,8 @@ import {
 import { cn } from '@/lib/utils/cn';
 import type { Conversation, Message } from '@/features/chat/types';
 import { canPinMessage, getMessageSnippet } from '@/features/chat/utils';
+import { useEnsureDecrypted } from '@/features/chat/hooks/use-decrypted-message';
+import { peekDecrypted } from '@/lib/crypto/decrypt-cache';
 import { usePinnedMessages } from '@/features/chat/hooks/use-query';
 import { useUnpinMessage } from '@/features/chat/hooks/use-mutations';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
@@ -45,6 +47,8 @@ export function PinnedBanner({ conversation, meId }: PinnedBannerProps) {
   const hasPins = (conversation.pinnedCount ?? 0) > 0;
   const { data, isError } = usePinnedMessages(conversation.id, hasPins);
   const pinned = Array.isArray(data) ? data : [];
+  // Giải mã sẵn các tin ghim FE-encrypted vào cache để snippet hiển thị đúng (hook vô điều kiện).
+  useEnsureDecrypted(pinned);
 
   if (!hasPins || isError || pinned.length === 0) return null;
 
@@ -151,7 +155,7 @@ function PinItemMenu({ message, canUnpin, onUnpin, className }: PinItemMenuProps
   if (!canCopy && !canUnpin) return null;
 
   function handleCopy() {
-    const text = message.plaintext ?? message.contentPreview ?? '';
+    const text = peekDecrypted(message) ?? message.plaintext ?? message.contentPreview ?? '';
     if (!text || !navigator.clipboard) return;
     void navigator.clipboard.writeText(text).then(
       () => toast.success('Đã sao chép'),

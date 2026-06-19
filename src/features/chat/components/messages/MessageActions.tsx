@@ -29,6 +29,7 @@ import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store
 import { ReportDialog } from '@/features/reports/components/ReportDialog';
 import { FriendPickerDialog } from '@/features/chat/components/contact/FriendPickerDialog';
 import { useForwardMessage } from '@/features/chat/hooks/useForwardMessage';
+import { useDecryptedBody } from '@/features/chat/hooks/use-decrypted-message';
 
 type MessageActionsProps = {
   message: Message;
@@ -75,9 +76,12 @@ export function MessageActions({
   // Sửa: tin TEXT của mình, còn trong cửa sổ 5 phút (xem doc 15). Gỡ: không giới hạn.
   const canEdit = isMe && canEditMessage(message, meId);
   const canCopy = message.type === 'TEXT';
+  // Plaintext đã giải mã (tin mã hoá) hoặc plaintext gốc (tin thường) cho copy/sửa.
+  const decrypted = useDecryptedBody(message);
+  const resolvedText = decrypted.text ?? message.plaintext ?? message.contentPreview ?? '';
 
   function handleCopy() {
-    const text = message.plaintext ?? message.contentPreview ?? '';
+    const text = resolvedText;
     if (!text || !navigator.clipboard) return;
     void navigator.clipboard.writeText(text).then(
       () => toast.success('Đã sao chép'),
@@ -103,7 +107,7 @@ export function MessageActions({
     startEdit({
       conversationId: message.conversationId,
       messageId: message.id,
-      text: message.plaintext ?? message.contentPreview ?? '',
+      text: resolvedText,
       mentions: message.mentions,
       richText: getRichText(message.metadata) ?? undefined,
     });

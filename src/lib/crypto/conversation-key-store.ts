@@ -1,16 +1,19 @@
 import { chatApi } from '@/services/chat.api';
 import { importDek } from './message-crypto';
 
+/** DEK đã import + metadata (keyId/keyVersion) cần đính kèm khi gửi tin mã hoá. */
+export type ConversationKey = { key: CryptoKey; keyId: string; keyVersion: number };
+
 // DEK chỉ trong RAM (module-level). Mất khi reload → fetch lại sau JWT.
 // KHÔNG lưu vào localStorage/IndexedDB/cookie.
-const byConversation = new Map<string, CryptoKey>();
-const inflight = new Map<string, Promise<CryptoKey>>();
+const byConversation = new Map<string, ConversationKey>();
+const inflight = new Map<string, Promise<ConversationKey>>();
 
 /**
- * Lấy CryptoKey cho conversation — trả từ cache nếu có, ngược lại fetch từ API.
+ * Lấy DEK + metadata cho conversation — trả từ cache nếu có, ngược lại fetch từ API.
  * De-dup các lời gọi đồng thời: chỉ 1 request API được tạo cho cùng conversationId.
  */
-export async function getKeyForConversation(conversationId: string): Promise<CryptoKey> {
+export async function getKeyMetaForConversation(conversationId: string): Promise<ConversationKey> {
   const cached = byConversation.get(conversationId);
   if (cached) return cached;
 
@@ -19,13 +22,22 @@ export async function getKeyForConversation(conversationId: string): Promise<Cry
 
   const p = (async () => {
     const res = await chatApi.getConversationKey(conversationId);
-    const key = await importDek(res.key);
-    byConversation.set(conversationId, key);
-    return key;
+    const entry: ConversationKey = {
+      key: await importDek(res.key),
+      keyId: res.keyId,
+      keyVersion: res.keyVersion,
+    };
+    byConversation.set(conversationId, entry);
+    return entry;
   })().finally(() => inflight.delete(conversationId));
 
   inflight.set(conversationId, p);
   return p;
+}
+
+/** Lấy CryptoKey cho conversation (giải mã/mã hoá). Tương thích ngược caller cũ. */
+export async function getKeyForConversation(conversationId: string): Promise<CryptoKey> {
+  return (await getKeyMetaForConversation(conversationId)).key;
 }
 
 /**
@@ -39,8 +51,12 @@ export async function primeKeys(conversationIds: string[]): Promise<void> {
   const list = await chatApi.getConversationKeys(missing);
   await Promise.all(
     list.map(async (r) => {
-      const key = await importDek(r.key);
-      byConversation.set(r.conversationId, key);
+      const entry: ConversationKey = {
+        key: await importDek(r.key),
+        keyId: r.keyId,
+        keyVersion: r.keyVersion,
+      };
+      byConversation.set(r.conversationId, entry);
     }),
   );
 }
