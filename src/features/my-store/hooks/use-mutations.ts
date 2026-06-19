@@ -10,6 +10,7 @@ import { buildEncryptedSendPayload } from '@/lib/crypto/encrypt-message';
 import { encryptStoreMetadata, getStoreConversationId } from '@/features/my-store/lib/store-encrypt';
 import type { MediaResponse } from '@/features/chat/types';
 import type {
+  MessageType,
   StoreMessage,
   StoreMessagesPage,
   CreateReminderInput,
@@ -111,6 +112,40 @@ export function useSendStoreMessage() {
         }
       }
       return myStoreApi.sendMessage({ ...rest });
+    },
+    onSuccess: (msg) => {
+      prependMessage(qc, msg);
+      invalidateStoreUsage(qc, msg.conversationId);
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+/** Suy ra message type từ mime của file (ảnh/video/audio/khác). */
+function storeMediaType(mime: string): MessageType {
+  if (mime.startsWith('image/')) return 'IMAGE';
+  if (mime.startsWith('video/')) return 'VIDEO';
+  if (mime.startsWith('audio/')) return 'AUDIO';
+  return 'FILE';
+}
+
+/**
+ * Upload 1 file rồi gửi vào myStore dưới dạng tin media (IMAGE/VIDEO/AUDIO/FILE).
+ * Bytes attachment được BE tính vào quota 5GB (sendServer, conversation SELF).
+ */
+export function useSendStoreMediaMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      file,
+      onProgress,
+    }: {
+      file: File;
+      onProgress?: (percent: number) => void;
+    }) => {
+      const media = await uploadStoreMedia(file, onProgress);
+      const type = storeMediaType(file.type || media.mimeType);
+      return myStoreApi.sendMessage({ type, attachmentIds: [media.id] });
     },
     onSuccess: (msg) => {
       prependMessage(qc, msg);

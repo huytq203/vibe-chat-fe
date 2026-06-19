@@ -15,7 +15,7 @@ import {
 import { useAuthStore } from '@/features/auth';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
-import { chatKeys } from '@/services/keys';
+import { chatKeys, myStoreKeys } from '@/services/keys';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
 import type {
@@ -215,6 +215,16 @@ export function useChatRealtime() {
       });
       debouncedInvalidate(qc, chatKeys.conversationLists());
       qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(message.conversationId) });
+
+      // Tin vào "Kho của tôi" (SELF conv) → refresh shared tabs (Ảnh/Tài liệu/Liên kết)
+      // + quota (media gửi qua chat cũng tính vào 5GB). Chỉ áp dụng đúng SELF conv.
+      const selfConvId = qc.getQueryData<{ id: string }>(myStoreKeys.conversation())?.id;
+      if (selfConvId && message.conversationId === selfConvId) {
+        for (const t of ['MEDIA', 'FILE', 'LINK']) {
+          qc.invalidateQueries({ queryKey: chatKeys.shared(selfConvId, t) });
+        }
+        qc.invalidateQueries({ queryKey: myStoreKeys.quota() });
+      }
     }
 
     function onMessageNew(message: Message) {
