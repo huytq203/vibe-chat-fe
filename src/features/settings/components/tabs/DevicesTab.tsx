@@ -17,10 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog/AlertDialog';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { formatListTime } from '@/features/chat/utils';
 import { SettingsSection } from '@/features/settings/components/SettingsSection';
 import {
+  useRevokeAllSessions,
   useRevokeOtherSessions,
   useRevokeSession,
   useSessions,
@@ -58,9 +60,22 @@ function deviceIcon(type: DeviceType): ReactNode {
  * hoặc đăng xuất tất cả thiết bị khác. Thiết bị hiện tại không đá được tại đây (dùng Đăng xuất thường).
  */
 export function DevicesTab() {
+  const router = useRouter();
   const { data, isLoading, isError } = useSessions();
   const revokeSession = useRevokeSession();
   const revokeOthers = useRevokeOtherSessions();
+  const revokeAll = useRevokeAllSessions();
+
+  function handleRevokeAll() {
+    revokeAll.mutate(undefined, {
+      onSuccess: () => {
+        toast.success('Đã đăng xuất khỏi tất cả thiết bị');
+        router.push('/login');
+      },
+      onError: (e) =>
+        toast.error(e instanceof ApiError ? e.message : 'Đăng xuất thất bại'),
+    });
+  }
 
   function handleRevoke(sessionId: string) {
     revokeSession.mutate(sessionId, {
@@ -114,8 +129,9 @@ export function DevicesTab() {
             ))}
           </ul>
 
-          {hasOthers && (
-            <div className="mt-4">
+          <div className="mt-4 flex  gap-2">
+            {/* Đăng xuất thiết bị khác — luôn hiển thị; disable khi chỉ có 1 thiết bị. */}
+            {hasOthers ? (
               <AlertDialog>
                 <AlertDialogTrigger>
                   <Button variant="danger" size="sm" isLoading={revokeOthers.isPending}>
@@ -147,8 +163,52 @@ export function DevicesTab() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-          )}
+            ) : (
+              <Button variant="danger" size="sm" disabled title="Không có thiết bị nào khác đang đăng nhập">
+                Đăng xuất tất cả thiết bị khác
+              </Button>
+            )}
+
+            {/* Đăng xuất khỏi TẤT CẢ thiết bị, kể cả thiết bị này. */}
+            <AlertDialog>
+              <AlertDialogTrigger>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isLoading={revokeAll.isPending}
+                  className="justify-start text-destructive hover:text-destructive"
+                  leftIcon={<LogOut className="h-4 w-4" />}
+                >
+                  Đăng xuất khỏi tất cả thiết bị
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Đăng xuất khỏi tất cả thiết bị?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Mọi thiết bị — kể cả thiết bị bạn đang dùng — sẽ bị đăng xuất. Bạn sẽ
+                    cần đăng nhập lại trên thiết bị này.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogClose
+                    render={
+                      <Button variant="ghost" size="sm">
+                        Huỷ
+                      </Button>
+                    }
+                  />
+                  <AlertDialogClose
+                    render={
+                      <Button variant="danger" size="sm" onClick={handleRevokeAll}>
+                        Đăng xuất tất cả
+                      </Button>
+                    }
+                  />
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </>
       )}
     </SettingsSection>

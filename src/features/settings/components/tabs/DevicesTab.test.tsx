@@ -39,11 +39,18 @@ vi.mock('@/config/env', () => ({
 
 const revokeMutate = vi.fn();
 const revokeOthersMutate = vi.fn();
+const revokeAllMutate = vi.fn();
+const routerPush = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: routerPush }),
+}));
 
 vi.mock('@/features/settings/hooks/use-sessions', () => ({
   useSessions: () => ({ data: SESSIONS, isLoading: false, isError: false }),
   useRevokeSession: () => ({ mutate: revokeMutate, isPending: false, variables: undefined }),
   useRevokeOtherSessions: () => ({ mutate: revokeOthersMutate, isPending: false }),
+  useRevokeAllSessions: () => ({ mutate: revokeAllMutate, isPending: false }),
 }));
 
 vi.mock('sonner', () => ({

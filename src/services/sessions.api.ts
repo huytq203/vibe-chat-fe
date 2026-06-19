@@ -11,5 +11,9 @@ export const sessionsApi = {
   revoke: (sessionId: string) =>
     apiClient.delete<void>(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}`),
   // Đăng xuất tất cả thiết bị khác, giữ phiên hiện tại (204 No Content).
-  revokeOthers: () => apiClient.delete<void>('/api/v1/auth/sessions'),
+  revokeOthers: () =>
+    apiClient.delete<void>('/api/v1/auth/sessions', { query: { scope: 'others' } }),
+  // Đăng xuất khỏi TẤT CẢ thiết bị kể cả thiết bị hiện tại (204; BE revoke + clear cookie).
+  revokeAll: () =>
+    apiClient.delete<void>('/api/v1/auth/sessions', { query: { scope: 'all' } }),
 } as const;
