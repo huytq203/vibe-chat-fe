@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { toast } from 'sonner';
 import { myStoreApi } from '@/services/my-store.api';
 import { mediaApi } from '@/services/media.api';
-import { myStoreKeys } from '@/services/keys';
+import { myStoreKeys, chatKeys } from '@/services/keys';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { buildEncryptedSendPayload } from '@/lib/crypto/encrypt-message';
 import { encryptStoreMetadata, getStoreConversationId } from '@/features/my-store/lib/store-encrypt';
@@ -77,6 +77,24 @@ function patchMessage(
 
 // ─── Message mutations ─────────────────────────────────────────────────────
 
+const SHARED_TYPES = ['MEDIA', 'FILE', 'LINK'] as const;
+
+/**
+ * Sau khi gửi/gỡ tin có media trong myStore: refetch quota (cập nhật thanh dung lượng)
+ * + refetch shared tabs (Ảnh/Video, Tài liệu, Liên kết) để hiển thị realtime.
+ */
+function invalidateStoreUsage(
+  qc: ReturnType<typeof useQueryClient>,
+  conversationId?: string,
+): void {
+  qc.invalidateQueries({ queryKey: myStoreKeys.quota() });
+  if (conversationId) {
+    for (const t of SHARED_TYPES) {
+      qc.invalidateQueries({ queryKey: chatKeys.shared(conversationId, t) });
+    }
+  }
+}
+
 export function useSendStoreMessage() {
   const qc = useQueryClient();
   return useMutation({
@@ -94,7 +112,10 @@ export function useSendStoreMessage() {
       }
       return myStoreApi.sendMessage({ ...rest });
     },
-    onSuccess: (msg) => prependMessage(qc, msg),
+    onSuccess: (msg) => {
+      prependMessage(qc, msg);
+      invalidateStoreUsage(qc, msg.conversationId);
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
@@ -113,8 +134,15 @@ export function useDeleteStoreMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (messageId: string) => myStoreApi.deleteMessage(messageId),
-    onSuccess: (_, messageId) =>
-      patchMessage(qc, messageId, (m) => ({ ...m, isDeleted: true, plaintext: null })),
+    onSuccess: (_, messageId) => {
+      // Lấy conversationId từ cache trước khi patch để invalidate shared tabs.
+      const cache = qc.getQueryData<MessagesCache>(myStoreKeys.messages());
+      const convId = cache?.pages
+        .flatMap((p) => p.items)
+        .find((m) => m.id === messageId)?.conversationId;
+      patchMessage(qc, messageId, (m) => ({ ...m, isDeleted: true, plaintext: null }));
+      invalidateStoreUsage(qc, convId);
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
