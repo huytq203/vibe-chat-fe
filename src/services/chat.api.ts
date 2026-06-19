@@ -383,4 +383,21 @@ export const chatApi = {
     return { items: data, nextCursor: meta?.nextCursor ?? null };
   },
 
+
+  // ─── Mã hoá tin nhắn (E2E) ───────────────────────────────────────────────────
+  // Contract theo encryption-phase1. Trả DEK (base64) cho conversation.
+
+  /** Lấy DEK hiện tại của 1 conversation (dùng cho RAM key store). */
+  getConversationKey: (id: string) =>
+    apiClient.get<{ conversationId: string; keyId: string; keyVersion: number; key: string; alg: string }>(
+      `/api/v1/conversations/${id}/encryption-key`,
+    ),
+
+  /** Lấy DEK hàng loạt theo danh sách conversationId (warm cache khi load inbox). */
+  getConversationKeys: (ids: string[]) =>
+    apiClient.post<Array<{ conversationId: string; keyId: string; keyVersion: number; key: string; alg: string }>>(
+      '/api/v1/conversations/encryption-keys',
+      { body: { ids } },
+    ),
+
 } as const;

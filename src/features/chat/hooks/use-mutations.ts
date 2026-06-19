@@ -8,6 +8,7 @@ import { ApiError, apiAuth } from '@/lib/api/client';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { getSocket } from '@/lib/ws/socket';
+import { buildEncryptedSendPayload } from '@/lib/crypto/encrypt-message';
 import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
 import { useSelectedConversation } from './useSelectedConversation';
@@ -77,13 +78,30 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
   if (!socket || !socket.connected) {
     throw new Error('Không có kết nối realtime');
   }
+
+  // Phase 1: mã hoá content ở FE bằng DEK trước khi gửi (plaintext KHÔNG rời máy).
+  // Nếu không lấy được DEK → fallback gửi plaintext để server tự mã hoá (không chặn user).
+  const hasText = !!(input.plaintext && input.plaintext.trim().length > 0);
+  let plaintextField: string | undefined = hasText ? input.plaintext : undefined;
+  let encryptedFields: Record<string, unknown> = {};
+  if (hasText && input.plaintext) {
+    try {
+      const enc = await buildEncryptedSendPayload(input.conversationId, input.plaintext);
+      encryptedFields = enc;
+      plaintextField = undefined; // đã mã hoá → tuyệt đối không gửi kèm plaintext
+    } catch {
+      // Giữ nguyên plaintextField để server-encrypt (đường back-compat).
+    }
+  }
+
   const t0 = performance.now();
   const ack = (await socket
     .timeout(WS_SEND_TIMEOUT_MS)
     .emitWithAck('message:send', {
       conversationId: input.conversationId,
       // Caption rỗng → BỎ field (đừng gửi '') theo 04-messages.md.
-      plaintext: input.plaintext ? input.plaintext : undefined,
+      plaintext: plaintextField,
+      ...encryptedFields,
       clientNonce,
       type: input.type ?? 'TEXT',
       // Bắt buộc với tin media; bỏ khi không có.

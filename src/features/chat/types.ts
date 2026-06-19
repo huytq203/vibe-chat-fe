@@ -20,6 +20,10 @@ export type LastMessagePreview = {
   senderId: string;
   type: MessageType;
   preview: string | null;
+  previewEncrypted: boolean;
+  previewCipher: { ciphertext: string; iv: string; authTag: string } | null;
+  keyId: string | null;
+  keyVersion: number | null;
   createdAt: string;
 };
 
@@ -172,6 +176,9 @@ export type ReactorsPage = {
   nextCursor: string | null;
 };
 
+/** Khối ciphertext AES-256-GCM (base64) — dùng cho content + preview tin mã hoá FE. */
+export type CipherBlob = { ciphertext: string; iv: string; authTag: string };
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -179,6 +186,16 @@ export type Message = {
   type: MessageType;
   encryptionType: EncryptionType;
   plaintext: string | null;
+  /** true = tin do FE mã hoá; `plaintext` null, FE phải tự giải mã `ciphertext`. */
+  encrypted?: boolean;
+  /** Ciphertext content (base64) khi `encrypted=true`. */
+  ciphertext?: string | null;
+  iv?: string | null;
+  authTag?: string | null;
+  keyId?: string | null;
+  keyVersion?: number | null;
+  /** Preview ngắn đã mã hoá (FE giải mã để hiển thị). */
+  contentPreviewCipher?: CipherBlob | null;
   attachments: Attachment[];
   /** Summary cảm xúc gom theo loại (BE luôn trả; có thể rỗng). */
   reactions?: MessageReaction[];

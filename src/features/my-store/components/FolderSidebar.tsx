@@ -3,9 +3,16 @@
 import { useState } from 'react';
 import { ChevronRight, Folder, FolderOpen, FolderPlus, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu/ContextMenu';
 import { useStoreFolders } from '@/features/my-store/hooks/use-query';
 import { useCreateFolder, useDeleteFolder } from '@/features/my-store/hooks/use-mutations';
 import { QuotaBar } from './QuotaBar';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { StoreFolder } from '@/features/my-store/types';
 
 type FolderSidebarProps = {
@@ -22,7 +29,8 @@ type FolderNodeProps = {
 };
 
 function FolderNode({ folder, level, selectedId, onSelect, onDelete }: FolderNodeProps) {
-  const [expanded, setExpanded] = useState(false);
+  // Mặc định mở để folder con (kể cả vừa tạo) hiển thị ngay, không cần click expand.
+  const [expanded, setExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const isSelected = selectedId === folder.id;
   const hasChildren = (folder.children ?? []).length > 0;
@@ -108,6 +116,7 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
   const deleteFolder = useDeleteFolder();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   function submitCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -131,7 +140,8 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-1">
+      <ContextMenu>
+      <ContextMenuTrigger className="flex-1 overflow-y-auto py-1">
         {isLoading && (
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -160,15 +170,7 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
             level={0}
             selectedId={selectedFolderId}
             onSelect={onSelectFolder}
-            onDelete={(id) => {
-              if (confirm('Xoá thư mục và toàn bộ file bên trong?')) {
-                deleteFolder.mutate(id, {
-                  onSuccess: () => {
-                    if (selectedFolderId === id) onSelectFolder(null);
-                  },
-                });
-              }
-            }}
+            onDelete={(id) => setPendingDeleteId(id)}
           />
         ))}
 
@@ -177,9 +179,36 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
             Chưa có thư mục nào
           </p>
         )}
-      </div>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => setCreating(true)}>
+          <FolderPlus /> Tạo thư mục
+        </ContextMenuItem>
+      </ContextMenuContent>
+      </ContextMenu>
 
       <QuotaBar />
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}
+        title="Xoá thư mục?"
+        description="Thư mục và toàn bộ file bên trong sẽ bị xoá."
+        confirmLabel="Xoá"
+        destructive
+        isPending={deleteFolder.isPending}
+        onConfirm={() => {
+          const id = pendingDeleteId;
+          if (!id) return;
+          deleteFolder.mutate(id, {
+            onSuccess: () => {
+              if (selectedFolderId === id) onSelectFolder(null);
+              setPendingDeleteId(null);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

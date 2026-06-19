@@ -26,6 +26,7 @@ import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { getConversationName } from '@/features/chat/utils';
 import { useStrangerConversations } from '@/features/chat/hooks/useStrangerConversations';
+import { useDecryptedPreviews } from '@/features/chat/hooks/use-decrypted-previews';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
 import { StrangerInboxItem } from './StrangerInboxItem';
@@ -50,6 +51,7 @@ export function ConversationList() {
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations = [], isLoading } = useConversations();
+  const decryptedPreviews = useDecryptedPreviews(conversations);
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
   const unreadNotiCount = useUnreadCount().data?.unreadCount ?? 0;
@@ -138,7 +140,9 @@ export function ConversationList() {
       if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
       if (!query) return true;
       const name = getConversationName(conversation, me?.id ?? null).toLowerCase();
-      const preview = (conversation.lastMessage?.preview ?? '').toLowerCase();
+      const lm = conversation.lastMessage;
+      const previewText = (lm?.previewEncrypted ? decryptedPreviews.get(conversation.id) : lm?.preview) ?? '';
+      const preview = previewText.toLowerCase();
       return name.includes(query) || preview.includes(query);
     });
 
@@ -148,7 +152,7 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id, isStranger]);
+  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews]);
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
@@ -255,6 +259,7 @@ export function ConversationList() {
                   meId={me?.id ?? null}
                   onSelect={handleSelectConversation}
                   onAvatarError={handleAvatarError}
+                  decryptedPreview={decryptedPreviews.get(c.id) ?? null}
                 />
               ))}
          

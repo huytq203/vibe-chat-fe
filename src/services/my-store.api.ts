@@ -8,11 +8,12 @@ import type {
   StoreMessagesPage,
   StoreFoldersPage,
   StoreFilesPage,
-  CreateReminderInput,
-  CreateChecklistInput,
-  CreateBookmarkInput,
+  CreateReminderPayload,
+  CreateChecklistPayload,
+  CreateBookmarkPayload,
+  SendStoreMessagePayload,
+  StoreNoteType,
   PatchChecklistItemInput,
-  SendStoreMessageInput,
   EditStoreMessageInput,
   CreateFolderInput,
   UpdateFolderInput,
@@ -40,7 +41,7 @@ export const myStoreApi = {
     return { items: data, nextCursor: (meta?.nextCursor as string | null | undefined) ?? null };
   },
 
-  sendMessage: (dto: SendStoreMessageInput): Promise<StoreMessage> =>
+  sendMessage: (dto: SendStoreMessagePayload): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages', { body: dto }),
 
   editMessage: (messageId: string, dto: EditStoreMessageInput): Promise<StoreMessage> =>
@@ -51,17 +52,29 @@ export const myStoreApi = {
 
   // ─── Special message types ─────────────────────────────────────────────────
 
-  createReminder: (dto: CreateReminderInput): Promise<StoreMessage> =>
+  createReminder: (dto: CreateReminderPayload): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/reminder', { body: dto }),
 
-  createChecklist: (dto: CreateChecklistInput): Promise<StoreMessage> =>
+  createChecklist: (dto: CreateChecklistPayload): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/checklist', { body: dto }),
 
-  createBookmark: (dto: CreateBookmarkInput): Promise<StoreMessage> =>
+  createBookmark: (dto: CreateBookmarkPayload): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/bookmark', { body: dto }),
 
   patchChecklistItem: (messageId: string, dto: PatchChecklistItemInput): Promise<StoreMessage> =>
     apiClient.patch<StoreMessage>(`/api/v1/my-store/messages/${messageId}/checklist-item`, { body: dto }),
+
+  /** Xoá 1 ghi chú (reminder/checklist/bookmark) — endpoint chuyên biệt theo type. */
+  deleteNote: (type: StoreNoteType, messageId: string): Promise<StoreMessage> => {
+    const segment: Record<StoreNoteType, string> = {
+      REMINDER: 'reminder',
+      CHECKLIST: 'checklist',
+      BOOKMARK: 'bookmark',
+    };
+    return apiClient.delete<StoreMessage>(
+      `/api/v1/my-store/messages/${segment[type]}/${messageId}`,
+    );
+  },
 
   // ─── Folders ──────────────────────────────────────────────────────────────
 
