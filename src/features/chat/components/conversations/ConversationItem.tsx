@@ -20,6 +20,8 @@ type ConversationItemProps = {
   onSelect: (id: string) => void;
   /** Avatar lỗi (presigned URL hết hạn) → cho phép list refetch lấy URL mới. */
   onAvatarError?: () => void;
+  /** Preview đã giải mã (cho tin FE-encrypted). null = chưa giải mã xong/không có. */
+  decryptedPreview?: string | null;
 };
 
 export function ConversationItem({
@@ -28,14 +30,20 @@ export function ConversationItem({
   meId,
   onSelect,
   onAvatarError,
+  decryptedPreview,
 }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
   const seed = getConversationSeed(conversation, meId);
   const avatarUrl = getConversationAvatar(conversation, meId);
   const isLocked = Boolean(conversation.isLocked);
+  const lm = conversation.lastMessage;
+  // Tin FE-encrypted: dùng preview đã giải mã; chờ giải mã xong thì hiện placeholder.
+  const decoded = lm?.previewEncrypted
+    ? (decryptedPreview ?? 'Đang giải mã…')
+    : lm?.preview;
   const preview = isLocked
     ? 'Cuộc hội thoại riêng tư'
-    : conversation.lastMessage?.preview
+    : decoded
       ?? (conversation.messageCount > 0
         ? 'Tin nhắn đã thu hồi'
         : 'Chưa có tin nhắn');

@@ -20,6 +20,10 @@ export type LastMessagePreview = {
   senderId: string;
   type: MessageType;
   preview: string | null;
+  previewEncrypted: boolean;
+  previewCipher: { ciphertext: string; iv: string; authTag: string } | null;
+  keyId: string | null;
+  keyVersion: number | null;
   createdAt: string;
 };
 
