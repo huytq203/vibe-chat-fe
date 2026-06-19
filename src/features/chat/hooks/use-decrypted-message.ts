@@ -7,12 +7,18 @@ import type { Message } from '@/features/chat/types';
 
 export type DecryptedBody = { text: string | null; loading: boolean; failed: boolean };
 
+/** Tập field tối thiểu để giải mã content (cả chat Message lẫn myStore StoreMessage). */
+type DecryptableMessage = Pick<
+  Message,
+  'id' | 'conversationId' | 'plaintext' | 'encrypted' | 'ciphertext' | 'iv' | 'authTag'
+>;
+
 /**
  * Giải mã content của 1 message FE-encrypted để hiển thị.
  * - Tin không mã hoá (`encrypted` falsy) → trả thẳng `plaintext` (tương thích ngược + optimistic).
  * - Tin mã hoá → lấy DEK từ RAM key store, giải mã `ciphertext`; lỗi → `failed=true`.
  */
-export function useDecryptedBody(message: Message): DecryptedBody {
+export function useDecryptedBody(message: DecryptableMessage): DecryptedBody {
   const isEncrypted = isEncryptedMessage(message);
   const cachedHit = isEncrypted ? peekDecrypted(message) : undefined;
 

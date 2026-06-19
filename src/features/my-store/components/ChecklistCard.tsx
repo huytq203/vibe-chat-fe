@@ -3,17 +3,28 @@
 import { CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { usePatchChecklistItem } from '@/features/my-store/hooks/use-mutations';
-import type { ChecklistMetadata } from '@/features/my-store/types';
+import { useDecryptedMetadata } from '@/features/my-store/hooks/use-decrypted-metadata';
+import type { ChecklistMetadata, ChecklistSecret } from '@/features/my-store/types';
 
 type ChecklistCardProps = {
-  message: { id: string; metadata: Record<string, unknown> | null; isDeleted: boolean };
+  message: { id: string; conversationId: string; metadata: Record<string, unknown> | null; isDeleted: boolean };
 };
 
 export function ChecklistCard({ message }: ChecklistCardProps) {
   const meta = message.metadata as ChecklistMetadata | null;
   const patch = usePatchChecklistItem();
+  // title + text từng item nhạy cảm: giải mã (Phase 1) hoặc plaintext (back-compat).
+  const { data: secret } = useDecryptedMetadata<ChecklistSecret>(
+    message.conversationId,
+    message.metadata,
+  );
+  const textById = new Map((secret?.items ?? []).map((i) => [i.id, i.text]));
+  const title = secret?.title ?? meta?.title ?? 'Checklist';
 
-  const items = meta?.items ?? [];
+  const items = (meta?.items ?? []).map((it) => ({
+    ...it,
+    text: textById.get(it.id) ?? it.text ?? '',
+  }));
   const checkedCount = items.filter((i) => i.checked).length;
   const total = items.length;
 
@@ -26,7 +37,7 @@ export function ChecklistCard({ message }: ChecklistCardProps) {
     <div className="rounded-xl border border-border bg-background p-4 flex flex-col gap-3 max-w-sm shadow-sm">
       <div className="flex items-center gap-2 pr-7">
         <CheckSquare className="h-4 w-4 text-primary shrink-0" />
-        <p className="text-sm font-semibold truncate flex-1 text-foreground">{meta?.title ?? 'Checklist'}</p>
+        <p className="text-sm font-semibold truncate flex-1 text-foreground">{title}</p>
         <span className="text-xs text-muted-foreground shrink-0">
           {checkedCount}/{total}
         </span>

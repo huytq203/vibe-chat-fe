@@ -1,10 +1,11 @@
 'use client';
 
 import { Bookmark, ExternalLink } from 'lucide-react';
-import type { BookmarkMetadata } from '@/features/my-store/types';
+import { useDecryptedMetadata } from '@/features/my-store/hooks/use-decrypted-metadata';
+import type { BookmarkMetadata, BookmarkSecret } from '@/features/my-store/types';
 
 type BookmarkCardProps = {
-  message: { metadata: Record<string, unknown> | null };
+  message: { conversationId: string; metadata: Record<string, unknown> | null };
 };
 
 function getDomain(url: string): string {
@@ -16,12 +17,20 @@ function getDomain(url: string): string {
 }
 
 export function BookmarkCard({ message }: BookmarkCardProps) {
-  const meta = message.metadata as BookmarkMetadata;
-  const domain = getDomain(meta.url);
+  const meta = (message.metadata ?? {}) as BookmarkMetadata;
+  // url/title/description nhạy cảm: giải mã (Phase 1) hoặc plaintext (back-compat).
+  const { data: secret } = useDecryptedMetadata<BookmarkSecret>(
+    message.conversationId,
+    message.metadata,
+  );
+  const url = secret?.url ?? meta.url ?? '';
+  const title = secret?.title ?? meta.title;
+  const description = secret?.description ?? meta.description;
+  const domain = getDomain(url);
 
   return (
     <a
-      href={meta.url}
+      href={url || undefined}
       target="_blank"
       rel="noopener noreferrer"
       className="group block rounded-xl border border-border bg-background p-4 max-w-sm shadow-sm hover:border-primary/50 hover:bg-accent/50 transition-colors"
@@ -31,15 +40,15 @@ export function BookmarkCard({ message }: BookmarkCardProps) {
           <Bookmark className="h-3.5 w-3.5" />
         </div>
         <div className="flex-1 min-w-0">
-          {meta.title ? (
+          {title ? (
             <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-              {meta.title}
+              {title}
             </p>
           ) : (
             <p className="text-sm font-semibold truncate text-blue-600 dark:text-blue-400">{domain}</p>
           )}
-          {meta.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{meta.description}</p>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{description}</p>
           )}
           <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
             <span className="truncate">{domain}</span>

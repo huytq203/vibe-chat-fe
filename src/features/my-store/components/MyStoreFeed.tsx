@@ -4,6 +4,7 @@ import { useRef, useCallback } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useStoreMessages } from '@/features/my-store/hooks/use-query';
 import { useDeleteStoreMessage } from '@/features/my-store/hooks/use-mutations';
+import { useDecryptedBody } from '@/features/chat/hooks/use-decrypted-message';
 import type { StoreMessage, StoreNoteType } from '@/features/my-store/types';
 
 // Các loại ghi chú chỉ hiển thị ở list riêng (MyStoreNoteListView), KHÔNG render thành bubble.
@@ -20,6 +21,13 @@ function formatTime(iso: string): string {
 
 function MessageItem({ message }: { message: StoreMessage }) {
   const del = useDeleteStoreMessage();
+  // Giải mã text FE-encrypted (tin thường → trả plaintext ngay).
+  const decrypted = useDecryptedBody(message);
+  const body = decrypted.failed
+    ? 'Không giải mã được'
+    : decrypted.loading
+      ? 'Đang giải mã…'
+      : decrypted.text;
 
   if (message.isDeleted) {
     return (
@@ -34,9 +42,9 @@ function MessageItem({ message }: { message: StoreMessage }) {
   return (
     <div className="group flex justify-end px-4 py-1">
       <div className="flex flex-col items-end gap-1 max-w-[85%]">
-        {message.plaintext && (
+        {body && (
           <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground whitespace-pre-wrap break-words max-w-xs">
-            {message.plaintext}
+            {body}
           </div>
         )}
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
