@@ -5,10 +5,11 @@ import { tv } from 'tailwind-variants';
 
 const alertDialogVariants = tv({
   slots: {
+    // z cao hơn Dialog/Modal (z-[100]) để AlertDialog xác nhận luôn nổi TRÊN modal đang mở.
     overlay:
-      'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-open:animate-in data-close:animate-out data-close:fade-out-0 data-open:fade-in-0',
+      'fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm data-open:animate-in data-close:animate-out data-close:fade-out-0 data-open:fade-in-0',
     content:
-      'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg duration-200 data-open:animate-in data-close:animate-out data-close:fade-out-0 data-open:fade-in-0 data-close:zoom-out-95 data-open:zoom-in-95 sm:rounded-lg',
+      'fixed left-[50%] top-[50%] z-[110] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg duration-200 data-open:animate-in data-close:animate-out data-close:fade-out-0 data-open:fade-in-0 data-close:zoom-out-95 data-open:zoom-in-95 sm:rounded-lg',
     header: 'flex flex-col space-y-2 text-center sm:text-left',
     footer: 'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-2',
     title: 'text-lg font-semibold leading-none tracking-tight',
