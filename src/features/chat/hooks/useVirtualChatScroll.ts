@@ -20,9 +20,8 @@ export interface VirtualChatScrollResult {
   showScrollDown: boolean;
   highlightId: string | null;
   scrollToBottom: () => void;
-  scrollToMessage: (messageId: string, allMessages: Message[]) => void;
+  scrollToMessage: (messageId: string) => void;
   handleScroll: () => void;
-  setHighlightId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export function useVirtualChatScroll({
@@ -35,8 +34,12 @@ export function useVirtualChatScroll({
   onAtBottom,
 }: VirtualChatScrollOptions): VirtualChatScrollResult {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
   const lastIdRef = useRef<string | null>(null);
-  const wasScrolledDownRef = useRef(false);
+  const wasAtBottomRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -52,32 +55,35 @@ export function useVirtualChatScroll({
         : undefined,
   });
 
+  // Stable reference — reads messages from ref, no deps that change per-render
+  const scrollToMessage = useCallback((messageId: string): void => {
+    const idx = messagesRef.current.findIndex((m) => m.id === messageId);
+    if (idx === -1) return;
+    virtualizer.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
+    setHighlightId(messageId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1600);
+  }, [virtualizer]);
+
+  // Stable reference — reads length from ref
   const scrollToBottom = useCallback((): void => {
-    virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
+    virtualizer.scrollToIndex(messagesRef.current.length - 1, { align: 'end', behavior: 'smooth' });
     setShowScrollDown(false);
-  }, [virtualizer, messages.length]);
+  }, [virtualizer]);
 
-  const scrollToMessage = useCallback(
-    (messageId: string, allMessages: Message[]): void => {
-      const idx = allMessages.findIndex((m) => m.id === messageId);
-      if (idx === -1) return;
-      virtualizer.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
-      setHighlightId(messageId);
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1600);
-    },
-    [virtualizer],
-  );
-
+  // RAF-throttled to cap at 60fps; only setState when value actually changes
   const handleScroll = useCallback((): void => {
-    const el = scrollRef.current;
-    if (!el) return;
-    if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const isScrolledDown = distanceFromBottom > 240;
-    if (wasScrolledDownRef.current && !isScrolledDown) onAtBottom?.();
-    wasScrolledDownRef.current = isScrolledDown;
-    setShowScrollDown(isScrolledDown);
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
+      const awayFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight > 240;
+      if (wasAtBottomRef.current && !awayFromBottom) onAtBottom?.();
+      wasAtBottomRef.current = awayFromBottom;
+      setShowScrollDown((prev) => (prev === awayFromBottom ? prev : awayFromBottom));
+    });
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, onAtBottom]);
 
   useEffect(() => {
@@ -89,32 +95,21 @@ export function useVirtualChatScroll({
 
   useEffect(() => {
     if (!sendError) return;
-    virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-  }, [sendError, virtualizer, messages.length]);
+    virtualizer.scrollToIndex(messagesRef.current.length - 1, { align: 'end' });
+  }, [sendError, virtualizer]);
 
   useEffect(() => {
     if (otherTypingCount === 0) return;
     const el = scrollRef.current;
     if (!el) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (nearBottom) virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-  }, [otherTypingCount, virtualizer, messages.length]);
+    if (nearBottom) virtualizer.scrollToIndex(messagesRef.current.length - 1, { align: 'end' });
+  }, [otherTypingCount, virtualizer]);
 
-  useEffect(
-    () => () => {
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    },
-    [],
-  );
+  useEffect(() => () => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
 
-  return {
-    scrollRef,
-    virtualizer,
-    showScrollDown,
-    highlightId,
-    scrollToBottom,
-    scrollToMessage,
-    handleScroll,
-    setHighlightId,
-  };
+  return { scrollRef, virtualizer, showScrollDown, highlightId, scrollToBottom, scrollToMessage, handleScroll };
 }

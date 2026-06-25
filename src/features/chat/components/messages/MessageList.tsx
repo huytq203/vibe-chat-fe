@@ -76,8 +76,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
     [typingUserIds, meId],
   );
 
-  const { scrollRef, virtualizer, showScrollDown, highlightId, scrollToBottom, scrollToMessage, handleScroll } =
-    useVirtualChatScroll({
+  const { scrollRef, virtualizer, showScrollDown, highlightId, scrollToBottom, scrollToMessage, handleScroll } = useVirtualChatScroll({
       messages,
       hasNextPage: hasNextPage ?? false,
       isFetchingNextPage,
@@ -103,7 +102,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
     }
     const idx = messages.findIndex((m) => m.id === jumpTarget.id);
     if (idx !== -1) {
-      scrollToMessage(jumpTarget.id, messages);
+      scrollToMessage(jumpTarget.id);
       clearJump();
       return;
     }
@@ -182,7 +181,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
                     senderSeed={m.senderId}
                     repliedTo={repliedTo}
                     repliedToName={repliedToName}
-                    onQuoteClick={(id) => scrollToMessage(id, messages)}
+                    onQuoteClick={scrollToMessage}
                     isHighlighted={highlightId === m.id}
                     canPin={canPin}
                     isPinned={pinnedIds.has(m.id)}
