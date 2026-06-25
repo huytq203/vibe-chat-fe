@@ -19,6 +19,7 @@ export interface VirtualChatScrollResult {
   virtualizer: Virtualizer<HTMLDivElement, Element>;
   showScrollDown: boolean;
   highlightId: string | null;
+  isScrollReady: boolean;
   scrollToBottom: () => void;
   scrollToMessage: (messageId: string) => void;
   handleScroll: () => void;
@@ -38,11 +39,15 @@ export function useVirtualChatScroll({
   messagesRef.current = messages;
 
   const lastIdRef = useRef<string | null>(null);
+  const keepAtBottomRef = useRef(true);
   const wasAtBottomRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  // Ẩn list cho đến khi measurements settle và đã scroll đúng đáy.
+  // Tránh user thấy "lơ lửng → nhảy xuống" do estimateSize sai.
+  const [isScrollReady, setIsScrollReady] = useState(false);
 
   const virtualizer = useVirtualizer<HTMLDivElement, Element>({
     count: messages.length,
@@ -55,7 +60,6 @@ export function useVirtualChatScroll({
         : undefined,
   });
 
-  // Stable reference — reads messages from ref, no deps that change per-render
   const scrollToMessage = useCallback((messageId: string): void => {
     const idx = messagesRef.current.findIndex((m) => m.id === messageId);
     if (idx === -1) return;
@@ -65,13 +69,12 @@ export function useVirtualChatScroll({
     highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1600);
   }, [virtualizer]);
 
-  // Stable reference — reads length from ref
   const scrollToBottom = useCallback((): void => {
+    keepAtBottomRef.current = true;
     virtualizer.scrollToIndex(messagesRef.current.length - 1, { align: 'end', behavior: 'smooth' });
     setShowScrollDown(false);
   }, [virtualizer]);
 
-  // RAF-throttled to cap at 60fps; only setState when value actually changes
   const handleScroll = useCallback((): void => {
     if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
@@ -80,18 +83,44 @@ export function useVirtualChatScroll({
       if (!el) return;
       if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
       const awayFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight > 240;
+      if (awayFromBottom) keepAtBottomRef.current = false;
       if (wasAtBottomRef.current && !awayFromBottom) onAtBottom?.();
       wasAtBottomRef.current = awayFromBottom;
       setShowScrollDown((prev) => (prev === awayFromBottom ? prev : awayFromBottom));
     });
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, onAtBottom]);
 
+  // Initial scroll: ẩn list, đợi 2 RAF (measurements settle), scroll đáy DOM, hiện list.
+  // Chạy một lần duy nhất mỗi lần mount (key={conversationId} đảm bảo remount khi đổi conv).
   useEffect(() => {
+    if (isScrollReady) return;
+    if (messages.length === 0) return;
+    lastIdRef.current = messages[messages.length - 1].id;
+
+    let raf2: number | null = null;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+        setIsScrollReady(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2 !== null) cancelAnimationFrame(raf2);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
+  // Tin nhắn mới realtime
+  useEffect(() => {
+    if (!isScrollReady) return;
     const last = messages[messages.length - 1];
     if (!last || last.id === lastIdRef.current) return;
     lastIdRef.current = last.id;
+    keepAtBottomRef.current = true;
     virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-  }, [messages, virtualizer]);
+  }, [messages, virtualizer, isScrollReady]);
 
   useEffect(() => {
     if (!sendError) return;
@@ -111,5 +140,5 @@ export function useVirtualChatScroll({
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
   }, []);
 
-  return { scrollRef, virtualizer, showScrollDown, highlightId, scrollToBottom, scrollToMessage, handleScroll };
+  return { scrollRef, virtualizer, showScrollDown, highlightId, isScrollReady, scrollToBottom, scrollToMessage, handleScroll };
 }

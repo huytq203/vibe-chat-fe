@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiAuth } from '@/lib/api/client';
-import { getSocket } from '@/lib/ws/socket';
+import { cipherOn, getSocket } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, userKeys } from '@/services/keys';
 import type { FriendUpdateEvent } from '@/features/friends/types';
@@ -49,9 +49,9 @@ export function useFriendRealtime() {
       }
     }
 
-    socket.on('friend:update', onFriendUpdate);
+    const unsubFriendUpdate = cipherOn('friend:update', onFriendUpdate as (data: unknown) => void);
     return () => {
-      socket.off('friend:update', onFriendUpdate);
+      unsubFriendUpdate();
     };
   }, [isAuthed, qc]);
 }

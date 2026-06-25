@@ -6,6 +6,7 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
 import {
+  cipherOn,
   closeSocket,
   getSocket,
   refreshSocketAuth,
@@ -119,6 +120,8 @@ export function useChatRealtime() {
   const qc = useQueryClient();
   const joinedRef = useRef<string | null>(null);
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Phân biệt initial connect (không cần invalidate) vs reconnect (cần bù event bị miss).
+  const hasConnectedRef = useRef(false);
 
   useEffect(() => {
     setTokenProvider(() => apiAuth.getToken());
@@ -284,8 +287,15 @@ export function useChatRealtime() {
       upsertMessage(payload.message);
     }
 
+    hasConnectedRef.current = false;
+
     function onReconnect() {
-      // WS có thể đã miss event trong gap reconnect → refetch toàn bộ chat state.
+      if (!hasConnectedRef.current) {
+        // Initial connect — data vừa được fetch REST, không cần invalidate.
+        hasConnectedRef.current = true;
+        return;
+      }
+      // Reconnect thật (mất mạng, tab background lâu) → bù event đã miss.
       qc.invalidateQueries({ queryKey: chatKeys.all });
     }
 
@@ -492,24 +502,24 @@ export function useChatRealtime() {
       }
     }
 
-    socket.on('message:new', onMessageNew);
-    socket.on('scheduled_message:update', onScheduledUpdate);
-    socket.on('scheduled_message:sent', onScheduledSent);
-    socket.on('conversation:updated', onConversationUpdated);
-    socket.on('conversation:pin_updated', onPinUpdated);
-    socket.on('message:reaction_updated', onReactionUpdated);
-    socket.on('message:edited', onMessageEdited);
-    socket.on('message:deleted', onMessageDeleted);
-    socket.on('conversation:notify', onConversationNotify);
-    socket.on('conversation:deleted', onConversationDeleted);
-    socket.on('conversation:mute_updated', onMuteUpdated);
-    socket.on('conversation:members_added', onMembersAdded);
-    socket.on('conversation:member_removed', onMemberRemoved);
-    socket.on('conversation:join_request', onJoinRequest);
-    socket.on('conversation:join_request_resolved', onJoinRequestResolved);
-    socket.on('message:read', onMessageRead);
-    socket.on('presence:update', onPresenceUpdate);
-    socket.on('typing', onTyping);
+    const unsubMessageNew = cipherOn('message:new', onMessageNew as (data: unknown) => void);
+    const unsubScheduledUpdate = cipherOn('scheduled_message:update', onScheduledUpdate as (data: unknown) => void);
+    const unsubScheduledSent = cipherOn('scheduled_message:sent', onScheduledSent as (data: unknown) => void);
+    const unsubConvUpdated = cipherOn('conversation:updated', onConversationUpdated as (data: unknown) => void);
+    const unsubPinUpdated = cipherOn('conversation:pin_updated', onPinUpdated as (data: unknown) => void);
+    const unsubReactionUpdated = cipherOn('message:reaction_updated', onReactionUpdated as (data: unknown) => void);
+    const unsubMessageEdited = cipherOn('message:edited', onMessageEdited as (data: unknown) => void);
+    const unsubMessageDeleted = cipherOn('message:deleted', onMessageDeleted as (data: unknown) => void);
+    const unsubConvNotify = cipherOn('conversation:notify', onConversationNotify as (data: unknown) => void);
+    const unsubConvDeleted = cipherOn('conversation:deleted', onConversationDeleted as (data: unknown) => void);
+    const unsubMuteUpdated = cipherOn('conversation:mute_updated', onMuteUpdated as (data: unknown) => void);
+    const unsubMembersAdded = cipherOn('conversation:members_added', onMembersAdded as (data: unknown) => void);
+    const unsubMemberRemoved = cipherOn('conversation:member_removed', onMemberRemoved as (data: unknown) => void);
+    const unsubJoinRequest = cipherOn('conversation:join_request', onJoinRequest as (data: unknown) => void);
+    const unsubJoinRequestResolved = cipherOn('conversation:join_request_resolved', onJoinRequestResolved as (data: unknown) => void);
+    const unsubMessageRead = cipherOn('message:read', onMessageRead as (data: unknown) => void);
+    const unsubPresenceUpdate = cipherOn('presence:update', onPresenceUpdate as (data: unknown) => void);
+    const unsubTyping = cipherOn('typing', onTyping as (data: unknown) => void);
     socket.on('connect', onReconnect);
 
     const s = socket;
@@ -533,24 +543,24 @@ export function useChatRealtime() {
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      socket.off('message:new', onMessageNew);
-      socket.off('conversation:updated', onConversationUpdated);
-      socket.off('conversation:pin_updated', onPinUpdated);
-      socket.off('message:reaction_updated', onReactionUpdated);
-      socket.off('message:edited', onMessageEdited);
-      socket.off('message:deleted', onMessageDeleted);
-      socket.off('conversation:notify', onConversationNotify);
-      socket.off('conversation:deleted', onConversationDeleted);
-      socket.off('conversation:mute_updated', onMuteUpdated);
-      socket.off('conversation:members_added', onMembersAdded);
-      socket.off('conversation:member_removed', onMemberRemoved);
-      socket.off('conversation:join_request', onJoinRequest);
-      socket.off('conversation:join_request_resolved', onJoinRequestResolved);
-      socket.off('message:read', onMessageRead);
-      socket.off('scheduled_message:update', onScheduledUpdate);
-      socket.off('scheduled_message:sent', onScheduledSent);
-      socket.off('presence:update', onPresenceUpdate);
-      socket.off('typing', onTyping);
+      unsubMessageNew();
+      unsubScheduledUpdate();
+      unsubScheduledSent();
+      unsubConvUpdated();
+      unsubPinUpdated();
+      unsubReactionUpdated();
+      unsubMessageEdited();
+      unsubMessageDeleted();
+      unsubConvNotify();
+      unsubConvDeleted();
+      unsubMuteUpdated();
+      unsubMembersAdded();
+      unsubMemberRemoved();
+      unsubJoinRequest();
+      unsubJoinRequestResolved();
+      unsubMessageRead();
+      unsubPresenceUpdate();
+      unsubTyping();
       socket.off('connect', onReconnect);
       clearInterval(heartbeat);
       document.removeEventListener('visibilitychange', onVisibility);

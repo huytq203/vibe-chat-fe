@@ -26,8 +26,8 @@ export function useIncomingFriendRequests() {
     queryKey: friendKeys.incoming(),
     queryFn: () => friendsApi.listIncoming({ limit: 50 }),
     enabled: isAuthed,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    // WS 'friend:update' (useFriendRealtime) invalidate key này → không cần poll.
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -37,7 +37,7 @@ export function useOutgoingFriendRequests() {
     queryKey: friendKeys.outgoing(),
     queryFn: () => friendsApi.listOutgoing({ limit: 50 }),
     enabled: isAuthed,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -47,7 +47,7 @@ export function useFriends() {
     queryKey: friendKeys.list(),
     queryFn: () => friendsApi.listFriends({ limit: 50 }),
     enabled: isAuthed,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -60,7 +60,7 @@ export function useFriendsInfinite(limit = 20) {
     queryFn: ({ pageParam }) => friendsApi.listFriends({ limit, cursor: pageParam }),
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: isAuthed,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -70,6 +70,6 @@ export function useBlockedUsers() {
     queryKey: blockKeys.list(),
     queryFn: () => blocksApi.list({ limit: 50 }),
     enabled: isAuthed,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }

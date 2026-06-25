@@ -1,6 +1,8 @@
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { syncServerTime } from '@/lib/time/server-clock';
+import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
+import { getSessionKey } from '@/lib/crypto/session-key';
 
 export type ApiEnvelope<T> = {
   success: true;
@@ -52,6 +54,39 @@ function clearRefreshTimer(): void {
     refreshTimer = null;
   }
 }
+
+const PUBLIC_PATHS = ['/api/v1/auth/', '/api/v1/session/key', '/api/v1/health'];
+
+function isPublicPath(path: string): boolean {
+  return PUBLIC_PATHS.some(p => path.includes(p));
+}
+
+async function cipherRequest(method: string, _path: string, options: RequestOptions, key: CryptoKey): Promise<RequestOptions> {
+  if (method === 'GET') {
+    // Luôn gửi cipher blob (kể cả không có params) để BE biết response cần encrypt.
+    const filtered: Record<string, string | number | boolean> = {};
+    for (const [k, v] of Object.entries(options.query ?? {})) {
+      if (v !== undefined && v !== null) filtered[k] = v as string | number | boolean;
+    }
+    const blob = await encryptBlob(JSON.stringify(filtered), key);
+    return { ...options, query: { params: blob } };
+  }
+  // POST / PUT / PATCH / DELETE — encrypt body hoặc {} nếu không có body.
+  const payload = options.body !== undefined ? options.body : {};
+  const blob = await encryptBlob(JSON.stringify(payload), key);
+  return { ...options, body: { params: blob } };
+}
+
+async function decipherResponse<T>(json: unknown, key: CryptoKey): Promise<T> {
+  const envelope = json as { error_code: number; error_message: string; data: string | null };
+  if (envelope.error_code !== 0) {
+    throw new ApiError(envelope.error_code, String(envelope.error_code), envelope.error_message);
+  }
+  if (!envelope.data) return undefined as T;
+  const plaintext = await decryptBlob(envelope.data, key);
+  return JSON.parse(plaintext) as T;
+}
+
 
 /** Lên lịch refresh chủ động: chạy trước khi token hết hạn REFRESH_SKEW_SECONDS giây. */
 function scheduleProactiveRefresh(expiresIn?: number): void {
@@ -174,14 +209,18 @@ async function checkSessionRevoked(res: Response, path: string): Promise<ApiErro
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-  let res = await rawRequest(method, path, options);
+  const sessionKey = getSessionKey();
+  const shouldCipher = !!sessionKey && !isPublicPath(path);
+  const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
+
+  let res = await rawRequest(method, path, cipheredOptions);
 
   if (res.status === 401 && options.auth !== false && accessToken) {
     const revoked = await checkSessionRevoked(res, path);
     if (revoked) throw revoked;
     try {
       await refreshAccessToken();
-      res = await rawRequest(method, path, options);
+      res = await rawRequest(method, path, cipheredOptions);
     } catch (e) {
       logger.warn('Refresh failed', { path });
       throw e;
@@ -195,12 +234,23 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   }
 
   if (res.status === 204) return undefined as T;
-  const json = (await res.json()) as ApiEnvelope<T> | T;
-  if (json && typeof json === 'object' && 'timestamp' in json) {
-    syncServerTime((json as ApiEnvelope<T>).timestamp);
+  const json = (await res.json()) as unknown;
+
+  if (shouldCipher) {
+    return decipherResponse<T>(json, sessionKey);
   }
-  if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
-    return (json as ApiEnvelope<T>).data;
+
+  // Legacy format (auth service / public endpoints)
+  if (json && typeof json === 'object') {
+    if ('timestamp' in (json as object)) {
+      syncServerTime((json as ApiEnvelope<T>).timestamp);
+    }
+    if ('success' in (json as object) && 'data' in (json as object)) {
+      return (json as ApiEnvelope<T>).data;
+    }
+    if ('error_code' in (json as object) && 'data' in (json as object)) {
+      return (json as { data: T }).data;
+    }
   }
   return json as T;
 }
@@ -212,16 +262,31 @@ export const apiClient = {
   patch: <T>(path: string, options?: RequestOptions) => request<T>('PATCH', path, options),
   delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),
   rawWithMeta: async <T>(method: string, path: string, options: RequestOptions = {}) => {
-    let res = await rawRequest(method, path, options);
+    const sessionKey = getSessionKey();
+    const shouldCipher = !!sessionKey && !isPublicPath(path);
+    const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
+
+    let res = await rawRequest(method, path, cipheredOptions);
     if (res.status === 401 && options.auth !== false && accessToken) {
       const revoked = await checkSessionRevoked(res, path);
       if (revoked) throw revoked;
       await refreshAccessToken();
-      res = await rawRequest(method, path, options);
+      res = await rawRequest(method, path, cipheredOptions);
     }
     if (!res.ok) throw await parseError(res);
-    const json = (await res.json()) as ApiEnvelope<T>;
-    syncServerTime(json.timestamp);
-    return { data: json.data, meta: json.meta };
+    const json = (await res.json()) as unknown;
+    if (shouldCipher) {
+      type Meta = ApiEnvelope<T>['meta'];
+      type WithMeta = { data: T; meta?: Meta };
+      const inner = await decipherResponse<WithMeta | T>(json, sessionKey);
+      if (inner && typeof inner === 'object' && 'data' in (inner as object)) {
+        const typed = inner as WithMeta;
+        return { data: typed.data, meta: typed.meta };
+      }
+      return { data: inner as T, meta: undefined };
+    }
+    const envelope = json as ApiEnvelope<T>;
+    syncServerTime(envelope.timestamp);
+    return { data: envelope.data, meta: envelope.meta };
   },
 } as const;

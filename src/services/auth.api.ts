@@ -10,6 +10,15 @@ import type {
   UpdateMeInput,
   VerifyEmailInput,
 } from '@/features/auth';
+import type { Conversation } from '@/features/chat/types';
+
+export type BootstrapResponse = {
+  me: AuthUser;
+  conversations: Conversation[];
+  conversationsMeta: { page: number; limit: number; total: number };
+  unreadCount: number;
+  systemNotifCount: number;
+};
 
 /**
  * Auth REST endpoints. Pure transport — không đụng cache/state.
@@ -77,6 +86,8 @@ export const authApi = {
     }),     
   // Hồ sơ thuộc CHAT backend (không phải identity): path /users/* → tự route sang VIBE_URL.
   fetchMe: () => apiClient.get<AuthUser>('/api/v1/users/me'),
+  // Gộp me + conversations trang 1 + unread counts → 1 request khi khởi động.
+  bootstrap: () => apiClient.get<BootstrapResponse>('/api/v1/bootstrap'),
   // PATCH partial — chỉ field gửi lên mới đổi. avatar/cover gửi mediaId (xem 24-profile.md).
   updateMe: (input: UpdateMeInput) =>
     apiClient.patch<AuthUser>('/api/v1/users/me', { body: input }),

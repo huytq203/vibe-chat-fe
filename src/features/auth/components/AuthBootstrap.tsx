@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiAuth, ApiError } from '@/lib/api/client';
 import { authApi } from '@/services/auth.api';
-import { authKeys } from '@/services/keys';
+import { authKeys, chatKeys, notificationKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { establishSessionKey, clearSessionKey, getSessionKey } from '@/lib/crypto/session-key';
 
 type Props = {
   requireAuth?: boolean;
@@ -33,6 +34,7 @@ export function AuthBootstrap({
     let cancelled = false;
 
     apiAuth.onUnauthorized(() => {
+      clearSessionKey();
       // Chỉ clear user khi store còn đang authed — tránh đè lên login đang chạy song song.
       if (useAuthStore.getState().isAuthenticated) setUser(null);
       if (requireAuth) router.replace(redirectTo);
@@ -40,6 +42,10 @@ export function AuthBootstrap({
 
     // Nếu đã có session (vd login form vừa setSession trước khi bootstrap mount) → bỏ qua bootstrap.
     if (useAuthStore.getState().isAuthenticated) {
+      const token = apiAuth.getToken();
+      if (token && !getSessionKey()) {
+        void establishSessionKey('', token).catch(() => undefined);
+      }
       setHydrated(true);
       return () => {
         cancelled = true;
@@ -52,12 +58,17 @@ export function AuthBootstrap({
           const tokens = await authApi.refreshAccessToken();
           if (cancelled || useAuthStore.getState().isAuthenticated) return;
           apiAuth.setToken(tokens.accessToken, tokens.expiresIn);
+          await establishSessionKey('', tokens.accessToken);
         }
-        const user = await authApi.fetchMe();
+        const { me, conversations, unreadCount, systemNotifCount } = await authApi.bootstrap();
         if (cancelled || useAuthStore.getState().isAuthenticated) return;
-        // Seed RQ cache trước setUser — useMe() sẽ hit cache, không call /me lần 2.
-        qc.setQueryData(authKeys.me(), user);
-        setUser(user);
+        // Seed toàn bộ data khởi động vào cache trước khi render ChatLayout →
+        // tất cả useQuery (me, conversations, unreadCount) đều hit cache, không call REST thêm.
+        qc.setQueryData(authKeys.me(), me);
+        qc.setQueryData(chatKeys.conversationList({ page: 1, limit: 30 }), conversations);
+        qc.setQueryData(notificationKeys.unreadCount(), { unreadCount });
+        qc.setQueryData(notificationKeys.unreadCount('system'), { unreadCount: systemNotifCount });
+        setUser(me);
       } catch (e) {
         if (cancelled) return;
         // Có thể trong lúc await user đã login bằng form khác → không đè.
@@ -74,6 +85,7 @@ export function AuthBootstrap({
 
     return () => {
       cancelled = true;
+      clearSessionKey();
     };
   }, [hydrated, requireAuth, redirectTo, router, qc, setUser, setHydrated]);
 

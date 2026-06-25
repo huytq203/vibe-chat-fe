@@ -8,7 +8,7 @@ import { ImageLightbox, type LightboxSlide } from '@/components/common/ImageLigh
 import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
 import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
 import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
-import { useSharedContent, type SharedMedia } from '@/features/chat/hooks/useSharedContent';
+import { useSharedContent, type SharedMedia, type SharedTab } from '@/features/chat/hooks/useSharedContent';
 
 const EMPTY_CLS = 'py-3 text-center text-[11.5px] text-muted-foreground';
 
@@ -41,13 +41,14 @@ function ShowMore({ hasMore, onClick }: { hasMore: boolean; onClick: () => void 
 }
 
 export function SharedTabs({ conversationId }: { conversationId: string }) {
-  const { media, files, links } = useSharedContent(conversationId);
+  const [activeTab, setActiveTab] = useState<SharedTab>('media');
+  const { media, files, links } = useSharedContent(conversationId, activeTab);
   const mediaEx = useExpandable(media.items);
   const filesEx = useExpandable(files.items);
   const linksEx = useExpandable(links.items);
 
   return (
-    <Tabs defaultValue="media">
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SharedTab)}>
       <TabsList size="xs" className="w-full">
         <TabsTrigger value="media" className="flex-1">Ảnh & Video</TabsTrigger>
         <TabsTrigger value="files" className="flex-1">Tài liệu</TabsTrigger>

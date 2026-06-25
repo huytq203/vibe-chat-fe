@@ -49,6 +49,7 @@ export async function primeKeys(conversationIds: string[]): Promise<void> {
   if (missing.length === 0) return;
 
   const list = await chatApi.getConversationKeys(missing);
+  if (!Array.isArray(list) || list.length === 0) return;
   await Promise.all(
     list.map(async (r) => {
       const entry: ConversationKey = {

@@ -49,21 +49,24 @@ function deriveSharedContent(messages: Message[]): {
   return { media, files, links };
 }
 
+export type SharedTab = 'media' | 'files' | 'links';
+
 /**
  * Gom ảnh/video, tệp và liên kết đã chia sẻ của một conversation — lấy ĐỦ toàn bộ.
  *
  * - `featureFlags.sharedContentApi` BẬT → mỗi loại gọi endpoint BE riêng một lần KHÔNG `limit`
  *   (`GET /conversations/:id/shared`, xem FRONTEND/20-shared-content.md) → nhận hết.
  * - TẮT → fallback suy ra từ các trang message đã nạp trong cache.
+ * - `activeTab` → chỉ fetch loại đang hiển thị; hai tab còn lại chờ đến khi user chuyển.
  *
  * "Xem thêm" trong UI chỉ mở rộng số item hiển thị (slicing FE), KHÔNG fetch thêm.
  */
-export function useSharedContent(conversationId: string | null): SharedContent {
+export function useSharedContent(conversationId: string | null, activeTab: SharedTab = 'media'): SharedContent {
   const useApi = featureFlags.sharedContentApi;
 
-  const mediaQ = useSharedMessages(conversationId, 'MEDIA', useApi);
-  const filesQ = useSharedMessages(conversationId, 'FILE', useApi);
-  const linksQ = useSharedMessages(conversationId, 'LINK', useApi);
+  const mediaQ = useSharedMessages(conversationId, 'MEDIA', useApi && activeTab === 'media');
+  const filesQ = useSharedMessages(conversationId, 'FILE', useApi && activeTab === 'files');
+  const linksQ = useSharedMessages(conversationId, 'LINK', useApi && activeTab === 'links');
 
   // Fallback chỉ tải message cache khi không dùng API (tránh fetch thừa).
   const { data: cacheData } = useMessages(useApi ? null : conversationId);

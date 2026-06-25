@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
-import { getSocket } from '@/lib/ws/socket';
+import { cipherOn, getSocket } from '@/lib/ws/socket';
 import { isElectron, showElectronNotification } from '@/lib/electron';
 import { useAuthStore } from '@/features/auth';
 import { friendKeys, notificationKeys, userKeys } from '@/services/keys';
@@ -161,11 +161,11 @@ export function useNotificationRealtime() {
       qc.invalidateQueries({ queryKey: notificationKeys.unreadCount('system') });
     }
 
-    socket.on('notification:new', onNotificationNew);
-    socket.on('notification:cleared', onNotificationCleared);
+    const unsubNotificationNew = cipherOn('notification:new', onNotificationNew as (data: unknown) => void);
+    const unsubNotificationCleared = cipherOn('notification:cleared', onNotificationCleared as (data: unknown) => void);
     return () => {
-      socket.off('notification:new', onNotificationNew);
-      socket.off('notification:cleared', onNotificationCleared);
+      unsubNotificationNew();
+      unsubNotificationCleared();
     };
   }, [isAuthed, qc, router]);
 }

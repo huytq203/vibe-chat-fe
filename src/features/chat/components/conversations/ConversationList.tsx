@@ -54,7 +54,7 @@ export function ConversationList() {
   const { data: conversations = [], isLoading } = useConversations();
   const decryptedPreviews = useDecryptedPreviews(conversations);
   const incomingRequests = useIncomingFriendRequests();
-  const incomingCount = incomingRequests.data?.items.length ?? 0;
+  const incomingCount = incomingRequests.data?.items?.length ?? 0;
   const unreadNotiCount = useSystemNotifCount().data?.unreadCount ?? 0;
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);

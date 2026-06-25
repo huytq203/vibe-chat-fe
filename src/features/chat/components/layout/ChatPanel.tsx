@@ -134,7 +134,7 @@ export function ChatPanel() {
       ) : (
         <>
           <PinnedBanner conversation={conversation} meId={meId} />
-          <MessageList conversationId={conversation.id} onAtBottom={handleAtBottom} />
+          <MessageList key={conversation.id} conversationId={conversation.id} onAtBottom={handleAtBottom} />
           {isSelfConv || canSendMessage(conversation, meId) ? (
             <MessageInput
               conversationId={conversation.id}

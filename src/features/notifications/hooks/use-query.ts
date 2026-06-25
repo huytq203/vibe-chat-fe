@@ -57,7 +57,7 @@ export function useSystemNotifCount() {
     queryKey: notificationKeys.unreadCount('system'),
     queryFn: () => notificationsApi.unreadCount({ category: 'system' }),
     enabled: isAuthed,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    // useNotificationRealtime invalidate key này khi nhận WS event → không cần poll.
+    staleTime: 5 * 60_000,
   });
 }

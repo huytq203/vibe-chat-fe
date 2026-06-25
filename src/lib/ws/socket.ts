@@ -1,6 +1,9 @@
 import { io, type Socket } from 'socket.io-client';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
+import { applyEventMap, toCode, clearEventMap } from './event-map';
+import { getSessionKey } from '@/lib/crypto/session-key';
+import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
 
 /**
  * Wrapper socket.io — feature code không import 'socket.io-client' trực tiếp.
@@ -113,6 +116,15 @@ export function getSocket(token: string | null): Socket | null {
   socket.on('connect', () => {
     logger.info('WS connected', { id: socket?.id });
     setConnectionState('connected');
+    // Listen for event map from server (sent on auth connect)
+    socket?.once('e0', async (blob: unknown) => {
+      try {
+        const key = getSessionKey();
+        if (!key || typeof blob !== 'string') return;
+        const json = await decryptBlob(blob, key);
+        applyEventMap(JSON.parse(json) as Record<string, string>);
+      } catch { /* ignore */ }
+    });
   });
 
   // BE emit khi user login trên thiết bị khác (single-session kick) → logout ngay, không reconnect.
@@ -121,6 +133,7 @@ export function getSocket(token: string | null): Socket | null {
   socket.on('disconnect', (reason, description) => {
     logger.info('WS disconnect', { reason, description });
     setConnectionState('disconnected');
+    clearEventMap();
     // BE chủ động đá (auth fail, kick...) → socket.io v4 KHÔNG tự reconnect.
     // Thử reconnect 1 lần sau 2s với token mới nhất; nếu vẫn fail BE sẽ đá tiếp.
     // Riêng phiên đã bị thu hồi (force_logout) → KHÔNG reconnect.
@@ -199,4 +212,37 @@ export function closeSocket(): void {
     socket = null;
   }
   setConnectionState('disconnected');
+}
+
+/** Emit with cipher: encrypts payload if session key available, uses short code. */
+export async function cipherEmit(event: string, payload: unknown): Promise<void> {
+  if (!socket) return;
+  const code = toCode(event);
+  const key = getSessionKey();
+  if (!key) {
+    socket.emit(code, payload);
+    return;
+  }
+  const blob = await encryptBlob(JSON.stringify(payload), key);
+  socket.emit(code, blob);
+}
+
+/** Subscribe with cipher: decrypts payload if it's a blob, translates short code to event name. */
+export function cipherOn(event: string, handler: (data: unknown) => void): () => void {
+  if (!socket) return () => undefined;
+  const code = toCode(event);
+  const wrappedHandler = async (blob: unknown) => {
+    const key = getSessionKey();
+    if (!key || typeof blob !== 'string') {
+      handler(blob);
+      return;
+    }
+    try {
+      handler(JSON.parse(await decryptBlob(blob, key)));
+    } catch {
+      handler(blob); // fallback: pass raw
+    }
+  };
+  socket.on(code, wrappedHandler);
+  return () => { socket?.off(code, wrappedHandler); };
 }

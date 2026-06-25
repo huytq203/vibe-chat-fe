@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth';
 import { useConversation, useMessages, usePinnedMessages } from '@/features/chat/hooks/use-query';
+import { useChatScroll } from '@/features/chat/hooks/useChatScroll';
 import { useSelfDestruct } from '@/features/chat/hooks/useSelfDestruct';
-import { useVirtualChatScroll } from '@/features/chat/hooks/useVirtualChatScroll';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
@@ -27,7 +28,6 @@ type MessageListProps = {
 };
 
 const EMPTY_TYPING: string[] = [];
-/** Trần số trang tự nạp khi nhảy tới 1 tin cũ (40 × 30 ≈ 1200 tin) — tránh nạp vô hạn. */
 const MAX_JUMP_FETCHES = 40;
 
 export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
@@ -68,7 +68,24 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
 
   useSelfDestruct(conversationId, messages);
 
+  // Track initial message IDs — mới hơn sẽ animate slide-in
+  const initialMsgIdsRef = useRef<Set<string>>(new Set());
+  const hasInitialRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitialRef.current && messages.length > 0 && !isLoading) {
+      hasInitialRef.current = true;
+      initialMsgIdsRef.current = new Set(messages.map((m) => m.id));
+    }
+  }, [messages, isLoading]);
+
+  useEffect(() => {
+    hasInitialRef.current = false;
+    initialMsgIdsRef.current = new Set();
+  }, [conversationId]);
+
   const sendError = useSendErrorStore((s) => s.byConv[conversationId]);
+  const lastMessageId = messages[messages.length - 1]?.id ?? null;
 
   const typingUserIds = useTypingStore((s) => s.byConv[conversationId] ?? EMPTY_TYPING);
   const otherTypingIds = useMemo(
@@ -76,15 +93,30 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
     [typingUserIds, meId],
   );
 
-  const { scrollRef, virtualizer, showScrollDown, highlightId, scrollToBottom, scrollToMessage, handleScroll } = useVirtualChatScroll({
-      messages,
+  const { scrollRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll } =
+    useChatScroll({
+      messageCount: messages.length,
+      lastMessageId,
       hasNextPage: hasNextPage ?? false,
       isFetchingNextPage,
       fetchNextPage,
-      sendError,
-      otherTypingCount: otherTypingIds.length,
       onAtBottom,
     });
+
+  // Scroll xuống khi gửi lỗi
+  useEffect(() => {
+    if (!sendError) return;
+    scrollToBottom();
+  }, [sendError, scrollToBottom]);
+
+  // Scroll xuống khi có người đang gõ (nếu đang ở gần đáy)
+  useEffect(() => {
+    if (otherTypingIds.length === 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) scrollToBottom();
+  }, [otherTypingIds.length, scrollRef, scrollToBottom]);
 
   const jumpTarget = useMessageJumpStore((s) => s.target);
   const clearJump = useMessageJumpStore((s) => s.clear);
@@ -121,7 +153,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+      <div className="animate-in fade-in flex flex-1 items-center justify-center text-sm text-muted-foreground duration-200">
         Đang tải tin nhắn...
       </div>
     );
@@ -129,7 +161,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
 
   if (messages.length === 0 && otherTypingIds.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+      <div className="animate-in fade-in flex flex-1 items-center justify-center text-sm text-muted-foreground duration-200">
         Hãy gửi tin nhắn đầu tiên 👋
       </div>
     );
@@ -137,7 +169,7 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
 
   return (
     <LightboxProvider>
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="animate-in fade-in relative flex min-h-0 flex-1 flex-col duration-200">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -147,56 +179,46 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
             <div className="py-2 text-center text-[11px] text-muted-foreground">Đang tải thêm...</div>
           )}
 
-          <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const m = messages[virtualItem.index];
-              if (!m) return null;
-              const prev = messages[virtualItem.index - 1];
-              const showAvatar = m.senderId !== meId && (!prev || prev.senderId !== m.senderId);
-              const repliedTo = m.replyToMessageId ? messageById.get(m.replyToMessageId) ?? null : null;
-              const repliedToName = repliedTo
-                ? repliedTo.senderId === meId ? 'Bạn' : (memberNames[repliedTo.senderId] ?? null)
-                : null;
-              return (
-                <div
-                  key={virtualItem.key}
-                  data-index={virtualItem.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start}px)`,
-                    paddingBottom: '4px',
-                  }}
-                >
-                  <MessageBubble
-                    message={m}
-                    meId={meId}
-                    showAvatar={showAvatar}
-                    senderName={memberNames[m.senderId] ?? null}
-                    showSenderName={showSenderNames && showAvatar}
-                    senderAvatarUrl={memberAvatars[m.senderId] ?? null}
-                    senderSeed={m.senderId}
-                    repliedTo={repliedTo}
-                    repliedToName={repliedToName}
-                    onQuoteClick={scrollToMessage}
-                    isHighlighted={highlightId === m.id}
-                    canPin={canPin}
-                    isPinned={pinnedIds.has(m.id)}
-                    leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          {messages.map((m, idx) => {
+            const prev = messages[idx - 1];
+            const showAvatar = m.senderId !== meId && (!prev || prev.senderId !== m.senderId);
+            const repliedTo = m.replyToMessageId ? messageById.get(m.replyToMessageId) ?? null : null;
+            const repliedToName = repliedTo
+              ? repliedTo.senderId === meId ? 'Bạn' : (memberNames[repliedTo.senderId] ?? null)
+              : null;
+            const isNew = hasInitialRef.current && !initialMsgIdsRef.current.has(m.id);
+            return (
+              <div
+                key={m.id}
+                data-msgid={m.id}
+                className={cn('pb-1', isNew && 'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-150')}
+              >
+                <MessageBubble
+                  message={m}
+                  meId={meId}
+                  showAvatar={showAvatar}
+                  senderName={memberNames[m.senderId] ?? null}
+                  showSenderName={showSenderNames && showAvatar}
+                  senderAvatarUrl={memberAvatars[m.senderId] ?? null}
+                  senderSeed={m.senderId}
+                  repliedTo={repliedTo}
+                  repliedToName={repliedToName}
+                  onQuoteClick={scrollToMessage}
+                  isHighlighted={highlightId === m.id}
+                  canPin={canPin}
+                  isPinned={pinnedIds.has(m.id)}
+                  leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
+                />
+              </div>
+            );
+          })}
 
           {sendError && (
             <div className="px-6 py-1.5 text-center text-[11.5px] text-danger/90">
               Gửi thất bại — {sendError}
             </div>
           )}
+
           {otherTypingIds.map((userId, i) => {
             const lastMsg = messages[messages.length - 1];
             const prevSenderId = i === 0 ? lastMsg?.senderId : otherTypingIds[i - 1];
