@@ -11,6 +11,7 @@ import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
 import { CallButtons, buildCallDirectory } from '@/features/call';
+import { Separator } from '@/components/ui/separator/Separator';
 
 type ChatHeaderProps = {
   conversation: Conversation;
@@ -20,9 +21,10 @@ type ChatHeaderProps = {
   onToggleRight: () => void;
   /** Mobile only: back button ← về danh sách. */
   onBack?: () => void;
+  wallpaperActive?: boolean;
 };
 
-export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack }: ChatHeaderProps) {
+export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack, wallpaperActive }: ChatHeaderProps) {
   const [searching, setSearching] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const requestJump = useMessageJumpStore((s) => s.requestJump);
@@ -47,7 +49,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         : presence.lastSeenLabel ?? 'Ngoại tuyến';
 
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 py-3">
+    <div className={cn('flex shrink-0 items-center justify-between border-b border-border px-4 py-3', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
       {onBack && (
         <Button
           variant="ghost"
@@ -74,7 +76,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         )}
         <div className="min-w-0">
           <div className="truncate text-[14.5px] font-bold text-foreground">{name}</div>
-          <div className="truncate text-[11.5px] text-muted-foreground">{statusLabel}</div>
+          <div className="truncate text-[11.5px] text-foreground">{statusLabel}</div>
         </div>
       </button>
 
@@ -134,16 +136,19 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
           </>
         )}
         {!onBack && (
+          <>
+          <Separator orientation="vertical" className="h-5 bg-foreground" />
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={onToggleRight}
             title={rightOpen ? 'Ẩn thông tin' : 'Hiện thông tin'}
             aria-label="Toggle panel"
-            className={cn('ml-1 border-l border-border pl-2 rounded-l-none', rightOpen && 'text-primary')}
+            className={cn(' border-border ', rightOpen && 'text-primary')}
           >
             <PanelRight className="h-[18px] w-[18px]" />
           </Button>
+          </>
         )}
       </div>
     </div>

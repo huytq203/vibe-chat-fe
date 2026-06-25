@@ -114,6 +114,11 @@ export const pollKeys = {
   detail: (pollId: string) => [...pollKeys.all, 'detail', pollId] as const,
 } as const;
 
+export const mediaKeys = {
+  all: ['media'] as const,
+  detail: (id: string) => [...mediaKeys.all, 'detail', id] as const,
+} as const;
+
 export const myStoreKeys = {
   all: ['my-store'] as const,
   conversation: () => [...myStoreKeys.all, 'conversation'] as const,

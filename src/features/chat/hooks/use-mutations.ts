@@ -523,9 +523,10 @@ export function useMarkRead() {
       );
     },
     onSettled: (_data, _err, vars) => {
-      // API trả về (success hoặc error) → ghi đè lại unreadCount: 0 vào cache.
-      // Mục tiêu: huỷ kết quả của mọi refetch bị chen vào TRONG lúc API đang bay
-      // (WS event → debouncedInvalidate → refetch trả unreadCount: 1 từ server cũ).
+      // API trả về (success hoặc error) → ghi đè lại unreadCount: 0 vào cache để chắc chắn.
+      // KHÔNG refetch conversationLists sau đó: badge unread đã được set 0 trực tiếp; refetch
+      // (server có thể chưa commit read) sẽ kéo về số cũ → "về 0 rồi nhảy lại số cũ".
+      // Reconcile để sau qua refetchOnWindowFocus / reconnect (lúc đó read đã commit).
       qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
         { queryKey: chatKeys.conversationLists() },
         (prev) =>
@@ -537,8 +538,6 @@ export function useMarkRead() {
         chatKeys.conversationDetail(vars.conversationId),
         (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
       );
-      // Sau khi override xong → invalidate để đồng bộ với server (lúc này đã commit).
-      setTimeout(() => debouncedInvalidate(qc, chatKeys.conversationLists()), 300);
     },
   });
 }
@@ -1008,5 +1007,34 @@ export function useOpenDirectConversation() {
       setSelected(conv.id);
     },
     onError: (e: Error) => toast.error(e.message || 'Không mở được cuộc trò chuyện'),
+  });
+}
+
+export function useUpdateBackground() {
+  const qc = useQueryClient();
+  return useMutation<
+    { background: string | null },
+    Error,
+    { conversationId: string; background: string | null },
+    { prev: Conversation | undefined }
+  >({
+    mutationFn: ({ conversationId, background }) =>
+      chatApi.updateBackground(conversationId, background),
+    onMutate: async ({ conversationId, background }) => {
+      await qc.cancelQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      const prev = qc.getQueryData<Conversation>(chatKeys.conversationDetail(conversationId));
+      qc.setQueryData<Conversation>(chatKeys.conversationDetail(conversationId), (old) =>
+        old ? { ...old, background } : old,
+      );
+      return { prev };
+    },
+    onError: (_e, { conversationId }, ctx) => {
+      if (ctx?.prev) qc.setQueryData(chatKeys.conversationDetail(conversationId), ctx.prev);
+      toast.error('Đổi nền thất bại');
+    },
+    onSuccess: (_data, { conversationId }) => {
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+    },
   });
 }

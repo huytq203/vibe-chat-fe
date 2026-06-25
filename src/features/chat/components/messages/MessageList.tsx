@@ -9,6 +9,7 @@ import { useConversation, useMessages, usePinnedMessages } from '@/features/chat
 import { useChatScroll } from '@/features/chat/hooks/useChatScroll';
 import { useSelfDestruct } from '@/features/chat/hooks/useSelfDestruct';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
+import { useBubbleConfig } from '@/features/chat/hooks/useWallpaper';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
 import type { MemberRole, Message } from '@/features/chat/types';
@@ -25,12 +26,13 @@ import { LightboxProvider } from './LightboxProvider';
 type MessageListProps = {
   conversationId: string;
   onAtBottom?: () => void;
+  wallpaperActive?: boolean;
 };
 
 const EMPTY_TYPING: string[] = [];
 const MAX_JUMP_FETCHES = 40;
 
-export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
+export function MessageList({ conversationId, onAtBottom, wallpaperActive = false }: MessageListProps) {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const { data: conversation } = useConversation(conversationId);
   const memberNames = useMemo(() => buildMemberNameMap(conversation), [conversation]);
@@ -83,6 +85,8 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
     hasInitialRef.current = false;
     initialMsgIdsRef.current = new Set();
   }, [conversationId]);
+
+  const bubbleConfig = useBubbleConfig(conversationId);
 
   const sendError = useSendErrorStore((s) => s.byConv[conversationId]);
   const lastMessageId = messages[messages.length - 1]?.id ?? null;
@@ -208,6 +212,8 @@ export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
                   canPin={canPin}
                   isPinned={pinnedIds.has(m.id)}
                   leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
+                  wallpaperActive={wallpaperActive}
+                  bubbleConfig={bubbleConfig}
                 />
               </div>
             );

@@ -114,6 +114,8 @@ export type Conversation = {
   isPinned?: boolean;
   pinnedAt?: string | null;
   isLocked?: boolean;
+  /** Nền hội thoại — null = mặc định; "theme:key" = preset; "custom:{mediaId}" = ảnh tự chọn */
+  background?: string | null;
   // Mute per-user (đã normalize bởi BE). isMuted=true + mutedUntil=null = vĩnh viễn;
   // mutedUntil=<ISO> = tắt có hạn; hết hạn BE tự trả isMuted=false. Xem 22-mute-notifications.md.
   isMuted?: boolean;

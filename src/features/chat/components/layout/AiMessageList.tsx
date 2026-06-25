@@ -102,6 +102,31 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
           {virtualItems.map((virtualItem) => {
             const msg = messages[virtualItem.index];
             if (!msg) return null;
+
+            const prev = messages[virtualItem.index - 1];
+            const next = messages[virtualItem.index + 1];
+            const groupedWithPrev = prev?.role === msg.role;
+            const groupedWithNext = next?.role === msg.role;
+
+            const bubbleRadius = cn(
+              'rounded-2xl',
+              msg.role === 'user'
+                ? groupedWithPrev && groupedWithNext
+                  ? 'rounded-r-sm'
+                  : groupedWithPrev
+                    ? 'rounded-tr-sm'
+                    : groupedWithNext
+                      ? 'rounded-br-sm'
+                      : ''
+                : groupedWithPrev && groupedWithNext
+                  ? 'rounded-l-sm'
+                  : groupedWithPrev
+                    ? 'rounded-tl-sm'
+                    : groupedWithNext
+                      ? 'rounded-bl-sm'
+                      : '',
+            );
+
             return (
               <div
                 key={virtualItem.key}
@@ -113,16 +138,17 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
                   left: 0,
                   width: '100%',
                   transform: `translateY(${virtualItem.start}px)`,
-                  paddingBottom: '12px',
+                  paddingBottom: groupedWithNext ? '2px' : '10px',
                 }}
               >
                 <div className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div
                     className={cn(
-                      'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
+                      'max-w-[75%] px-3 py-2 text-[13px] leading-relaxed',
+                      bubbleRadius,
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-accent text-foreground',
+                      : 'bg-accent text-foreground',
                     )}
                   >
                     {msg.role === 'user' ? (

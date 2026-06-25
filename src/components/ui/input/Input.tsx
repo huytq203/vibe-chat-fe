@@ -11,6 +11,7 @@ const inputVariants = tv({
   variants: {
     variant: {
       default: '',
+      primary: 'border-primary/50 bg-accent',
       filled: 'bg-accent border-transparent focus:border-primary',
       flushed: 'border-b-2 border-transparent border-b-border rounded-none px-0 focus:outline-none focus:ring-0 focus:border-transparent focus:border-b-primary bg-transparent',
     }

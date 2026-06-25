@@ -30,7 +30,7 @@ export function ChecklistCard({ message }: ChecklistCardProps) {
 
   function toggle(itemId: string, checked: boolean) {
     if (message.isDeleted || patch.isPending) return;
-    patch.mutate({ messageId: message.id, dto: { itemId, checked } });
+    patch.mutate({ messageId: message.id, dto: { itemId, checked }, conversationId: message.conversationId });
   }
 
   return (

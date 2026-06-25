@@ -54,7 +54,7 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border p-0.5 text-[13px] transition-colors",
                 mine
-                  ? "border-primary/40 bg-primary/10 text-primary"
+                  ? "border-primary/40 bg-white text-primary"
                   : "border-border bg-muted text-foreground hover:bg-accent",
               )}
             >

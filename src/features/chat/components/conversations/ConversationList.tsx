@@ -233,7 +233,7 @@ export function ConversationList() {
           <>
             <div className="shrink-0 px-3 pb-2.5">
               <Input
-                variant="filled"
+                variant="primary"
                 icon={<Search className="h-[15px] w-[15px]" />}
                 placeholder="Tìm kiếm..."
                 value={search}
@@ -293,7 +293,7 @@ export function ConversationList() {
                   <ConversationItem
                     key={item.conv.id}
                     conversation={item.conv}
-                    selected={selectedConversationId === item.conv.id}
+                    selected={!myStoreOpen && selectedConversationId === item.conv.id}
                     meId={me?.id ?? null}
                     onSelect={handleSelectConversation}
                     onAvatarError={handleAvatarError}

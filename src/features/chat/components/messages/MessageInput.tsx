@@ -22,6 +22,7 @@ import { ChecklistDialog } from '@/features/my-store/components/ChecklistDialog'
 import { BookmarkDialog } from '@/features/my-store/components/BookmarkDialog';
 import { CreatePollDialog } from '@/features/chat/components/polls/CreatePollDialog';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { cn } from '@/lib/utils/cn';
 
 type MessageInputProps = {
   conversationId: string;
@@ -30,9 +31,10 @@ type MessageInputProps = {
   selfConv?: boolean;
   /** Khi true (GROUP/CHANNEL) hiện nút Bình chọn trong menu. */
   isGroup?: boolean;
+  wallpaperActive?: boolean;
 };
 
-export function MessageInput({ conversationId, disabled, selfConv, isGroup }: MessageInputProps) {
+export function MessageInput({ conversationId, disabled, selfConv, isGroup, wallpaperActive }: MessageInputProps) {
   const {
     editorRef,
     mention,
@@ -144,7 +146,7 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup }: Me
     ) : null;
 
   return (
-    <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3">
+    <div className={cn('shrink-0 border-t border-border px-4 py-3', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
       {isEditing && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
           <Pencil className="h-3.5 w-3.5 shrink-0 text-primary" />

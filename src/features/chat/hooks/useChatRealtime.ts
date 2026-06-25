@@ -22,6 +22,7 @@ import { useSelectedConversation } from './useSelectedConversation';
 import type {
   Conversation,
   JoinRequestStatus,
+  LastMessagePreview,
   Message,
   MessageReaction,
   MessagesPage,
@@ -111,6 +112,21 @@ type ReactionUpdatedPayload = {
 const HEARTBEAT_MS = 30_000;
 const TYPING_AUTOCLEAR_MS = 6_000;
 
+/** Dựng preview cho danh sách hội thoại từ 1 Message realtime (để cập nhật cache list ngay). */
+function mapMessageToPreview(m: Message): LastMessagePreview {
+  return {
+    id: m.id,
+    senderId: m.senderId,
+    type: m.type,
+    preview: m.contentPreview,
+    previewEncrypted: Boolean(m.encrypted),
+    previewCipher: m.contentPreviewCipher ?? null,
+    keyId: m.keyId ?? null,
+    keyVersion: m.keyVersion ?? null,
+    createdAt: m.createdAt,
+  };
+}
+
 export function useChatRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const clearSession = useAuthStore((s) => s.clear);
@@ -165,6 +181,41 @@ export function useChatRealtime() {
     const socket = getSocket(token);
     if (!socket) return;
 
+    // Cập nhật 1 hội thoại trong cache danh sách TRỰC TIẾP từ WS (realtime, không refetch):
+    // - message: cập nhật preview + lastMessageAt (để sắp xếp) + messageCount.
+    // - bumpUnread: tăng unread (tin đến conv KHÁC, không phải mình gửi).
+    // - resetUnread: đưa unread về 0 (đã đọc).
+    // Trả về false nếu conv chưa có trong cache (conv mới) → caller tự refetch để kéo về.
+    function patchConvInList(
+      conversationId: string,
+      opts: { message?: Message; bumpUnread?: boolean; resetUnread?: boolean },
+    ): boolean {
+      let found = false;
+      qc.setQueriesData<Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) => {
+          if (!prev) return prev;
+          let changed = false;
+          const next = prev.map((c) => {
+            if (c.id !== conversationId) return c;
+            found = true;
+            changed = true;
+            const patched: Conversation = { ...c };
+            if (opts.message) {
+              patched.lastMessage = mapMessageToPreview(opts.message);
+              patched.lastMessageAt = opts.message.createdAt;
+              patched.messageCount = c.messageCount + 1;
+            }
+            if (opts.resetUnread) patched.unreadCount = 0;
+            else if (opts.bumpUnread) patched.unreadCount = c.unreadCount + 1;
+            return patched;
+          });
+          return changed ? next : prev;
+        },
+      );
+      return found;
+    }
+
     function upsertMessage(message: Message) {
       const key = chatKeys.messages(message.conversationId);
       const incomingNonce =
@@ -216,9 +267,10 @@ export function useChatRealtime() {
           : { items: [message], nextCursor: null };
         return { ...prev, pages: [head, ...rest] };
       });
-      debouncedInvalidate(qc, chatKeys.conversationLists());
-      // Debounce detail invalidation để tránh race với markRead: nếu user đang xem conv,
-      // refetch ngay lập tức sẽ trả về unreadCount>0 trước khi API markRead hoàn thành.
+      // KHÔNG invalidate conversationLists ở đây — badge unread/preview được cập nhật
+      // TRỰC TIẾP qua patchConvInList ở các handler (realtime, tránh refetch ghi đè
+      // optimistic markRead → "về 0 rồi nhảy lại số cũ").
+      // Detail vẫn invalidate (debounce) để conv ĐANG MỞ tự mark-read tin mới + làm tươi.
       debouncedInvalidate(qc, chatKeys.conversationDetail(message.conversationId));
 
       // Shared tabs (Ảnh/Tài liệu/Liên kết) trong ContactInfo — invalidate theo loại tin.
@@ -241,17 +293,25 @@ export function useChatRealtime() {
 
     function onMessageNew(message: Message) {
       upsertMessage(message);
+      // Tin tới conv đang mở (đã join room) → cập nhật preview + thứ tự trong list NGAY,
+      // KHÔNG tăng unread (user đang xem; markRead lo việc đọc). Conv lạ → refetch kéo về.
+      if (!patchConvInList(message.conversationId, { message })) {
+        debouncedInvalidate(qc, chatKeys.conversationLists());
+      }
     }
 
     // Sửa tin: BE bắn full Message đã cập nhật → upsert thay theo id.
     function onMessageEdited(message: Message) {
       upsertMessage(message);
+      // Preview của list có thể đổi (nếu là tin cuối) → để refetch reconcile cho chuẩn.
+      debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
     // Gỡ tin: nếu có full Message → upsert; nếu chỉ id → patch isDeleted tại chỗ.
     function onMessageDeleted(payload: MessageDeletedPayload) {
       if ('plaintext' in payload || 'senderId' in payload) {
         upsertMessage(payload as Message);
+        debouncedInvalidate(qc, chatKeys.conversationLists());
         return;
       }
       const { conversationId, messageId } = payload;
@@ -281,10 +341,20 @@ export function useChatRealtime() {
     }
 
     function onConversationNotify(payload: NotifyPayload) {
-      debouncedInvalidate(qc, chatKeys.conversationLists());
       // Luôn upsert (kể cả cache rỗng) — đảm bảo nếu user mở conv ngay sau đó,
       // tin nhắn đã có sẵn trong cache, không bị "delay 1 vòng REST".
       upsertMessage(payload.message);
+      // Tin ở conv KHÁC (chưa mở) → tăng unread + cập nhật preview TRỰC TIẾP trong cache
+      // (realtime, không chờ refetch). Bỏ qua tin mình tự gửi (thiết bị khác) & conv đang mở.
+      const meId = useAuthStore.getState().user?.id ?? null;
+      const isMine = payload.message.senderId === meId;
+      const isOpen = joinedRef.current === payload.conversationId;
+      const found = patchConvInList(payload.conversationId, {
+        message: payload.message,
+        bumpUnread: !isMine && !isOpen,
+      });
+      // Conv mới chưa có trong danh sách → refetch để kéo về.
+      if (!found) debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
     hasConnectedRef.current = false;
@@ -337,7 +407,8 @@ export function useChatRealtime() {
           (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
         );
       }
-      debouncedInvalidate(qc, chatKeys.conversationLists());
+      // KHÔNG invalidate conversationLists — đã set unread=0 trực tiếp ở trên. Refetch ở đây
+      // sẽ kéo về số cũ (server chưa kịp commit read) → badge nhảy lại số cũ.
     }
 
     function onPresenceUpdate(payload: Presence) {

@@ -16,6 +16,8 @@ import { MessageInput } from '@/features/chat/components/messages/MessageInput';
 import { PinnedBanner } from '@/features/chat/components/messages/PinnedBanner';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { canSendMessage } from '@/features/chat/utils';
+import { useWallpaper } from '@/features/chat/hooks/useWallpaper';
+import { cn } from '@/lib/utils/cn';
 
 export function ChatPanel() {
   const meId = useAuthStore((s) => s.user?.id ?? null);
@@ -96,6 +98,8 @@ export function ChatPanel() {
   const otherPresence = presenceList?.[0] ?? null;
 
   const isSelfConv = conversation?.type === 'SELF';
+  const wallpaperStyle = useWallpaper(selectedConversationId);
+  const wallpaperActive = Object.keys(wallpaperStyle).length > 0;
 
   // Gọi khi user scroll đến cuối hoặc khi click scroll-down button.
   const handleAtBottom = useCallback(() => {
@@ -119,7 +123,10 @@ export function ChatPanel() {
     'Cuộc trò chuyện';
 
   return (
-    <main className="flex h-full min-w-0 flex-1 flex-col bg-background ">
+    <main
+      style={wallpaperStyle}
+      className={cn('flex h-full min-w-0 flex-1 flex-col', !wallpaperActive && 'bg-background')}
+    >
       <ChatHeader
         conversation={conversation}
         meId={meId}
@@ -127,6 +134,7 @@ export function ChatPanel() {
         rightOpen={rightPanelOpen}
         onToggleRight={isMobile ? () => setMobilePanel('contact') : toggleRight}
         onBack={isMobile ? () => setMobilePanel('list') : undefined}
+        wallpaperActive={wallpaperActive}
       />
       <CallBanner />
       {isLocked ? (
@@ -134,15 +142,16 @@ export function ChatPanel() {
       ) : (
         <>
           <PinnedBanner conversation={conversation} meId={meId} />
-          <MessageList key={conversation.id} conversationId={conversation.id} onAtBottom={handleAtBottom} />
+          <MessageList key={conversation.id} conversationId={conversation.id} onAtBottom={handleAtBottom} wallpaperActive={wallpaperActive} />
           {isSelfConv || canSendMessage(conversation, meId) ? (
             <MessageInput
               conversationId={conversation.id}
               selfConv={isSelfConv}
               isGroup={conversation.type === 'GROUP' || conversation.type === 'CHANNEL'}
+              wallpaperActive={wallpaperActive}
             />
           ) : (
-            <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3 text-center text-[12.5px] text-muted-foreground">
+            <div className={cn('shrink-0 border-t border-border px-4 py-3 text-center text-[12.5px] text-muted-foreground', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
               Chỉ quản trị viên được nhắn trong nhóm này
             </div>
           )}

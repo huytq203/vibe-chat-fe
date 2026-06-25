@@ -8,7 +8,7 @@ import { myStoreKeys, chatKeys } from '@/services/keys';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { buildEncryptedSendPayload } from '@/lib/crypto/encrypt-message';
 import { encryptStoreMetadata, getStoreConversationId } from '@/features/my-store/lib/store-encrypt';
-import type { MediaResponse } from '@/features/chat/types';
+import type { MediaResponse, Message, MessagesPage } from '@/features/chat/types';
 import type {
   MessageType,
   StoreMessage,
@@ -65,6 +65,26 @@ function patchMessage(
   patch: (m: StoreMessage) => StoreMessage,
 ) {
   qc.setQueryData<MessagesCache>(myStoreKeys.messages(), (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.map((m) => (m.id === messageId ? patch(m) : m)),
+      })),
+    };
+  });
+}
+
+/** Patch 1 message trong chat cache (chatKeys.messages) — dùng để sync checklist từ bubble. */
+function patchChatMessage(
+  qc: ReturnType<typeof useQueryClient>,
+  conversationId: string,
+  messageId: string,
+  patch: (m: Message) => Message,
+) {
+  type ChatCache = InfiniteData<MessagesPage, string | null>;
+  qc.setQueryData<ChatCache>(chatKeys.messages(conversationId), (old) => {
     if (!old) return old;
     return {
       ...old,
@@ -254,9 +274,17 @@ export function useCreateBookmark() {
 export function usePatchChecklistItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ messageId, dto }: { messageId: string; dto: PatchChecklistItemInput }) =>
+    mutationFn: ({ messageId, dto }: { messageId: string; dto: PatchChecklistItemInput; conversationId?: string }) =>
       myStoreApi.patchChecklistItem(messageId, dto),
-    onSuccess: (updated) => patchMessage(qc, updated.id, () => updated),
+    onSuccess: (updated, { conversationId }) => {
+      patchMessage(qc, updated.id, () => updated);
+      if (conversationId) {
+        patchChatMessage(qc, conversationId, updated.id, (m) => ({
+          ...m,
+          metadata: updated.metadata as Record<string, unknown>,
+        }));
+      }
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }

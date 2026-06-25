@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import {
+  Clock,
   Link2,
-  Lock,
-  LockOpen,
   LogOut,
   PenIcon,
   Phone,
@@ -20,7 +19,6 @@ import {
   UserX,
   Video,
   X,
-  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge/Badge";
@@ -51,6 +49,7 @@ import { MessageSearchPanel } from "./MessageSearchPanel";
 import { MuteButton } from "./MuteButton";
 import { UserProfileDialog } from "./UserProfileDialog";
 import { GroupShareDialog } from "@/features/share-links";
+import { ConversationSettingsDialog } from "./ConversationSettingsDialog";
 
 export function ContactInfo() {
   const data = useContactInfor();
@@ -58,6 +57,7 @@ export function ContactInfo() {
   const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "banned" | "admins" | "search">("info");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [shareGroupOpen, setShareGroupOpen] = useState(false);
+  const [convSettingsOpen, setConvSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
@@ -332,17 +332,15 @@ export function ContactInfo() {
           <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tuỳ chọn</div>
           <div className="flex flex-col gap-0.5">
             <OptionRow
+              icon={<Settings className="h-4 w-4" />}
+              label="Cài đặt cuộc trò chuyện"
+              onClick={() => setConvSettingsOpen(true)}
+            />
+            <OptionRow
               icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               label={isPinned ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện"}
               onClick={handleTogglePin}
             />
-            {isDirect && (
-              <OptionRow
-                icon={isLocked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                label={isLocked ? "Tắt khoá hội thoại" : "Khoá hội thoại"}
-                onClick={handleLockToggle}
-              />
-            )}
             {canShareGroup && (
               <OptionRow
                 icon={<Link2 className="h-4 w-4" />}
@@ -409,14 +407,6 @@ export function ContactInfo() {
               />
             )}
 
-            {canDelete && (
-              <OptionRow
-                icon={<Trash2 className="h-4 w-4" />}
-                label="Xoá cuộc trò chuyện"
-                danger
-                onClick={() => setConfirmDeleteOpen(true)}
-              />
-            )}
           </div>
         </section>
       </div>
@@ -501,6 +491,17 @@ export function ContactInfo() {
       {isDirect && otherUserId && (
         <UserProfileDialog open={profileOpen} onOpenChange={setProfileOpen} userId={otherUserId} />
       )}
+
+      <ConversationSettingsDialog
+        open={convSettingsOpen}
+        onOpenChange={setConvSettingsOpen}
+        conversationId={conversation.id}
+        isLocked={isLocked}
+        isDirect={isDirect}
+        canDelete={canDelete}
+        onLockToggle={handleLockToggle}
+        onDelete={() => setConfirmDeleteOpen(true)}
+      />
     </aside>
   );
 }

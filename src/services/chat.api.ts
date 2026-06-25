@@ -247,6 +247,12 @@ export const chatApi = {
       `/api/v1/conversations/${conversationId}/join-requests/${requestId}`,
     ),
 
+  /** Cập nhật nền hội thoại (null = xoá nền, "theme:key" = preset, "custom:{mediaId}" = ảnh). */
+  updateBackground: (id: string, background: string | null) =>
+    apiClient.patch<{ background: string | null }>(`/api/v1/conversations/${id}/background`, {
+      body: { background },
+    }),
+
   // ─── Conversation Lock ───────────────────────────────────────────────────
   // Contract theo FRONTEND/18-conversation-lock.md.
 

@@ -41,7 +41,7 @@ export function SettingsModal({
       <DialogContent className="w-full max-w-[760px] overflow-hidden p-0">
         <DialogTitle className="sr-only">Cài đặt</DialogTitle>
         <div className="flex h-[520px] max-h-[85vh]">
-          <nav className="flex w-[56px] shrink-0 flex-col gap-0.5 border-r border-border bg-sidebar p-2 sm:w-[210px]">
+          <nav className="flex w-[56px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border bg-sidebar p-2 sm:w-[210px]">
             <div className="hidden px-2 pb-2 pt-1 text-sm font-bold text-foreground sm:block">Cài đặt</div>
             {TABS.map((tab) => {
               const isActive = tab.id === active;

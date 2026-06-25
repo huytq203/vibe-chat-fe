@@ -1,9 +1,9 @@
 import { io, type Socket } from 'socket.io-client';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
-import { applyEventMap, toCode, clearEventMap } from './event-map';
+import { applyEventMap, clearEventMap, toName } from './event-map';
 import { getSessionKey } from '@/lib/crypto/session-key';
-import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
+import { decryptBlob } from '@/lib/crypto/transport-cipher';
 
 /**
  * Wrapper socket.io — feature code không import 'socket.io-client' trực tiếp.
@@ -113,6 +113,12 @@ export function getSocket(token: string | null): Socket | null {
     withCredentials: true,
   });
 
+  // ⚠️ DIAGNOSTIC TẠM — bắt mọi event WS đến để soi realtime đổi nền. GỠ SAU KHI XONG.
+  socket.onAny((event: string, ...args: unknown[]) => {
+    // eslint-disable-next-line no-console
+    console.log('[WS onAny]', event, '→', toName(event), args);
+  });
+
   socket.on('connect', () => {
     logger.info('WS connected', { id: socket?.id });
     setConnectionState('connected');
@@ -214,23 +220,15 @@ export function closeSocket(): void {
   setConnectionState('disconnected');
 }
 
-/** Emit with cipher: encrypts payload if session key available, uses short code. */
+/** Emit with cipher: sends payload plain (BE WebSocket handlers do not decrypt cipher blobs). */
 export async function cipherEmit(event: string, payload: unknown): Promise<void> {
   if (!socket) return;
-  const code = toCode(event);
-  const key = getSessionKey();
-  if (!key) {
-    socket.emit(code, payload);
-    return;
-  }
-  const blob = await encryptBlob(JSON.stringify(payload), key);
-  socket.emit(code, blob);
+  socket.emit(event, payload);
 }
 
-/** Subscribe with cipher: decrypts payload if it's a blob, translates short code to event name. */
+/** Subscribe with cipher: decrypts payload if it's an encrypted string blob. */
 export function cipherOn(event: string, handler: (data: unknown) => void): () => void {
   if (!socket) return () => undefined;
-  const code = toCode(event);
   const wrappedHandler = async (blob: unknown) => {
     const key = getSessionKey();
     if (!key || typeof blob !== 'string') {
@@ -243,6 +241,6 @@ export function cipherOn(event: string, handler: (data: unknown) => void): () =>
       handler(blob); // fallback: pass raw
     }
   };
-  socket.on(code, wrappedHandler);
-  return () => { socket?.off(code, wrappedHandler); };
+  socket.on(event, wrappedHandler);
+  return () => { socket?.off(event, wrappedHandler); };
 }

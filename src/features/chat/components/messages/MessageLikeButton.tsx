@@ -43,7 +43,7 @@ export function MessageLikeButton({
         title="Thả cảm xúc"
         className={cn(
           "flex h-6 w-6 items-center justify-center rounded-full border border-border bg-popover text-[13px] leading-none shadow-sm transition-transform hover:scale-110",
-          myReaction && "border-primary/40 bg-primary/15",
+          myReaction && "border-primary/40 bg-white",
         )}
       >
         <EmojiText

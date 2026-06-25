@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import type { Message } from "@/features/chat/types";
 import { formatBubbleTime } from "@/features/chat/utils";
+import { type BubbleConfig, DEFAULT_BUBBLE_CONFIG } from "@/features/chat/config/chat-themes";
 import {
   useDiscardFailedMessage,
   useOpenDirectConversation,
@@ -51,6 +52,8 @@ type MessageBubbleProps = {
   isPinned?: boolean;
   /** Nhãn "Trưởng nhóm"/"Phó nhóm" của người gửi (chỉ khi markLeaderMessages). */
   leaderLabel?: string | null;
+  wallpaperActive?: boolean;
+  bubbleConfig?: BubbleConfig;
 };
 
 function MessageBubbleImpl({
@@ -68,7 +71,10 @@ function MessageBubbleImpl({
   canPin,
   isPinned,
   leaderLabel,
+  wallpaperActive,
+  bubbleConfig = DEFAULT_BUBBLE_CONFIG,
 }: MessageBubbleProps) {
+  const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
   const isMe = message.senderId === meId;
   const isSending = message.metadata?.optimistic === true;
   const isFailed = message.metadata?.failed === true;
@@ -172,14 +178,18 @@ function MessageBubbleImpl({
           className={cn(
             "relative rounded-2xl transition-all",
             isVisualMedia ? "p-1.5" : "px-3.5 py-2.5",
-            isMe
+            !hasTheme && (isMe
               ? "rounded-br-md bg-primary text-primary-foreground"
-              : "rounded-bl-md border border-border bg-muted text-foreground",
+              : wallpaperActive
+                ? "rounded-bl-md border border-border/40 bg-background/75 text-foreground backdrop-blur-sm"
+                : "rounded-bl-md border border-border bg-muted text-foreground"),
+            hasTheme && (isMe ? "rounded-br-md" : "rounded-bl-md border border-white/10"),
             isSending && "opacity-70",
             isFailed && "border border-danger/60",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-1 ring-offset-background",
           )}
+          style={hasTheme ? (isMe ? bubbleConfig.myStyle : bubbleConfig.otherStyle) : undefined}
         >
           {actionsMenu}
           {likeButton}
@@ -210,10 +220,9 @@ function MessageBubbleImpl({
               <span
                 className={cn(
                   "text-[9.5px] italic",
-                  isMe
-                    ? "text-primary-foreground/60 italic"
-                    : "text-muted-foreground/70 italic",
+                  !hasTheme && (isMe ? "text-primary-foreground/60" : "text-muted-foreground/70"),
                 )}
+                style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
               >
                 đã chỉnh sửa
               </span>
@@ -221,8 +230,9 @@ function MessageBubbleImpl({
             <span
               className={cn(
                 "text-[10px]",
-                isMe ? "text-primary-foreground/70" : "text-muted-foreground",
+                !hasTheme && (isMe ? "text-primary-foreground/70" : "text-muted-foreground"),
               )}
+              style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
             >
               {isSending
                 ? "Đang gửi…"
@@ -233,22 +243,26 @@ function MessageBubbleImpl({
             {isMe &&
               (isFailed ? (
                 <AlertCircle
-                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
+                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
                   aria-label="Gửi thất bại"
                 />
               ) : isSending ? (
                 <Clock
-                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
+                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
                   aria-label="Đang gửi"
                 />
               ) : isSeen ? (
                 <CheckCheck
-                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
+                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
                   aria-label="Đã xem"
                 />
               ) : (
                 <Check
-                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
+                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
                   aria-label="Đã gửi"
                 />
               ))}
