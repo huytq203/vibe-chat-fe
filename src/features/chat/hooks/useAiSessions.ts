@@ -4,7 +4,18 @@ import { useCallback, useState } from 'react';
 
 const KEY = 'ai-sessions';
 
-export type AiMessage = { role: 'user' | 'assistant'; content: string };
+export type AiAttachmentMeta = {
+  name: string;
+  mimeType: string;
+  size: number;
+  previewUrl?: string; // object URL — chỉ hợp lệ trong phiên hiện tại, không persist
+};
+
+export type AiMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  attachments?: AiAttachmentMeta[];
+};
 export type AiSession = { id: string; title: string; messages: AiMessage[]; updatedAt: number };
 
 function load(): AiSession[] {
@@ -17,8 +28,21 @@ function load(): AiSession[] {
 }
 
 function persist(sessions: AiSession[]): void {
+  const clean = sessions.map((s) => ({
+    ...s,
+    messages: s.messages.map((m) => ({
+      ...m,
+      attachments: m.attachments?.map(
+        (a): Omit<AiAttachmentMeta, 'previewUrl'> => ({
+          name: a.name,
+          mimeType: a.mimeType,
+          size: a.size,
+        }),
+      ),
+    })),
+  }));
   try {
-    localStorage.setItem(KEY, JSON.stringify(sessions.slice(0, 50)));
+    localStorage.setItem(KEY, JSON.stringify(clean.slice(0, 50)));
   } catch {
     // localStorage không khả dụng
   }
@@ -64,7 +88,7 @@ export function useAiSessions() {
         const messages = [...s.messages, message];
         const title =
           s.messages.length === 0 && message.role === 'user'
-            ? message.content.slice(0, 40)
+            ? (message.content.slice(0, 40) || message.attachments?.[0]?.name || 'Cuộc trò chuyện mới')
             : s.title;
         return { ...s, messages, title, updatedAt: Date.now() };
       });
