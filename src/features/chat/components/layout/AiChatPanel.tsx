@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Bot, Clock, Plus, Send } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { useEffect, useState } from "react";
+import { Bot, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
-import { Textarea } from "@/components/ui/textarea/Textarea";
 import { ComboBox } from "@/components/ui/combobox/ComboBox";
 import { useAutoResizeTextarea } from "@/features/chat/hooks/useAutoResizeTextarea";
-import { AiMessageContent } from "./AiMessageContent";
+import { useAiAttachments } from "@/features/chat/hooks/useAiAttachments";
 import { AiHistoryPanel } from "./AiHistoryPanel";
+import { AiMessageList } from "./AiMessageList";
+import { AiChatInput } from "./AiChatInput";
 import { useAiSessions } from "@/features/chat/hooks/useAiSessions";
+import type { AiMessage } from "@/features/chat/hooks/useAiSessions";
 import {
   callGemini,
   fetchGeminiModels,
@@ -32,7 +33,6 @@ export function AiChatPanel() {
   const [modelOptions, setModelOptions] = useState<GeminiModelInfo[]>(GEMINI_FREE_MODELS);
   const [loadingModels, setLoadingModels] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   const { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession } =
     useAiSessions();
@@ -41,6 +41,9 @@ export function AiChatPanel() {
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
     useAutoResizeTextarea();
 
+  const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
+    useAiAttachments();
+
   useEffect(() => {
     setLoadingModels(true);
     void fetchGeminiModels().then((models) => {
@@ -48,10 +51,6 @@ export function AiChatPanel() {
       setLoadingModels(false);
     });
   }, []);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   useEffect(() => { resize(); }, [input, resize]);
   useEffect(() => { focusInput(); }, [focusInput]);
@@ -66,27 +65,40 @@ export function AiChatPanel() {
     setActiveId(null);
     setInput("");
     setError(null);
+    clearAttachments();
     setShowHistory(false);
   }
 
   async function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed || loading) return;
+    if ((!trimmed && attachments.length === 0) || loading) return;
 
     let sid = activeId;
     if (!sid) sid = createSession();
 
     const currentMessages = sessions.find((s) => s.id === sid)?.messages ?? [];
-    const userMsg = { role: "user" as const, content: trimmed };
+    const capturedAttachments = attachments;
+
+    const userMsg: AiMessage = {
+      role: "user",
+      content: trimmed,
+      attachments: capturedAttachments.map(({ name, mimeType, size, previewUrl }) => ({
+        name,
+        mimeType,
+        size,
+        previewUrl,
+      })),
+    };
     const nextMessages = [...currentMessages, userMsg];
 
     pushMessage(sid, userMsg);
     setInput("");
+    clearAttachments();
     setLoading(true);
     setError(null);
 
     try {
-      const content = await callGemini(model, nextMessages);
+      const content = await callGemini(model, nextMessages, capturedAttachments);
       pushMessage(sid, { role: "assistant", content });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gửi tin nhắn thất bại");
@@ -147,69 +159,20 @@ export function AiChatPanel() {
         />
       ) : (
         <>
-          <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
-            {messages.length === 0 && !loading && (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                <Bot className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
-              </div>
-            )}
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}
-              >
-                <div
-                  className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed",
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-accent text-accent-foreground",
-                  )}
-                >
-                  {msg.role === "user"
-                    ? <span className="whitespace-pre-wrap break-words">{msg.content}</span>
-                    : <AiMessageContent content={msg.content} />}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-                  <span className="animate-pulse">Đang trả lời...</span>
-                </div>
-              </div>
-            )}
-            {error && (
-              <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          <div className="shrink-0 border-t border-border p-3">
-            <div className="flex items-end gap-2">
-              <Textarea
-                ref={textareaRef}
-                variant="filled"
-                rows={1}
-                className="min-h-[2.25rem] max-h-[6rem] resize-none overflow-y-auto py-2 text-[13px]"
-                placeholder="Nhắn tin với AI..."
-                value={input}
-                onChange={(e) => { setInput(e.target.value); resize(); }}
-                onKeyDown={(e) => handleTextareaKeyDown(e, () => void handleSend(), loading)}
-              />
-              <Button
-                size="icon"
-                variant="solid"
-                onClick={() => void handleSend()}
-                disabled={!input.trim()}
-                className="h-9 w-9 shrink-0"
-                aria-label="Gửi"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <AiMessageList messages={messages} loading={loading} error={error} />
+          <AiChatInput
+            input={input}
+            loading={loading}
+            attachments={attachments}
+            attachmentError={attachmentError}
+            textareaRef={textareaRef}
+            onInputChange={setInput}
+            onResize={resize}
+            onKeyDown={handleTextareaKeyDown}
+            onSend={() => void handleSend()}
+            onAddFiles={addFiles}
+            onRemoveAttachment={removeAttachment}
+          />
         </>
       )}
     </aside>
