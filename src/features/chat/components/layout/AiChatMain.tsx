@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, Loader2, Send } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import { Textarea } from '@/components/ui/textarea/Textarea';
 import { AiChatHeader } from './AiChatHeader';
 import { AiMessageList } from './AiMessageList';
+import { AiChatInput } from './AiChatInput';
 import type { AiSession, AiMessage } from '@/features/chat/hooks/useAiSessions';
 import type { AiSettings } from '@/features/chat/hooks/useAiSettings';
+import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { callGemini, fetchGeminiModels, GEMINI_FREE_MODELS } from '@/lib/gemini';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 
@@ -30,14 +31,17 @@ export function AiChatMain({
   onBack,
   onCreateSession,
 }: Props) {
-  const [draftModel, setDraftModel] = useState(settings.model);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>(GEMINI_FREE_MODELS);
   const [loadingModels, setLoadingModels] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } = useAutoResizeTextarea();
+  const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
+    useAutoResizeTextarea();
+
+  const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
+    useAiAttachments();
 
   useEffect(() => {
     setLoadingModels(true);
@@ -47,17 +51,8 @@ export function AiChatMain({
     });
   }, []);
 
-  useEffect(() => {
-    resize();
-  }, [input, resize]);
-
-  useEffect(() => {
-    focusInput();
-  }, [session?.id, focusInput]);
-
-  function handleSaveSettings() {
-    onSaveSettings({ model: draftModel });
-  }
+  useEffect(() => { resize(); }, [input, resize]);
+  useEffect(() => { focusInput(); }, [session?.id, focusInput]);
 
   function handleModelChange(model: string | string[]) {
     const value = Array.isArray(model) ? (model[0] ?? settings.model) : model;
@@ -66,14 +61,23 @@ export function AiChatMain({
 
   async function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed || loading || !session) return;
-    const userMsg: AiMessage = { role: 'user', content: trimmed };
+    if ((!trimmed && attachments.length === 0) || loading || !session) return;
+
+    const capturedAttachments = attachments;
+    const userMsg: AiMessage = {
+      role: 'user',
+      content: trimmed,
+      attachments: capturedAttachments.map(({ name, mimeType, size, previewUrl }) => ({
+        name, mimeType, size, previewUrl,
+      })),
+    };
     onPushMessage(session.id, userMsg);
     setInput('');
+    clearAttachments();
     setLoading(true);
     setError(null);
     try {
-      const content = await callGemini(settings.model, [...session.messages, userMsg]);
+      const content = await callGemini(settings.model, [...session.messages, userMsg], capturedAttachments);
       onPushMessage(session.id, { role: 'assistant', content });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gửi tin nhắn thất bại');
@@ -92,8 +96,6 @@ export function AiChatMain({
         onModelChange={handleModelChange}
       />
 
-      
-
       {!session ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <Bot className="h-12 w-12 text-muted-foreground/40" />
@@ -104,34 +106,20 @@ export function AiChatMain({
         <AiMessageList messages={session.messages} loading={loading} error={error} />
       )}
 
-      <div className="shrink-0 border-t border-border p-3">
-        <div className="flex items-end gap-2">
-          <Textarea
-            ref={textareaRef}
-            variant="filled"
-            rows={1}
-            className="min-h-[2.25rem] max-h-[6rem] resize-none overflow-y-auto py-2 text-[13px]"
-            placeholder="Nhắn tin với AI..."
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              resize();
-            }}
-            onKeyDown={(e) => handleTextareaKeyDown(e, () => void handleSend(), loading)}
-            disabled={!session}
-          />
-          <Button
-            size="icon"
-            variant="solid"
-            onClick={() => void handleSend()}
-            disabled={!input.trim() || !session}
-            className="h-9 w-9 shrink-0"
-            aria-label="Gửi"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <AiChatInput
+        input={input}
+        loading={loading}
+        attachments={attachments}
+        attachmentError={attachmentError}
+        textareaRef={textareaRef}
+        disabled={!session}
+        onInputChange={setInput}
+        onResize={resize}
+        onKeyDown={handleTextareaKeyDown}
+        onSend={() => void handleSend()}
+        onAddFiles={addFiles}
+        onRemoveAttachment={removeAttachment}
+      />
     </main>
   );
 }

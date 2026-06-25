@@ -13,6 +13,7 @@ interface AiChatInputProps {
   attachments: AiAttachment[];
   attachmentError: string | null;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  disabled?: boolean;
   onInputChange: (value: string) => void;
   onResize: () => void;
   onKeyDown: (
@@ -31,6 +32,7 @@ export function AiChatInput({
   attachments,
   attachmentError,
   textareaRef,
+  disabled = false,
   onInputChange,
   onResize,
   onKeyDown,
@@ -39,7 +41,7 @@ export function AiChatInput({
   onRemoveAttachment,
 }: AiChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isDisabled = !input.trim() && attachments.length === 0;
+  const isDisabled = (!input.trim() && attachments.length === 0) || disabled;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files?.length) {
@@ -81,11 +83,12 @@ export function AiChatInput({
           className="min-h-[2.25rem] max-h-[6rem] resize-none overflow-y-auto py-2 text-[13px]"
           placeholder="Nhắn tin với AI..."
           value={input}
+          disabled={disabled}
           onChange={(e) => {
             onInputChange(e.target.value);
             onResize();
           }}
-          onKeyDown={(e) => onKeyDown(e, onSend, loading)}
+          onKeyDown={(e) => onKeyDown(e, onSend, loading || disabled)}
         />
         <Button
           size="icon"
