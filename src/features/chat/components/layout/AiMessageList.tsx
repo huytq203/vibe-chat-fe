@@ -1,16 +1,48 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Bot, FileText, FileJson, File } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
-import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
+import type { AiMessage, AiAttachmentMeta } from '@/features/chat/hooks/useAiSessions';
 import { AiMessageContent } from './AiMessageContent';
 
 interface AiMessageListProps {
   messages: AiMessage[];
   loading: boolean;
   error: string | null;
+}
+
+function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
+  if (attachment.mimeType.startsWith('image/')) {
+    if (attachment.previewUrl) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={attachment.previewUrl}
+          alt={attachment.name}
+          className="max-w-[200px] rounded-lg"
+        />
+      );
+    }
+    return (
+      <span className="text-[11px] opacity-60">[🖼 {attachment.name}]</span>
+    );
+  }
+
+  const Icon =
+    attachment.mimeType === 'application/json'
+      ? FileJson
+      : attachment.mimeType.startsWith('text/')
+        ? FileText
+        : File;
+
+  return (
+    <div className="flex items-center gap-1.5 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-2 py-0.5 text-[11px]">
+      <Icon className="h-3 w-3" />
+      <span className="max-w-[140px] truncate">{attachment.name}</span>
+    </div>
+  );
 }
 
 export function AiMessageList({ messages, loading, error }: AiMessageListProps) {
@@ -40,6 +72,12 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
         onScroll={handleScroll}
         className="h-full space-y-3 overflow-y-auto px-4 py-3"
       >
+        {messages.length === 0 && !loading && (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <Bot className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
+          </div>
+        )}
         {messages.map((msg, idx) => (
           <div key={idx} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
             <div
@@ -48,9 +86,22 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
                 msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
               )}
             >
-              {msg.role === 'user'
-                ? <span className="whitespace-pre-wrap break-words">{msg.content}</span>
-                : <AiMessageContent content={msg.content} />}
+              {msg.role === 'user' ? (
+                <div className="flex flex-col gap-1.5">
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {msg.attachments.map((a, i) => (
+                        <AttachmentDisplay key={i} attachment={a} />
+                      ))}
+                    </div>
+                  )}
+                  {msg.content && (
+                    <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                  )}
+                </div>
+              ) : (
+                <AiMessageContent content={msg.content} />
+              )}
             </div>
           </div>
         ))}
