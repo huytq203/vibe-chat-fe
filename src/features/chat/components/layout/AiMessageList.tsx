@@ -122,7 +122,7 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
                       'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground',
+                        : 'bg-accent text-foreground',
                     )}
                   >
                     {msg.role === 'user' ? (
