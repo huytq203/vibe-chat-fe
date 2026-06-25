@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 export function useAutoResizeTextarea() {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -30,5 +30,8 @@ export function useAutoResizeTextarea() {
     [],
   );
 
-  return { ref, resize, focusInput, handleKeyDown };
+  return useMemo(
+    () => ({ ref, resize, focusInput, handleKeyDown }),
+    [ref, resize, focusInput, handleKeyDown],
+  );
 }
