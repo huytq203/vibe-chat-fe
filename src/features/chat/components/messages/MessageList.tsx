@@ -22,13 +22,14 @@ import { LightboxProvider } from './LightboxProvider';
 
 type MessageListProps = {
   conversationId: string;
+  onAtBottom?: () => void;
 };
 
 const EMPTY_TYPING: string[] = [];
 /** Trần số trang tự nạp khi nhảy tới 1 tin cũ (40 × 30 ≈ 1200 tin) — tránh nạp vô hạn. */
 const MAX_JUMP_FETCHES = 40;
 
-export function MessageList({ conversationId }: MessageListProps) {
+export function MessageList({ conversationId, onAtBottom }: MessageListProps) {
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const { data: conversation } = useConversation(conversationId);
   const memberNames = useMemo(() => buildMemberNameMap(conversation), [conversation]);
@@ -88,6 +89,7 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<string | null>(null);
+  const wasScrolledDownRef = useRef(false);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -186,7 +188,11 @@ export function MessageList({ conversationId }: MessageListProps) {
     if (!el) return;
     if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowScrollDown(distanceFromBottom > 240);
+    const isScrolledDown = distanceFromBottom > 240;
+    // Transition từ scrolled-up → at-bottom → trigger mark-read
+    if (wasScrolledDownRef.current && !isScrolledDown) onAtBottom?.();
+    wasScrolledDownRef.current = isScrolledDown;
+    setShowScrollDown(isScrolledDown);
   }
 
   if (isLoading) {
@@ -271,7 +277,7 @@ export function MessageList({ conversationId }: MessageListProps) {
       {showScrollDown && (
         <button
           type="button"
-          onClick={scrollToBottom}
+          onClick={() => { scrollToBottom(); onAtBottom?.(); }}
           aria-label="Xuống tin mới nhất"
           className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-muted text-foreground transition-colors hover:bg-secondary"
         >

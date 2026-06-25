@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
@@ -22,6 +22,9 @@ import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 import { MyStoreInfoPanel, MyStoreFolderView } from '@/features/my-store';
+import { NavSidebar } from './NavSidebar';
+import { AiChatPanel } from './AiChatPanel';
+import { AiChatPage } from './AiChatPage';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -32,6 +35,8 @@ export function ChatLayout() {
   const setMyStoreFilesOpen = useChatUIStore((s) => s.setMyStoreFilesOpen);
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
+  const activeSection = useChatUIStore((s) => s.activeSection);
+  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations } = useConversations();
@@ -39,6 +44,7 @@ export function ChatLayout() {
   const isSelfConv = selectedConv?.type === 'SELF';
   const router = useRouter();
   const searchParams = useSearchParams();
+
   useChatRealtime();
   useNotificationRealtime();
   useFriendRealtime();
@@ -96,16 +102,25 @@ export function ChatLayout() {
       <div className="flex h-full w-full flex-col overflow-hidden">
         {mobilePanel === 'list' && <ConversationList />}
         {mobilePanel === 'chat' && (
-          showFilesView ? <MyStoreFolderView onBack={() => setMyStoreFilesOpen(false)} /> : <ChatPanel />
+          showFilesView ? (
+            <MyStoreFolderView onBack={() => setMyStoreFilesOpen(false)} />
+          ) : (
+            <ChatPanel />
+          )
         )}
         {mobilePanel === 'contact' && selectedConversationId && (
-          isSelfConv
-            ? <MyStoreInfoPanel
-                conversationId={selectedConversationId}
-                onClose={() => setMobilePanel('chat')}
-                onOpenFiles={() => { setMyStoreFilesOpen(true); setMobilePanel('chat'); }}
-              />
-            : <ContactInfo />
+          isSelfConv ? (
+            <MyStoreInfoPanel
+              conversationId={selectedConversationId}
+              onClose={() => setMobilePanel('chat')}
+              onOpenFiles={() => {
+                setMyStoreFilesOpen(true);
+                setMobilePanel('chat');
+              }}
+            />
+          ) : (
+            <ContactInfo />
+          )
         )}
         <CallContainer />
         <InviteProfileModal />
@@ -113,25 +128,52 @@ export function ChatLayout() {
     );
   }
 
+  if (activeSection === 'ai-full') {
+    return (
+      <div className="flex h-full w-full overflow-hidden">
+        <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <AiChatPage />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  // Xác định panel trái hiển thị dựa theo activeSection
+  const leftPanel =
+    activeSection === 'ai' ? (
+      <AiChatPanel />
+    ) : (
+      <ConversationList />
+    );
+
   return (
     <div className="flex h-full w-full overflow-hidden">
-      <ConversationList />
+      {/* Desktop nav sidebar */}
+      <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+
+      {/* Left panel: ConversationList hoặc AiChatPanel */}
+      {leftPanel}
+
       {showFilesView ? (
-        <MyStoreFolderView  onBack={() => setMyStoreFilesOpen(false)} />
+        <MyStoreFolderView onBack={() => setMyStoreFilesOpen(false)} />
       ) : (
         <>
           <ChatPanel />
           {rightPanelOpen && selectedConversationId && (
-            isSelfConv
-              ? <MyStoreInfoPanel
-                  conversationId={selectedConversationId}
-                  onClose={() => useChatUIStore.getState().setRightOpen(false)}
-                  onOpenFiles={() => setMyStoreFilesOpen(true)}
-                />
-              : <ContactInfo />
+            isSelfConv ? (
+              <MyStoreInfoPanel
+                conversationId={selectedConversationId}
+                onClose={() => useChatUIStore.getState().setRightOpen(false)}
+                onOpenFiles={() => setMyStoreFilesOpen(true)}
+              />
+            ) : (
+              <ContactInfo />
+            )
           )}
         </>
       )}
+
       <CallContainer />
       <InviteProfileModal />
     </div>

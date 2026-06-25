@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiAuth, ApiError } from '@/lib/api/client';
 import { authApi } from '@/services/auth.api';
+import { authKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 
 type Props = {
@@ -20,6 +22,7 @@ export function AuthBootstrap({
   redirectIfAuthed,
 }: Props) {
   const router = useRouter();
+  const qc = useQueryClient();
   const setUser = useAuthStore((s) => s.setUser);
   const setHydrated = useAuthStore((s) => s.setHydrated);
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -52,6 +55,8 @@ export function AuthBootstrap({
         }
         const user = await authApi.fetchMe();
         if (cancelled || useAuthStore.getState().isAuthenticated) return;
+        // Seed RQ cache trước setUser — useMe() sẽ hit cache, không call /me lần 2.
+        qc.setQueryData(authKeys.me(), user);
         setUser(user);
       } catch (e) {
         if (cancelled) return;
@@ -70,7 +75,7 @@ export function AuthBootstrap({
     return () => {
       cancelled = true;
     };
-  }, [hydrated, requireAuth, redirectTo, router, setUser, setHydrated]);
+  }, [hydrated, requireAuth, redirectTo, router, qc, setUser, setHydrated]);
 
   // Redirect khi mất session sau khi đã hydrate (vd logout từ trang protected).
   useEffect(() => {

@@ -2,6 +2,8 @@
 
 import { create } from 'zustand';
 
+export type NavSection = 'chat' | 'ai' | 'ai-full';
+
 type ChatUIState = {
   rightPanelOpen: boolean;
   activeTab: 'all' | 'unread' | 'group';
@@ -13,6 +15,8 @@ type ChatUIState = {
   myStoreOpen: boolean;
   /** Chế độ xem Tệp & thư mục toàn màn hình của myStore (thay khung chat + panel). */
   myStoreFilesOpen: boolean;
+  /** Desktop nav sidebar — section đang active. */
+  activeSection: NavSection;
   toggleRight: () => void;
   setRightOpen: (open: boolean) => void;
   setActiveTab: (tab: ChatUIState['activeTab']) => void;
@@ -20,6 +24,7 @@ type ChatUIState = {
   setStrangerOpen: (open: boolean) => void;
   setMyStoreOpen: (open: boolean) => void;
   setMyStoreFilesOpen: (open: boolean) => void;
+  setActiveSection: (section: NavSection) => void;
 };
 
 export const useChatUIStore = create<ChatUIState>((set) => ({
@@ -29,6 +34,7 @@ export const useChatUIStore = create<ChatUIState>((set) => ({
   strangerOpen: false,
   myStoreOpen: false,
   myStoreFilesOpen: false,
+  activeSection: 'chat',
   toggleRight: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
   setRightOpen: (open) => set({ rightPanelOpen: open }),
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -36,4 +42,5 @@ export const useChatUIStore = create<ChatUIState>((set) => ({
   setStrangerOpen: (open) => set({ strangerOpen: open }),
   setMyStoreOpen: (open) => set({ myStoreOpen: open }),
   setMyStoreFilesOpen: (open) => set({ myStoreFilesOpen: open }),
+  setActiveSection: (section) => set({ activeSection: section }),
 }));

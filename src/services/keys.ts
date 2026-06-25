@@ -44,7 +44,10 @@ export const notificationKeys = {
   // Tách khỏi lists(): realtime patch lists() theo shape NotificationPage,
   // còn key này giữ InfiniteData — chỉ invalidate, không patch.
   infinite: () => [...notificationKeys.all, 'infinite'] as const,
-  unreadCount: () => [...notificationKeys.all, 'unread-count'] as const,
+  unreadCount: (category?: string) =>
+    category
+      ? ([...notificationKeys.all, 'unread-count', category] as const)
+      : ([...notificationKeys.all, 'unread-count'] as const),
 } as const;
 
 export const chatKeys = {
@@ -104,6 +107,11 @@ export const shareLinkKeys = {
   all: ['share-links'] as const,
   my: () => [...shareLinkKeys.all, 'me'] as const,
   resolve: (code: string) => [...shareLinkKeys.all, 'resolve', code] as const,
+} as const;
+
+export const pollKeys = {
+  all: ['polls'] as const,
+  detail: (pollId: string) => [...pollKeys.all, 'detail', pollId] as const,
 } as const;
 
 export const myStoreKeys = {

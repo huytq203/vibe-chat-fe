@@ -4,11 +4,16 @@ import { primeKeys, getKeyForConversation } from '@/lib/crypto/conversation-key-
 import { decryptToString } from '@/lib/crypto/message-crypto';
 import type { Conversation } from '@/features/chat/types';
 
-// Trả Map<conversationId, previewText đã giải mã> cho các hội thoại có preview mã hoá.
-export function useDecryptedPreviews(conversations: Conversation[]): Map<string, string> {
-  const [decrypted, setDecrypted] = useState<Map<string, string>>(new Map());
+// Cache module-level: tồn tại suốt session, không reset khi component unmount/remount.
+// Giải quyết flash "Đang giải mã…" khi ConversationList remount (chuyển tab, Next.js navigation).
+const _moduleCache = new Map<string, string>();
 
-  // Khoá phụ thuộc: chỉ chạy lại khi tập (id + ciphertext) đổi — tránh vòng lặp.
+// Trả Map<conversationId, previewText đã giải mã> cho các hội thoại có preview mã hoá.
+// Kết hợp module-level cache (chống flash khi remount) + merge strategy (chống flash khi re-decrypt).
+export function useDecryptedPreviews(conversations: Conversation[]): Map<string, string> {
+  // Khởi từ module cache → không flash ngay cả lần mount đầu sau khi đã từng decrypt
+  const [decrypted, setDecrypted] = useState<Map<string, string>>(() => new Map(_moduleCache));
+
   const encrypted = conversations.filter(
     (c) => c.lastMessage?.previewEncrypted && c.lastMessage.previewCipher,
   );
@@ -19,25 +24,44 @@ export function useDecryptedPreviews(conversations: Conversation[]): Map<string,
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      // Không còn preview mã hoá → dọn map (đặt setState trong async để tránh
-      // cascading render cảnh báo bởi eslint — không set đồng bộ trong thân effect).
       if (encrypted.length === 0) {
-        if (!cancelled) setDecrypted((prev) => (prev.size === 0 ? prev : new Map()));
+        if (!cancelled) {
+          _moduleCache.clear();
+          setDecrypted((prev) => (prev.size === 0 ? prev : new Map()));
+        }
         return;
       }
       await primeKeys(encrypted.map((c) => c.id));
-      const next = new Map<string, string>();
+      const updates = new Map<string, string>();
       await Promise.all(
         encrypted.map(async (c) => {
           try {
             const key = await getKeyForConversation(c.id);
-            next.set(c.id, await decryptToString(c.lastMessage!.previewCipher!, key));
+            updates.set(c.id, await decryptToString(c.lastMessage!.previewCipher!, key));
           } catch {
-            // Giải mã lỗi (mất key/đổi version) → để trống, UI fallback placeholder.
+            // Giải mã lỗi → giữ nguyên giá trị cũ nếu có
           }
         }),
       );
-      if (!cancelled) setDecrypted(next);
+      if (!cancelled) {
+        setDecrypted((prev) => {
+          const encryptedIds = new Set(encrypted.map((c) => c.id));
+          const next = new Map(prev);
+          // Merge kết quả mới — không xoá giá trị cũ cho đến khi có kết quả mới
+          updates.forEach((v, k) => {
+            next.set(k, v);
+            _moduleCache.set(k, v);
+          });
+          // Dọn các conversation không còn dùng mã hoá nữa
+          prev.forEach((_, k) => {
+            if (!encryptedIds.has(k)) {
+              next.delete(k);
+              _moduleCache.delete(k);
+            }
+          });
+          return next;
+        });
+      }
     })();
     return () => {
       cancelled = true;

@@ -12,7 +12,7 @@ Bạn là **Senior UI Engineer (15 năm)** trên **vibe-chat**, mạnh về desi
 3. Đọc `.claude/rules/02-components.md` — Server/Client, giới hạn dòng, a11y.
 
 ## Quy tắc
-- UI primitive: **Basuicn** (`npx basuicn add <name>` — báo user chạy). KHÔNG tự viết Button/Dialog/Input. KHÔNG sửa `components/ui/`; ghi đè qua wrapper `components/common/`.
+- UI primitive: **Basuicn** (`npx basuicn add <name>` — báo user chạy). KHÔNG tự viết Button/Dialog/Input. KHÔNG sửa `components/ui/`; ghi đè qua wrapper `components/common/`,`npx basuicn list` để lấy danh sách components.
 - Style bằng Tailwind v4 + `cn()` + `tailwind-variants`. Không inline style (trừ runtime), không CSS-in-JS.
 - Radius button ≤ 12px (không pill). Dùng đúng scale spacing/radius/màu của DESIGN.
 - Mobile-first, breakpoints theo DESIGN §8. Giảm layout shift (skeleton khớp layout).

@@ -29,7 +29,11 @@ export function useStrangerConversations(
     (c: Conversation) => {
       if (c.type !== "DIRECT") return false;
       const otherId = c.memberIds.find((id) => id !== meId);
-      return Boolean(otherId) && !friendIds.has(otherId as string);
+      if (!otherId || friendIds.has(otherId)) return false;
+      // Nếu mình đã từng trả lời (lastMessage do mình gửi) → không còn là "người lạ"
+      // → cuộc hội thoại trở về danh sách chính.
+      if (meId && c.lastMessage?.senderId === meId) return false;
+      return true;
     },
     [friendIds, meId],
   );

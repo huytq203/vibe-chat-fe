@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
@@ -97,6 +97,12 @@ export function ChatPanel() {
 
   const isSelfConv = conversation?.type === 'SELF';
 
+  // Gọi khi user scroll đến cuối hoặc khi click scroll-down button.
+  const handleAtBottom = useCallback(() => {
+    if (!convId || !lastMessageId || unreadCount <= 0) return;
+    markRead({ conversationId: convId, messageId: lastMessageId });
+  }, [convId, lastMessageId, unreadCount, markRead]);
+
   if (!selectedConversationId || !conversation) {
     return (
       <main className="flex h-full flex-1 flex-col items-center justify-center bg-background text-center">
@@ -128,9 +134,13 @@ export function ChatPanel() {
       ) : (
         <>
           <PinnedBanner conversation={conversation} meId={meId} />
-          <MessageList conversationId={conversation.id} />
+          <MessageList conversationId={conversation.id} onAtBottom={handleAtBottom} />
           {isSelfConv || canSendMessage(conversation, meId) ? (
-            <MessageInput conversationId={conversation.id} selfConv={isSelfConv} />
+            <MessageInput
+              conversationId={conversation.id}
+              selfConv={isSelfConv}
+              isGroup={conversation.type === 'GROUP' || conversation.type === 'CHANNEL'}
+            />
           ) : (
             <div className="shrink-0 border-t border-border bg-sidebar px-4 py-3 text-center text-[12.5px] text-muted-foreground">
               Chỉ quản trị viên được nhắn trong nhóm này

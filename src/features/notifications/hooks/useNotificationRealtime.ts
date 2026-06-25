@@ -48,6 +48,16 @@ export function useNotificationRealtime() {
         (prev) => ({ unreadCount: (prev?.unreadCount ?? 0) + 1 }),
       );
 
+      // System badge (chuông): tất cả trừ MESSAGE_NEW và MESSAGE_MENTION
+      // (tin nhắn đã có unreadCount riêng theo hội thoại, không tính vào system).
+      const isMessage = n.type === 'MESSAGE_NEW' || n.type === 'MESSAGE_MENTION';
+      if (!isMessage) {
+        qc.setQueryData<{ unreadCount: number } | undefined>(
+          notificationKeys.unreadCount('system'),
+          (prev) => ({ unreadCount: (prev?.unreadCount ?? 0) + 1 }),
+        );
+      }
+
       // Prepend vào page đầu tiên nếu đang mở danh sách.
       const entries = qc.getQueriesData<NotificationPage>({
         queryKey: notificationKeys.lists(),
@@ -80,6 +90,9 @@ export function useNotificationRealtime() {
 
       // List cuộn vô hạn (panel chuông) giữ shape InfiniteData → chỉ invalidate.
       qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
+      if (!isMessage) {
+        qc.invalidateQueries({ queryKey: notificationKeys.unreadCount('system') });
+      }
 
       // Đang mở đúng hội thoại của tin → không cần toast (user đã thấy tin).
       const inActiveConv = Boolean(n.conversationId) && n.conversationId === activeConvRef.current;
@@ -144,6 +157,8 @@ export function useNotificationRealtime() {
       // List unreadOnly cần loại bỏ item đã đọc → refetch cho chuẩn (patch trên chỉ là optimistic).
       qc.invalidateQueries({ queryKey: notificationKeys.lists() });
       qc.invalidateQueries({ queryKey: notificationKeys.infinite() });
+      // System badge cần sync lại (không đủ thông tin xác định loại nào bị clear).
+      qc.invalidateQueries({ queryKey: notificationKeys.unreadCount('system') });
     }
 
     socket.on('notification:new', onNotificationNew);

@@ -12,6 +12,7 @@ import { ChecklistCard } from '@/features/my-store/components/ChecklistCard';
 import { BookmarkCard } from '@/features/my-store/components/BookmarkCard';
 import { ContactCardContent } from './ContactCardContent';
 import { CallMessageContent } from './CallMessageContent';
+import { PollBubble } from './PollBubble';
 import { useDecryptedBody } from '@/features/chat/hooks/use-decrypted-message';
 
 const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
@@ -52,6 +53,9 @@ export function BubbleContent({ message, isMe }: { message: Message; isMe: boole
   }
   if (message.type === 'CALL') {
     return <CallMessageContent message={message} />;
+  }
+  if (message.type === 'POLL') {
+    return <PollBubble message={message} />;
   }
   if (message.type === 'CONTACT') {
     const contact = readContactCard(message);

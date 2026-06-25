@@ -32,6 +32,8 @@ export interface ComboBoxOption {
 export interface ComboBoxProps {
   /** Array of selectable options */
   options: ComboBoxOption[];
+
+  clearIcon?:boolean
   /** Label text displayed above the combobox */
   label?: string;
   placeholder?: string;
@@ -67,7 +69,7 @@ export interface ComboBoxProps {
 }
 
 const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
-  ({ options, label, placeholder, value, defaultValue, onValueChange, onChange, multiple, isLoading, className, autocomplete = true, emptyText = 'No results found.', selectAllText = 'Select all', clearAllText = 'Clear all', leftIcon, required, error, clearValue }, ref) => {
+  ({ options, label, placeholder, value, defaultValue, onValueChange, onChange, multiple, isLoading, className, autocomplete = true, emptyText = 'No results found.', selectAllText = 'Select all', clearAllText = 'Clear all', leftIcon, required, error, clearValue, clearIcon=true }, ref) => {
     const [inputValue, setInputValue] = React.useState('');
     const [internalValue, setInternalValue] = React.useState<string | string[] | null>(defaultValue || (multiple ? [] : null));
     const isSelectingRef = React.useRef(false);
@@ -177,9 +179,9 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
                     return (
                       <BaseCombobox.Chip key={val} className={chip()}>
                         {option?.label || val}
-                        <BaseCombobox.ChipRemove className={chipRemove()}>
-                          <X className="h-3 w-3" />
-                        </BaseCombobox.ChipRemove>
+                        {clearIcon && <BaseCombobox.ChipRemove className={chipRemove()}>
+                         <X className="h-3 w-3" />
+                        </BaseCombobox.ChipRemove>}
                       </BaseCombobox.Chip>
                     );
                   })}
@@ -200,7 +202,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
               )}
 
               <div className="flex items-center gap-1 shrink-0 ml-auto text-muted-foreground">
-                {hasValue ? (
+                {hasValue && clearIcon ? (
                   <span
                     role="button"
                     aria-label="Clear selection"
@@ -211,7 +213,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
                     onClick={(e) => e.stopPropagation()}
                     className="cursor-pointer flex h-5 w-5 items-center justify-center rounded-full hover:bg-red-50 hover:text-red-500 transition-colors pointer-events-auto"
                   >
-                    <X className="h-3.5 w-3.5" />
+                     <X className="h-3.5 w-3.5" />
                   </span>
                 ) : (
                   <BaseCombobox.Trigger className="transition-transform group-data-open:rotate-180">

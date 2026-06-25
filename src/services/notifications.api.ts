@@ -45,8 +45,10 @@ export const notificationsApi = {
     };
   },
 
-  unreadCount: () =>
-    apiClient.get<{ unreadCount: number }>('/api/v1/notifications/unread-count'),
+  unreadCount: (params?: { category?: 'system' | 'message' }) =>
+    apiClient.get<{ unreadCount: number }>('/api/v1/notifications/unread-count', {
+      query: params?.category ? { category: params.category } : undefined,
+    }),
 
   markRead: (id: string) =>
     apiClient.post<{ ok: true }>(`/api/v1/notifications/${id}/read`),

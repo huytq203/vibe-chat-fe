@@ -10,6 +10,7 @@ import {
   getConversationAvatar,
   getConversationName,
   getConversationSeed,
+  mapPreviewText,
 } from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 
@@ -39,11 +40,12 @@ export function ConversationItem({
   const lm = conversation.lastMessage;
   // Tin FE-encrypted: dùng preview đã giải mã; chờ giải mã xong thì hiện placeholder.
   const decoded = lm?.previewEncrypted
-    ? (decryptedPreview ?? 'Đang giải mã…')
+    ? (decryptedPreview ?? '...')
     : lm?.preview;
+  const mappedPreview = mapPreviewText(decoded) || null;
   const preview = isLocked
     ? 'Cuộc hội thoại riêng tư'
-    : decoded
+    : mappedPreview
       ?? (conversation.messageCount > 0
         ? 'Tin nhắn đã thu hồi'
         : 'Chưa có tin nhắn');
@@ -82,7 +84,7 @@ export function ConversationItem({
           <span className="truncate text-xs text-muted-foreground">
             <EmojiText text={preview} />
           </span>
-          {unread > 0 && (
+          {unread > 0 && !selected && (
             <Badge variant="default" size="sm">
               {unread > 99 ? '99+' : unread}
             </Badge>

@@ -273,3 +273,25 @@ export function getLeaderLabel(role: MemberRole | null | undefined): string | nu
   if (role === 'ADMIN' || role === 'MODERATOR') return 'Phó nhóm';
   return null;
 }
+
+// Map placeholder dạng [Type] → văn bản thân thiện tiếng Việt cho preview hội thoại.
+const PLAIN_TEXT_PREVIEW_MAP: Record<string, string> = {
+  '[image]': 'Đã gửi hình ảnh',
+  '[contact]': 'Đã gửi liên hệ',
+  '[file]': 'Đã gửi tệp đính kèm',
+  '[voice]': 'Đã gửi tin nhắn thoại',
+  '[video]': 'Đã gửi video',
+  '[audio]': 'Đã gửi âm thanh',
+  '[poll]': 'Bình chọn',
+  '[sticker]': 'Đã gửi sticker',
+};
+
+/**
+ * Chuyển chuỗi placeholder [Type] thành văn bản tiếng Việt cho preview hội thoại.
+ * Không khớp → trả nguyên chuỗi gốc.
+ */
+export function mapPreviewText(preview: string | null | undefined): string {
+  if (!preview) return '';
+  const trimmed = preview.trim();
+  return PLAIN_TEXT_PREVIEW_MAP[trimmed] ?? preview;
+}

@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import {
+  BarChart2,
+  Bot,
   CalendarClock,
   Check,
   Clock,
@@ -29,7 +31,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { SELF_DESTRUCT_OPTIONS } from "@/features/chat/utils";
 import type { AttachmentKind } from "@/features/chat/hooks/useAttachments";
-import { AttachmentButtons } from "./AttachmentButtons";
+import { AttachmentButtons } from "./attachment/AttachmentButtons";
 
 type ActionItemProps = {
   icon: ReactNode;
@@ -44,7 +46,7 @@ function ActionItem({ icon, label, onClick, active }: ActionItemProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-[11px] font-medium transition-colors hover:bg-muted",
+        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium transition-colors hover:bg-muted text-left",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >
@@ -68,6 +70,8 @@ type ComposerActionsProps = {
   onEmojiButtonClick: () => void;
   onEmojiSelect: (emoji: string) => void;
   onToggleExpanded: () => void;
+  onAiClick?: () => void;
+  onPollClick?: () => void;
 };
 
 /** Cụm nút trái của ô soạn: đính kèm, tin tự huỷ, emoji, mở rộng vùng soạn. */
@@ -85,6 +89,8 @@ export function ComposerActions({
   onEmojiButtonClick,
   onEmojiSelect,
   onToggleExpanded,
+  onAiClick,
+  onPollClick,
 }: ComposerActionsProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -192,7 +198,21 @@ export function ComposerActions({
             showArrow={false}
             className="w-auto p-1.5"
           >
-            <div className="flex items-center gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-[120px]">
+              {onAiClick && (
+                <ActionItem
+                  icon={<Bot className="h-[18px] w-[18px]" />}
+                  label="Hỏi AI"
+                  onClick={() => handleMoreAction(onAiClick!)}
+                />
+              )}
+              {onPollClick && (
+                <ActionItem
+                  icon={<BarChart2 className="h-[18px] w-[18px]" />}
+                  label="Bình chọn"
+                  onClick={() => handleMoreAction(onPollClick!)}
+                />
+              )}
               <ActionItem
                 icon={<IdCard className="h-[18px] w-[18px]" />}
                 label="Danh thiếp"

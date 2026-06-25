@@ -400,4 +400,44 @@ export const chatApi = {
       { body: { ids } },
     ),
 
+  // ─── Poll (bình chọn) ────────────────────────────────────────────────────────
+
+  createPoll: (
+    conversationId: string,
+    body: {
+      question: string;
+      options: string[];
+      isMultiChoice?: boolean;
+      isAnonymous?: boolean;
+      allowAddOptions?: boolean;
+      hideResultsBeforeVote?: boolean;
+      expiresAt?: string | null;
+    },
+  ) =>
+    apiClient.post<import('@/features/chat/types').PollData>(
+      `/api/v1/polls?conversationId=${conversationId}`,
+      { body },
+    ),
+
+  getPoll: (pollId: string) =>
+    apiClient.get<import('@/features/chat/types').PollData>(`/api/v1/polls/${pollId}`),
+
+  votePoll: (pollId: string, optionIds: string[]) =>
+    apiClient.post<import('@/features/chat/types').PollData>(`/api/v1/polls/${pollId}/vote`, {
+      body: { optionIds },
+    }),
+
+  removeVote: (pollId: string, optionId: string) =>
+    apiClient.delete<import('@/features/chat/types').PollData>(
+      `/api/v1/polls/${pollId}/vote/${optionId}`,
+    ),
+
+  addPollOption: (pollId: string, text: string) =>
+    apiClient.post<import('@/features/chat/types').PollData>(`/api/v1/polls/${pollId}/options`, {
+      body: { text },
+    }),
+
+  deletePoll: (pollId: string) =>
+    apiClient.delete<void>(`/api/v1/polls/${pollId}`),
+
 } as const;

@@ -505,8 +505,11 @@ export function useMarkRead() {
   return useMutation({
     mutationFn: (vars: { conversationId: string; messageId: string }) =>
       chatApi.markRead(vars.conversationId, vars.messageId),
-    onMutate: (vars) => {
-      // Optimistic: badge unread của conv = 0 ngay khi user mở conv.
+    onMutate: async (vars) => {
+      // Cancel refetch đang bay để không override optimistic (pattern TanStack Query).
+      await qc.cancelQueries({ queryKey: chatKeys.conversationLists() });
+      await qc.cancelQueries({ queryKey: chatKeys.conversationDetail(vars.conversationId) });
+      // Xoá badge ngay lập tức ở cả list lẫn detail.
       qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
         { queryKey: chatKeys.conversationLists() },
         (prev) =>
@@ -514,9 +517,28 @@ export function useMarkRead() {
             ? prev.map((c) => (c.id === vars.conversationId ? { ...c, unreadCount: 0 } : c))
             : prev,
       );
+      qc.setQueryData<import('@/features/chat/types').Conversation | undefined>(
+        chatKeys.conversationDetail(vars.conversationId),
+        (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
+      );
     },
-    onSuccess: () => {
-      debouncedInvalidate(qc, chatKeys.conversationLists());
+    onSettled: (_data, _err, vars) => {
+      // API trả về (success hoặc error) → ghi đè lại unreadCount: 0 vào cache.
+      // Mục tiêu: huỷ kết quả của mọi refetch bị chen vào TRONG lúc API đang bay
+      // (WS event → debouncedInvalidate → refetch trả unreadCount: 1 từ server cũ).
+      qc.setQueriesData<import('@/features/chat/types').Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) =>
+          prev
+            ? prev.map((c) => (c.id === vars.conversationId ? { ...c, unreadCount: 0 } : c))
+            : prev,
+      );
+      qc.setQueryData<import('@/features/chat/types').Conversation | undefined>(
+        chatKeys.conversationDetail(vars.conversationId),
+        (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
+      );
+      // Sau khi override xong → invalidate để đồng bộ với server (lúc này đã commit).
+      setTimeout(() => debouncedInvalidate(qc, chatKeys.conversationLists()), 300);
     },
   });
 }

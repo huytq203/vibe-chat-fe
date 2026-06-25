@@ -214,15 +214,24 @@ export function useChatRealtime() {
         return { ...prev, pages: [head, ...rest] };
       });
       debouncedInvalidate(qc, chatKeys.conversationLists());
-      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(message.conversationId) });
+      // Debounce detail invalidation để tránh race với markRead: nếu user đang xem conv,
+      // refetch ngay lập tức sẽ trả về unreadCount>0 trước khi API markRead hoàn thành.
+      debouncedInvalidate(qc, chatKeys.conversationDetail(message.conversationId));
 
-      // Tin vào "Kho của tôi" (SELF conv) → refresh shared tabs (Ảnh/Tài liệu/Liên kết)
-      // + quota (media gửi qua chat cũng tính vào 5GB). Chỉ áp dụng đúng SELF conv.
+      // Shared tabs (Ảnh/Tài liệu/Liên kết) trong ContactInfo — invalidate theo loại tin.
+      const msgType = message.type;
+      if (msgType === 'IMAGE' || msgType === 'VIDEO' || msgType === 'AUDIO') {
+        debouncedInvalidate(qc, chatKeys.shared(message.conversationId, 'MEDIA'));
+      } else if (msgType === 'FILE') {
+        debouncedInvalidate(qc, chatKeys.shared(message.conversationId, 'FILE'));
+      } else if (msgType === 'TEXT') {
+        // TEXT có thể chứa link được BE index vào tab Liên kết.
+        debouncedInvalidate(qc, chatKeys.shared(message.conversationId, 'LINK'));
+      }
+
+      // Kho của tôi (SELF conv): refresh thêm quota dung lượng.
       const selfConvId = qc.getQueryData<{ id: string }>(myStoreKeys.conversation())?.id;
       if (selfConvId && message.conversationId === selfConvId) {
-        for (const t of ['MEDIA', 'FILE', 'LINK']) {
-          qc.invalidateQueries({ queryKey: chatKeys.shared(selfConvId, t) });
-        }
         qc.invalidateQueries({ queryKey: myStoreKeys.quota() });
       }
     }

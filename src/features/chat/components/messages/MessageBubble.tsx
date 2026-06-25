@@ -193,10 +193,11 @@ function MessageBubbleImpl({
             />
           )}
           <BubbleContent message={message} isMe={isMe} />
+          {/* Timestamp + status INSIDE bubble */}
           <div
             className={cn(
-              "mt-1 flex items-center justify-end gap-1",
-              isVisualMedia && "px-1 pb-0.5",
+              "mt-1 flex items-center gap-1",
+              isMe ? "justify-end" : "justify-start",
             )}
           >
             {message.expireAt &&
@@ -210,8 +211,8 @@ function MessageBubbleImpl({
                 className={cn(
                   "text-[9.5px] italic",
                   isMe
-                    ? "text-primary-foreground/50"
-                    : "text-muted-foreground/70",
+                    ? "text-primary-foreground/60 italic"
+                    : "text-muted-foreground/70 italic",
                 )}
               >
                 đã chỉnh sửa
@@ -220,7 +221,7 @@ function MessageBubbleImpl({
             <span
               className={cn(
                 "text-[10px]",
-                isMe ? "text-primary-foreground/60" : "text-muted-foreground",
+                isMe ? "text-primary-foreground/70" : "text-muted-foreground",
               )}
             >
               {isSending
@@ -232,21 +233,24 @@ function MessageBubbleImpl({
             {isMe &&
               (isFailed ? (
                 <AlertCircle
-                  className="h-3.5 w-3.5 text-danger-foreground"
+                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
                   aria-label="Gửi thất bại"
                 />
               ) : isSending ? (
                 <Clock
-                  className="h-3.5 w-3.5 opacity-70"
+                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
                   aria-label="Đang gửi"
                 />
               ) : isSeen ? (
                 <CheckCheck
-                  className="h-3.5 w-3.5  opacity-80"
+                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
                   aria-label="Đã xem"
                 />
               ) : (
-                <Check className="h-3.5 w-3.5 opacity-80" aria-label="Đã gửi" />
+                <Check
+                  className={cn("h-3.5 w-3.5", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}
+                  aria-label="Đã gửi"
+                />
               ))}
           </div>
         </div>

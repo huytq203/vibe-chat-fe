@@ -47,3 +47,17 @@ export function useUnreadCount() {
     staleTime: 30_000,
   });
 }
+
+/** Chỉ đếm thông báo hệ thống (kết bạn, cuộc gọi nhỡ, tài khoản) — dùng cho badge chuông.
+ * Tin nhắn không được tính vì đã có unreadCount riêng theo từng hội thoại.
+ */
+export function useSystemNotifCount() {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: notificationKeys.unreadCount('system'),
+    queryFn: () => notificationsApi.unreadCount({ category: 'system' }),
+    enabled: isAuthed,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}

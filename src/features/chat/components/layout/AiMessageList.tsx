@@ -5,6 +5,7 @@ import { ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
 import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { AiMessageContent } from './AiMessageContent';
 
 interface AiMessageListProps {
   messages: AiMessage[];
@@ -47,7 +48,9 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
                 msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
               )}
             >
-              {msg.content}
+              {msg.role === 'user'
+                ? <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                : <AiMessageContent content={msg.content} />}
             </div>
           </div>
         ))}

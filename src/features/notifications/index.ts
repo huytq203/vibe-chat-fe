@@ -1,6 +1,6 @@
 export { NotificationPanel } from './components/NotificationPanel';
 export { NotificationListPanel } from './components/NotificationListPanel';
-export { useNotifications, useNotificationsInfinite, useUnreadCount } from './hooks/use-query';
+export { useNotifications, useNotificationsInfinite, useUnreadCount, useSystemNotifCount } from './hooks/use-query';
 export {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,

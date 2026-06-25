@@ -75,7 +75,7 @@ export function ChecklistCard({ message }: ChecklistCardProps) {
             </div>
             <span
               className={cn(
-                'text-sm leading-tight transition-colors',
+                'text-sm leading-tight transition-colors text-muted-foreground',
                 item.checked && 'line-through text-muted-foreground',
               )}
             >

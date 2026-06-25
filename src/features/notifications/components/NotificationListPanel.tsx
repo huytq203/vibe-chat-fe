@@ -25,12 +25,11 @@ type NotificationListPanelProps = {
 export function NotificationListPanel({ onBack }: NotificationListPanelProps) {
   const router = useRouter();
   const query = useNotificationsInfinite();
-  const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const items = query.data?.pages.flatMap((p) => p.items.filter((item) => item.type !== "MESSAGE_NEW")) ?? [];
   const unreadCount = useUnreadCount().data?.unreadCount ?? 0;
   const markReadMut = useMarkNotificationRead();
   const markAllMut = useMarkAllNotificationsRead();
   const deleteMut = useDeleteNotification();
-
   // Lazy load: cuộn gần cuối → nạp trang kế tiếp.
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
@@ -54,7 +53,7 @@ export function NotificationListPanel({ onBack }: NotificationListPanelProps) {
         </Button>
         <span className="flex-1 text-sm font-bold">
           Thông báo
-          {unreadCount > 0 && (
+          {unreadCount > 0 && items.length > 0 && (
             <span className="ml-1.5 text-[12px] font-semibold text-muted-foreground">
               {unreadCount} chưa đọc
             </span>

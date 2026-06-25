@@ -7,7 +7,7 @@ import { Check, Mic, Pencil, Reply, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { useMessageComposer } from '@/features/chat/hooks/useMessageComposer';
 import { useVoiceMessage } from '@/features/chat/hooks/useVoiceMessage';
-import { AttachmentTray } from './AttachmentTray';
+import { AttachmentTray } from './attachment/AttachmentTray';
 import { VoiceRecorderBar } from './VoiceRecorderBar';
 import { MentionSuggestPopup } from './MentionSuggestPopup';
 import { RichMessageEditor } from './RichMessageEditor';
@@ -20,15 +20,19 @@ import { Bell, CheckSquare, Bookmark } from 'lucide-react';
 import { ReminderDialog } from '@/features/my-store/components/ReminderDialog';
 import { ChecklistDialog } from '@/features/my-store/components/ChecklistDialog';
 import { BookmarkDialog } from '@/features/my-store/components/BookmarkDialog';
+import { CreatePollDialog } from '@/features/chat/components/polls/CreatePollDialog';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 
 type MessageInputProps = {
   conversationId: string;
   disabled?: boolean;
   /** Khi true (SELF conv) hiện thêm nút Nhắc nhở / Checklist / Bookmark bên dưới. */
   selfConv?: boolean;
+  /** Khi true (GROUP/CHANNEL) hiện nút Bình chọn trong menu. */
+  isGroup?: boolean;
 };
 
-export function MessageInput({ conversationId, disabled, selfConv }: MessageInputProps) {
+export function MessageInput({ conversationId, disabled, selfConv, isGroup }: MessageInputProps) {
   const {
     editorRef,
     mention,
@@ -61,8 +65,10 @@ export function MessageInput({ conversationId, disabled, selfConv }: MessageInpu
   const [reminderOpen, setReminderOpen] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
   const shareContact = useShareContact(conversationId);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
+  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
   useEffect(() => {
@@ -84,6 +90,8 @@ export function MessageInput({ conversationId, disabled, selfConv }: MessageInpu
       onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
       onToggleExpanded={() => setExpanded((v) => !v)}
+      onAiClick={() => setActiveSection('ai')}
+      onPollClick={isGroup ? () => setPollOpen(true) : undefined}
     />
   );
 
@@ -215,6 +223,13 @@ export function MessageInput({ conversationId, disabled, selfConv }: MessageInpu
         onOpenChange={setContactOpen}
         onPick={shareContact}
       />
+      {isGroup && (
+        <CreatePollDialog
+          open={pollOpen}
+          onOpenChange={setPollOpen}
+          conversationId={conversationId}
+        />
+      )}
       {selfConv && (
         <>
           <div className="mt-2 flex items-center gap-1.5">

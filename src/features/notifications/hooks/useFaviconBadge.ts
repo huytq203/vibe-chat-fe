@@ -1,17 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useConversations } from '@/features/chat/hooks/use-query';
 import { applyFaviconBadge, applyTitleBadge } from '@/features/notifications/favicon-badge';
-import { useUnreadCount } from './use-query';
 
 /**
- * Đồng bộ số thông báo chưa đọc lên tab trình duyệt: favicon kèm chấm đỏ + số,
- * và prefix "(N)" vào title. Title bị Next ghi đè khi đổi route → observer
- * trên <title> để áp lại prefix.
+ * Đồng bộ tổng số tin nhắn chưa đọc (sum conversation.unreadCount) lên tab trình duyệt:
+ * favicon kèm chấm đỏ + số, và prefix "(N)" vào title.
+ * Tin nhắn dùng unreadCount của từng hội thoại, không dùng notification count.
+ * Title bị Next ghi đè khi đổi route → observer trên <title> để áp lại prefix.
  */
 export function useFaviconBadge() {
-  const { data } = useUnreadCount();
-  const count = data?.unreadCount ?? 0;
+  const { data: conversations = [] } = useConversations();
+  const count = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   useEffect(() => {
     applyTitleBadge(count);

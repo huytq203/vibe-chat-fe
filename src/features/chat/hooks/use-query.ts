@@ -44,10 +44,11 @@ export function useGroupsInfinite(limit = 30) {
 
 export function useConversation(id: string | null) {
   const queryClient = useQueryClient();
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: id ? chatKeys.conversationDetail(id) : ['chat', 'conversation', 'null'],
     queryFn: () => chatApi.getConversation(id as string),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && isAuthed,
     staleTime: 30_000,
     // Seed từ cache danh sách conversation (đã có members/lastMessage/settings) để
     // panel render NGAY khi mở chat — detail fetch chỉ chạy nền để làm tươi
@@ -67,6 +68,7 @@ export function useConversation(id: string | null) {
 }
 
 export function useMessages(conversationId: string | null) {
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
   return useInfiniteQuery({
     queryKey: conversationId ? chatKeys.messages(conversationId) : ['chat', 'messages', 'null'],
     queryFn: ({ pageParam }) =>
@@ -76,7 +78,7 @@ export function useMessages(conversationId: string | null) {
       }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
-    enabled: Boolean(conversationId),
+    enabled: Boolean(conversationId) && isAuthed,
     staleTime: MESSAGES_STALE_TIME,
     gcTime: MESSAGES_GC_TIME,
   });

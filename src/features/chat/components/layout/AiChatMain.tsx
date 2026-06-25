@@ -4,14 +4,6 @@ import { useEffect, useState } from 'react';
 import { Bot, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
-import { ComboBox } from '@/components/ui/combobox/ComboBox';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetBody,
-} from '@/components/ui/sheet/Sheet';
 import { AiChatHeader } from './AiChatHeader';
 import { AiMessageList } from './AiMessageList';
 import type { AiSession, AiMessage } from '@/features/chat/hooks/useAiSessions';
@@ -38,7 +30,6 @@ export function AiChatMain({
   onBack,
   onCreateSession,
 }: Props) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftModel, setDraftModel] = useState(settings.model);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>(GEMINI_FREE_MODELS);
   const [loadingModels, setLoadingModels] = useState(false);
@@ -64,14 +55,8 @@ export function AiChatMain({
     focusInput();
   }, [session?.id, focusInput]);
 
-  function handleOpenSettings() {
-    setDraftModel(settings.model);
-    setSettingsOpen((v) => !v);
-  }
-
   function handleSaveSettings() {
     onSaveSettings({ model: draftModel });
-    setSettingsOpen(false);
   }
 
   function handleModelChange(model: string | string[]) {
@@ -103,36 +88,11 @@ export function AiChatMain({
       <AiChatHeader
         model={settings.model}
         modelOptions={loadingModels ? [{ label: 'Đang tải...', value: settings.model }] : modelOptions}
-        settingsOpen={settingsOpen}
         onBack={onBack}
-        onToggleSettings={handleOpenSettings}
         onModelChange={handleModelChange}
       />
 
-      <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <SheetContent direction="right" size="sm">
-          <SheetHeader>
-            <SheetTitle>Cài đặt AI</SheetTitle>
-          </SheetHeader>
-          <SheetBody className="space-y-4 pt-2">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-foreground">Model</span>
-                {loadingModels && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-              </div>
-              <ComboBox
-                options={modelOptions}
-                value={draftModel}
-                onValueChange={(v) => setDraftModel(Array.isArray(v) ? (v[0] ?? draftModel) : v)}
-                autocomplete={false}
-              />
-            </div>
-            <Button variant="solid" size="sm" className="w-full" onClick={handleSaveSettings}>
-              Lưu
-            </Button>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+      
 
       {!session ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
