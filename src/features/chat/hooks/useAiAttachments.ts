@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AiAttachment } from '@/lib/gemini';
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -49,6 +49,16 @@ function encodeFile(file: File): Promise<AiAttachment> {
 export function useAiAttachments(): UseAiAttachmentsReturn {
   const [attachments, setAttachments] = useState<AiAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+
+  useEffect(() => {
+    return () => {
+      attachmentsRef.current.forEach((a) => {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+    };
+  }, []);
 
   const addFiles = useCallback(async (files: FileList | File[]): Promise<void> => {
     const arr = Array.from(files);

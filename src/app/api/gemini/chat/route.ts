@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 interface GeminiPart {
   text?: string;
@@ -15,17 +16,23 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
-interface RequestAttachment {
-  base64Data: string;
-  mimeType: string;
-  name: string;
-}
+const ALLOWED_MODELS = new Set([
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+]);
 
-interface RequestBody {
-  model: string;
-  messages: { role: string; content: string }[];
-  attachments?: RequestAttachment[];
-}
+const bodySchema = z.object({
+  model: z.string().refine((v) => ALLOWED_MODELS.has(v), { message: 'Model không hợp lệ' }),
+  messages: z.array(z.object({ role: z.string(), content: z.string() })),
+  attachments: z
+    .array(z.object({ base64Data: z.string(), mimeType: z.string(), name: z.string() }))
+    .max(3)
+    .optional(),
+});
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -33,7 +40,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'GEMINI_API_KEY chưa được cấu hình' }, { status: 500 });
   }
 
-  const body = (await req.json()) as RequestBody;
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Dữ liệu không hợp lệ' }, { status: 400 });
+  }
+  const body = parsed.data;
   const attachments = body.attachments ?? [];
   const lastIdx = body.messages.length - 1;
 
