@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDown, Bot, FileText, FileJson, File } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
@@ -25,9 +26,7 @@ function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
         />
       );
     }
-    return (
-      <span className="text-[11px] opacity-60">[🖼 {attachment.name}]</span>
-    );
+    return <span className="text-[11px] opacity-60">[🖼 {attachment.name}]</span>;
   }
 
   const Icon =
@@ -46,13 +45,24 @@ function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
 }
 
 export function AiMessageList({ messages, loading, error }: AiMessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 72,
+    overscan: 5,
+    measureElement:
+      typeof window !== 'undefined' && navigator.userAgent.indexOf('Firefox') === -1
+        ? (element) => element.getBoundingClientRect().height
+        : undefined,
+  });
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+    if (messages.length === 0) return;
+    virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+  }, [messages.length, virtualizer]);
 
   function handleScroll() {
     const el = scrollRef.current;
@@ -62,15 +72,18 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
   }
 
   function scrollToBottom() {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
+    setShowScrollBtn(false);
   }
+
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <div className="relative flex-1 overflow-hidden">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-full space-y-3 overflow-y-auto px-4 py-3"
+        className="h-full overflow-y-auto px-4 py-3"
       >
         {messages.length === 0 && !loading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
@@ -78,35 +91,65 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
             <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
           </div>
         )}
-        {messages.map((msg, idx) => (
-          <div key={idx} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div
-              className={cn(
-                'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
-                msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-              )}
-            >
-              {msg.role === 'user' ? (
-                <div className="flex flex-col gap-1.5">
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="flex flex-col gap-1">
-                      {msg.attachments.map((a, i) => (
-                        <AttachmentDisplay key={i} attachment={a} />
-                      ))}
-                    </div>
-                  )}
-                  {msg.content && (
-                    <span className="whitespace-pre-wrap break-words">{msg.content}</span>
-                  )}
+
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const msg = messages[virtualItem.index];
+            if (!msg) return null;
+            return (
+              <div
+                key={virtualItem.key}
+                data-index={virtualItem.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualItem.start}px)`,
+                  paddingBottom: '12px',
+                }}
+              >
+                <div className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  <div
+                    className={cn(
+                      'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground',
+                    )}
+                  >
+                    {msg.role === 'user' ? (
+                      <div className="flex flex-col gap-1.5">
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-col gap-1">
+                            {msg.attachments.map((a, i) => (
+                              <AttachmentDisplay key={i} attachment={a} />
+                            ))}
+                          </div>
+                        )}
+                        {msg.content && (
+                          <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <AiMessageContent content={msg.content} />
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <AiMessageContent content={msg.content} />
-              )}
-            </div>
-          </div>
-        ))}
+              </div>
+            );
+          })}
+        </div>
+
         {loading && (
-          <div className="flex justify-start">
+          <div className="flex justify-start pt-1">
             <div className="rounded-2xl bg-muted px-3 py-2 text-[13px] text-muted-foreground">
               <span className="animate-pulse">Đang trả lời...</span>
             </div>
@@ -115,8 +158,8 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
         {error && (
           <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>
         )}
-        <div ref={bottomRef} />
       </div>
+
       {showScrollBtn && (
         <Button
           variant="ghost"
