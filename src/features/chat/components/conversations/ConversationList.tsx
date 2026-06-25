@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils/cn';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Bell, MessageSquare, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
@@ -16,7 +17,7 @@ import {
   useIncomingFriendRequests,
   type UserSearchItem,
 } from '@/features/friends';
-import { NotificationListPanel, useUnreadCount } from '@/features/notifications';
+import { NotificationListPanel, useSystemNotifCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys, myStoreKeys } from '@/services/keys';
 import { myStoreApi } from '@/services/my-store.api';
@@ -54,7 +55,7 @@ export function ConversationList() {
   const decryptedPreviews = useDecryptedPreviews(conversations);
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
-  const unreadNotiCount = useUnreadCount().data?.unreadCount ?? 0;
+  const unreadNotiCount = useSystemNotifCount().data?.unreadCount ?? 0;
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -64,12 +65,24 @@ export function ConversationList() {
   const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
   const setMyStoreOpen = useChatUIStore((s) => s.setMyStoreOpen);
   const { data: selfConv } = useStoreConversation();
+
+
+
   // Active khi đang mở myStore HOẶC conversation đang chọn chính là SELF conv (sống sót
   // reload — lúc đó myStoreOpen reset về false vì store không persist).
   const isMyStoreActive =
     myStoreOpen || (Boolean(selfConv?.id) && selectedConversationId === selfConv?.id);
   const [lockedExpanded, setLockedExpanded] = useState(false);
-  const { data: lockedConversations = [] } = useLockedConversations();
+
+  // Chat button active: không có overlay nào đang mở
+  const isChatActive = !notiOpen && !findOpen && !strangerOpen && !searchFocused;
+  const handleChatButtonClick = () => {
+    setNotiOpen(false);
+    setFindOpen(false);
+    setStrangerOpen(false);
+    setSearchFocused(false);
+    setSearch('');
+  };
 
   const { isStranger, strangerConversations, strangerUnreadCount } = useStrangerConversations(
     conversations,
@@ -126,16 +139,21 @@ export function ConversationList() {
   // Bỏ qua conv đang khoá: chúng bị ẩn khỏi danh sách nên không được tính vào
   // badge tab "Chưa đọc" (nếu không badge đỏ sẽ kẹt vĩnh viễn, không cách nào xoá).
   const unreadTotal = useMemo(
-    () => conversations.reduce((sum, c) => sum + (!c.isLocked && c.unreadCount > 0 ? 1 : 0), 0),
-    [conversations],
+    () => conversations.reduce(
+      (sum, c) => sum + (!c.isLocked && c.unreadCount > 0 && c.id !== selectedConversationId ? 1 : 0),
+      0,
+    ),
+    [conversations, selectedConversationId],
   );
+
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     const matched = conversations.filter((conversation) => {
       if (conversation.isLocked) return false;
-      // Hội thoại người lạ gom vào mục riêng — không hiện ở danh sách chính.
       if (isStranger(conversation)) return false;
+      // SELF conv luôn hiển thị qua MyStoreInboxItem — không render lại trong list chính.
+      if (selfConv?.id && conversation.id === selfConv.id) return false;
       if (activeTab === 'unread' && conversation.unreadCount === 0) return false;
       if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
       if (!query) return true;
@@ -152,7 +170,20 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews]);
+  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews, selfConv?.id]);
+
+  type ListItem =
+    | { kind: 'mystore' }
+    | { kind: 'stranger' }
+    | { kind: 'conversation'; conv: (typeof conversations)[number] };
+
+  const listItems = useMemo((): ListItem[] => {
+    const items: ListItem[] = [];
+    if (!search && activeTab === 'all' && !isLoading) items.push({ kind: 'mystore' });
+    if (!isLoading && !search && strangerConversations.length > 0) items.push({ kind: 'stranger' });
+    for (const conv of filtered) items.push({ kind: 'conversation', conv });
+    return items;
+  }, [search, activeTab, isLoading, strangerConversations.length, filtered]);
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
@@ -234,42 +265,56 @@ export function ConversationList() {
               {isLoading && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
               )}
-              {!search && activeTab === 'all' && (
-                <MyStoreInboxItem
-                  selected={isMyStoreActive}
-                  onClick={handleOpenMyStore}
-                />
-              )}
-              {!isLoading && !search && strangerConversations.length > 0 && (
-                <StrangerInboxItem
-                  unreadCount={strangerUnreadCount}
-                  onClick={() => setStrangerOpen(true)}
-                />
-              )}
-              {!isLoading && filtered.length === 0 && (Boolean(search) || strangerConversations.length === 0) && (
+              {!isLoading && filtered.length === 0 && listItems.every((i) => i.kind !== 'conversation') && (Boolean(search) || strangerConversations.length === 0) && (
                 <div className="px-3 py-10 text-center text-xs text-muted-foreground">
                   {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
                 </div>
               )}
-              {filtered.map((c) => (
-                <ConversationItem
-                  key={c.id}
-                  conversation={c}
-                  selected={selectedConversationId === c.id}
-                  meId={me?.id ?? null}
-                  onSelect={handleSelectConversation}
-                  onAvatarError={handleAvatarError}
-                  decryptedPreview={decryptedPreviews.get(c.id) ?? null}
-                />
-              ))}
-         
+              {listItems.map((item) => {
+                if (item.kind === 'mystore') {
+                  return (
+                    <MyStoreInboxItem
+                      key="mystore"
+                      selected={isMyStoreActive}
+                      onClick={handleOpenMyStore}
+                    />
+                  );
+                }
+                if (item.kind === 'stranger') {
+                  return (
+                    <StrangerInboxItem
+                      key="stranger"
+                      unreadCount={strangerUnreadCount}
+                      onClick={() => setStrangerOpen(true)}
+                    />
+                  );
+                }
+                return (
+                  <ConversationItem
+                    key={item.conv.id}
+                    conversation={item.conv}
+                    selected={selectedConversationId === item.conv.id}
+                    meId={me?.id ?? null}
+                    onSelect={handleSelectConversation}
+                    onAvatarError={handleAvatarError}
+                    decryptedPreview={decryptedPreviews.get(item.conv.id) ?? null}
+                  />
+                );
+              })}
             </div>
           </>
         )}
       </div>
 
       <footer className="flex shrink-0 items-center justify-around border-t border-border px-2 py-3">
-        <Button variant="ghost" size="icon-sm" title="Chat" aria-label="Chat">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Chat"
+          aria-label="Chat"
+          onClick={handleChatButtonClick}
+          className={cn(isChatActive && 'bg-primary/10 text-primary')}
+        >
           <MessageSquare className="h-5 w-5" />
         </Button>
         <Button
