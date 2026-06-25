@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, Bot, Loader2, Send } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { useEffect, useState } from 'react';
+import { Bot, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { ComboBox } from '@/components/ui/combobox/ComboBox';
@@ -14,6 +13,7 @@ import {
   SheetBody,
 } from '@/components/ui/sheet/Sheet';
 import { AiChatHeader } from './AiChatHeader';
+import { AiMessageList } from './AiMessageList';
 import type { AiSession, AiMessage } from '@/features/chat/hooks/useAiSessions';
 import type { AiSettings } from '@/features/chat/hooks/useAiSettings';
 import { callGemini, fetchGeminiModels, GEMINI_FREE_MODELS } from '@/lib/gemini';
@@ -45,9 +45,6 @@ export function AiChatMain({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } = useAutoResizeTextarea();
 
@@ -60,27 +57,12 @@ export function AiChatMain({
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session?.messages.length]);
-
-  useEffect(() => {
     resize();
   }, [input, resize]);
 
   useEffect(() => {
     focusInput();
   }, [session?.id, focusInput]);
-
-  function handleScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowScrollBtn(distFromBottom > 120);
-  }
-
-  function scrollToBottom() {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }
 
   function handleOpenSettings() {
     setDraftModel(settings.model);
@@ -159,46 +141,7 @@ export function AiChatMain({
           <Button variant="solid" size="sm" onClick={onCreateSession}>Tạo mới</Button>
         </div>
       ) : (
-        <div className="relative flex-1 overflow-hidden">
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="h-full space-y-3 overflow-y-auto px-4 py-3"
-          >
-            {session.messages.map((msg, idx) => (
-              <div key={idx} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div
-                  className={cn(
-                    'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
-                    msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-                  )}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-                  <span className="animate-pulse">Đang trả lời...</span>
-                </div>
-              </div>
-            )}
-            {error && (
-              <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-          {showScrollBtn && (
-            <button
-              onClick={scrollToBottom}
-              className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-[12px] text-muted-foreground shadow-md transition hover:bg-muted"
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-              Xuống cuối
-            </button>
-          )}
-        </div>
+        <AiMessageList messages={session.messages} loading={loading} error={error} />
       )}
 
       <div className="shrink-0 border-t border-border p-3">
