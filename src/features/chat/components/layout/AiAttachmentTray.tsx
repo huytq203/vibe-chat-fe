@@ -26,6 +26,8 @@ export function AiAttachmentTray({ attachments, error, onRemove }: AiAttachmentT
           {attachments.map((a) =>
             a.mimeType.startsWith('image/') && a.previewUrl ? (
               <div key={a.id} className="relative h-12 w-12 shrink-0">
+                {/* previewUrl là blob URL — next/image không hỗ trợ blob scheme */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={a.previewUrl}
                   alt={a.name}
