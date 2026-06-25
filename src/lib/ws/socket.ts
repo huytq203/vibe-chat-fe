@@ -1,7 +1,7 @@
 import { io, type Socket } from 'socket.io-client';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
-import { applyEventMap, clearEventMap, toName } from './event-map';
+import { applyEventMap, clearEventMap } from './event-map';
 import { getSessionKey } from '@/lib/crypto/session-key';
 import { decryptBlob } from '@/lib/crypto/transport-cipher';
 
@@ -111,12 +111,6 @@ export function getSocket(token: string | null): Socket | null {
     randomizationFactor: 0.5,        // jitter ±50% để tránh thundering herd
     timeout: 20000,                  // connection timeout 20s
     withCredentials: true,
-  });
-
-  // ⚠️ DIAGNOSTIC TẠM — bắt mọi event WS đến để soi realtime đổi nền. GỠ SAU KHI XONG.
-  socket.onAny((event: string, ...args: unknown[]) => {
-    // eslint-disable-next-line no-console
-    console.log('[WS onAny]', event, '→', toName(event), args);
   });
 
   socket.on('connect', () => {
