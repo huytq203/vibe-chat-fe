@@ -11,11 +11,23 @@ const ALLOWED_MIME_TYPES = new Set([
 const MAX_SIZE = 5 * 1024 * 1024;
 const MAX_COUNT = 3;
 
+interface UseAiAttachmentsReturn {
+  attachments: AiAttachment[];
+  error: string | null;
+  addFiles: (files: FileList | File[]) => Promise<void>;
+  removeAttachment: (id: string) => void;
+  clearAttachments: () => void;
+}
+
 function encodeFile(file: File): Promise<AiAttachment> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result as string;
+      const dataUrl = reader.result;
+      if (typeof dataUrl !== 'string') {
+        reject(new Error(`Lỗi đọc file: ${file.name}`));
+        return;
+      }
       const base64Data = dataUrl.split(',')[1] ?? '';
       const previewUrl = file.type.startsWith('image/')
         ? URL.createObjectURL(file)
@@ -34,7 +46,7 @@ function encodeFile(file: File): Promise<AiAttachment> {
   });
 }
 
-export function useAiAttachments() {
+export function useAiAttachments(): UseAiAttachmentsReturn {
   const [attachments, setAttachments] = useState<AiAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,20 +67,20 @@ export function useAiAttachments() {
 
     try {
       const encoded = await Promise.all(arr.map(encodeFile));
-      setAttachments((prev) => {
-        if (prev.length + encoded.length > MAX_COUNT) {
-          setError('Tối đa 3 file mỗi lần gửi');
-          encoded.forEach((a) => {
-            if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
-          });
-          return prev;
-        }
-        return [...prev, ...encoded];
-      });
+      // Capture count trước khi updater chạy — addFiles là async nên render đã settle
+      const currentCount = attachments.length;
+      if (currentCount + encoded.length > MAX_COUNT) {
+        encoded.forEach((a) => {
+          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+        });
+        setError('Tối đa 3 file mỗi lần gửi');
+        return;
+      }
+      setAttachments((prev) => [...prev, ...encoded]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi đọc file');
     }
-  }, []);
+  }, [attachments.length]);
 
   const removeAttachment = useCallback((id: string): void => {
     setAttachments((prev) => {

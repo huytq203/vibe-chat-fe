@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useAiAttachments } from './useAiAttachments';
 
 class MockFileReader {
@@ -20,6 +20,10 @@ beforeEach(() => {
     revokeObjectURL: vi.fn(),
   });
   vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'test-id-123') });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 function makeFile(name: string, type: string, size = 1024): File {
