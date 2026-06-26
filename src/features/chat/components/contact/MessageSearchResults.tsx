@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useAuthStore } from '@/features/auth';
 import { useMessageSearch } from '@/features/chat/hooks/use-query';
 import { buildMemberNameMap, formatListTime } from '@/features/chat/utils';
 import { getKeyForConversation } from '@/lib/crypto/conversation-key-store';
@@ -89,7 +90,7 @@ function useDecryptedSearchPreviews(
 /** Danh sách kết quả tìm tin (debounce + highlight + phân trang). Dùng chung cho panel & dropdown. */
 export function MessageSearchResults({ conversation, query, onJump }: MessageSearchResultsProps) {
   const debounced = useDebouncedValue(query, 300);
-  const isGroup = conversation.type !== 'DIRECT';
+  const meId = useAuthStore((s) => s.user?.id ?? null);
   const memberNames = useMemo(() => buildMemberNameMap(conversation), [conversation]);
 
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } =
@@ -115,11 +116,9 @@ export function MessageSearchResults({ conversation, query, onJump }: MessageSea
           className="flex cursor-pointer flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-secondary"
         >
           <div className="flex items-center justify-between gap-2">
-            {isGroup && (
-              <span className="truncate text-[11px] font-semibold text-primary">
-                {memberNames[m.senderId] ?? 'Thành viên'}
-              </span>
-            )}
+            <span className="truncate text-[11px] font-semibold text-primary">
+              {m.senderId === meId ? 'Bạn' : (memberNames[m.senderId] ?? 'Thành viên')}
+            </span>
             <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
               {formatListTime(m.createdAt)}
             </span>

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { isSameDay, isToday, isYesterday, format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils/cn';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth';
@@ -22,6 +24,22 @@ import {
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { LightboxProvider } from './LightboxProvider';
+
+function formatDateLabel(date: Date): string {
+  if (isToday(date)) return 'Hôm nay';
+  if (isYesterday(date)) return 'Hôm qua';
+  return format(date, 'dd/MM/yyyy', { locale: vi });
+}
+
+function DateSeparator({ date }: { date: Date }) {
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="h-px flex-1 bg-border/60" />
+      <span className="text-[11px] font-medium text-muted-foreground">{formatDateLabel(date)}</span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
 
 type MessageListProps = {
   conversationId: string;
@@ -86,7 +104,7 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
     [typingUserIds, meId],
   );
 
-  const { scrollRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll } =
+  const { scrollRef, topSentinelRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll } =
     useChatScroll({
       lastMessageId,
       hasNextPage: hasNextPage ?? false,
@@ -165,43 +183,50 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="overflow-x-hidden flex-1 overflow-y-auto px-5 pb-2 pt-4"
+          className="min-h-0 overflow-x-hidden flex-1 overflow-y-auto px-5 pb-2 pt-4"
         >
+          {/* Sentinel: IntersectionObserver theo dõi để trigger load trang cũ hơn */}
+          <div ref={topSentinelRef} style={{ height: 1 }} />
+
           {isFetchingNextPage && (
             <div className="py-2 text-center text-[11px] text-muted-foreground">Đang tải thêm...</div>
           )}
 
           {messages.map((m, idx) => {
             const prev = messages[idx - 1];
-            const showAvatar = m.senderId !== meId && (!prev || prev.senderId !== m.senderId);
+            const msgDate = new Date(m.createdAt);
+            const showDateSep = !prev || !isSameDay(msgDate, new Date(prev.createdAt));
+            const showAvatar = m.senderId !== meId && (!prev || prev.senderId !== m.senderId || showDateSep);
             const repliedTo = m.replyToMessageId ? messageById.get(m.replyToMessageId) ?? null : null;
             const repliedToName = repliedTo
               ? repliedTo.senderId === meId ? 'Bạn' : (memberNames[repliedTo.senderId] ?? null)
               : null;
-            const isNew = new Date(m.createdAt).getTime() > mountAt;
+            const isNew = msgDate.getTime() > mountAt;
             return (
-              <div
-                key={m.id}
-                data-msgid={m.id}
-                className={cn('pb-1', isNew && 'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-150')}
-              >
-                <MessageBubble
-                  message={m}
-                  meId={meId}
-                  showAvatar={showAvatar}
-                  senderName={memberNames[m.senderId] ?? null}
-                  showSenderName={showSenderNames && showAvatar}
-                  senderAvatarUrl={memberAvatars[m.senderId] ?? null}
-                  repliedTo={repliedTo}
-                  repliedToName={repliedToName}
-                  onQuoteClick={scrollToMessage}
-                  isHighlighted={highlightId === m.id}
-                  canPin={canPin}
-                  isPinned={pinnedIds.has(m.id)}
-                  leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
-                  wallpaperActive={wallpaperActive}
-                  bubbleConfig={bubbleConfig}
-                />
+              <div key={m.id}>
+                {showDateSep && <DateSeparator date={msgDate} />}
+                <div
+                  data-msgid={m.id}
+                  className={cn('pb-1', isNew && 'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-150')}
+                >
+                  <MessageBubble
+                    message={m}
+                    meId={meId}
+                    showAvatar={showAvatar}
+                    senderName={memberNames[m.senderId] ?? null}
+                    showSenderName={showSenderNames && showAvatar}
+                    senderAvatarUrl={memberAvatars[m.senderId] ?? null}
+                    repliedTo={repliedTo}
+                    repliedToName={repliedToName}
+                    onQuoteClick={scrollToMessage}
+                    isHighlighted={highlightId === m.id}
+                    canPin={canPin}
+                    isPinned={pinnedIds.has(m.id)}
+                    leaderLabel={showLeaderBadges ? getLeaderLabel(memberRoles[m.senderId]) : null}
+                    wallpaperActive={wallpaperActive}
+                    bubbleConfig={bubbleConfig}
+                  />
+                </div>
               </div>
             );
           })}

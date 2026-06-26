@@ -338,21 +338,7 @@ export function ContactInfo() {
               label="Đổi chủ đề & hình nền"
               onClick={() => setWallpaperOpen(true)}
             />
-            {isDirect ? (
-              <OptionRow
-                icon={<Settings className="h-4 w-4" />}
-                label="Cài đặt cuộc trò chuyện"
-                onClick={() => setConvSettingsOpen(true)}
-              />
-            ) : canDelete ? (
-              // Nhóm: dialog cài đặt chỉ có mỗi "Xoá" (khoá là direct-only) → mở thẳng alert.
-              <OptionRow
-                icon={<Trash2 className="h-4 w-4" />}
-                label="Xoá cuộc trò chuyện"
-                danger
-                onClick={() => setConfirmDeleteOpen(true)}
-              />
-            ) : null}
+           
             <OptionRow
               icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               label={isPinned ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện"}
@@ -423,7 +409,21 @@ export function ContactInfo() {
                 onClick={() => setConfirmLeaveOpen(true)}
               />
             )}
-
+            {isDirect ? (
+              <OptionRow
+                icon={<Settings className="h-4 w-4" />}
+                label="Cài đặt cuộc trò chuyện"
+                onClick={() => setConvSettingsOpen(true)}
+              />
+            ) : canDelete ? (
+              // Nhóm: dialog cài đặt chỉ có mỗi "Xoá" (khoá là direct-only) → mở thẳng alert.
+              <OptionRow
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Xoá cuộc trò chuyện"
+                danger
+                onClick={() => setConfirmDeleteOpen(true)}
+              />
+            ) : null}
           </div>
         </section>
       </div>

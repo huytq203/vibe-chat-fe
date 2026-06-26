@@ -12,6 +12,7 @@ export interface ChatScrollOptions {
 
 export interface ChatScrollResult {
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  topSentinelRef: React.RefObject<HTMLDivElement | null>;
   highlightId: string | null;
   showScrollDown: boolean;
   scrollToBottom: () => void;
@@ -29,14 +30,45 @@ export function useChatScroll({
   onAtBottom,
 }: ChatScrollOptions): ChatScrollResult {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
   const prevScrollHeightRef = useRef(0);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchNextPageRef = useRef(fetchNextPage);
+
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
 
-  // Scroll về đáy khi mount lần đầu (DOM height chính xác ngay, không cần virtualizer)
+  // Đồng bộ ref ngoài render để observer/handler luôn gọi bản fetchNextPage mới nhất
+  useEffect(() => {
+    fetchNextPageRef.current = fetchNextPage;
+  }, [fetchNextPage]);
+
+  // Trigger load thêm trang cũ bằng IntersectionObserver.
+  // Effect chạy lại khi isFetchingNextPage chuyển true→false: observer được recreate
+  // và ngay lập tức fire initial check — nếu sentinel vẫn visible (container chưa
+  // đủ overflow) thì fetchNextPage() tiếp tục được gọi cho đến khi có thanh cuộn.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!container || !sentinel || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void fetchNextPageRef.current();
+        }
+      },
+      { root: container, threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  // Recreate observer sau mỗi lần fetch xong hoặc hasNextPage thay đổi
+  }, [hasNextPage, isFetchingNextPage]);
+
+  // Scroll về đáy khi mount lần đầu
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -68,12 +100,15 @@ export function useChatScroll({
   const handleScroll = useCallback((): void => {
     const el = scrollRef.current;
     if (!el) return;
-    if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 40) void fetchNextPage();
+    // Fallback cho trường hợp IntersectionObserver không fire (bị throttle, browser cũ)
+    if (hasNextPage && !isFetchingNextPage && el.scrollTop <= 150) {
+      void fetchNextPageRef.current();
+    }
     const away = el.scrollHeight - el.scrollTop - el.clientHeight > AWAY_THRESHOLD;
     if (atBottomRef.current && !away) onAtBottom?.();
     atBottomRef.current = !away;
     setShowScrollDown(away);
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, onAtBottom]);
+  }, [hasNextPage, isFetchingNextPage, onAtBottom]);
 
   const scrollToBottom = useCallback((): void => {
     const el = scrollRef.current;
@@ -96,5 +131,5 @@ export function useChatScroll({
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
   }, []);
 
-  return { scrollRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll };
+  return { scrollRef, topSentinelRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll };
 }
