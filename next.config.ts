@@ -10,8 +10,9 @@ const isElectron = process.env.BUILD_TARGET === 'electron';
 
 const AUTH_URL = process.env.AUTH_URL;
 const VIBE_URL = process.env.VIBE_URL;
-// Task-service (modular monolith riêng). Set để proxy same-origin, tránh CORS.
-const TASK_URL = process.env.TASK_URL;
+// Task-service (modular monolith riêng). Proxy same-origin để tránh CORS.
+// Fallback sang NEXT_PUBLIC_TASK_URL để rewrite vẫn hoạt động nếu chỉ set biến public.
+const TASK_URL = process.env.TASK_URL || process.env.NEXT_PUBLIC_TASK_URL;
 
 if (!isElectron && (!AUTH_URL || !VIBE_URL)) {
   throw new Error('Missing AUTH_URL or VIBE_URL in env — BE deployed, must be set.');
