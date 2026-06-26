@@ -1,3 +1,8 @@
+export type { QualityLevel } from '@/lib/livekit/room';
+
+/** Tin nhắn chat ephemeral trong cuộc gọi (không lưu lịch sử hội thoại). */
+export type CallChatMessage = { id: string; from: string; text: string; mine: boolean };
+
 export type CallType = 'AUDIO' | 'VIDEO';
 export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'ongoing';
 export type WindowMode = 'mini' | 'normal' | 'fullscreen';
@@ -47,6 +52,10 @@ export type IncomingPayload = {
   type: CallType;
   room: string;
 };
+export type UpgradePayload = { callId: string; by: string };
+/** Trạng thái nâng cấp AUDIO→VIDEO: requesting = mình đã xin & chờ; incoming = phía kia xin. */
+export type UpgradeState = { state: 'idle' | 'requesting' | 'incoming'; by: string | null };
+
 export type AcceptedPayload = { callId: string; by: string };
 export type DeclinedPayload = { callId: string; by: string; reason?: string };
 export type CancelledPayload = { callId: string };

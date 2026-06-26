@@ -1,14 +1,18 @@
+'use client';
+import { useState } from 'react';
+import { User, Users } from 'lucide-react';
 import { Avatar as BaseAvatar } from '@/components/ui/avatar/Avatar';
 import { cn } from '@/lib/utils/cn';
-import { getAvatarColor, getInitials } from '@/features/chat/utils';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
 export type AvatarStatus = 'online' | 'offline' | 'away';
+type AvatarType = 'user' | 'group';
 
 type ChatAvatarProps = {
   name: string | null | undefined;
   src?: string | null;
-  seed?: string;
+  /** Loại avatar: 'user' (1 người) hoặc 'group' (nhiều người) — quyết định icon fallback. */
+  type?: AvatarType;
   size?: AvatarSize;
   status?: AvatarStatus | null;
   className?: string;
@@ -17,9 +21,15 @@ type ChatAvatarProps = {
 };
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
-  sm: 'h-9 w-9 rounded-full text-[11px]',
-  md: 'h-11 w-11 rounded-full text-[13px]',
-  lg: 'h-[72px] w-[72px] rounded-full text-[22px]',
+  sm: 'h-9 w-9 rounded-full',
+  md: 'h-11 w-11 rounded-full',
+  lg: 'h-[72px] w-[72px] rounded-full',
+};
+
+const ICON_CLASS: Record<AvatarSize, string> = {
+  sm: 'h-4 w-4',
+  md: 'h-5 w-5',
+  lg: 'h-8 w-8',
 };
 
 const DOT_CLASS: Record<AvatarSize, string> = {
@@ -37,28 +47,45 @@ const STATUS_BG: Record<AvatarStatus, string> = {
 export function Avatar({
   name,
   src,
-  seed,
+  type = 'user',
   size = 'md',
   status,
   className,
   onImageError,
 }: ChatAvatarProps) {
-  const color = getAvatarColor(seed ?? name ?? '');
-  const fallback = getInitials(name);
+  const [imgError, setImgError] = useState(false);
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (prevSrc !== src) {
+    setPrevSrc(src);
+    setImgError(false);
+  }
+
+  const showImage = !!src && !imgError;
+  const Icon = type === 'group' ? Users : User;
+
   return (
     <div className="relative shrink-0">
-      <BaseAvatar
-        src={src ?? undefined}
-        alt={name ?? ''}
-        fallback={fallback}
-        onImageError={onImageError}
-        className={cn(SIZE_CLASS[size], 'font-bold', className)}
-        style={{
-          background: `${color}22`,
-          border: `2px solid ${color}44`,
-          color,
-        }}
-      />
+      {showImage ? (
+        <BaseAvatar
+          src={src ?? undefined}
+          alt={name ?? ''}
+          onImageError={() => {
+            setImgError(true);
+            onImageError?.();
+          }}
+          className={cn(SIZE_CLASS[size], className)}
+        />
+      ) : (
+        <div
+          className={cn(
+            'flex items-center justify-center border border-border bg-white text-muted-foreground',
+            SIZE_CLASS[size],
+            className,
+          )}
+        >
+          <Icon className={ICON_CLASS[size]} aria-hidden />
+        </div>
+      )}
       {status && (
         <span
           className={cn(

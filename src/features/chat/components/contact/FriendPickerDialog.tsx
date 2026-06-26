@@ -141,7 +141,7 @@ export function FriendPickerDialog({
                 name: f.user.displayName ?? f.user.username,
                 sub: `@${f.user.username}`,
                 avatarUrl: f.user.avatarUrl,
-                seed: f.user.id,
+                type: 'user' as const,
               }))}
               selected={selected}
               onToggle={toggle}
@@ -156,7 +156,7 @@ export function FriendPickerDialog({
                 name: g.name ?? 'Nhóm không tên',
                 sub: `${g.memberCount} thành viên`,
                 avatarUrl: g.avatarUrl,
-                seed: g.id,
+                type: 'group' as const,
               }))}
               selected={selected}
               onToggle={toggle}
@@ -176,7 +176,7 @@ export function FriendPickerDialog({
   );
 }
 
-type PickItem = { key: string; name: string; sub: string; avatarUrl?: string | null; seed: string };
+type PickItem = { key: string; name: string; sub: string; avatarUrl?: string | null; type: 'user' | 'group' };
 
 type PickListProps = {
   isLoading: boolean;
@@ -218,7 +218,7 @@ function PickList({ isLoading, isError, emptyText, items, selected, onToggle }: 
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle(item.key)}
             className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Avatar name={item.name} src={item.avatarUrl} seed={item.seed} size="sm" />
+            <Avatar name={item.name} src={item.avatarUrl} type={item.type} size="sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13.5px] font-medium">{item.name}</p>
               <p className="truncate text-[11.5px] text-muted-foreground">{item.sub}</p>

@@ -89,7 +89,6 @@ export function PollVotersDialog({ open, onOpenChange, poll, members }: Props) {
                         <Avatar
                           name={(displayName || username) ?? null}
                           src={avatarUrl ?? null}
-                          seed={userId}
                           size="sm"
                           className="h-5! w-5! text-[8px]!"
                         />

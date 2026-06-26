@@ -68,7 +68,7 @@ export function CommonGroupsSection({ userId, enabled, onOpenGroup }: CommonGrou
                   type="button"
                   onClick={() => onOpenGroup(g.id)}
                   className="flex shrink-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary">
-                  <Avatar name={g.name ?? "Nhóm"} src={g.avatarUrl} seed={g.id} size="sm" />
+                  <Avatar name={g.name ?? "Nhóm"} src={g.avatarUrl} type="group" size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-semibold text-foreground">
                       {g.name ?? "Nhóm không tên"}

@@ -4,13 +4,12 @@ import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 
 type TypingBubbleProps = {
-  userId: string;
   showAvatar: boolean;
   senderName?: string | null;
   senderAvatarUrl?: string | null;
 };
 
-export function TypingBubble({ userId, showAvatar, senderName, senderAvatarUrl }: TypingBubbleProps) {
+export function TypingBubble({ showAvatar, senderName, senderAvatarUrl }: TypingBubbleProps) {
   return (
     <div className="flex items-end gap-1.5 justify-start">
       <div className="w-7 shrink-0">
@@ -18,9 +17,8 @@ export function TypingBubble({ userId, showAvatar, senderName, senderAvatarUrl }
           <Avatar
             name={senderName ?? null}
             src={senderAvatarUrl}
-            seed={userId}
             size="sm"
-            className="!h-7 !w-7 !rounded-lg !text-[9px]"
+            className="!h-7 !w-7 !rounded-lg"
           />
         )}
       </div>

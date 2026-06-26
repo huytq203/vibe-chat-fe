@@ -51,7 +51,7 @@ export function JoinRequestsPanel({ conversation, onBack, onClose }: JoinRequest
             return (
               <div key={req.id} className="rounded-lg px-2 py-2.5 hover:bg-muted">
                 <div className="flex items-center gap-2.5">
-                  <Avatar name={name} src={r?.avatarUrl ?? null} seed={r?.userId ?? req.id} size="md" status={null} />
+                  <Avatar name={name} src={r?.avatarUrl ?? null} size="md" status={null} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-semibold text-foreground">{name}</div>
                     <div className="text-[11px] text-muted-foreground">{formatListTime(req.createdAt)}</div>

@@ -46,7 +46,6 @@ export function ContactCardBubble({
               <Avatar
                 name={contact.displayName}
                 src={contact.avatarUrl}
-                seed={contact.contactUserId}
                 size="md"
               />
             </div>

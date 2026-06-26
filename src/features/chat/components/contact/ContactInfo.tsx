@@ -80,7 +80,6 @@ export function ContactInfo() {
     otherUserId,
     name,
     description,
-    seed,
     isDirect,
     canUnfriend,
     canCancelRequest,
@@ -275,13 +274,13 @@ export function ContactInfo() {
               aria-label="Xem trang cá nhân"
               title="Xem trang cá nhân"
               className="mb-3 rounded-full outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-primary">
-              <Avatar name={name} src={avatarUrl} seed={seed} size="lg" status={status as AvatarStatus} />
+              <Avatar name={name} src={avatarUrl} size="lg" status={status as AvatarStatus} />
             </button>
           ) : (
             <Avatar
               name={name}
               src={avatarUrl}
-              seed={seed}
+              type={isGroup ? 'group' : 'user'}
               size="lg"
               status={status as AvatarStatus}
               className="mb-3"
@@ -461,7 +460,6 @@ export function ContactInfo() {
           displayName={name}
           currentNickname={conversation.members?.find((m) => m.userId === otherUserId)?.nickname ?? null}
           avatarUrl={conversation.members?.find((m) => m.userId === otherUserId)?.avatarUrl}
-          avatarSeed={seed}
         />
       )}
 

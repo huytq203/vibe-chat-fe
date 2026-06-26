@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import type {
+  CallChatMessage,
   CallDirectory,
   CallParticipant,
   CallPeer,
   CallPhase,
   CallType,
+  QualityLevel,
+  UpgradeState,
   WindowMode,
 } from '@/features/call/types';
 
@@ -34,6 +37,20 @@ type CallState = {
   windowOpen: boolean;
   /** Token LiveKit của caller chờ CallContainer join (không persist, xoá ngay sau khi join). */
   pendingJoin: PendingJoin | null;
+  /** Pro: đang chia sẻ màn hình / làm mờ nền / mở panel chat trong call. */
+  screenOn: boolean;
+  blurOn: boolean;
+  chatOpen: boolean;
+  /** Identity đang nói (active speaker) → viền sáng ô. */
+  activeSpeakers: string[];
+  /** identity → chất lượng kết nối (icon sóng). */
+  quality: Record<string, QualityLevel>;
+  /** identity bị mute-cho-riêng-mình. */
+  mutedForMe: string[];
+  /** Tin nhắn chat ephemeral trong call. */
+  chat: CallChatMessage[];
+  /** Trạng thái nâng cấp AUDIO→VIDEO cần 2 bên đồng ý (1-1). */
+  upgrade: UpgradeState;
   startOutgoing: (
     conversationId: string,
     type: CallType,
@@ -66,10 +83,32 @@ type CallState = {
   setPosition: (x: number, y: number) => void;
   setWindowOpen: (open: boolean) => void;
   setPendingJoin: (p: PendingJoin | null) => void;
+  setScreenOn: (on: boolean) => void;
+  setBlurOn: (on: boolean) => void;
+  setChatOpen: (open: boolean) => void;
+  setActiveSpeakers: (ids: string[]) => void;
+  setQuality: (identity: string, q: QualityLevel) => void;
+  toggleMutedForMe: (identity: string) => void;
+  addChat: (msg: CallChatMessage) => void;
+  requestUpgrade: () => void;
+  receiveUpgradeRequest: (by: string) => void;
+  clearUpgrade: () => void;
   reset: () => void;
 };
 
 const INITIAL_WINDOW: CallWindow = { mode: 'normal', x: 0, y: 0 };
+
+/** State pro reset về mặc định mỗi khi bắt đầu/ kết thúc cuộc gọi (tránh sót từ call trước). */
+const PRO_RESET = {
+  screenOn: false,
+  blurOn: false,
+  chatOpen: false,
+  activeSpeakers: [] as string[],
+  quality: {} as Record<string, QualityLevel>,
+  mutedForMe: [] as string[],
+  chat: [] as CallChatMessage[],
+  upgrade: { state: 'idle', by: null } as UpgradeState,
+};
 
 export const useCallStore = create<CallState>((set) => ({
   phase: 'idle',
@@ -81,6 +120,7 @@ export const useCallStore = create<CallState>((set) => ({
   window: INITIAL_WINDOW,
   windowOpen: true,
   pendingJoin: null,
+  ...PRO_RESET,
   startOutgoing: (conversationId, type, peer, isGroup, directory) =>
     set({
       phase: 'outgoing',
@@ -92,6 +132,7 @@ export const useCallStore = create<CallState>((set) => ({
       window: INITIAL_WINDOW,
       windowOpen: true,
       pendingJoin: null,
+      ...PRO_RESET,
     }),
   receiveIncoming: (callId, conversationId, type, peer, isGroup, directory) =>
     set({
@@ -104,6 +145,7 @@ export const useCallStore = create<CallState>((set) => ({
       window: INITIAL_WINDOW,
       windowOpen: true,
       pendingJoin: null,
+      ...PRO_RESET,
     }),
   markOngoing: (callId, startedAt) =>
     set((s) => ({
@@ -139,6 +181,22 @@ export const useCallStore = create<CallState>((set) => ({
   setPosition: (x, y) => set((s) => ({ window: { ...s.window, x, y } })),
   setWindowOpen: (open) => set({ windowOpen: open }),
   setPendingJoin: (p) => set({ pendingJoin: p }),
+  setScreenOn: (on) => set({ screenOn: on }),
+  setBlurOn: (on) => set({ blurOn: on }),
+  setChatOpen: (open) => set({ chatOpen: open }),
+  setActiveSpeakers: (ids) => set({ activeSpeakers: ids }),
+  setQuality: (identity, q) =>
+    set((s) => ({ quality: { ...s.quality, [identity]: q } })),
+  toggleMutedForMe: (identity) =>
+    set((s) => ({
+      mutedForMe: s.mutedForMe.includes(identity)
+        ? s.mutedForMe.filter((x) => x !== identity)
+        : [...s.mutedForMe, identity],
+    })),
+  addChat: (msg) => set((s) => ({ chat: [...s.chat, msg] })),
+  requestUpgrade: () => set({ upgrade: { state: 'requesting', by: null } }),
+  receiveUpgradeRequest: (by) => set({ upgrade: { state: 'incoming', by } }),
+  clearUpgrade: () => set({ upgrade: { state: 'idle', by: null } }),
   reset: () =>
     set({
       phase: 'idle',
@@ -148,5 +206,6 @@ export const useCallStore = create<CallState>((set) => ({
       window: INITIAL_WINDOW,
       windowOpen: true,
       pendingJoin: null,
+      ...PRO_RESET,
     }),
 }));

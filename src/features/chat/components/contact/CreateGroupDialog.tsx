@@ -158,7 +158,7 @@ export function CreateGroupDialog({ open, onOpenChange, preselected }: CreateGro
                     <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${checked ? 'border-primary bg-primary' : 'border-border'}`}>
                       {checked && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
-                    <Avatar name={user.displayName ?? user.username} src={user.avatarUrl} seed={user.id} size="sm" />
+                    <Avatar name={user.displayName ?? user.username} src={user.avatarUrl} size="sm" />
                     <span className="text-sm">{user.displayName ?? user.username}</span>
                   </button>
                 );
@@ -181,7 +181,7 @@ export function CreateGroupDialog({ open, onOpenChange, preselected }: CreateGro
                   const label = getUserLabel(u as UserSummary);
                   return (
                     <div key={id} className="flex items-center gap-2.5 px-4 py-2">
-                      <Avatar name={label} src={u.avatarUrl} seed={id} size="sm" />
+                      <Avatar name={label} src={u.avatarUrl} size="sm" />
                       <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
                       <button
                         type="button"

@@ -73,6 +73,9 @@ export function useFcmSetup() {
     intervalId = setInterval(() => void register(), REFRESH_INTERVAL_MS);
 
     void onForegroundMessage((payload) => {
+      // Cuộc gọi (đến/huỷ) đã có IncomingCallDialog qua socket /call → bỏ qua toast trùng.
+      const kind = payload.data?.type ?? payload.data?.kind;
+      if (kind === 'CALL_INCOMING' || kind === 'CALL_CANCELLED') return;
       // Khi WS event 'notification:new' đã cập nhật cache, FCM foreground
       // chỉ cần đảm bảo invalidate (đa số trường hợp WS đã làm trước).
       qc.invalidateQueries({ queryKey: notificationKeys.all });

@@ -2,6 +2,7 @@
 
 import { ProjectList } from './ProjectList';
 import { KanbanBoard } from './KanbanBoard';
+import { Dashboard } from './Dashboard';
 import { useTasksUIStore } from '../stores/tasks-ui.store';
 
 export function TaskManagementLayout() {
@@ -10,13 +11,8 @@ export function TaskManagementLayout() {
     <div className="flex h-full w-full overflow-hidden">
       <ProjectList />
       <div className="flex-1 overflow-hidden">
-        {selectedId ? (
-          <KanbanBoard key={selectedId} projectId={selectedId} />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            Chọn hoặc tạo một project để bắt đầu.
-          </div>
-        )}
+        {/* Chưa chọn project → màn Home (Dashboard). Board giữ bản cũ, chờ design mới. */}
+        {selectedId ? <KanbanBoard key={selectedId} projectId={selectedId} /> : <Dashboard />}
       </div>
     </div>
   );

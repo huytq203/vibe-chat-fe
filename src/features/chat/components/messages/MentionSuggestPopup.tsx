@@ -56,7 +56,6 @@ export function MentionSuggestPopup({ mention }: MentionSuggestPopupProps) {
               <Avatar
                 name={item.member.displayName}
                 src={item.member.avatarUrl}
-                seed={item.member.userId}
                 size="sm"
                 className="!h-7 !w-7 !rounded-lg !text-[9px]"
               />

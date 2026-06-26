@@ -3,12 +3,11 @@ import { Avatar } from '@/features/chat/components/common/Avatar';
 type Props = {
   displayName: string;
   avatarSrc: string | null | undefined;
-  seed: string;
   coverUrl: string | null | undefined;
   isLoading: boolean;
 };
 
-export function InviteProfileCover({ displayName, avatarSrc, seed, coverUrl, isLoading }: Props) {
+export function InviteProfileCover({ displayName, avatarSrc, coverUrl, isLoading }: Props) {
   return (
     <div className="relative mb-[52px]">
       <div
@@ -33,7 +32,7 @@ export function InviteProfileCover({ displayName, avatarSrc, seed, coverUrl, isL
         ) : (
           <div className="relative h-[88px] w-[88px]">
             <Avatar
-              name={displayName} src={avatarSrc} seed={seed} size="lg"
+              name={displayName} src={avatarSrc} size="lg"
               className="!h-[88px] !w-[88px] !rounded-3xl !text-[28px] shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
             />
             <span className="absolute bottom-[3px] right-[3px] h-4 w-4 rounded-full border-[3px] border-muted bg-success" />

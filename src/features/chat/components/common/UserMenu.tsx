@@ -61,7 +61,6 @@ export function UserMenu() {
             <Avatar
               name={me?.displayName ?? me?.username}
               src={me?.avatarUrl}
-              seed={me?.id ?? 'me'}
               size="sm"
               status="online"
             />
@@ -79,7 +78,6 @@ export function UserMenu() {
             <Avatar
               name={me?.displayName ?? me?.username}
               src={me?.avatarUrl}
-              seed={me?.id ?? 'me'}
               size="md"
               status="online"
             />

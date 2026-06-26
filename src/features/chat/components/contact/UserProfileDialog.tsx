@@ -97,7 +97,6 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
                   <Avatar
                     name={name}
                     src={profile?.avatarUrl}
-                    seed={profile?.id ?? 'user'}
                     size="lg"
                     className="ring-4 ring-background"
                   />

@@ -59,7 +59,7 @@ export function UserProfileCard({ previewUser, code, onBack, modal }: Props) {
         <InviteProfileCover
           displayName={displayName}
           avatarSrc={profile?.avatarUrl ?? previewUser.avatarUrl}
-          seed={previewUser.id}
+
           coverUrl={profile?.coverUrl}
           isLoading={isLoading}
         />

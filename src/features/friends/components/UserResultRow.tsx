@@ -34,7 +34,7 @@ export function UserResultRow({
   if (variant === 'card') {
     return (
       <div className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40">
-        <Avatar name={name} src={user.avatarUrl} seed={user.id} size="md" />
+        <Avatar name={name} src={user.avatarUrl} size="md" />
         <div className="mt-1 line-clamp-1 text-center text-sm font-semibold">
           {name}
         </div>
@@ -70,7 +70,7 @@ export function UserResultRow({
         disabled={!onMessage}
         className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
         aria-label={`Nhắn tin với ${name}`}>
-        <Avatar name={name} src={user.avatarUrl} seed={user.id} size="sm" />
+        <Avatar name={name} src={user.avatarUrl} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">{name}</div>
           <div className="flex items-center gap-1.5">

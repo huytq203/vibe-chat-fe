@@ -89,7 +89,7 @@ export function ReactionViewerDialog({
               const name = info?.name ?? 'Người dùng';
               return (
                 <div key={`${reactor.userId}-${reactor.type}`} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-                  <Avatar name={name} src={info?.avatarUrl} seed={reactor.userId} size="sm" status={null} />
+                  <Avatar name={name} src={info?.avatarUrl} size="sm" status={null} />
                   <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-foreground">{name}</span>
                   <EmojiText text={REACTION_EMOJI[reactor.type]} className="text-base leading-none" />
                 </div>

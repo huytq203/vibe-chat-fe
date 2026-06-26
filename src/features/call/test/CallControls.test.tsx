@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CallControls } from '../components/CallControls';
+import { useCallStore } from '../stores/call.store';
+
+const peer = { id: 'u2', name: 'Bob', avatarUrl: null };
 
 describe('CallControls', () => {
+  afterEach(() => useCallStore.getState().reset());
   it('calls onToggleMic when mic button clicked', async () => {
     const onToggleMic = vi.fn();
     render(
@@ -47,5 +51,23 @@ describe('CallControls', () => {
     );
     await userEvent.click(screen.getByLabelText('Bật camera'));
     expect(onToggleCam).toHaveBeenCalledOnce();
+  });
+
+  it('AUDIO 1-1 đang gọi: hiện nút "Chuyển sang video" gọi onRequestUpgrade thay vì bật cam', async () => {
+    useCallStore.getState().startOutgoing('c1', 'AUDIO', peer, false, {});
+    useCallStore.getState().markOngoing('call-1', Date.now());
+    const onRequestUpgrade = vi.fn();
+    render(
+      <CallControls
+        micOn
+        camOn={false}
+        onToggleMic={vi.fn()}
+        onToggleCam={vi.fn()}
+        onHangup={vi.fn()}
+        onRequestUpgrade={onRequestUpgrade}
+      />,
+    );
+    await userEvent.click(screen.getByLabelText('Chuyển sang video'));
+    expect(onRequestUpgrade).toHaveBeenCalledOnce();
   });
 });

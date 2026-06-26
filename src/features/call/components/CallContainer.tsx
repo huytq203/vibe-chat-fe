@@ -83,10 +83,10 @@ export function CallContainer() {
     return () => clearInterval(id);
   }, [phase, startedAt]);
 
-  // Ringtone: kêu khi đang đổ chuông (gọi đi / gọi đến), tắt khi vào cuộc gọi hoặc kết thúc.
+  // Ringtone: gọi đi → ringback; gọi đến → chuông; tắt khi vào cuộc gọi hoặc kết thúc.
   useEffect(() => {
     if (phase === 'outgoing' || phase === 'incoming') {
-      startRingtone();
+      startRingtone(phase === 'outgoing' ? 'outgoing' : 'incoming');
       return () => stopRingtone();
     }
     stopRingtone();
@@ -111,19 +111,34 @@ export function CallContainer() {
     void joinMedia(p.url, p.token, p.type);
   }, [pendingJoin, joinMedia]);
 
-  if (phase === 'idle' || !call || typeof document === 'undefined') return null;
-
-  const handleAccept = async () => {
-    if (!call.callId) return;
-    const ack = await actions.acceptCall(call.callId);
+  const handleAccept = useCallback(async () => {
+    const id = useCallStore.getState().call?.callId;
+    if (!id) return;
+    const ack = await actions.acceptCall(id);
     if (!ack) return;
     useCallStore.getState().markOngoing(ack.callId, Date.now());
     await joinMedia(ack.livekitUrl, ack.livekitToken, ack.type);
-  };
+  }, [actions, joinMedia]);
 
-  const handleDecline = () => {
-    if (call.callId) void actions.declineCall(call.callId);
-  };
+  const handleDecline = useCallback(() => {
+    const id = useCallStore.getState().call?.callId;
+    if (id) void actions.declineCall(id);
+  }, [actions]);
+
+  // Bridge từ Service Worker: user bấm Trả lời/Từ chối trên notification cuộc gọi đến.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return;
+    function onSwMessage(e: MessageEvent) {
+      const msg = e.data as { type?: string; callId?: string } | null;
+      if (!msg?.callId || useCallStore.getState().phase !== 'incoming') return;
+      if (msg.type === 'CALL_ACCEPT') void handleAccept();
+      else if (msg.type === 'CALL_DECLINE') handleDecline();
+    }
+    navigator.serviceWorker.addEventListener('message', onSwMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
+  }, [handleAccept, handleDecline]);
+
+  if (phase === 'idle' || !call || typeof document === 'undefined') return null;
 
   const handleHangup = () => {
     void endCurrentCall();
@@ -168,6 +183,9 @@ export function CallContainer() {
         onToggleMic={actions.toggleMic}
         onToggleCam={actions.toggleCam}
         onHangup={handleHangup}
+        onRequestUpgrade={() => call.callId && void actions.requestUpgrade(call.callId)}
+        onAcceptUpgrade={() => call.callId && actions.acceptUpgrade(call.callId)}
+        onDeclineUpgrade={() => call.callId && actions.declineUpgrade(call.callId)}
         onSetMode={(m) => useCallStore.getState().setWindowMode(m)}
         onClose={() => useCallStore.getState().setWindowOpen(false)}
         onDrag={(x, y) => useCallStore.getState().setPosition(x, y)}

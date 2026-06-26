@@ -102,7 +102,8 @@ export function ChatLayout() {
 
   if (isMobile) {
     return (
-      <div className="flex h-full w-full flex-col overflow-hidden">
+      // Safe-area trên: tránh notch/tai thỏ iPhone (viewport-fit=cover phủ vào vùng notch).
+      <div className="flex h-full w-full flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         {mobilePanel === 'list' && <ConversationList />}
         {mobilePanel === 'chat' && (
           showFilesView ? (

@@ -19,7 +19,6 @@ interface NicknameDialogProps {
   displayName: string;
   currentNickname: string | null;
   avatarUrl?: string | null;
-  avatarSeed: string;
 }
 
 export function NicknameDialog({
@@ -30,7 +29,6 @@ export function NicknameDialog({
   displayName,
   currentNickname,
   avatarUrl,
-  avatarSeed,
 }: NicknameDialogProps) {
   const [value, setValue] = useState(currentNickname ?? '');
   // Reset input mỗi lần dialog mở (sync-during-render thay vì setState trong effect).
@@ -56,7 +54,7 @@ export function NicknameDialog({
         <DialogTitle className="text-base font-bold">Đặt tên gợi nhớ</DialogTitle>
 
         <div className="flex flex-col items-center gap-3 py-1">
-          <Avatar name={displayName} src={avatarUrl} seed={avatarSeed} size="lg" />
+          <Avatar name={displayName} src={avatarUrl} size="lg" />
           <p className="text-center text-sm leading-relaxed">
             Hãy đặt cho <span className="font-semibold">{displayName}</span> một cái tên dễ nhớ.{' '}
             <span className="text-muted-foreground">

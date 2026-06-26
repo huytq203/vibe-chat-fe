@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Track, type LocalTrack, type RemoteTrack } from 'livekit-client';
 import { joinRoom, leaveRoom, setCam, setMic } from '@/lib/livekit/room';
+import { useCallStore } from '@/features/call/stores/call.store';
 import type { CallType } from '@/features/call/types';
 
 const VIDEO_CLASS = ['h-full', 'w-full', 'object-cover'];
@@ -124,6 +125,15 @@ export function useLiveKitRoom() {
             mountLocal();
           },
           onDisconnected,
+          onActiveSpeakers: (ids) => useCallStore.getState().setActiveSpeakers(ids),
+          onConnectionQuality: (id, q) => useCallStore.getState().setQuality(id, q),
+          onChat: (from, text) =>
+            useCallStore.getState().addChat({
+              id: `${Date.now()}-${from}`,
+              from,
+              text,
+              mine: false,
+            }),
         },
       );
     },

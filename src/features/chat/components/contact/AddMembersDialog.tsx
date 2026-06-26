@@ -98,7 +98,6 @@ export function AddMembersDialog({
                 <Avatar
                   name={user.displayName ?? user.username}
                   src={user.avatarUrl}
-                  seed={user.id}
                   size="sm"
                 />
                 <span className="text-sm">{user.displayName ?? user.username}</span>

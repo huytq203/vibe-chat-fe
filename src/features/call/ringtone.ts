@@ -1,15 +1,22 @@
 /**
- * Ringtone bằng WebAudio (không cần file asset).
- * Lưu ý: với cuộc gọi ĐẾN (callee), trình duyệt có thể chặn autoplay audio cho tới khi
- * user tương tác với trang → AudioContext ở trạng thái 'suspended', không kêu. Đây là giới
- * hạn của trình duyệt, không phải bug.
+ * Chuông cuộc gọi: phát file nhạc thật (tách gọi đến / gọi đi) qua wrapper lib/sound.
+ * Fallback WebAudio beep khi file không phát được (autoplay bị chặn / lỗi tải) để vẫn có tín hiệu.
+ * Lưu ý: với cuộc gọi ĐẾN, trình duyệt có thể chặn autoplay tới khi user tương tác — giới hạn của
+ * trình duyệt, không phải bug.
  */
-let ctx: AudioContext | null = null;
-let timer: ReturnType<typeof setInterval> | null = null;
+import { playLoop, stopSound } from '@/lib/sound/player';
 
-type WindowWithWebkitAudio = Window & {
-  webkitAudioContext?: typeof AudioContext;
+export type RingtoneKind = 'incoming' | 'outgoing';
+
+const SRC: Record<RingtoneKind, string> = {
+  incoming: '/sounds/call-incoming.wav',
+  outgoing: '/sounds/call-outgoing.wav',
 };
+
+let ctx: AudioContext | null = null;
+let beepTimer: ReturnType<typeof setInterval> | null = null;
+
+type WindowWithWebkitAudio = Window & { webkitAudioContext?: typeof AudioContext };
 
 function beep(): void {
   if (!ctx) return;
@@ -26,24 +33,38 @@ function beep(): void {
   osc.stop(t + 0.45);
 }
 
-export function startRingtone(): void {
-  stopRingtone();
+function startBeepFallback(): void {
   if (typeof window === 'undefined') return;
   const AC = window.AudioContext ?? (window as WindowWithWebkitAudio).webkitAudioContext;
   if (!AC) return;
   ctx = new AC();
   void ctx.resume();
   beep();
-  timer = setInterval(beep, 1500);
+  beepTimer = setInterval(beep, 1500);
 }
 
-export function stopRingtone(): void {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
+function stopBeepFallback(): void {
+  if (beepTimer) {
+    clearInterval(beepTimer);
+    beepTimer = null;
   }
   if (ctx) {
     void ctx.close();
     ctx = null;
   }
+}
+
+export function startRingtone(kind: RingtoneKind): void {
+  stopRingtone();
+  if (typeof window === 'undefined') return;
+  if (typeof Audio !== 'undefined') {
+    playLoop(SRC[kind]);
+    return;
+  }
+  startBeepFallback();
+}
+
+export function stopRingtone(): void {
+  stopSound();
+  stopBeepFallback();
 }

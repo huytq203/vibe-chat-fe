@@ -83,7 +83,6 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
                 value={me?.avatarUrl ?? null}
                 pendingFile={avatarFile}
                 name={me?.displayName ?? me?.username}
-                seed={me?.id ?? 'me'}
                 disabled={busy}
                 onSelect={setAvatarFile}
               />

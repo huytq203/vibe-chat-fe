@@ -119,5 +119,49 @@ export function useCallActions() {
     void setCam(next);
   }, [store]);
 
-  return { startCall, acceptCall, declineCall, cancelCall, hangup, toggleMic, toggleCam };
+  // Nâng AUDIO → VIDEO (1-1): xin phép → chờ phía kia đồng ý mới mở cam.
+  const requestUpgrade = useCallback(
+    async (callId: string) => {
+      store.getState().requestUpgrade();
+      const ack = await emitWithAck('call:upgrade_request', { callId });
+      if (!ack.ok) {
+        toast.error(mapCallErrorCode(ack.code ?? '', ack.message));
+        store.getState().clearUpgrade();
+      }
+    },
+    [store],
+  );
+
+  // Phía nhận đồng ý: bật cam ngay phía mình + báo BE (BE đổi type + báo phía xin).
+  const acceptUpgrade = useCallback(
+    (callId: string) => {
+      store.getState().promoteToVideo();
+      store.getState().setCam(true);
+      void setCam(true);
+      store.getState().clearUpgrade();
+      void emitWithAck('call:upgrade_accept', { callId });
+    },
+    [store],
+  );
+
+  const declineUpgrade = useCallback(
+    (callId: string) => {
+      store.getState().clearUpgrade();
+      void emitWithAck('call:upgrade_decline', { callId });
+    },
+    [store],
+  );
+
+  return {
+    startCall,
+    acceptCall,
+    declineCall,
+    cancelCall,
+    hangup,
+    toggleMic,
+    toggleCam,
+    requestUpgrade,
+    acceptUpgrade,
+    declineUpgrade,
+  };
 }

@@ -75,23 +75,6 @@ export function formatTimeLeft(ms: number): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-const AVATAR_PALETTE = [
-  '#7132f5', '#e0495e', '#49a0e0', '#149e61',
-  '#e0c849', '#e07849', '#9e75e7', '#e049c8',
-];
-
-export function getInitials(name: string | null | undefined): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-export function getAvatarColor(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
-}
 
 export function formatListTime(iso: string | null): string {
   if (!iso) return '';
@@ -206,18 +189,14 @@ export function getConversationDescription(conv: Conversation) {
   }
 }
 
-export function getConversationSeed(conv: Conversation, meId: string | null): string {
-  if (conv.type === 'DIRECT') {
-    const other = conv.members?.find((m) => m.userId !== meId);
-    if (other) return other.userId;
-    return conv.memberIds.find((id) => id !== meId) ?? conv.id;
-  }
-  return conv.id;
+/** Conversation nhiều người (GROUP/CHANNEL) → avatar dùng icon nhóm thay vì icon 1 user. */
+export function isGroupConversation(conv: Conversation): boolean {
+  return conv.type === 'GROUP' || conv.type === 'CHANNEL';
 }
 
 /**
  * Avatar hiển thị cho conversation: DIRECT = avatar người kia (member !== meId),
- * GROUP = avatar nhóm. Trả null → Avatar tự fallback chữ cái theo seed.
+ * GROUP = avatar nhóm. Trả null → Avatar tự fallback icon user/group.
  */
 export function getConversationAvatar(conv: Conversation, meId: string | null): string | null {
   if (conv.type === 'DIRECT') {

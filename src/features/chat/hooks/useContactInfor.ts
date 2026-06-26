@@ -22,7 +22,7 @@ import {
   useLeaveConversation,
   useTogglePinConversation,
 } from "./use-mutations";
-import { getConversationDescription, getConversationName, getConversationSeed } from "@/features/chat/utils";
+import { getConversationDescription, getConversationName } from "@/features/chat/utils";
 
 const useContactInfor = () => {
   const meId = useAuthStore((s) => s.user?.id ?? null);
@@ -77,7 +77,6 @@ const useContactInfor = () => {
   if (!conversation) return null;
 
   const name = getConversationName(conversation, meId);
-  const seed = getConversationSeed(conversation, meId);
   const description = getConversationDescription(conversation);
   const isDirect = conversation.type === "DIRECT";
   const canUnfriend = isDirect && isFriend && Boolean(otherUserId);
@@ -156,7 +155,6 @@ const useContactInfor = () => {
     otherUserId,
     name,
     description,
-    seed,
     isDirect,
     canUnfriend,
     canCancelRequest,

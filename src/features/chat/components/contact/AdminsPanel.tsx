@@ -59,7 +59,7 @@ export function AdminsPanel({ conversation, meId, onBack, onClose }: AdminsPanel
             const pending = setRoleMut.isPending && setRoleMut.variables?.userId === m.userId;
             return (
               <div key={m.userId} className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted">
-                <Avatar name={label} src={m.avatarUrl} seed={m.userId} size="md" status={null} />
+                <Avatar name={label} src={m.avatarUrl} size="md" status={null} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-[13.5px] font-semibold text-foreground">{label}</span>

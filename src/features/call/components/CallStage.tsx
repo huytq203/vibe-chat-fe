@@ -1,8 +1,13 @@
 'use client';
 
+import { Volume2, VolumeX } from 'lucide-react';
 import { Avatar } from '@/features/chat/components/common/Avatar';
+import { cn } from '@/lib/utils/cn';
+import { useCallStore } from '@/features/call/stores/call.store';
+import { useCallPro } from '@/features/call/hooks/useCallPro';
 import type { CallDirectory, CallPeer, CallType } from '@/features/call/types';
 import { CallGrid } from './CallGrid';
+import { QualityDot } from './QualityDot';
 
 type CallStageProps = {
   type: CallType;
@@ -55,13 +60,61 @@ export function CallStage({
     );
   }
 
-  const remoteId = remoteIds[0];
   return (
-    <div className="relative flex-1 overflow-hidden bg-black">
+    <RemoteVideoStage
+      remoteId={remoteIds[0]}
+      statusText={statusText}
+      getRemoteRef={getRemoteRef}
+      setLocalEl={setLocalEl}
+    />
+  );
+}
+
+type RemoteVideoStageProps = {
+  remoteId: string | undefined;
+  statusText: string;
+  getRemoteRef: (id: string) => (node: HTMLDivElement | null) => void;
+  setLocalEl: (node: HTMLDivElement | null) => void;
+};
+
+/** Khung video 1-1: remote full + PiP local, kèm viền active speaker, icon chất lượng, mute-cho-tôi. */
+function RemoteVideoStage({
+  remoteId,
+  statusText,
+  getRemoteRef,
+  setLocalEl,
+}: RemoteVideoStageProps) {
+  const activeSpeakers = useCallStore((s) => s.activeSpeakers);
+  const quality = useCallStore((s) => s.quality);
+  const mutedForMe = useCallStore((s) => s.mutedForMe);
+  const { toggleMute } = useCallPro();
+  const speaking = remoteId ? activeSpeakers.includes(remoteId) : false;
+  const muted = remoteId ? mutedForMe.includes(remoteId) : false;
+
+  return (
+    <div
+      className={cn(
+        'relative flex-1 overflow-hidden bg-black ring-2 transition-colors',
+        speaking ? 'ring-primary' : 'ring-transparent',
+      )}
+    >
       {remoteId ? (
         <div ref={getRemoteRef(remoteId)} className="absolute inset-0 flex items-center justify-center" />
       ) : (
         <div className="absolute inset-0" />
+      )}
+      {remoteId && (
+        <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5">
+          {quality[remoteId] && <QualityDot quality={quality[remoteId]} />}
+          <button
+            type="button"
+            aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
+            onClick={() => toggleMute(remoteId)}
+            className="grid h-6 w-6 place-items-center rounded-md bg-black/40 text-white hover:bg-black/60"
+          >
+            {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       )}
       <div className="pointer-events-none absolute right-3 top-3 z-10 text-xs text-white/80">
         {statusText}

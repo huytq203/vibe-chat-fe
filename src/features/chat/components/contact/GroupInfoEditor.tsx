@@ -75,7 +75,7 @@ export function GroupInfoEditor({ conversation, canEditInfo }: GroupInfoEditorPr
           pendingFile={avatarFile}
           removed={avatarRemoved}
           name={conversation.name}
-          seed={conversation.id}
+          type="group"
           disabled={!canEditInfo || busy}
           onSelect={(file) => {
             setAvatarFile(file);

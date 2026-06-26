@@ -47,7 +47,7 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
                 "ml-0.5 transition-opacity",
                 mine
                   ? "opacity-100"
-                  : "pointer-events-none opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                  : "pointer-events-none opacity-0 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
               )}
             />
           )}
@@ -84,7 +84,7 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
                 "ml-0.5 transition-opacity",
                 mine
                   ? "opacity-100"
-                  : "pointer-events-none opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                  : "pointer-events-none opacity-0 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
               )}
             />
           )}

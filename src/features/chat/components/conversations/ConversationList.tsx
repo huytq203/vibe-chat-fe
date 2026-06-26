@@ -149,7 +149,7 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews, selfConv?.id]);
+  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews, selfConv]);
 
   type ListItem =
     | { kind: 'stranger' }
@@ -164,7 +164,7 @@ export function ConversationList() {
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
-      <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[18px]">
+      <header className="hidden shrink-0 items-center justify-between px-4 pb-3 pt-[18px] md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
             <Image
@@ -181,7 +181,7 @@ export function ConversationList() {
         
       </header>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden pt-5 md:pt-0">
         {searchFocused ? (
           <SearchOverlay
             query={search}
@@ -215,11 +215,11 @@ export function ConversationList() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
-                className="h-9 text-[13px]"
+                className="h-9 border-0 text-[13px] md:border"
               />
             </div>
 
-            <div className="shrink-0 px-3 pb-2">
+            <div className="shrink-0 border-b border-border px-3 pb-2.5 md:border-b-0 md:pb-2">
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}

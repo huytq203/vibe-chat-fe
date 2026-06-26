@@ -107,7 +107,6 @@ function PickerBody({ isLoading, isError, items, hasSearch, onPick }: PickerBody
             <Avatar
               name={friend.user.displayName ?? friend.user.username}
               src={friend.user.avatarUrl}
-              seed={friend.user.id}
               size="sm"
             />
             <div className="min-w-0 flex-1">

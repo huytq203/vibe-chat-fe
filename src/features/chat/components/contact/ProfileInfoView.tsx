@@ -44,7 +44,6 @@ export function ProfileInfoView({ me, isLoading, onEdit }: ProfileInfoViewProps)
             <Avatar
               name={me?.displayName ?? me?.username}
               src={me?.avatarUrl}
-              seed={me?.id ?? 'me'}
               size="lg"
               className="ring-4 ring-background"
             />

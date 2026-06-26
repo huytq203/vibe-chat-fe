@@ -53,7 +53,7 @@ export function GroupMemberRow(props: GroupMemberRowProps) {
         disabled={isMe}
         className="flex min-w-0 flex-1 items-center gap-2.5 text-left disabled:cursor-default"
         aria-label={`Xem thông tin ${label}`}>
-        <Avatar name={label} src={m.avatarUrl} seed={m.userId} size="md" status={null} />
+        <Avatar name={label} src={m.avatarUrl} size="md" status={null} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[13.5px] font-semibold text-foreground">{label}</span>

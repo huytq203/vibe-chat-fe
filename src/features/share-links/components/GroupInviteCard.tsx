@@ -45,7 +45,7 @@ export function GroupInviteCard({ group, code, onBack, modal }: Props) {
           <div className="h-[130px] bg-gradient-to-br from-primary/50 via-primary/20 to-secondary" />
           <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
             <Avatar
-              name={group.name} src={group.avatarUrl} seed={group.id} size="lg"
+              name={group.name} src={group.avatarUrl} type="group" size="lg"
               className="!h-[88px] !w-[88px] !rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
             />
           </div>

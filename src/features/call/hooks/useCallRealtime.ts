@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { apiAuth } from '@/lib/api/client';
-import { leaveRoom } from '@/lib/livekit/room';
+import { leaveRoom, setCam } from '@/lib/livekit/room';
 import {
   closeCallSocket,
   getCallSocket,
@@ -14,7 +14,7 @@ import {
 import { chatKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 import { useCallStore } from '@/features/call/stores/call.store';
-import { endedSchema, incomingSchema } from '@/features/call/schemas';
+import { endedSchema, incomingSchema, upgradeEventSchema } from '@/features/call/schemas';
 import { buildCallDirectory } from '@/features/call/utils';
 import { getConversationName } from '@/features/chat/utils';
 import { logger } from '@/lib/logger';
@@ -26,6 +26,7 @@ import type {
   EndedPayload,
   IncomingPayload,
   ParticipantPayload,
+  UpgradePayload,
 } from '@/features/call/types';
 
 /** Tìm conversation trong cache TanStack (detail trước, rồi quét các trang list). */
@@ -158,8 +159,34 @@ export function useCallRealtime() {
       if (p.data.reason === 'MISSED') toast('Cuộc gọi nhỡ');
     }
 
+    // Phía kia xin chuyển video → hiện prompt đồng ý/từ chối.
+    function onUpgradeRequested(raw: UpgradePayload) {
+      const p = upgradeEventSchema.safeParse(raw);
+      if (!p.success || !isCurrentCall(p.data.callId)) return;
+      s.getState().receiveUpgradeRequest(p.data.by);
+    }
+    // Mình đã xin và phía kia đồng ý → mở cam phía mình.
+    function onUpgradeAccepted(raw: UpgradePayload) {
+      const p = upgradeEventSchema.safeParse(raw);
+      if (!p.success || !isCurrentCall(p.data.callId)) return;
+      s.getState().promoteToVideo();
+      s.getState().setCam(true);
+      void setCam(true);
+      s.getState().clearUpgrade();
+      toast('Đã chuyển sang gọi video');
+    }
+    function onUpgradeDeclined(raw: UpgradePayload) {
+      const p = upgradeEventSchema.safeParse(raw);
+      if (!p.success || !isCurrentCall(p.data.callId)) return;
+      s.getState().clearUpgrade();
+      toast('Yêu cầu chuyển video bị từ chối');
+    }
+
     socket.on('call:incoming', onIncoming);
     socket.on('call:accepted', onAccepted);
+    socket.on('call:upgrade_requested', onUpgradeRequested);
+    socket.on('call:upgrade_accepted', onUpgradeAccepted);
+    socket.on('call:upgrade_declined', onUpgradeDeclined);
     socket.on('call:declined', onDeclined);
     socket.on('call:cancelled', onCancelled);
     socket.on('call:participant_joined', onParticipantJoined);
@@ -169,6 +196,9 @@ export function useCallRealtime() {
     return () => {
       socket.off('call:incoming', onIncoming);
       socket.off('call:accepted', onAccepted);
+      socket.off('call:upgrade_requested', onUpgradeRequested);
+      socket.off('call:upgrade_accepted', onUpgradeAccepted);
+      socket.off('call:upgrade_declined', onUpgradeDeclined);
       socket.off('call:declined', onDeclined);
       socket.off('call:cancelled', onCancelled);
       socket.off('call:participant_joined', onParticipantJoined);

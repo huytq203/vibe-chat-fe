@@ -15,7 +15,8 @@ type ProfileImageUploaderProps = {
   removed?: boolean;
   /** Tên để dựng avatar fallback (chỉ dùng cho variant avatar). */
   name?: string | null;
-  seed?: string;
+  /** Loại avatar fallback: 'user' (hồ sơ) hoặc 'group' (ảnh nhóm). */
+  type?: 'user' | 'group';
   disabled?: boolean;
   /** Báo file vừa chọn cho parent (parent upload lúc submit). */
   onSelect: (file: File) => void;
@@ -28,7 +29,7 @@ export function ProfileImageUploader({
   pendingFile,
   removed,
   name,
-  seed,
+  type = 'user',
   disabled,
   onSelect,
 }: ProfileImageUploaderProps) {
@@ -88,7 +89,7 @@ export function ProfileImageUploader({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={shown} alt="" className="h-full w-full rounded-full object-cover" />
           ) : (
-            <Avatar name={name ?? null} seed={seed} size="lg" className="h-full w-full" />
+            <Avatar name={name ?? null} type={type} size="lg" />
           )
         ) : shown ? (
           // eslint-disable-next-line @next/next/no-img-element

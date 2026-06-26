@@ -78,7 +78,7 @@ function SendRequestForm({ user, isPending, onClose, onSubmit }: FormProps) {
       </DialogHeader>
       <div className="my-2">
         <div className="my-2 flex items-center gap-3 rounded-lg border border-border bg-accent/30 p-3">
-          <Avatar name={name} src={user?.avatarUrl} seed={user?.id} size="md" />
+          <Avatar name={name} src={user?.avatarUrl} size="md" />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{name}</div>
             <div className="truncate text-xs text-muted-foreground">

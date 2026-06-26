@@ -21,7 +21,7 @@ export function IncomingRequestRow({
   const name = request.user.displayName || request.user.username;
   return (
     <div className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent/40">
-      <Avatar name={name} src={request.user.avatarUrl} seed={request.user.id} size="sm" />
+      <Avatar name={name} src={request.user.avatarUrl} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold">{name}</div>
         <div className="truncate text-xs text-muted-foreground">

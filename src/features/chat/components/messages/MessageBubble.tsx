@@ -16,11 +16,11 @@ import { formatBubbleTime } from "@/features/chat/utils";
 import { type BubbleConfig, DEFAULT_BUBBLE_CONFIG } from "@/features/chat/config/chat-themes";
 import {
   useDiscardFailedMessage,
-  useOpenDirectConversation,
   useResendMessage,
 } from "@/features/chat/hooks/use-mutations";
 import { Avatar } from "@/features/chat/components/common/Avatar";
 import { UserProfileDialog } from "@/features/chat/components/contact/UserProfileDialog";
+import { useBubbleTouchMenu } from "@/features/chat/hooks/useBubbleTouchMenu";
 import { MessageActions } from "./MessageActions";
 import { MessageReactions } from "./MessageReactions";
 import { MessageLikeButton } from "./MessageLikeButton";
@@ -37,7 +37,6 @@ type MessageBubbleProps = {
   showSenderName?: boolean;
   /** Avatar người gửi (URL đã ký, từ conversation.members). */
   senderAvatarUrl?: string | null;
-  senderSeed?: string;
   /** Tin gốc được trả lời, tra từ cache; null nếu tin không reply hoặc ngoài khung nhìn. */
   repliedTo?: Message | null;
   /** Tên người gửi tin gốc đã resolve (cho ReplyQuote). */
@@ -63,7 +62,6 @@ function MessageBubbleImpl({
   senderName,
   showSenderName,
   senderAvatarUrl,
-  senderSeed,
   repliedTo,
   repliedToName,
   onQuoteClick,
@@ -103,7 +101,7 @@ function MessageBubbleImpl({
       isPinned={isPinned}
       className={cn(
         "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity",
-        "group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+        "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
         isMe ? "right-full mr-1.5" : "left-full ml-1.5",
       )}
     />
@@ -118,13 +116,24 @@ function MessageBubbleImpl({
       isMe={isMe}
       className={cn(
         "pointer-events-none absolute -bottom-3 z-20 opacity-0 transition-opacity",
-        "group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+        "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
         isMe ? "right-2" : "right-2",
       )}
     />
   );
 
   const [senderProfileOpen, setSenderProfileOpen] = useState(false);
+
+  // Tương tác cảm ứng: long-press mở menu action, double-tap thả nhanh cảm xúc.
+  const { bubbleProps, drawer } = useBubbleTouchMenu({
+    message,
+    meId,
+    isMe,
+    senderName,
+    canPin,
+    isPinned,
+    enabled: canActions,
+  });
 
   return (
     <div
@@ -145,9 +154,8 @@ function MessageBubbleImpl({
               <Avatar
                 name={senderName ?? null}
                 src={senderAvatarUrl}
-                seed={senderSeed ?? message.senderId}
                 size="sm"
-                className="!h-7 !w-7 !rounded-lg !text-[9px]"
+                className="!h-7 !w-7 !rounded-lg"
               />
             </button>
           )}
@@ -190,9 +198,11 @@ function MessageBubbleImpl({
               "ring-2 ring-primary ring-offset-1 ring-offset-background",
           )}
           style={hasTheme ? (isMe ? bubbleConfig.myStyle : bubbleConfig.otherStyle) : undefined}
+          {...bubbleProps}
         >
           {actionsMenu}
           {likeButton}
+          {drawer}
           {message.replyToMessageId && (
             <ReplyQuote
               repliedTo={repliedTo ?? null}

@@ -31,6 +31,11 @@ export const incomingSchema = z.object({
   room: z.string(),
 });
 
+export const upgradeEventSchema = z.object({
+  callId: z.string(),
+  by: z.string(),
+});
+
 export const endedSchema = z.object({
   callId: z.string(),
   reason: z.enum([

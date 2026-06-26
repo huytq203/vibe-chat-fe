@@ -5,6 +5,9 @@ import Draggable, { type DraggableData } from 'react-draggable';
 import { Maximize2, Minimize2, Minus, PhoneOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
+import { useCallStore } from '@/features/call/stores/call.store';
+import { CallChatPanel } from './CallChatPanel';
+import { UpgradePrompt } from './UpgradePrompt';
 import type {
   CallDirectory,
   CallPeer,
@@ -34,6 +37,9 @@ type CallWindowProps = {
   onToggleMic: () => void;
   onToggleCam: () => void;
   onHangup: () => void;
+  onRequestUpgrade: () => void;
+  onAcceptUpgrade: () => void;
+  onDeclineUpgrade: () => void;
   onSetMode: (mode: WindowMode) => void;
   onClose: () => void;
   onDrag: (x: number, y: number) => void;
@@ -64,6 +70,7 @@ export function CallWindow(props: CallWindowProps) {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const draggable = mode !== 'fullscreen';
   const countLabel = isGroup ? `${participantCount} người` : '';
+  const chatOpen = useCallStore((s) => s.chatOpen);
 
   // Điều khiển cửa sổ — LUÔN hiển thị ở mọi mode (đặt ngoài vùng kéo nhờ class no-drag).
   const windowControls = (
@@ -114,7 +121,7 @@ export function CallWindow(props: CallWindowProps) {
     <div
       ref={nodeRef}
       className={cn(
-        'pointer-events-auto fixed z-60 flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl',
+        'pointer-events-auto fixed z-60 flex flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl',
         mode === 'fullscreen' ? SIZE_CLASS.fullscreen : `bottom-6 right-6 ${SIZE_CLASS[mode]}`,
       )}
     >
@@ -150,15 +157,26 @@ export function CallWindow(props: CallWindowProps) {
         </div>
       ) : (
         <>
-          <CallStage
-            type={type}
-            peer={peer}
-            isGroup={isGroup}
-            directory={directory}
-            remoteIds={remoteIds}
-            getRemoteRef={getRemoteRef}
-            setLocalEl={setLocalEl}
-            statusText={statusText}
+          <div className="flex min-h-0 flex-1">
+            <CallStage
+              type={type}
+              peer={peer}
+              isGroup={isGroup}
+              directory={directory}
+              remoteIds={remoteIds}
+              getRemoteRef={getRemoteRef}
+              setLocalEl={setLocalEl}
+              statusText={statusText}
+            />
+            {chatOpen && (
+              <div className="w-[240px] shrink-0">
+                <CallChatPanel />
+              </div>
+            )}
+          </div>
+          <UpgradePrompt
+            onAccept={props.onAcceptUpgrade}
+            onDecline={props.onDeclineUpgrade}
           />
           <CallControls
             micOn={micOn}
@@ -166,6 +184,7 @@ export function CallWindow(props: CallWindowProps) {
             onToggleMic={props.onToggleMic}
             onToggleCam={props.onToggleCam}
             onHangup={props.onHangup}
+            onRequestUpgrade={props.onRequestUpgrade}
           />
         </>
       )}

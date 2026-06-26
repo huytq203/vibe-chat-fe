@@ -192,7 +192,6 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
                   senderName={memberNames[m.senderId] ?? null}
                   showSenderName={showSenderNames && showAvatar}
                   senderAvatarUrl={memberAvatars[m.senderId] ?? null}
-                  senderSeed={m.senderId}
                   repliedTo={repliedTo}
                   repliedToName={repliedToName}
                   onQuoteClick={scrollToMessage}
@@ -220,7 +219,6 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
             return (
               <TypingBubble
                 key={`typing-${userId}`}
-                userId={userId}
                 showAvatar={showAvatar}
                 senderName={memberNames[userId] ?? null}
                 senderAvatarUrl={memberAvatars[userId] ?? null}

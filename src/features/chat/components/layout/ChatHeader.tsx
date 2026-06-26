@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { cn } from '@/lib/utils/cn';
 import type { Conversation, Presence } from '@/features/chat/types';
-import { getConversationAvatar, getConversationName, getConversationSeed } from '@/features/chat/utils';
+import { getConversationAvatar, getConversationName, isGroupConversation } from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
@@ -31,7 +31,6 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
 
   const isSelfConv = conversation.type === 'SELF';
   const name = isSelfConv ? 'Kho của tôi' : getConversationName(conversation, meId);
-  const seed = getConversationSeed(conversation, meId);
   const avatarUrl = isSelfConv ? null : getConversationAvatar(conversation, meId);
 
   const status: 'online' | 'offline' | null = !presence
@@ -72,7 +71,13 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
             <Archive className="h-4 w-4" />
           </span>
         ) : (
-          <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={status} />
+          <Avatar
+            name={name}
+            src={avatarUrl}
+            type={isGroupConversation(conversation) ? 'group' : 'user'}
+            size="md"
+            status={status}
+          />
         )}
         <div className="min-w-0">
           <div className="truncate text-[14.5px] font-bold text-foreground">{name}</div>
@@ -128,16 +133,11 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
                 }}
               />
             )}
-            {!isSelfConv && (
-              <Button variant="ghost" size="icon-sm" title="Tìm kiếm" aria-label="Tìm kiếm" onClick={() => setSearching(true)}>
-                <Search className="h-[18px] w-[18px]" />
-              </Button>
-            )}
+            
           </>
         )}
         {!onBack && (
           <>
-          <Separator orientation="vertical" className="h-5 bg-foreground" />
           <Button
             variant="ghost"
             size="icon-sm"

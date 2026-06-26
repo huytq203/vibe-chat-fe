@@ -10,7 +10,7 @@ import {
   formatListTime,
   getConversationAvatar,
   getConversationName,
-  getConversationSeed,
+  isGroupConversation,
   mapPreviewText,
 } from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
@@ -36,7 +36,6 @@ function ConversationItemImpl({
   decryptedPreview,
 }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
-  const seed = getConversationSeed(conversation, meId);
   const avatarUrl = getConversationAvatar(conversation, meId);
   const isLocked = Boolean(conversation.isLocked);
   const lm = conversation.lastMessage;
@@ -66,7 +65,14 @@ function ConversationItemImpl({
           : 'hover:bg-muted',
       )}
     >
-      <Avatar name={name} src={avatarUrl} seed={seed} size="md" status={null} onImageError={onAvatarError} />
+      <Avatar
+        name={name}
+        src={avatarUrl}
+        type={isGroupConversation(conversation) ? 'group' : 'user'}
+        size="md"
+        status={null}
+        onImageError={onAvatarError}
+      />
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1">
