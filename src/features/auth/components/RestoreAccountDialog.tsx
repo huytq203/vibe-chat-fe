@@ -44,6 +44,7 @@ export const RestoreAccountDialog = ({
   };
 
   const sendOtp = async () => {
+    if (request.isPending) return;
     try {
       await request.mutateAsync(restoreToken);
       toast.success('Đã gửi mã khôi phục tới email của bạn');
@@ -54,6 +55,7 @@ export const RestoreAccountDialog = ({
   };
 
   const submit = async () => {
+    if (confirm.isPending) return;
     if (!/^\d{6}$/.test(otp)) return toast.error('Mã gồm 6 chữ số');
     try {
       await confirm.mutateAsync({ restoreToken, otp });
@@ -73,14 +75,20 @@ export const RestoreAccountDialog = ({
           mã OTP gửi qua email{maskedEmail ? ` ${maskedEmail}` : ''}.
         </DialogDescription>
 
-        <div className="mt-2 space-y-4">
+        <form
+          className="mt-2 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!sent) void sendOtp();
+            else void submit();
+          }}
+        >
           {!sent ? (
             <Button
-              type="button"
+              type="submit"
               className="w-full"
               isLoading={request.isPending}
               disabled={request.isPending}
-              onClick={() => void sendOtp()}
             >
               Gửi mã khôi phục
             </Button>
@@ -94,16 +102,12 @@ export const RestoreAccountDialog = ({
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="123456"
                 className="text-center text-lg tracking-[0.4em]"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void submit();
-                }}
               />
               <Button
-                type="button"
+                type="submit"
                 className="w-full"
                 isLoading={confirm.isPending}
                 disabled={confirm.isPending}
-                onClick={() => void submit()}
               >
                 Xác nhận khôi phục
               </Button>
@@ -118,7 +122,7 @@ export const RestoreAccountDialog = ({
               </Button>
             </>
           )}
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

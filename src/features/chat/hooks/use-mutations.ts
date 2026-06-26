@@ -849,6 +849,17 @@ export function useUpdateConversation() {
       chatApi.updateConversation(conversationId, input),
     onSuccess: (conv, { conversationId }) => {
       qc.setQueryData(chatKeys.conversationDetail(conversationId), conv);
+      // Patch ngay name/description/avatar vào mọi cache list để item đổi tức thì,
+      // không phải chờ refetch (debounce) hay F5.
+      qc.setQueriesData<Conversation[]>(
+        { queryKey: chatKeys.conversationLists() },
+        (prev) =>
+          prev?.map((c) =>
+            c.id === conversationId
+              ? { ...c, name: conv.name, description: conv.description, avatarUrl: conv.avatarUrl }
+              : c,
+          ),
+      );
       debouncedInvalidate(qc, chatKeys.conversationLists());
       toast.success('Đã cập nhật thông tin nhóm');
     },

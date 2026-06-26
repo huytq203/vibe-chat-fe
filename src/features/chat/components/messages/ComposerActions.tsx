@@ -102,54 +102,7 @@ export function ComposerActions({
   return (
     <div className="flex items-center">
       {!isEditing && (
-        <>
-          <AttachmentButtons onFiles={onFiles} disabled={disabled} />
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={disabled}
-                  title={
-                    selfDestructTtl
-                      ? "Tin nhắn tự huỷ đang bật"
-                      : "Tin nhắn tự huỷ"
-                  }
-                  aria-label="Tin nhắn tự huỷ"
-                  className={cn(
-                    selfDestructTtl
-                      ? "text-warning hover:text-warning"
-                      : "text-muted-foreground hover:text-warning",
-                  )}
-                >
-                  <Clock className="h-[18px] w-[18px]" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              className="min-w-[150px]"
-            >
-              {SELF_DESTRUCT_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.label}
-                  onClick={() => onSelfDestruct(opt.seconds)}
-                  className={cn(
-                    "justify-between",
-                    selfDestructTtl === opt.seconds && "text-warning",
-                  )}
-                >
-                  {opt.label}
-                  {selfDestructTtl === opt.seconds && (
-                    <Check className="h-3.5 w-3.5" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </>
+        <AttachmentButtons onFiles={onFiles} disabled={disabled} />
       )}
       <Popover open={emojiOpen} onOpenChange={onEmojiOpenChange}>
         <PopoverTrigger>
@@ -236,6 +189,39 @@ export function ComposerActions({
                 label="Hẹn giờ"
                 onClick={() => handleMoreAction(onScheduleClick)}
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[12px] font-medium transition-colors hover:bg-muted text-left",
+                        selfDestructTtl ? "text-warning" : "text-muted-foreground",
+                      )}
+                    >
+                      <Clock className="h-[18px] w-[18px]" />
+                      Tin nhắn tự huỷ
+                    </button>
+                  }
+                />
+                <DropdownMenuContent side="right" align="start" className="min-w-[150px]">
+                  {SELF_DESTRUCT_OPTIONS.map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.label}
+                      onClick={() => handleMoreAction(() => onSelfDestruct(opt.seconds))}
+                      className={cn(
+                        "justify-between",
+                        selfDestructTtl === opt.seconds && "text-warning",
+                      )}
+                    >
+                      {opt.label}
+                      {selfDestructTtl === opt.seconds && (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </PopoverContent>
         </Popover>

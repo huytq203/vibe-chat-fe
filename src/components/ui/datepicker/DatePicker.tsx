@@ -55,6 +55,8 @@ export interface DatePickerProps {
     error?: string;
     required?: boolean;
     captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years" | undefined;
+    /** Cho phép gõ tay ngày (dd/MM/yyyy) song song với chọn lịch — chỉ áp dụng mode 'single' */
+    editable?: boolean;
 }
 
 // ---------- helpers ----------
@@ -98,6 +100,16 @@ function formatDateDisplay(d: Date, showTime: boolean, fmt: TimeFormat): string 
     return `${datePart} ${format(d, 'HH:mm:ss')}`;
 }
 
+function parseDateInput(raw: string): Date | undefined {
+    const m = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return undefined;
+    const [, d, mo, y] = m;
+    const day = Number(d), month = Number(mo) - 1, year = Number(y);
+    const date = new Date(year, month, day);
+    const isValid = date.getDate() === day && date.getMonth() === month && date.getFullYear() === year;
+    return isValid ? date : undefined;
+}
+
 function padOptions(count: number) {
     return Array.from({ length: count }, (_, i) => ({
         label: i.toString().padStart(2, '0'),
@@ -112,7 +124,7 @@ const secondsOptions = padOptions(60);
 // ---------- styles ----------
 
 const popoverContent = tv({
-    base: 'z-50  rounded-xl border border-border bg-background text-foreground shadow-xl outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2',
+    base: 'z-[200]  rounded-xl border border-border bg-background text-foreground shadow-xl outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2',
 });
 
 // ---------- sub-components ----------
@@ -228,9 +240,11 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     error,
     required,
     captionLayout = undefined,
+    editable = false,
 }, ref) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const anchorRef = React.useRef<HTMLDivElement>(null);
 
     // Controlled nếu có onChange — value prop được trust kể cả khi undefined
     const isControlled = onChange !== undefined;
@@ -281,6 +295,32 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
         }
     };
 
+    const [inputValue, setInputValue] = React.useState('');
+    React.useEffect(() => {
+        if (date instanceof Date) setInputValue(format(date, 'dd/MM/yyyy'));
+        else if (!date) setInputValue('');
+    }, [date]);
+
+    const handleInputChange = (raw: string) => {
+        setInputValue(raw);
+        const parsed = parseDateInput(raw);
+        if (!parsed) return;
+        setCalendarMonth(parsed);
+        if (!isControlled) setInternalDate(parsed);
+        onChange?.(parsed);
+    };
+
+    const commitInput = () => {
+        if (!inputValue.trim()) {
+            if (!isControlled) setInternalDate(undefined);
+            onChange?.(undefined);
+            return;
+        }
+        if (!parseDateInput(inputValue)) {
+            setInputValue(date instanceof Date ? format(date, 'dd/MM/yyyy') : '');
+        }
+    };
+
     const triggerLabel = React.useMemo(() => {
         if (mode === 'time-only') {
             const val = timeValue ?? buildTimeString(timeParts, timeFormat);
@@ -323,34 +363,65 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
             )}
 
             <BasePopover.Root open={open} onOpenChange={disabled ? undefined : handleOpenChange}>
-                <BasePopover.Trigger
-                    render={
-                        <button
-                            ref={triggerRef}
-                            type="button"
+                {editable && mode === 'single' ? (
+                    <div
+                        ref={anchorRef}
+                        className={[
+                            'group flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm',
+                            'transition-shadow focus-within:border-primary',
+                            error ? 'border-danger focus-within:border-danger' : 'border-border',
+                            disabled ? 'cursor-not-allowed opacity-50' : '',
+                        ].join(' ')}
+                    >
+                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <input
+                            type="text"
+                            inputMode="numeric"
                             disabled={disabled}
-                            className={[
-                                'flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm',
-                                'ring-offset-background transition-shadow',
-                                'hover:border-primary focus:border-primary focus:outline-none',
-                                'disabled:cursor-not-allowed disabled:opacity-50',
-                                error ? 'border-danger focus:border-danger' : 'border-border',
-                                'group',
-                            ].join(' ')}
-                        >
-                            {isTimeMode ? (
-                                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            ) : (
-                                <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            )}
-                            <div className="flex-1 truncate text-left">{triggerLabel}</div>
-                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
-                        </button>
-                    }
-                />
+                            placeholder={placeholder}
+                            value={inputValue}
+                            onChange={(e) => handleInputChange(e.target.value)}
+                            onBlur={commitInput}
+                            className="flex-1 bg-transparent text-left text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+                        />
+                        <BasePopover.Trigger
+                            render={
+                                <button type="button" disabled={disabled} aria-label="Mở lịch" className="shrink-0">
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
+                                </button>
+                            }
+                        />
+                    </div>
+                ) : (
+                    <BasePopover.Trigger
+                        render={
+                            <button
+                                ref={triggerRef}
+                                type="button"
+                                disabled={disabled}
+                                className={[
+                                    'flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm',
+                                    'ring-offset-background transition-shadow',
+                                    'hover:border-primary focus:border-primary focus:outline-none',
+                                    'disabled:cursor-not-allowed disabled:opacity-50',
+                                    error ? 'border-danger focus:border-danger' : 'border-border',
+                                    'group',
+                                ].join(' ')}
+                            >
+                                {isTimeMode ? (
+                                    <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                ) : (
+                                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                )}
+                                <div className="flex-1 truncate text-left">{triggerLabel}</div>
+                                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
+                            </button>
+                        }
+                    />
+                )}
 
                 <BasePopover.Portal>
-                    <BasePopover.Positioner anchor={triggerRef} sideOffset={6} className="z-50">
+                    <BasePopover.Positioner anchor={editable && mode === 'single' ? anchorRef : triggerRef} sideOffset={6} className="z-[200]">
                         <BasePopover.Popup className={popoverContent()}>
                             {!isTimeMode && mode === 'single' && (
                                 <div className="p-2 flex justify-center">

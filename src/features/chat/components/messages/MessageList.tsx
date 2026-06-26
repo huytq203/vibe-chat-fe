@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { toast } from 'sonner';
@@ -70,21 +70,10 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
 
   useSelfDestruct(conversationId, messages);
 
-  // Track initial message IDs — mới hơn sẽ animate slide-in
-  const initialMsgIdsRef = useRef<Set<string>>(new Set());
-  const hasInitialRef = useRef(false);
-
-  useEffect(() => {
-    if (!hasInitialRef.current && messages.length > 0 && !isLoading) {
-      hasInitialRef.current = true;
-      initialMsgIdsRef.current = new Set(messages.map((m) => m.id));
-    }
-  }, [messages, isLoading]);
-
-  useEffect(() => {
-    hasInitialRef.current = false;
-    initialMsgIdsRef.current = new Set();
-  }, [conversationId]);
+  // Mốc thời gian mount: tin có createdAt > mốc này = tin mới (đến sau khi mở) → animate
+  // slide-in. Dùng state initializer (chạy 1 lần) thay vì đọc ref trong render (phá memo
+  // của React Compiler + lệch 1 frame).
+  const [mountAt] = useState(() => Date.now());
 
   const bubbleConfig = useBubbleConfig(conversationId);
 
@@ -99,7 +88,6 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
 
   const { scrollRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll } =
     useChatScroll({
-      messageCount: messages.length,
       lastMessageId,
       hasNextPage: hasNextPage ?? false,
       isFetchingNextPage,
@@ -177,7 +165,7 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-5 pb-2 pt-4"
+          className="overflow-x-hidden flex-1 overflow-y-auto px-5 pb-2 pt-4"
         >
           {isFetchingNextPage && (
             <div className="py-2 text-center text-[11px] text-muted-foreground">Đang tải thêm...</div>
@@ -190,7 +178,7 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
             const repliedToName = repliedTo
               ? repliedTo.senderId === meId ? 'Bạn' : (memberNames[repliedTo.senderId] ?? null)
               : null;
-            const isNew = hasInitialRef.current && !initialMsgIdsRef.current.has(m.id);
+            const isNew = new Date(m.createdAt).getTime() > mountAt;
             return (
               <div
                 key={m.id}

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/services/auth.api';
-import { authKeys } from '@/services/keys';
+import { authKeys, chatKeys } from '@/services/keys';
 import { notificationsApi } from '@/services/notifications.api';
 import { closeSocket } from '@/lib/ws/socket';
 import { getFcmToken } from '@/lib/firebase/messaging';
@@ -65,6 +65,9 @@ export function useUpdateMe() {
     onSuccess: (data) => {
       queryClient.setQueryData(authKeys.me(), data);
       setUser(data);
+      // Avatar/tên trong conversation list lấy từ conversation.members đã cache →
+      // invalidate để list refetch avatar mới, không phải F5.
+      void queryClient.invalidateQueries({ queryKey: chatKeys.conversations() });
     },
   });
 }

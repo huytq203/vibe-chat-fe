@@ -181,7 +181,7 @@ function MessageBubbleImpl({
             !hasTheme && (isMe
               ? "rounded-br-md bg-primary text-primary-foreground"
               : wallpaperActive
-                ? "rounded-bl-md border border-border/40 bg-background/75 text-foreground backdrop-blur-sm"
+                ? "rounded-bl-md border border-border/40 bg-background text-foreground"
                 : "rounded-bl-md border border-border bg-muted text-foreground"),
             hasTheme && (isMe ? "rounded-br-md" : "rounded-bl-md border border-white/10"),
             isSending && "opacity-70",

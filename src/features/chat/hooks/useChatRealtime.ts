@@ -16,7 +16,7 @@ import {
 import { useAuthStore } from '@/features/auth';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
-import { chatKeys, myStoreKeys } from '@/services/keys';
+import { chatKeys, friendKeys, myStoreKeys, userKeys } from '@/services/keys';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
 import type {
@@ -56,6 +56,15 @@ type MembersAddedPayload = {
   conversationId: string;
   addedUserIds: string[];
   addedBy?: string;
+  at?: string;
+};
+// Hồ sơ 1 user vừa đổi (tên/avatar/ảnh bìa/bio) — bắn tới chính chủ (đa thiết bị) + bạn bè.
+type UserUpdatedPayload = {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  bio: string | null;
   at?: string;
 };
 type MemberRemovedPayload = {
@@ -180,6 +189,8 @@ export function useChatRealtime() {
     const token = apiAuth.getToken();
     const socket = getSocket(token);
     if (!socket) return;
+    // Alias non-null để dùng an toàn trong các closure (TS widen socket về null trong closure).
+    const s = socket;
 
     // Cập nhật 1 hội thoại trong cache danh sách TRỰC TIẾP từ WS (realtime, không refetch):
     // - message: cập nhật preview + lastMessageAt (để sắp xếp) + messageCount.
@@ -188,7 +199,13 @@ export function useChatRealtime() {
     // Trả về false nếu conv chưa có trong cache (conv mới) → caller tự refetch để kéo về.
     function patchConvInList(
       conversationId: string,
-      opts: { message?: Message; bumpUnread?: boolean; resetUnread?: boolean },
+      opts: {
+        message?: Message;
+        bumpUnread?: boolean;
+        resetUnread?: boolean;
+        /** Chỉ tăng messageCount khi tin thật sự mới (tránh cộng đôi do event trùng). */
+        incrementCount?: boolean;
+      },
     ): boolean {
       let found = false;
       qc.setQueriesData<Conversation[]>(
@@ -204,7 +221,7 @@ export function useChatRealtime() {
             if (opts.message) {
               patched.lastMessage = mapMessageToPreview(opts.message);
               patched.lastMessageAt = opts.message.createdAt;
-              patched.messageCount = c.messageCount + 1;
+              if (opts.incrementCount) patched.messageCount = c.messageCount + 1;
             }
             if (opts.resetUnread) patched.unreadCount = 0;
             else if (opts.bumpUnread) patched.unreadCount = c.unreadCount + 1;
@@ -216,15 +233,20 @@ export function useChatRealtime() {
       return found;
     }
 
-    function upsertMessage(message: Message) {
+    // Trả về true nếu message được CHÈN MỚI (không phải thay thế bản đã có theo id/nonce).
+    // Caller dùng cờ này để chỉ bump messageCount/unread đúng 1 lần, idempotent với event
+    // trùng (BE bắn cả message:new lẫn conversation:notify cho cùng 1 tin).
+    function upsertMessage(message: Message): boolean {
       const key = chatKeys.messages(message.conversationId);
       const incomingNonce =
         (message.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
+      let inserted = false;
 
       qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
         // Cache chưa có → tạo trang đầu chứa message này. Lần fetch sau từ REST
         // sẽ merge thêm history, không sợ duplicate vì có dedupe theo id.
         if (!prev) {
+          inserted = true;
           return {
             pages: [{ items: [message], nextCursor: null }],
             pageParams: [null],
@@ -261,6 +283,7 @@ export function useChatRealtime() {
 
         if (replaced) return { ...prev, pages };
 
+        inserted = true;
         const [first, ...rest] = pages;
         const head: MessagesPage = first
           ? { ...first, items: [message, ...first.items] }
@@ -289,13 +312,16 @@ export function useChatRealtime() {
       if (selfConvId && message.conversationId === selfConvId) {
         qc.invalidateQueries({ queryKey: myStoreKeys.quota() });
       }
+
+      return inserted;
     }
 
     function onMessageNew(message: Message) {
-      upsertMessage(message);
+      const inserted = upsertMessage(message);
       // Tin tới conv đang mở (đã join room) → cập nhật preview + thứ tự trong list NGAY,
       // KHÔNG tăng unread (user đang xem; markRead lo việc đọc). Conv lạ → refetch kéo về.
-      if (!patchConvInList(message.conversationId, { message })) {
+      // incrementCount=inserted: bỏ qua bump nếu tin đã có (echo/trùng event).
+      if (!patchConvInList(message.conversationId, { message, incrementCount: inserted })) {
         debouncedInvalidate(qc, chatKeys.conversationLists());
       }
     }
@@ -343,21 +369,25 @@ export function useChatRealtime() {
     function onConversationNotify(payload: NotifyPayload) {
       // Luôn upsert (kể cả cache rỗng) — đảm bảo nếu user mở conv ngay sau đó,
       // tin nhắn đã có sẵn trong cache, không bị "delay 1 vòng REST".
-      upsertMessage(payload.message);
+      const inserted = upsertMessage(payload.message);
       // Tin ở conv KHÁC (chưa mở) → tăng unread + cập nhật preview TRỰC TIẾP trong cache
       // (realtime, không chờ refetch). Bỏ qua tin mình tự gửi (thiết bị khác) & conv đang mở.
+      // Chỉ bump unread/messageCount khi tin thật sự mới (idempotent với event trùng).
       const meId = useAuthStore.getState().user?.id ?? null;
       const isMine = payload.message.senderId === meId;
       const isOpen = joinedRef.current === payload.conversationId;
       const found = patchConvInList(payload.conversationId, {
         message: payload.message,
-        bumpUnread: !isMine && !isOpen,
+        bumpUnread: inserted && !isMine && !isOpen,
+        incrementCount: inserted,
       });
       // Conv mới chưa có trong danh sách → refetch để kéo về.
       if (!found) debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
-    hasConnectedRef.current = false;
+    // Nếu socket đã connected sẵn (singleton tái dùng) → coi như đã qua initial-connect,
+    // để lần 'connect' kế tiếp được xử lý như reconnect thật (tránh kẹt cờ → bỏ lỡ catch-up).
+    hasConnectedRef.current = s.connected;
 
     function onReconnect() {
       if (!hasConnectedRef.current) {
@@ -365,7 +395,12 @@ export function useChatRealtime() {
         hasConnectedRef.current = true;
         return;
       }
-      // Reconnect thật (mất mạng, tab background lâu) → bù event đã miss.
+      // Reconnect thật (mất mạng, tab background lâu): connection mới mất hết room đã join
+      // → re-join conv đang mở để typing/read-receipt/message:new room-scoped sống lại.
+      if (joinedRef.current) {
+        s.emit('conversation:join', { conversationId: joinedRef.current });
+      }
+      // Bù event đã miss trong gap.
       qc.invalidateQueries({ queryKey: chatKeys.all });
     }
 
@@ -412,9 +447,12 @@ export function useChatRealtime() {
     }
 
     function onPresenceUpdate(payload: Presence) {
-      const entries = qc.getQueriesData<Presence[]>({ queryKey: chatKeys.all });
+      // Chỉ quét nhánh presence thay vì toàn bộ cache chat (presence:update tần suất cao).
+      const entries = qc.getQueriesData<Presence[]>({
+        queryKey: [...chatKeys.all, 'presence'],
+      });
       for (const [key, list] of entries) {
-        if (!Array.isArray(key) || key[1] !== 'presence' || !Array.isArray(list)) continue;
+        if (!Array.isArray(list)) continue;
         const idx = list.findIndex((p) => p.userId === payload.userId);
         if (idx === -1) continue;
         const next = list.slice();
@@ -520,6 +558,30 @@ export function useChatRealtime() {
       debouncedInvalidate(qc, chatKeys.conversationLists());
     }
 
+    // 1 user đổi hồ sơ (tên/avatar...) → cập nhật mọi nơi hiển thị user đó mà không
+    // cần user mở lại màn hình. Bao gồm chính chủ đổi ở thiết bị khác (đồng bộ header).
+    function onUserUpdated(payload: UserUpdatedPayload) {
+      const cur = useAuthStore.getState().user;
+      // Chính mình đổi ở thiết bị/tab khác → đồng bộ auth store ngay (avatar/tên ở header).
+      if (cur && cur.id === payload.userId) {
+        useAuthStore.getState().setUser({
+          ...cur,
+          displayName: payload.displayName,
+          avatarUrl: payload.avatarUrl,
+        });
+      }
+      // Màn profile của user này lấy bản mới.
+      qc.invalidateQueries({ queryKey: userKeys.profile(payload.userId) });
+      // Hẹp lại: chỉ sidebar (list) + member nhóm đang mở, KHÔNG kéo theo mọi detail/
+      // joinRequests/bannedMembers như chatKeys.conversations().
+      debouncedInvalidate(qc, chatKeys.conversationLists());
+      if (joinedRef.current) {
+        debouncedInvalidate(qc, chatKeys.conversationDetail(joinedRef.current));
+      }
+      // Danh sách bạn bè (tên/avatar) — chỉ list, không đụng incoming/outgoing requests.
+      debouncedInvalidate(qc, friendKeys.list());
+    }
+
     // Cảm xúc tin nhắn thay đổi → patch summary tại chỗ. myReaction chỉ đổi khi
     // chính mình là người thao tác (event của người khác không động tới cảm xúc của tôi).
     function onReactionUpdated(payload: ReactionUpdatedPayload) {
@@ -591,9 +653,9 @@ export function useChatRealtime() {
     const unsubMessageRead = cipherOn('message:read', onMessageRead as (data: unknown) => void);
     const unsubPresenceUpdate = cipherOn('presence:update', onPresenceUpdate as (data: unknown) => void);
     const unsubTyping = cipherOn('typing', onTyping as (data: unknown) => void);
+    const unsubUserUpdated = cipherOn('user:updated', onUserUpdated as (data: unknown) => void);
     socket.on('connect', onReconnect);
 
-    const s = socket;
     function sendHeartbeat() {
       if (!s.connected) return;
       // BE prune socket sau 60s mất heartbeat → trả ack { reconnect: true }
@@ -632,6 +694,7 @@ export function useChatRealtime() {
       unsubMessageRead();
       unsubPresenceUpdate();
       unsubTyping();
+      unsubUserUpdated();
       socket.off('connect', onReconnect);
       clearInterval(heartbeat);
       document.removeEventListener('visibilitychange', onVisibility);

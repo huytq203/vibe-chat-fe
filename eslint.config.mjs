@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Electron build output — không lint artifact đã build (gây hàng trăm lỗi giả).
+    "dist-electron/**",
   ]),
 ]);
 

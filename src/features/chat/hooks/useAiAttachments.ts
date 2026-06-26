@@ -50,7 +50,10 @@ export function useAiAttachments(): UseAiAttachmentsReturn {
   const [attachments, setAttachments] = useState<AiAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const attachmentsRef = useRef(attachments);
-  attachmentsRef.current = attachments;
+  // Đồng bộ ref trong effect (không gán ref trong render) để cleanup unmount revoke đúng URL.
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
 
   useEffect(() => {
     return () => {

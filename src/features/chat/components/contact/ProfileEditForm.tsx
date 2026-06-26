@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import { ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
@@ -7,7 +8,7 @@ import { Form, FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import { DatePicker } from '@/components/ui/datepicker/DatePicker';
-import type { UpdateMeInput, AuthUser } from '@/features/auth';
+import { useImageUpload, type UpdateMeInput, type AuthUser } from '@/features/auth';
 import { ProfileImageUploader } from './ProfileImageUploader';
 
 /** Chuỗi yyyy-MM-dd → Date (local, tránh lệch timezone do parse UTC). */
@@ -33,6 +34,29 @@ type ProfileEditFormProps = {
 
 /** Màn hình chỉnh sửa hồ sơ: ảnh bìa, avatar, tên hiển thị, giới thiệu, giới tính, ngày sinh. */
 export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: ProfileEditFormProps) {
+  // Ảnh chỉ preview tới khi submit; upload thật khi bấm Cập nhật (tránh ảnh rác).
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const { upload, uploading } = useImageUpload('AVATAR');
+
+  async function handleSubmit(data: UpdateMeInput) {
+    let avatarMediaId = data.avatarMediaId;
+    let coverMediaId = data.coverMediaId;
+    if (avatarFile) {
+      const up = await upload(avatarFile);
+      if (!up) return; // lỗi đã hiển thị trong hook
+      avatarMediaId = up.id;
+    }
+    if (coverFile) {
+      const up = await upload(coverFile);
+      if (!up) return;
+      coverMediaId = up.id;
+    }
+    onSubmit({ ...data, avatarMediaId, coverMediaId });
+  }
+
+  const busy = isPending || uploading;
+
   return (
     <div className="w-1/2 shrink-0">
       <div className="relative mb-4 flex items-center justify-center px-6 pt-6">
@@ -43,23 +67,25 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          {/* Ảnh bìa + avatar: upload trực tiếp → ghi mediaId vào form (chỉ gửi khi đổi). */}
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+          {/* Ảnh bìa + avatar: chỉ preview, upload khi submit. */}
           <div className="relative">
             <ProfileImageUploader
               variant="cover"
               value={me?.coverUrl ?? null}
-              disabled={isPending}
-              onUploaded={(id) => form.setValue('coverMediaId', id, { shouldDirty: true })}
+              pendingFile={coverFile}
+              disabled={busy}
+              onSelect={setCoverFile}
             />
             <div className="-mt-10 flex justify-center">
               <ProfileImageUploader
                 variant="avatar"
                 value={me?.avatarUrl ?? null}
+                pendingFile={avatarFile}
                 name={me?.displayName ?? me?.username}
                 seed={me?.id ?? 'me'}
-                disabled={isPending}
-                onUploaded={(id) => form.setValue('avatarMediaId', id, { shouldDirty: true })}
+                disabled={busy}
+                onSelect={setAvatarFile}
               />
             </div>
           </div>
@@ -133,6 +159,7 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
                 control={form.control}
                 render={({ field }) => (
                   <DatePicker
+                    editable
                     label="Ngày sinh"
                     placeholder="Chọn ngày sinh"
                     captionLayout="dropdown"
@@ -146,8 +173,8 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
             </div>
 
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>Huỷ</Button>
-              <Button type="submit" variant="solid" isLoading={isPending}>Cập nhật</Button>
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Huỷ</Button>
+              <Button type="submit" variant="solid" isLoading={busy}>Cập nhật</Button>
             </div>
           </div>
         </form>

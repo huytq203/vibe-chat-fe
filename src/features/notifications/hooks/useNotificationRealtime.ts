@@ -31,7 +31,9 @@ export function useNotificationRealtime() {
   // Ref giữ hội thoại đang mở để handler socket đọc giá trị mới nhất
   // mà không phải re-subscribe mỗi lần đổi hội thoại.
   const activeConvRef = useRef(activeConversationId);
-  activeConvRef.current = activeConversationId;
+  useEffect(() => {
+    activeConvRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!isAuthed) return;

@@ -32,7 +32,7 @@ export function AiChatMain({
   onCreateSession,
 }: Props) {
   const [modelOptions, setModelOptions] = useState<ModelOption[]>(GEMINI_FREE_MODELS);
-  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,8 @@ export function AiChatMain({
     useAiAttachments();
 
   useEffect(() => {
-    setLoadingModels(true);
+    // loadingModels khởi tạo true → chỉ cần set false sau khi fetch xong (setState async
+    // trong .then là hợp lệ, tránh setState đồng bộ trong effect).
     void fetchGeminiModels().then((models) => {
       setModelOptions(models);
       setLoadingModels(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +27,10 @@ export function SendRequestDialog({
   onClose,
   onSubmit,
 }: Props) {
-  const lastUserRef = useRef(user);
-  if (user) lastUserRef.current = user;
-  const displayUser = lastUserRef.current;
+  // Giữ user cuối để nội dung không biến mất khi dialog đóng (user -> null).
+  const [lastUser, setLastUser] = useState(user);
+  if (user && user !== lastUser) setLastUser(user);
+  const displayUser = user ?? lastUser;
 
   return (
     <Dialog

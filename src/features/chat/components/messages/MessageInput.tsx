@@ -146,7 +146,7 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup, wall
     ) : null;
 
   return (
-    <div className={cn('shrink-0 border-t border-border px-4 py-3', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
+    <div className={cn('shrink-0 border-t border-border px-4 py-2', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
       {isEditing && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
           <Pencil className="h-3.5 w-3.5 shrink-0 text-primary" />

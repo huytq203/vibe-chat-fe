@@ -39,6 +39,7 @@ export const ForgotPasswordForm = () => {
   }, [cooldown]);
 
   const sendOtp = async () => {
+    if (forgot.isPending) return;
     if (!email.trim()) return toast.error('Vui lòng nhập email');
     try {
       await forgot.mutateAsync(email.trim());
@@ -56,6 +57,7 @@ export const ForgotPasswordForm = () => {
   };
 
   const submitReset = async () => {
+    if (reset.isPending) return;
     if (!/^\d{6}$/.test(otp)) return toast.error('Mã gồm 6 chữ số');
     if (newPassword.length < 6) return toast.error('Mật khẩu tối thiểu 6 ký tự');
     if (!/(?=.*[A-Z])(?=.*\d)/.test(newPassword))
@@ -83,63 +85,63 @@ export const ForgotPasswordForm = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-8 space-y-4">
-        <Input
-          label="Email"
-          type="email"
-          icon={<Mail className="w-4 h-4" />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="email@example.com"
-          autoComplete="email"
-          disabled={step === 'reset'}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && step === 'email') void sendOtp();
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (step === 'email') void sendOtp();
+            else void submitReset();
           }}
-        />
+        >
+          <Input
+            label="Email"
+            type="email"
+            icon={<Mail className="w-4 h-4" />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@example.com"
+            autoComplete="email"
+            disabled={step === 'reset'}
+          />
 
-        {step === 'email' ? (
-          <Button
-            type="button"
-            className="w-full"
-            isLoading={forgot.isPending}
-            disabled={forgot.isPending}
-            onClick={() => void sendOtp()}
-          >
-            Gửi mã đặt lại
-          </Button>
-        ) : (
-          <>
-            <Input
-              label="Mã OTP"
-              inputMode="numeric"
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
-              className="text-center text-lg tracking-[0.4em]"
-            />
-            <Input
-              label="Mật khẩu mới"
-              type="password"
-              icon={<Lock className="w-4 h-4" />}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submitReset();
-              }}
-            />
+          {step === 'email' ? (
             <Button
-              type="button"
+              type="submit"
               className="w-full"
-              isLoading={reset.isPending}
-              disabled={reset.isPending}
-              onClick={() => void submitReset()}
+              isLoading={forgot.isPending}
+              disabled={forgot.isPending}
             >
-              Đặt lại mật khẩu
+              Gửi mã đặt lại
             </Button>
-            <div className="text-center text-sm text-muted-foreground">
+          ) : (
+            <>
+              <Input
+                label="Mã OTP"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
+                className="text-center text-lg tracking-[0.4em]"
+              />
+              <Input
+                label="Mật khẩu mới"
+                type="password"
+                icon={<Lock className="w-4 h-4" />}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+              <Button
+                type="submit"
+                className="w-full"
+                isLoading={reset.isPending}
+                disabled={reset.isPending}
+              >
+                Đặt lại mật khẩu
+              </Button>
+              <div className="text-center text-sm text-muted-foreground">
               Không nhận được mã?{' '}
               <Button
                 variant="link"
@@ -154,16 +156,17 @@ export const ForgotPasswordForm = () => {
           </>
         )}
 
-        <p className="text-center text-sm text-muted-foreground">
-          <Button
-            variant="link"
-            type="button"
-            className="px-0"
-            onClick={() => router.push('/login')}
-          >
-            Quay lại đăng nhập
-          </Button>
-        </p>
+          <p className="text-center text-sm text-muted-foreground">
+            <Button
+              variant="link"
+              type="button"
+              className="px-0"
+              onClick={() => router.push('/login')}
+            >
+              Quay lại đăng nhập
+            </Button>
+          </p>
+        </form>
       </CardContent>
     </Card>
   );

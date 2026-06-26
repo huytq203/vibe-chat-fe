@@ -7,7 +7,6 @@ import { User, Lock } from 'lucide-react';
 import { Form, FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
-import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import {
   Card,
   CardContent,
@@ -107,19 +106,6 @@ export const LoginForm = () => {
             />
 
             <div className="flex items-center justify-center">
-              {/* <FormField
-                control={form.control}
-                name="rememberMe"
-                render={({ field }) => (
-                  <Checkbox
-                    label="Ghi nhớ đăng nhập"
-                    checked={field.value}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked === true)
-                    }
-                  />
-                )}
-              /> */}
               <Button
                 variant="link"
                 type="button"

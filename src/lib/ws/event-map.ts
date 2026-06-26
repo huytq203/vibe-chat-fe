@@ -22,6 +22,7 @@ const DEFAULT_MAP: Record<string, string> = {
   e19: 'typing',
   e20: 'scheduled_message:update',
   e21: 'scheduled_message:sent',
+  e22: 'user:updated',
 };
 
 let _codeToName: Record<string, string> = { ...DEFAULT_MAP };

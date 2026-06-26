@@ -12,12 +12,10 @@ import {
   Users,
 } from 'lucide-react';
 import { chatApi } from '@/services/chat.api';
-import { chatKeys, pollKeys } from '@/services/keys';
-import { useAuthStore } from '@/features/auth';
+import { pollKeys } from '@/services/keys';
 import type { Message, PollData, PollOption } from '@/features/chat/types';
 import { cn } from '@/lib/utils/cn';
 import { useConversation } from '@/features/chat/hooks/use-query';
-import { Avatar } from '@/features/chat/components/common/Avatar';
 import { PollVotersDialog } from '@/features/chat/components/polls/PollVotersDialog';
 
 /** Trả "Hôm nay" nếu cùng ngày, ngược lại "dd/MM/yyyy". */
@@ -57,9 +55,6 @@ function PollOptionRow({
 }) {
   const pct = !hideResults && totalVotes > 0 ? Math.round((option.voteCount / totalVotes) * 100) : 0;
   const canToggle = !isExpired && !isVoting;
-  const voterAvatars = !isAnonymous && option.voterIds && option.voterIds.length > 0
-    ? option.voterIds.slice(0, 3)
-    : [];
 
   return (
     <button
@@ -122,7 +117,6 @@ function PollOptionRow({
 
 export function PollBubble({ message }: { message: Message }) {
   const pollId = message.metadata?.pollId as string | undefined;
-  const meId = useAuthStore((s) => s.user?.id ?? null);
   const qc = useQueryClient();
   const [newOptionText, setNewOptionText] = useState('');
   const [showVoters, setShowVoters] = useState(false);

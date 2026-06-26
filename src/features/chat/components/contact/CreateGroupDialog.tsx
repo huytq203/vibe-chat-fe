@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Camera, Check, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -40,16 +40,18 @@ export function CreateGroupDialog({ open, onOpenChange, preselected }: CreateGro
   const { data: friendsData } = useFriends();
   const createGroup = useCreateGroup();
 
-  const preselectedRef = useRef(preselected);
-  preselectedRef.current = preselected;
-
-  useEffect(() => {
-    if (!open) return;
-    setGroupName('');
-    setSearch('');
-    setActiveFilter('Tất cả');
-    setSelected(new Set(preselectedRef.current ? [preselectedRef.current.id] : []));
-  }, [open]);
+  // Reset form mỗi khi dialog mở (pattern React chính thống: chỉnh state khi prop đổi,
+  // ngay trong render — tránh ref-in-render + setState-trong-effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setGroupName('');
+      setSearch('');
+      setActiveFilter('Tất cả');
+      setSelected(new Set(preselected ? [preselected.id] : []));
+    }
+  }
 
   const friends = friendsData?.items ?? [];
   const filtered = search.trim()

@@ -35,6 +35,7 @@ export const VerifyEmailForm = () => {
   }, [cooldown]);
 
   const handleVerify = async () => {
+    if (verify.isPending) return;
     if (!email.trim()) return toast.error('Vui lòng nhập email');
     if (!/^\d{6}$/.test(otp)) return toast.error('Mã gồm 6 chữ số');
     try {
@@ -48,6 +49,7 @@ export const VerifyEmailForm = () => {
   };
 
   const handleResend = async () => {
+    if (resend.isPending) return;
     if (!email.trim()) return toast.error('Vui lòng nhập email');
     try {
       await resend.mutateAsync(email.trim());
@@ -70,34 +72,40 @@ export const VerifyEmailForm = () => {
         <CardDescription>Nhập mã 6 số đã gửi tới email của bạn</CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-8 space-y-4">
-        <Input
-          label="Email"
-          type="email"
-          icon={<Mail className="w-4 h-4" />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="email@example.com"
-          autoComplete="email"
-        />
-        <Input
-          label="Mã OTP"
-          inputMode="numeric"
-          maxLength={6}
-          value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          placeholder="123456"
-          className="text-center text-lg tracking-[0.4em]"
-          onKeyDown={(e) => { if (e.key === 'Enter') void handleVerify(); }}
-        />
-        <Button
-          type="button"
-          className="w-full"
-          isLoading={verify.isPending}
-          disabled={verify.isPending}
-          onClick={() => void handleVerify()}
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleVerify();
+          }}
         >
-          Xác thực
-        </Button>
+          <Input
+            label="Email"
+            type="email"
+            icon={<Mail className="w-4 h-4" />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@example.com"
+            autoComplete="email"
+          />
+          <Input
+            label="Mã OTP"
+            inputMode="numeric"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            className="text-center text-lg tracking-[0.4em]"
+          />
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={verify.isPending}
+            disabled={verify.isPending}
+          >
+            Xác thực
+          </Button>
+        </form>
 
         <div className="text-center text-sm text-muted-foreground">
           Không nhận được mã?{' '}

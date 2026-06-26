@@ -1,59 +1,64 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Camera } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
-import { useImageUpload } from '@/features/auth';
 
 type ProfileImageUploaderProps = {
   variant: 'avatar' | 'cover';
-  /** URL ảnh hiện tại (avatarUrl/coverUrl từ hồ sơ) để hiển thị ban đầu. */
+  /** URL ảnh đã lưu (avatarUrl/coverUrl) để hiển thị khi chưa chọn ảnh mới. */
   value: string | null;
+  /** Ảnh vừa chọn — CHỈ preview cục bộ, chưa upload (upload khi submit). */
+  pendingFile?: File | null;
+  /** Người dùng yêu cầu gỡ ảnh → hiển thị fallback dù còn `value`. */
+  removed?: boolean;
   /** Tên để dựng avatar fallback (chỉ dùng cho variant avatar). */
   name?: string | null;
   seed?: string;
   disabled?: boolean;
-  /** Trả mediaId sau khi upload thành công (để gửi avatarMediaId/coverMediaId). */
-  onUploaded: (mediaId: string) => void;
+  /** Báo file vừa chọn cho parent (parent upload lúc submit). */
+  onSelect: (file: File) => void;
 };
 
-/** Ô chọn + upload ảnh hồ sơ (avatar tròn / ảnh bìa banner), có preview + tiến trình. */
+/** Ô chọn ảnh hồ sơ/nhóm: chỉ preview ảnh đã chọn, KHÔNG upload (tránh ảnh rác). */
 export function ProfileImageUploader({
   variant,
   value,
+  pendingFile,
+  removed,
   name,
   seed,
   disabled,
-  onUploaded,
+  onSelect,
 }: ProfileImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
-  // Cả avatar lẫn ảnh bìa dùng category AVATAR (ảnh hồ sơ, ≤5MB). THUMBNAIL chỉ 2MB → quá nhỏ cho bìa.
-  const { upload, uploading, progress, error } = useImageUpload('AVATAR');
+  const [error, setError] = useState<string | null>(null);
 
-  // Revoke object URL preview khi đổi/unmount.
+  // ObjectURL preview cho file đang chờ; revoke khi đổi/unmount.
+  const preview = useMemo(
+    () => (pendingFile ? URL.createObjectURL(pendingFile) : null),
+    [pendingFile],
+  );
   useEffect(() => {
     return () => {
-      if (localPreview) URL.revokeObjectURL(localPreview);
+      if (preview) URL.revokeObjectURL(preview);
     };
-  }, [localPreview]);
+  }, [preview]);
 
-  async function handleChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setLocalPreview(preview); // giữ preview cục bộ tới khi đóng — hiển thị ảnh vừa chọn
-    const uploaded = await upload(file);
-    if (uploaded) onUploaded(uploaded.id);
-    else {
-      setLocalPreview(null);
-      URL.revokeObjectURL(preview);
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chọn tệp ảnh');
+      return;
     }
+    setError(null);
+    onSelect(file);
   }
 
-  const shown = localPreview ?? value;
+  const shown = removed ? null : (preview ?? value);
 
   return (
     <div className={cn('relative', variant === 'cover' ? 'h-28 w-full' : 'h-[72px] w-[72px]')}>
@@ -62,12 +67,12 @@ export function ProfileImageUploader({
         type="file"
         accept="image/*"
         hidden
-        disabled={disabled || uploading}
+        disabled={disabled}
         onChange={handleChange}
       />
       <button
         type="button"
-        disabled={disabled || uploading}
+        disabled={disabled}
         onClick={() => inputRef.current?.click()}
         aria-label={variant === 'avatar' ? 'Đổi ảnh đại diện' : 'Đổi ảnh bìa'}
         className={cn(
@@ -75,7 +80,7 @@ export function ProfileImageUploader({
           variant === 'cover'
             ? 'bg-gradient-to-br from-primary/30 via-accent to-secondary'
             : 'rounded-full ring-4 ring-background',
-          'disabled:cursor-wait',
+          'disabled:cursor-not-allowed',
         )}
       >
         {variant === 'avatar' ? (
@@ -90,21 +95,9 @@ export function ProfileImageUploader({
           <img src={shown} alt="" className="h-full w-full object-cover" />
         ) : null}
 
-        {/* Lớp phủ icon camera khi hover (hoặc luôn hiện ở góc avatar). */}
-        <span
-          className={cn(
-            'absolute inset-0 flex items-center justify-center bg-black/35 text-white transition-opacity',
-            uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-          )}
-        >
-          {uploading ? (
-            <span className="flex items-center gap-1.5 text-xs font-medium">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {progress}%
-            </span>
-          ) : (
-            <Camera className={variant === 'avatar' ? 'h-5 w-5' : 'h-6 w-6'} />
-          )}
+        {/* Lớp phủ icon camera khi hover. */}
+        <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white opacity-0 transition-opacity group-hover:opacity-100">
+          <Camera className={variant === 'avatar' ? 'h-5 w-5' : 'h-6 w-6'} />
         </span>
       </button>
       {error && (

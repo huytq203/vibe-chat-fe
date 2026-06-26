@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { EmojiText } from "@/components/common/EmojiText";
-import { REACTION_EMOJI, REACTION_LABEL } from "@/features/chat/reactions";
+import { REACTION_EMOJI } from "@/features/chat/reactions";
 import type { Message, ReactionType } from "@/features/chat/types";
 import { ReactionViewerDialog } from "./ReactionViewerDialog";
 import { MessageLikeButton } from "./MessageLikeButton";
@@ -21,7 +21,10 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
   const myReaction = message.myReaction ?? null;
   if (reactions.length === 0) return null;
 
-  function openViewer(type: ReactionType) {
+  const total = reactions.reduce((sum, r) => sum + r.count, 0);
+  const mine = myReaction !== null;
+
+  function openViewer(type: ReactionType | null) {
     setViewType(type);
     setOpen(true);
   }
@@ -40,32 +43,36 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
             <MessageLikeButton
               message={message}
               isMe={isMe}
-              className="ml-0.5 opacity-100 "
+              className={cn(
+                "ml-0.5 transition-opacity",
+                mine
+                  ? "opacity-100"
+                  : "pointer-events-none opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+              )}
             />
           )}
-        {reactions.map((r) => {
-          const mine = myReaction === r.type;
-          return (
-            <button
-              key={r.type}
-              type="button"
-              onClick={() => openViewer(r.type)}
-              title={`Xem ai đã thả ${REACTION_LABEL[r.type]}`}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full border p-0.5 text-[13px] transition-colors",
-                mine
-                  ? "border-primary/40 bg-white text-primary"
-                  : "border-border bg-muted text-foreground hover:bg-accent",
-              )}
-            >
+        <button
+          type="button"
+          onClick={() => openViewer(null)}
+          title="Xem ai đã thả cảm xúc"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[13px] transition-colors",
+            mine
+              ? "border-primary/40 bg-white text-primary hover:border-primary/40"
+              : "border-border bg-white text-primary hover:border-primary/40",
+          )}
+        >
+          <span className="flex items-center gap-0.5">
+            {reactions.map((r) => (
               <EmojiText
+                key={r.type}
                 text={REACTION_EMOJI[r.type]}
                 className="leading-none"
               />
-              {r.count >= 1 && <span className="tabular-nums">{r.count}</span>}
-            </button>
-          );
-        })}
+            ))}
+          </span>
+          {total >= 1 && <span className="tabular-nums">{total}</span>}
+        </button>
         
         {!isMe&&!message.metadata?.optimistic &&
           !message.metadata?.failed &&
@@ -73,7 +80,12 @@ export function MessageReactions({ message, isMe }: MessageReactionsProps) {
             <MessageLikeButton
               message={message}
               isMe={isMe}
-              className="ml-0.5 opacity-100 "
+              className={cn(
+                "ml-0.5 transition-opacity",
+                mine
+                  ? "opacity-100"
+                  : "pointer-events-none opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+              )}
             />
           )}
       </div>

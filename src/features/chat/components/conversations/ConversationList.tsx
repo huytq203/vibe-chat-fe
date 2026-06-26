@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils/cn';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
@@ -19,8 +18,7 @@ import {
 } from '@/features/friends';
 import { NotificationListPanel, useSystemNotifCount } from '@/features/notifications';
 import { chatApi } from '@/services/chat.api';
-import { chatKeys, myStoreKeys } from '@/services/keys';
-import { myStoreApi } from '@/services/my-store.api';
+import { chatKeys } from '@/services/keys';
 import { useConversations, useLockedConversations } from '@/features/chat/hooks/use-query';
 import { useStoreConversation } from '@/features/my-store';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
@@ -31,7 +29,6 @@ import { useDecryptedPreviews } from '@/features/chat/hooks/use-decrypted-previe
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
 import { StrangerInboxItem } from './StrangerInboxItem';
-import { MyStoreInboxItem } from './MyStoreInboxItem';
 import { StrangerOverlay } from './StrangerOverlay';
 import { UserMenu } from '@/features/chat/components/common/UserMenu';
 
@@ -45,7 +42,6 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function ConversationList() {
   const me = useAuthStore((s) => s.user);
-  const router = useRouter();
   const activeTab = useChatUIStore((s) => s.activeTab);
   const setActiveTab = useChatUIStore((s) => s.setActiveTab);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
@@ -65,13 +61,6 @@ export function ConversationList() {
   const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
   const setMyStoreOpen = useChatUIStore((s) => s.setMyStoreOpen);
   const { data: selfConv } = useStoreConversation();
-
-
-
-  // Active khi đang mở myStore HOẶC conversation đang chọn chính là SELF conv (sống sót
-  // reload — lúc đó myStoreOpen reset về false vì store không persist).
-  const isMyStoreActive =
-    myStoreOpen || (Boolean(selfConv?.id) && selectedConversationId === selfConv?.id);
   const [lockedExpanded, setLockedExpanded] = useState(false);
 
   // Chat button active: không có overlay nào đang mở
@@ -99,32 +88,22 @@ export function ConversationList() {
     },
   });
 
-  const handleMessageUser = (user: UserSearchItem) => {
-    openDirectMut.mutate(user.id);
-    if (isMobile) setMobilePanel('chat');
-  };
+  const handleMessageUser = useCallback(
+    (user: UserSearchItem) => {
+      openDirectMut.mutate(user.id);
+      if (isMobile) setMobilePanel('chat');
+    },
+    [openDirectMut, isMobile, setMobilePanel],
+  );
 
-  function handleSelectConversation(id: string) {
-    setMyStoreOpen(false);
-    setSelected(id);
-    if (isMobile) setMobilePanel('chat');
-  }
-
-  async function handleOpenMyStore() {
-    setMyStoreOpen(true);
-    if (isMobile) setMobilePanel('chat');
-    try {
-      // Dùng cache nếu đã có, không thì fetch để lấy SELF conv ID thật
-      const cached = qc.getQueryData<{ id: string }>(myStoreKeys.conversation());
-      const id = cached?.id ?? (await qc.fetchQuery({
-        queryKey: myStoreKeys.conversation(),
-        queryFn: () => myStoreApi.getConversation(),
-      })).id;
-      router.replace(`/chat/${id}`, { scroll: false });
-    } catch {
-      router.replace('/chat', { scroll: false });
-    }
-  }
+  const handleSelectConversation = useCallback(
+    (id: string) => {
+      setMyStoreOpen(false);
+      setSelected(id);
+      if (isMobile) setMobilePanel('chat');
+    },
+    [setMyStoreOpen, setSelected, isMobile, setMobilePanel],
+  );
 
   // Avatar lỗi = presigned URL hết hạn. Refetch list để BE ký lại URL mới (URL mới →
   // base Avatar reset cờ lỗi và tải lại). Cooldown 60s tránh refetch dồn khi nhiều ảnh lỗi.
@@ -152,7 +131,7 @@ export function ConversationList() {
     const matched = conversations.filter((conversation) => {
       if (conversation.isLocked) return false;
       if (isStranger(conversation)) return false;
-      // SELF conv luôn hiển thị qua MyStoreInboxItem — không render lại trong list chính.
+      // SELF conv mở qua icon "Kho của tôi" ở NavSidebar — không render trong list chính.
       if (selfConv?.id && conversation.id === selfConv.id) return false;
       if (activeTab === 'unread' && conversation.unreadCount === 0) return false;
       if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
@@ -173,17 +152,15 @@ export function ConversationList() {
   }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews, selfConv?.id]);
 
   type ListItem =
-    | { kind: 'mystore' }
     | { kind: 'stranger' }
     | { kind: 'conversation'; conv: (typeof conversations)[number] };
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
-    if (!search && activeTab === 'all' && !isLoading) items.push({ kind: 'mystore' });
     if (!isLoading && !search && strangerConversations.length > 0) items.push({ kind: 'stranger' });
     for (const conv of filtered) items.push({ kind: 'conversation', conv });
     return items;
-  }, [search, activeTab, isLoading, strangerConversations.length, filtered]);
+  }, [search, isLoading, strangerConversations.length, filtered]);
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
@@ -213,10 +190,9 @@ export function ConversationList() {
             conversations={conversations}
             meId={me?.id ?? null}
             selectedConversationId={selectedConversationId}
-            myStoreOpen={myStoreOpen}
+            decryptedPreviews={decryptedPreviews}
             onSelectConversation={(id) => { setSearchFocused(false); setSearch(''); handleSelectConversation(id); }}
             onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
-            onOpenMyStore={() => { setSearchFocused(false); setSearch(''); handleOpenMyStore(); }}
           />
         ) : notiOpen ? (
           <NotificationListPanel onBack={() => setNotiOpen(false)} />
@@ -271,15 +247,6 @@ export function ConversationList() {
                 </div>
               )}
               {listItems.map((item) => {
-                if (item.kind === 'mystore') {
-                  return (
-                    <MyStoreInboxItem
-                      key="mystore"
-                      selected={isMyStoreActive}
-                      onClick={handleOpenMyStore}
-                    />
-                  );
-                }
                 if (item.kind === 'stranger') {
                   return (
                     <StrangerInboxItem

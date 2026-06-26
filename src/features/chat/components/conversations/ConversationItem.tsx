@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { BellOff, Lock, Pin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { EmojiText } from '@/components/common/EmojiText';
@@ -13,6 +14,7 @@ import {
   mapPreviewText,
 } from '@/features/chat/utils';
 import { Avatar } from '@/features/chat/components/common/Avatar';
+import { ConversationItemMenu } from './ConversationItemMenu';
 
 type ConversationItemProps = {
   conversation: Conversation;
@@ -25,7 +27,7 @@ type ConversationItemProps = {
   decryptedPreview?: string | null;
 };
 
-export function ConversationItem({
+function ConversationItemImpl({
   conversation,
   selected,
   meId,
@@ -53,7 +55,8 @@ export function ConversationItem({
   const unread = conversation.unreadCount;
 
   return (
-    <button
+    <div className="group/ci relative">
+      <button
       type="button"
       onClick={() => onSelect(conversation.id)}
       className={cn(
@@ -91,6 +94,16 @@ export function ConversationItem({
           )}
         </div>
       </div>
-    </button>
+      </button>
+      {/* Menu "..." nổi góc phải, hiện khi hover dòng (overlay sibling — tránh button lồng button).
+          KHÔNG dùng focus-within: sau khi đóng popover base-ui trả focus về trigger → nút sẽ kẹt hiện. */}
+      <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover/ci:opacity-100">
+        <ConversationItemMenu conversation={conversation} meId={meId} />
+      </div>
+    </div>
   );
 }
+
+// memo: ConversationList re-render mỗi ký tự gõ ở ô tìm / mỗi lần unread đổi. Props ổn định
+// (onSelect/onAvatarError là useCallback ở parent) → so sánh nông cắt phần lớn re-render thừa.
+export const ConversationItem = memo(ConversationItemImpl);

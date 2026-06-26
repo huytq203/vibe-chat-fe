@@ -31,7 +31,7 @@ export function AiChatPanel() {
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<string>(loadModel);
   const [modelOptions, setModelOptions] = useState<GeminiModelInfo[]>(GEMINI_FREE_MODELS);
-  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
 
   const { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession } =
@@ -45,7 +45,8 @@ export function AiChatPanel() {
     useAiAttachments();
 
   useEffect(() => {
-    setLoadingModels(true);
+    // loadingModels khởi tạo true → chỉ set false sau khi fetch xong (setState async
+    // trong .then là hợp lệ, tránh setState đồng bộ trong effect).
     void fetchGeminiModels().then((models) => {
       setModelOptions(models);
       setLoadingModels(false);

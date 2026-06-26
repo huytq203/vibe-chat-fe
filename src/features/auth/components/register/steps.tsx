@@ -1,9 +1,10 @@
 'use client';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { differenceInYears } from 'date-fns';
-import { AtSign, Cake, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
+import { differenceInYears, format } from 'date-fns';
+import { AtSign, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
 import { FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import type { RegisterFormInput } from '@/features/auth/schemas';
 import { PasswordStrength } from './PasswordStrength';
@@ -127,14 +128,18 @@ export function StepBirthday() {
         control={control}
         name="dateOfBirth"
         render={({ field, fieldState }) => (
-          <Input
+          <DatePicker
+            editable
+            captionLayout="dropdown"
             label="Ngày sinh"
-            type="date"
-            max={new Date().toISOString().slice(0, 10)}
-            icon={<Cake className="h-4 w-4" />}
+            placeholder="Chọn ngày sinh"
             description="Thông tin này được bảo mật và không hiển thị công khai"
             error={fieldState.error?.message}
-            {...field}
+            // field.value là chuỗi yyyy-MM-dd → Date (local, tránh lệch timezone khi parse).
+            value={field.value ? new Date(`${field.value}T00:00:00`) : undefined}
+            onChange={(d) =>
+              field.onChange(d instanceof Date ? format(d, 'yyyy-MM-dd') : null)
+            }
           />
         )}
       />

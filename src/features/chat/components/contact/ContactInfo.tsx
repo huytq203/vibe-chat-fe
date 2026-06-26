@@ -6,6 +6,7 @@ import {
   Clock,
   Link2,
   LogOut,
+  Palette,
   PenIcon,
   Phone,
   Pin,
@@ -50,6 +51,7 @@ import { MuteButton } from "./MuteButton";
 import { UserProfileDialog } from "./UserProfileDialog";
 import { GroupShareDialog } from "@/features/share-links";
 import { ConversationSettingsDialog } from "./ConversationSettingsDialog";
+import { WallpaperPickerDialog } from "./WallpaperPickerDialog";
 
 export function ContactInfo() {
   const data = useContactInfor();
@@ -58,6 +60,7 @@ export function ContactInfo() {
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [shareGroupOpen, setShareGroupOpen] = useState(false);
   const [convSettingsOpen, setConvSettingsOpen] = useState(false);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
@@ -332,10 +335,25 @@ export function ContactInfo() {
           <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tuỳ chọn</div>
           <div className="flex flex-col gap-0.5">
             <OptionRow
-              icon={<Settings className="h-4 w-4" />}
-              label="Cài đặt cuộc trò chuyện"
-              onClick={() => setConvSettingsOpen(true)}
+              icon={<Palette className="h-4 w-4" />}
+              label="Đổi chủ đề & hình nền"
+              onClick={() => setWallpaperOpen(true)}
             />
+            {isDirect ? (
+              <OptionRow
+                icon={<Settings className="h-4 w-4" />}
+                label="Cài đặt cuộc trò chuyện"
+                onClick={() => setConvSettingsOpen(true)}
+              />
+            ) : canDelete ? (
+              // Nhóm: dialog cài đặt chỉ có mỗi "Xoá" (khoá là direct-only) → mở thẳng alert.
+              <OptionRow
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Xoá cuộc trò chuyện"
+                danger
+                onClick={() => setConfirmDeleteOpen(true)}
+              />
+            ) : null}
             <OptionRow
               icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               label={isPinned ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện"}
@@ -495,12 +513,17 @@ export function ContactInfo() {
       <ConversationSettingsDialog
         open={convSettingsOpen}
         onOpenChange={setConvSettingsOpen}
-        conversationId={conversation.id}
         isLocked={isLocked}
         isDirect={isDirect}
         canDelete={canDelete}
         onLockToggle={handleLockToggle}
         onDelete={() => setConfirmDeleteOpen(true)}
+      />
+
+      <WallpaperPickerDialog
+        open={wallpaperOpen}
+        onOpenChange={setWallpaperOpen}
+        conversationId={conversation.id}
       />
     </aside>
   );

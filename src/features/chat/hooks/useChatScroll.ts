@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface ChatScrollOptions {
-  messageCount: number;
   lastMessageId: string | null;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -23,7 +22,6 @@ export interface ChatScrollResult {
 const AWAY_THRESHOLD = 240;
 
 export function useChatScroll({
-  messageCount,
   lastMessageId,
   hasNextPage,
   isFetchingNextPage,
@@ -43,7 +41,6 @@ export function useChatScroll({
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Khi có tin mới: scroll xuống nếu đang ở đáy

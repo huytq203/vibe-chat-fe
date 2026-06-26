@@ -11,6 +11,11 @@ import { GroupInviteCard } from './GroupInviteCard';
 
 type Props = { code: string; modal?: boolean; onClose?: () => void };
 
+function Shell({ modal, children }: { modal?: boolean; children: React.ReactNode }) {
+  if (modal) return <>{children}</>;
+  return <InvitePhoneShell>{children}</InvitePhoneShell>;
+}
+
 export function InviteCard({ code, modal, onClose }: Props) {
   const { data, isLoading, isError } = useResolveShareLink(code);
   const router = useRouter();
@@ -21,14 +26,9 @@ export function InviteCard({ code, modal, onClose }: Props) {
     else router.push('/chat');
   }
 
-  function Shell({ children }: { children: React.ReactNode }) {
-    if (modal) return <>{children}</>;
-    return <InvitePhoneShell>{children}</InvitePhoneShell>;
-  }
-
   if (isLoading) {
     return (
-      <Shell>
+      <Shell modal={modal}>
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
         </div>
@@ -38,7 +38,7 @@ export function InviteCard({ code, modal, onClose }: Props) {
 
   if (isError || !data) {
     return (
-      <Shell>
+      <Shell modal={modal}>
         <InviteTopBar title="Trang cá nhân" onBack={goBack} />
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
           <p className="text-base font-semibold text-foreground">Link không khả dụng</p>
@@ -61,7 +61,7 @@ export function InviteCard({ code, modal, onClose }: Props) {
         : data.isExhausted ? 'Link đã hết lượt dùng'
           : 'Link không còn hiệu lực';
     return (
-      <Shell>
+      <Shell modal={modal}>
         <InviteTopBar title="Trang cá nhân" onBack={goBack} />
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
           <p className="text-base font-semibold text-foreground">{reason}</p>
@@ -86,7 +86,7 @@ export function InviteCard({ code, modal, onClose }: Props) {
   }
 
   return (
-    <Shell>
+    <Shell modal={modal}>
       <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground">
         Nội dung link đã bị xoá.
       </div>
