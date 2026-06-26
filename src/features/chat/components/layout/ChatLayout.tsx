@@ -25,6 +25,7 @@ import { MyStoreInfoPanel, MyStoreFolderView } from '@/features/my-store';
 import { NavSidebar } from './NavSidebar';
 import { AiChatPanel } from './AiChatPanel';
 import { AiChatPage } from './AiChatPage';
+import { TaskManagementLayout } from '@/features/tasks';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -133,6 +134,17 @@ export function ChatLayout() {
       <div className="flex h-full w-full overflow-hidden">
         <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
         <AiChatPage />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (activeSection === 'tasks') {
+    return (
+      <div className="flex h-full w-full overflow-hidden">
+        <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <TaskManagementLayout />
         <CallContainer />
         <InviteProfileModal />
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Archive, Bot, MessageSquare } from 'lucide-react';
+import { Archive, Bot, MessageSquare, SquareKanban } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { NavSection } from '@/features/chat/stores/chat-ui.store';
 import { useOpenMyStore } from '@/features/chat/hooks/useOpenMyStore';
@@ -20,6 +20,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { section: 'chat', icon: <MessageSquare className="h-5 w-5" />, label: 'Chat' },
   { section: 'ai-full', icon: <Bot className="h-5 w-5" />, label: 'AI Chat' },
+  { section: 'tasks', icon: <SquareKanban className="h-5 w-5" />, label: 'Tasks' },
 ];
 
 const ITEM_CLASS = 'relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors';
