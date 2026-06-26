@@ -9,6 +9,12 @@
   },
   "private": true,
   "main": "electron/main.js",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "vitest related --run --passWithNoTests"
+    ]
+  },
   "scripts": {
     "dev": "NODE_OPTIONS=\"--max-old-space-size=4096 --dns-result-order=ipv4first\" next dev",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 next build",
@@ -24,7 +30,8 @@
     "electron:dev": "npm run electron:build && electron .",
     "electron:pack:linux": "npm run electron:build && electron-builder --linux deb",
     "electron:pack:win": "npm run electron:build && electron-builder --win nsis",
-    "electron:pack:all": "npm run electron:build && electron-builder --linux deb --win nsis"
+    "electron:pack:all": "npm run electron:build && electron-builder --linux deb --win nsis",
+    "prepare": "husky"
   },
   "build": {
     "appId": "com.halochat.desktop",
@@ -146,7 +153,9 @@
     "electron-builder": "^26.15.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
     "msw": "^2.14.6",
     "tailwindcss": "^4",
     "typescript": "^5",

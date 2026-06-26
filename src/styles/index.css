@@ -282,6 +282,22 @@
         height: 100%;
         color-scheme: dark; /* Default theme = Vibe Night (dark) */
         transition: background-color 0.3s ease, color 0.3s ease;
+        /* Chống auto-resize chữ khi xoay ngang trên iOS/Android */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    /* Mobile: tắt double-tap-to-zoom & độ trễ 300ms; chặn highlight xanh khi tap */
+    * {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* iOS tự zoom khi focus input có font < 16px → ép tối thiểu 16px trên mobile */
+    @media (max-width: 768px) {
+        input, textarea, select, [contenteditable] {
+            font-size: 16px;
+        }
     }
 
     html.dark {

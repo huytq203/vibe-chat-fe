@@ -1,0 +1,7 @@
+echo "🔍 lint-staged: eslint + test liên quan trên file đã stage…"
+npx lint-staged || exit 1
+
+echo "🧪 typecheck toàn dự án (tsc --noEmit)…"
+npm run typecheck || exit 1
+
+echo "✅ pre-commit OK"
