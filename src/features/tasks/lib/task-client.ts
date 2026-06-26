@@ -12,9 +12,19 @@ interface Envelope<T> {
   error?: { code: string; message: string };
 }
 
+/**
+ * Base URL cho task-service.
+ * - USE_PROXY=true (web/dev): gọi same-origin '/task-proxy/...' → Next rewrites sang task-service,
+ *   tránh CORS hoàn toàn (đồng bộ kiến trúc với chat apiClient).
+ * - USE_PROXY=false (electron/gọi thẳng): dùng NEXT_PUBLIC_TASK_URL (task-service phải bật CORS).
+ */
+function taskBase(): string {
+  return env.NEXT_PUBLIC_USE_PROXY ? '/task-proxy' : env.NEXT_PUBLIC_TASK_URL;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = apiAuth.getToken();
-  const res = await fetch(`${env.NEXT_PUBLIC_TASK_URL}${path}`, {
+  const res = await fetch(`${taskBase()}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
