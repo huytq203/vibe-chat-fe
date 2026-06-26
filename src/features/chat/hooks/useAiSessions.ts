@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useSelectedAiSession } from '@/features/chat/hooks/useSelectedAiSession';
 
 const KEY = 'ai-sessions';
 
@@ -52,15 +53,22 @@ function getInitialSessions(): AiSession[] {
   return load();
 }
 
-function getInitialActiveId(sessions: AiSession[]): string | null {
-  return sessions[0]?.id ?? null;
-}
+type UseAiSessionsOptions = {
+  /** true → activeId đồng bộ URL /ai/[id] (trang AI full). false → state cục bộ (panel AI trong chat). */
+  routed?: boolean;
+};
 
-export function useAiSessions() {
+export function useAiSessions(options?: UseAiSessionsOptions) {
   const [sessions, setSessions] = useState<AiSession[]>(getInitialSessions);
-  const [activeId, setActiveId] = useState<string | null>(() =>
-    getInitialActiveId(getInitialSessions()),
+  const [localActiveId, setLocalActiveId] = useState<string | null>(
+    () => getInitialSessions()[0]?.id ?? null,
   );
+  const routed = useSelectedAiSession();
+
+  const activeId = options?.routed ? routed.activeId : localActiveId;
+  const setActiveId: (id: string | null) => void = options?.routed
+    ? routed.setActiveId
+    : setLocalActiveId;
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
 
@@ -79,7 +87,7 @@ export function useAiSessions() {
     });
     setActiveId(id);
     return id;
-  }, []);
+  }, [setActiveId]);
 
   const pushMessage = useCallback((sessionId: string, message: AiMessage): void => {
     setSessions((prev) => {
@@ -97,18 +105,19 @@ export function useAiSessions() {
     });
   }, []);
 
-  const deleteSession = useCallback((id: string): void => {
-    setSessions((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      persist(next);
-      return next;
-    });
-    setActiveId((prevId) => {
-      if (prevId !== id) return prevId;
+  const deleteSession = useCallback(
+    (id: string): void => {
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        persist(next);
+        return next;
+      });
+      if (activeId !== id) return;
       const remaining = load().filter((s) => s.id !== id);
-      return remaining[0]?.id ?? null;
-    });
-  }, []);
+      setActiveId(remaining[0]?.id ?? null);
+    },
+    [activeId, setActiveId],
+  );
 
   return { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession };
 }

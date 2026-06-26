@@ -1,13 +1,14 @@
 'use client';
 
-import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useEffect } from 'react';
+import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
 import { useAiSettings } from '@/features/chat/hooks/useAiSettings';
 import { AiSessionList } from './AiSessionList';
 import { AiChatMain } from './AiChatMain';
 
 export function AiChatPage() {
-  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
+  const { goToSection } = useSectionNav();
   const {
     sessions,
     activeSession,
@@ -16,8 +17,15 @@ export function AiChatPage() {
     createSession,
     pushMessage,
     deleteSession,
-  } = useAiSessions();
+  } = useAiSessions({ routed: true });
   const { settings, saveSettings } = useAiSettings();
+
+  // Vào /ai trống mà đã có session → chọn session gần nhất (giống auto-chọn hội thoại ở chat).
+  useEffect(() => {
+    if (activeId) return;
+    const first = sessions[0];
+    if (first) setActiveId(first.id);
+  }, [activeId, sessions, setActiveId]);
 
   return (
     <div className="flex h-full w-full overflow-hidden">
@@ -33,7 +41,7 @@ export function AiChatPage() {
         settings={settings}
         onSaveSettings={saveSettings}
         onPushMessage={pushMessage}
-        onBack={() => setActiveSection('chat')}
+        onBack={() => goToSection('chat')}
         onCreateSession={createSession}
       />
     </div>

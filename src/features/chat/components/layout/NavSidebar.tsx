@@ -48,7 +48,10 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
     <nav className="flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
       {/* Top: main navigation icons */}
       <div className="flex flex-1 flex-col items-center gap-1">
-        {NAV_ITEMS.map(({ section, icon, label }) => (
+        {NAV_ITEMS.map(({ section, icon, label }) => {
+          // Panel AI trong chat (section 'ai') vẫn thuộc khu vực Chat → giữ icon Chat sáng.
+          const isActive = section === 'chat' ? activeSection === 'chat' || activeSection === 'ai' : activeSection === section;
+          return (
           <button
             key={section}
             type="button"
@@ -57,7 +60,7 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
             onClick={() => onSectionChange(section)}
             className={cn(
               ITEM_CLASS,
-              activeSection === section
+              isActive
                 ? 'bg-primary/15 text-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
@@ -65,7 +68,8 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
             {icon}
             {section === 'chat' && <UnreadBadge count={unreadTotal} />}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Bottom: Kho của tôi (SELF conversation) */}

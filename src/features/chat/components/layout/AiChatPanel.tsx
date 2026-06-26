@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Clock, Plus } from "lucide-react";
+import { ArrowLeft, Bot, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
+import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
 import { ComboBox } from "@/components/ui/combobox/ComboBox";
 import { useAutoResizeTextarea } from "@/features/chat/hooks/useAutoResizeTextarea";
 import { useAiAttachments } from "@/features/chat/hooks/useAiAttachments";
@@ -36,6 +37,7 @@ export function AiChatPanel() {
 
   const { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession } =
     useAiSessions();
+  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
   const messages = activeSession?.messages ?? [];
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
@@ -114,6 +116,15 @@ export function AiChatPanel() {
       <header className="flex flex-col gap-2.5 px-4 pb-3 pt-[18px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => setActiveSection('chat')}
+              aria-label="Quay lại danh sách hội thoại"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-primary/30 bg-primary/15">
               <Bot className="h-5 w-5 text-primary" />
             </div>

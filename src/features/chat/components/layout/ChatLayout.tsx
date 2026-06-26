@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
@@ -14,6 +14,7 @@ import {
 import { useFriendRealtime } from '@/features/friends';
 import { CallContainer, useCallRealtime } from '@/features/call';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useConversation, useConversations } from '@/features/chat/hooks/use-query';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
@@ -36,8 +37,7 @@ export function ChatLayout() {
   const setMyStoreFilesOpen = useChatUIStore((s) => s.setMyStoreFilesOpen);
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
-  const activeSection = useChatUIStore((s) => s.activeSection);
-  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
+  const { activeSection, goToSection } = useSectionNav();
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations } = useConversations();
@@ -60,12 +60,14 @@ export function ChatLayout() {
   }, [isSelfConv, myStoreFilesOpen, setMyStoreFilesOpen]);
 
   useEffect(() => {
+    // Chỉ auto-chọn hội thoại khi đang ở khu vực chat — tránh replace về /chat khi ở /ai, /work.
+    if (activeSection === 'ai-full' || activeSection === 'tasks') return;
     if (myStoreOpen) return;
     if (selectedConversationId) return;
     if (searchParams.get('invite')) return;
     const first = conversations?.[0];
     if (first) setSelected(first.id);
-  }, [conversations, myStoreOpen, selectedConversationId, setSelected, searchParams]);
+  }, [activeSection, conversations, myStoreOpen, selectedConversationId, setSelected, searchParams]);
 
   // SW post message khi user click OS notification → điều hướng trong tab.
   useEffect(() => {
@@ -132,7 +134,7 @@ export function ChatLayout() {
   if (activeSection === 'ai-full') {
     return (
       <div className="flex h-full w-full overflow-hidden">
-        <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <AiChatPage />
         <CallContainer />
         <InviteProfileModal />
@@ -143,7 +145,7 @@ export function ChatLayout() {
   if (activeSection === 'tasks') {
     return (
       <div className="flex h-full w-full overflow-hidden">
-        <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
         <CallContainer />
         <InviteProfileModal />
@@ -162,7 +164,7 @@ export function ChatLayout() {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Desktop nav sidebar */}
-      <NavSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+      <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
       {/* Left panel: ConversationList hoặc AiChatPanel */}
       {leftPanel}
