@@ -5,6 +5,7 @@ import { KanbanBoard } from './KanbanBoard';
 import { Dashboard } from './Dashboard';
 import { BoardHeader } from './BoardHeader';
 import { ListView } from './ListView';
+import { TaskDetailModal } from './TaskDetailModal';
 import { useTasksUIStore } from '../stores/tasks-ui.store';
 
 export function TaskManagementLayout() {
@@ -23,6 +24,7 @@ export function TaskManagementLayout() {
             ) : (
               <ListView projectId={selectedId} />
             )}
+            <TaskDetailModal projectId={selectedId} />
           </>
         ) : (
           <Dashboard />
