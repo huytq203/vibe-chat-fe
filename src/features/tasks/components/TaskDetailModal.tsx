@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/popover/Popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar/Calendar';
 import { useTaskDetail, useUpdateTask } from '../hooks/useTaskDetail';
+import { TaskDetailLeftPanel } from './TaskDetailLeftPanel';
 import { useAssignees, useAddAssignee, useRemoveAssignee } from '../hooks/useAssignees';
 import { useTaskTags, useProjectTags, useAttachTag, useDetachTag } from '../hooks/useTaskTags';
 import { useMembers } from '../hooks/useMembers';
@@ -121,10 +122,9 @@ export function TaskDetailModal({ projectId }: TaskDetailModalProps) {
               {PRIORITY_LABELS[task.priority]}
             </Badge>
           )}
-          {/* TaskDetailLeftPanel sẽ được thêm ở Task 5 */}
-          <div className="flex-1 overflow-y-auto text-sm text-muted-foreground">
-            (Checklist / Attachments / Comments / Activity — Task 5)
-          </div>
+          {selectedTaskId && (
+            <TaskDetailLeftPanel projectId={projectId} taskId={selectedTaskId} />
+          )}
         </div>
 
         {/* Right sidebar */}
