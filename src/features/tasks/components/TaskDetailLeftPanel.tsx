@@ -98,7 +98,7 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-2 rounded px-1 py-0.5 hover:bg-muted/50"
+              className="group flex items-center gap-2 rounded px-1 py-0.5 hover:bg-muted/50"
             >
               <Checkbox
                 checked={item.isDone}
