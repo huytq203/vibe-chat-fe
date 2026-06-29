@@ -8,12 +8,30 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface BoardTaskTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface BoardTaskAssignee {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface BoardTask {
   id: string;
   columnId: string;
   title: string;
   position: number;
   isPinned: boolean;
+  priority: 'P1' | 'P2' | 'P3' | null;
+  dueDate: string | null;
+  tags: BoardTaskTag[];
+  assignees: BoardTaskAssignee[];
+  checklistCount: number;
+  commentCount: number;
 }
 
 export interface BoardColumn {
