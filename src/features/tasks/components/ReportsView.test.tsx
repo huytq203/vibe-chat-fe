@@ -6,8 +6,8 @@ describe('ReportsView', () => {
   it('hiển thị 4 stat card', () => {
     renderWithProviders(<ReportsView />);
     expect(screen.getByText('Tổng việc')).toBeInTheDocument();
-    expect(screen.getAllByText('Hoàn thành').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Đang làm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Hoàn thành')).toHaveLength(2);
+    expect(screen.getAllByText('Đang làm')).toHaveLength(2);
     expect(screen.getByText('Quá hạn')).toBeInTheDocument();
   });
 

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card/Card';
 import { Text } from '@/components/ui/typography/Typography';
 import { cn } from '@/lib/utils/cn';
@@ -9,7 +10,7 @@ interface StatCardProps {
   value: string;
   delta: string;
   deltaTone: 'up' | 'down';
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 export function StatCard({ label, value, delta, deltaTone, icon }: StatCardProps) {
