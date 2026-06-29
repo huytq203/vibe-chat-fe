@@ -8,6 +8,13 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface Member {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+}
+
 export interface BoardTask {
   id: string;
   columnId: string;
