@@ -35,7 +35,7 @@ export const tasksApi = {
 
   // --- Tasks ---
   getTask: (projectId: string, taskId: string) =>
-    taskClient.get<TaskDetail>(`/api/v1/projects/${projectId}/tasks/${taskId}`),
+    taskClient.get<TaskDetail>(`/api/v1/tasks/${taskId}`),
 
   createTask: (projectId: string, input: { title: string; columnId: string }) =>
     taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, input),
@@ -75,8 +75,16 @@ export const tasksApi = {
   listAssignees: (projectId: string, taskId: string) =>
     taskClient.get<Member[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`),
 
-  addAssignee: (projectId: string, taskId: string, userId: string) =>
-    taskClient.post<void>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`, { userId }),
+  addAssignee: (
+    projectId: string,
+    taskId: string,
+    member: { userId: string; displayName: string; avatarUrl?: string | null },
+  ) =>
+    taskClient.post<void>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`, {
+      targetUserId: member.userId,
+      displayName: member.displayName,
+      avatarUrl: member.avatarUrl ?? undefined,
+    }),
 
   removeAssignee: (projectId: string, taskId: string, userId: string) =>
     taskClient.delete<void>(

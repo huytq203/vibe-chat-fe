@@ -12,7 +12,8 @@ export function useAssignees(projectId: string, taskId: string | null) {
 export function useAddAssignee(projectId: string, taskId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => tasksApi.addAssignee(projectId, taskId, userId),
+    mutationFn: (member: { userId: string; displayName: string; avatarUrl?: string | null }) =>
+      tasksApi.addAssignee(projectId, taskId, member),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'assignees'] }),
   });

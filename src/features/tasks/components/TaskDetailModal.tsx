@@ -235,7 +235,7 @@ export function TaskDetailModal({ projectId }: TaskDetailModalProps) {
                     <button
                       key={m.userId}
                       type="button"
-                      onClick={() => addAssignee.mutate(m.userId)}
+                      onClick={() => addAssignee.mutate({ userId: m.userId, displayName: m.displayName, avatarUrl: m.avatarUrl })}
                       className="flex w-full items-center gap-2 rounded px-2 py-1 text-sm hover:bg-muted"
                     >
                       <Avatar
