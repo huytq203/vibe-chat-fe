@@ -44,7 +44,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex h-full items-start gap-[18px] overflow-x-auto bg-[#F4F3FB] px-7 py-6">
+      <div className="flex h-full items-start gap-[18px] overflow-x-auto bg-muted px-7 py-6">
         {board.columns.map((column) => (
           <Column key={column.id} projectId={projectId} column={column} />
         ))}

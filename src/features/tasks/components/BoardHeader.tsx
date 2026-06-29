@@ -14,16 +14,16 @@ export function BoardHeader({ projectId }: { projectId: string }) {
   const visible = members.slice(0, 5);
 
   return (
-    <div className="flex h-[54px] shrink-0 items-center justify-between px-6 border-b border-[#ECE9F7] bg-white">
+    <div className="flex h-[54px] shrink-0 items-center justify-between px-6 border-b border-border bg-background">
       {/* Left: view toggle segment control */}
-      <div className="flex rounded-xl bg-[#EFEDF8] p-1 gap-1">
+      <div className="flex rounded-xl bg-muted p-1 gap-1">
         <button
           type="button"
           onClick={() => setBoardView('board')}
           className={
             boardView === 'board'
-              ? 'bg-white text-[#6D4AFF] rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
-              : 'text-[#9A96B0] px-3 py-1 text-sm cursor-pointer'
+              ? 'bg-secondary text-primary rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
+              : 'text-muted-foreground px-3 py-1 text-sm cursor-pointer'
           }
         >
           Board
@@ -33,8 +33,8 @@ export function BoardHeader({ projectId }: { projectId: string }) {
           onClick={() => setBoardView('list')}
           className={
             boardView === 'list'
-              ? 'bg-white text-[#6D4AFF] rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
-              : 'text-[#9A96B0] px-3 py-1 text-sm cursor-pointer'
+              ? 'bg-secondary text-primary rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
+              : 'text-muted-foreground px-3 py-1 text-sm cursor-pointer'
           }
         >
           Danh sách
@@ -52,7 +52,7 @@ export function BoardHeader({ projectId }: { projectId: string }) {
                 src={m.avatarUrl ?? undefined}
                 fallback={m.displayName.charAt(0).toUpperCase()}
                 size="sm"
-                className="border-2 border-white"
+                className="border-2 border-background"
               />
             ))}
           </div>
@@ -63,16 +63,16 @@ export function BoardHeader({ projectId }: { projectId: string }) {
           type="button"
           onClick={() => openSettings('info')}
           aria-label="Cài đặt project"
-          className="border border-[#E7E3F5] bg-white rounded-xl p-2 cursor-pointer hover:bg-[#F4F3FB]"
+          className="border border-border bg-secondary rounded-xl p-2 cursor-pointer hover:bg-accent"
         >
-          <Settings className="h-4 w-4 text-[#6B6880]" />
+          <Settings className="h-4 w-4 text-muted-foreground" />
         </button>
 
         {/* Share button */}
         <button
           type="button"
           onClick={() => openSettings('share')}
-          className="bg-[#211B41] text-white rounded-xl px-4 py-1.5 text-sm font-semibold ml-3 hover:bg-[#2E2A4D]"
+          className="bg-primary text-primary-foreground rounded-xl px-4 py-1.5 text-sm font-semibold ml-3 hover:bg-primary/90"
         >
           Chia sẻ
         </button>

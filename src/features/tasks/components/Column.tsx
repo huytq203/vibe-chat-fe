@@ -26,14 +26,14 @@ export function Column({ projectId, column }: { projectId: string; column: Board
     }
   };
 
-  const headerColor = column.color ?? '#6D4AFF';
+  const headerColor = column.color ?? 'var(--primary)';
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'w-[312px] shrink-0 rounded-2xl border border-[#E9E5F6] bg-[#F8F7FC] flex flex-col overflow-hidden h-full',
-        isOver && 'ring-2 ring-[#6D4AFF]/40',
+        'w-[312px] shrink-0 rounded-2xl border border-border bg-muted flex flex-col overflow-hidden h-full',
+        isOver && 'ring-2 ring-primary/40',
       )}
     >
       {/* Colored header */}
@@ -43,7 +43,7 @@ export function Column({ projectId, column }: { projectId: string; column: Board
       >
         <div className="flex items-center">
           <span className="text-white font-semibold text-sm">{column.name}</span>
-          <span className="bg-white/25 text-white text-xs font-semibold px-2 py-0.5 rounded-full ml-2">
+          <span className="bg-[rgba(255,255,255,0.25)] text-white text-xs font-semibold px-2 py-0.5 rounded-full ml-2">
             {column.tasks.length}
           </span>
         </div>
@@ -76,7 +76,7 @@ export function Column({ projectId, column }: { projectId: string; column: Board
       {/* Add task input */}
       {adding && (
         <div className="px-3 pb-3">
-          <div className="border-2 border-[#6D4AFF] rounded-[15px] p-3 bg-white">
+          <div className="border-2 border-primary rounded-[15px] p-3 bg-secondary">
             <input
               autoFocus
               value={title}
@@ -87,7 +87,7 @@ export function Column({ projectId, column }: { projectId: string; column: Board
               }}
               onBlur={() => setAdding(false)}
               placeholder="Tiêu đề task…"
-              className="w-full text-sm text-[#2E2A4D] outline-none placeholder:text-[#9A96B0]"
+              className="w-full text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
         </div>

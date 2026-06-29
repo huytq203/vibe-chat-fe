@@ -28,16 +28,16 @@ function AssigneeAvatar({ displayName, avatarUrl }: { displayName: string; avata
       <img
         src={avatarUrl}
         alt={displayName}
-        className="w-6 h-6 rounded-full border-2 border-white object-cover"
+        className="w-6 h-6 rounded-full border-2 border-background object-cover"
       />
     );
   }
   // Generate a color from displayName for the fallback div
-  const colors = ['#6D4AFF', '#F97316', '#22C55E', '#EF4444', '#3B82F6', '#A855F7'];
+  const colors = ['var(--primary)', '#F97316', '#22C55E', '#EF4444', '#3B82F6', '#A855F7'];
   const colorIndex = displayName.charCodeAt(0) % colors.length;
   return (
     <div
-      className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-[9px] font-semibold"
+      className="w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-primary-foreground text-[9px] font-semibold"
       style={{ backgroundColor: colors[colorIndex] }}
     >
       {initials}
@@ -65,7 +65,7 @@ export function TaskCard({ task }: { task: BoardTask }) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'bg-white rounded-[15px] border border-[#F1EEF9] shadow-[0_1px_3px_rgba(80,60,160,0.08)] p-3 cursor-pointer',
+        'bg-secondary rounded-[15px] border border-border shadow-[0_1px_3px_rgba(80,60,160,0.08)] p-3 cursor-pointer',
         isDragging && 'opacity-50',
       )}
       onClick={() => openTask(task.id)}
@@ -104,8 +104,8 @@ export function TaskCard({ task }: { task: BoardTask }) {
 
       {/* Title */}
       <div className="flex items-start gap-1.5 mb-3">
-        {task.isPinned && <Pin className="h-3.5 w-3.5 text-[#6D4AFF] shrink-0 mt-0.5" />}
-        <span className="text-[14.5px] font-semibold text-[#2E2A4D] leading-snug">
+        {task.isPinned && <Pin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
+        <span className="text-[14.5px] font-semibold text-foreground leading-snug">
           {task.title}
         </span>
       </div>
@@ -115,13 +115,13 @@ export function TaskCard({ task }: { task: BoardTask }) {
         {/* Left: counts + due date */}
         <div className="flex items-center gap-2">
           {task.checklistCount > 0 && (
-            <span className="text-[11px] text-[#9A96B0] flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <CheckSquare className="h-3.5 w-3.5" />
               {task.checklistCount}
             </span>
           )}
           {task.commentCount > 0 && (
-            <span className="text-[11px] text-[#9A96B0] flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" />
               {task.commentCount}
             </span>
@@ -129,8 +129,8 @@ export function TaskCard({ task }: { task: BoardTask }) {
           {dueDateInfo && (
             <span
               className={cn(
-                'bg-[#F4F3FB] text-[11px] rounded-full px-2 py-0.5',
-                dueDateInfo.isPast ? 'text-red-500' : 'text-[#6B6880]',
+                'bg-muted text-[11px] rounded-full px-2 py-0.5',
+                dueDateInfo.isPast ? 'text-red-500' : 'text-muted-foreground',
               )}
             >
               {dueDateInfo.label}
