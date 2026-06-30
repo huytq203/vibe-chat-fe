@@ -73,6 +73,28 @@ type SendContext = {
 const WS_SEND_TIMEOUT_MS = 10_000;
 const sendQueues = new Map<string, Promise<unknown>>();
 
+// Registry nonce theo FIFO per conversation — dùng để useChatRealtime dedup khi
+// server không echo clientNonce trong metadata của WS broadcast.
+const pendingNonces = new Map<string, string[]>();
+
+export function registerOptimisticNonce(convId: string, nonce: string) {
+  const list = pendingNonces.get(convId) ?? [];
+  pendingNonces.set(convId, [...list, nonce]);
+}
+
+export function unregisterOptimisticNonce(convId: string, nonce: string) {
+  const list = pendingNonces.get(convId) ?? [];
+  const next = list.filter((n) => n !== nonce);
+  if (next.length === 0) pendingNonces.delete(convId);
+  else pendingNonces.set(convId, next);
+}
+
+// Trả về nonce FIFO đầu tiên của conv (không xóa) — dùng bởi upsertMessage để
+// match WS echo với đúng tin optimistic khi incomingNonce=null.
+export function peekOptimisticNonce(convId: string): string | null {
+  return pendingNonces.get(convId)?.[0] ?? null;
+}
+
 async function emitSend(input: SendMessageInput, clientNonce: string): Promise<string> {
   const socket = getSocket(apiAuth.getToken());
   if (!socket || !socket.connected) {
@@ -114,7 +136,7 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
       selfDestructTtl: input.selfDestructTtl,
     })) as SendAck;
   const dt = Math.round(performance.now() - t0);
-  // eslint-disable-next-line no-console
+   
   console.log('[ws message:send]', { nonce: clientNonce, ms: dt, ack });
   if (!ack || ack.ok !== true) {
     throw new Error((ack as { error?: string })?.error ?? 'Gửi thất bại');
@@ -148,8 +170,8 @@ export function useSendMessage() {
 
   return useMutation<string, Error, SendMessageInput, SendContext>({
     mutationFn: async (input) => {
-      const nonce = input.clientNonce ?? crypto.randomUUID();
-      return sendMessageWs(input, nonce);
+      // onMutate đã stamp clientNonce vào input; dùng lại để WS echo match đúng.
+      return sendMessageWs(input, input.clientNonce!);
     },
 
     onMutate: async (input): Promise<SendContext> => {
@@ -159,6 +181,8 @@ export function useSendMessage() {
 
       const previous = qc.getQueryData<MessagesCache>(key);
       const clientNonce = input.clientNonce ?? crypto.randomUUID();
+      // Stamp lại vào input để mutationFn dùng cùng nonce (tránh nonce mismatch → duplicate).
+      input.clientNonce = clientNonce;
       const tempId = `temp-${clientNonce}`;
       // Mốc giờ theo SERVER (bù lệch đồng hồ máy) → hai bên hiện cùng giờ gửi.
       const nowMs = serverNow();
@@ -209,6 +233,7 @@ export function useSendMessage() {
         };
       });
 
+      registerOptimisticNonce(input.conversationId, clientNonce);
       // Lượt gửi mới → xoá thông báo lỗi hệ thống của lần gửi trước.
       useSendErrorStore.getState().clear(input.conversationId);
 
@@ -243,10 +268,12 @@ export function useSendMessage() {
         }));
         return { ...old, pages };
       });
+      unregisterOptimisticNonce(ctx.conversationId, ctx.clientNonce);
     },
 
     onError: (err, vars, ctx) => {
       if (!ctx) return;
+      unregisterOptimisticNonce(ctx.conversationId, ctx.clientNonce);
       // Báo lỗi dạng "tin nhắn hệ thống" ở cuối MessageList.
       useSendErrorStore.getState().setError(ctx.conversationId, err.message);
       const key = chatKeys.messages(ctx.conversationId);

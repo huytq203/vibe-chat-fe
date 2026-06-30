@@ -87,7 +87,7 @@ function ConversationItemImpl({
             )}
             <span className="truncate text-[13.5px] font-semibold text-foreground">{name}</span>
           </span>
-          <span className="shrink-0 text-[11px] text-muted-foreground">{time}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground transition-opacity group-hover/ci:opacity-0">{time}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-muted-foreground">

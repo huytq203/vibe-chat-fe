@@ -18,13 +18,16 @@ export const QuickAction = forwardRef<HTMLButtonElement, QuickActionProps>(
       ref={ref}
       variant={active ? "solid" : "ghost"}
       className={cn(
-        "h-auto rounded-lg px-1 py-2.5 text-muted-foreground bg-primary/10 hover:text-primary",
+        "h-auto text-muted-foreground hover:bg-transparent focus-visible:bg-transparent",
         className,
       )}
       {...props}
     >
       <div className="flex flex-col items-center gap-1">
+        <span className="bg-primary/10 hover:text-primary rounded-full p-3">
         {icon}
+
+        </span>
         <span className="text-[10.5px] font-medium">{label}</span>
       </div>
     </Button>

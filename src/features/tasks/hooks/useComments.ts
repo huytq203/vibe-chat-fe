@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '../services/tasks.api';
+import { taskKeys } from '../services/keys';
 
 export function useComments(projectId: string, taskId: string | null) {
   return useQuery({
@@ -14,8 +15,11 @@ export function useCreateComment(projectId: string, taskId: string) {
   return useMutation({
     mutationFn: (input: { content: string; displayName: string; avatarUrl?: string | null }) =>
       tasksApi.createComment(projectId, taskId, input),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'comments'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'comments'] });
+      void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities', taskId] });
+      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    },
   });
 }
 
@@ -24,7 +28,10 @@ export function useDeleteComment(projectId: string, taskId: string) {
   return useMutation({
     mutationFn: (commentId: string) =>
       tasksApi.deleteComment(projectId, taskId, commentId),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'comments'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'comments'] });
+      void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities', taskId] });
+      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    },
   });
 }

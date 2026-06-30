@@ -19,6 +19,7 @@ import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { chatKeys, friendKeys, myStoreKeys, userKeys } from '@/services/keys';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
+import { peekOptimisticNonce } from './use-mutations';
 import type {
   Conversation,
   JoinRequestStatus,
@@ -238,8 +239,13 @@ export function useChatRealtime() {
     // trùng (BE bắn cả message:new lẫn conversation:notify cho cùng 1 tin).
     function upsertMessage(message: Message): boolean {
       const key = chatKeys.messages(message.conversationId);
-      const incomingNonce =
+      const meId = useAuthStore.getState().user?.id ?? null;
+      // Server thường echo clientNonce trong metadata; nếu không có (server chưa hỗ trợ)
+      // → fallback sang registry FIFO để tránh flash duplicate khi WS đến trước onSuccess.
+      const serverNonce =
         (message.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
+      const incomingNonce =
+        serverNonce ?? (message.senderId === meId ? peekOptimisticNonce(message.conversationId) : null);
       let inserted = false;
 
       qc.setQueryData<InfiniteData<MessagesPage> | undefined>(key, (prev) => {
@@ -259,23 +265,40 @@ export function useChatRealtime() {
           items: p.items.flatMap((m) => {
             if (m.id === message.id) {
               replaced = true;
+              // Giữ clientNonce từ cache → stable React key, không remount bubble.
+              const existingNonce =
+                (m.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
+              if (existingNonce) {
+                return [
+                  {
+                    ...message,
+                    metadata: {
+                      ...(message.metadata ?? {}),
+                      clientNonce: existingNonce,
+                    } as Record<string, unknown>,
+                  },
+                ];
+              }
               return [message];
             }
             const mNonce = (m.metadata as { clientNonce?: string } | null)?.clientNonce ?? null;
             if (incomingNonce && mNonce && mNonce === incomingNonce) {
               replaced = true;
+              // Giữ clientNonce trong metadata để MessageList dùng làm stable key —
+              // tránh React unmount/mount lại bubble khi id đổi từ temp→real.
+              const mergedMeta: Record<string, unknown> = { ...(message.metadata ?? {}), clientNonce: mNonce };
+              let merged = { ...message, metadata: mergedMeta };
               // CONTACT: BE echo thiếu avatarUrl (enrichContactCards chỉ chạy lúc REST).
-              // Giữ lại avatarUrl từ optimistic cho đến khi REST refetch enrich lại.
               if (message.type === 'CONTACT') {
                 const existingContact = (m.metadata as Record<string, unknown> | null)
                   ?.contact as Record<string, unknown> | undefined;
                 const incomingContact = (message.metadata as Record<string, unknown> | null)
                   ?.contact as Record<string, unknown> | undefined;
                 if (existingContact?.avatarUrl != null && incomingContact && !incomingContact.avatarUrl) {
-                  return [{ ...message, metadata: { ...message.metadata, contact: { ...incomingContact, avatarUrl: existingContact.avatarUrl } } }];
+                  merged = { ...merged, metadata: { ...(merged.metadata as Record<string, unknown>), contact: { ...incomingContact, avatarUrl: existingContact.avatarUrl } } };
                 }
               }
-              return [message];
+              return [merged];
             }
             return [m];
           }),

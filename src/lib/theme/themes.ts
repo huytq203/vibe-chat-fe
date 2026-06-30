@@ -43,33 +43,33 @@ export type BuiltInThemeName = 'indigo' | 'blue' | 'violet' | 'rose' | 'emerald'
 // ─── Built-in Themes ──────────────────────────────────────────────────────────
 
 export const themes: Theme[] = [
-  // ─── Default: Vibe Night (design mockup) ──────────────────────────────────────
-  // Palette lấy trực tiếp từ design (/Downloads/vibe-chat) — dark purple.
+  // ─── Default: Vibe Charcoal ───────────────────────────────────────────────────
+  // Charcoal + Cyan — tương phản cao, không tím, nổi bật rõ ràng.
   {
     name: 'indigo',
-    label: 'Halo Night (Default)',
+    label: 'Vibe Charcoal (Default)',
     colors: {
-      background: '#17171f',              /* Charcoal trung tính, sáng hơn, bớt tím */
-      foreground: '#f5f6f8',
-      primary: '#8b7cf0',                 /* Indigo nhạt — bớt bão hòa tím */
+      background: '#111318',
+      foreground: '#e2e8f0',
+      primary: '#06b6d4',
       primaryForeground: '#ffffff',
-      secondary: '#242433',
-      secondaryForeground: '#b3b6f2',
-      muted: '#1d1d28',
-      mutedForeground: '#9a9db5',
-      accent: '#242433',
-      accentForeground: '#f5f6f8',
-      success: '#49e049',
-      successForeground: '#0e0c14',
-      warning: '#e0c849',
-      warningForeground: '#1d1d28',
-      danger: '#e04949',
+      secondary: '#1a1d24',
+      secondaryForeground: '#94a3b8',
+      muted: '#161820',
+      mutedForeground: '#64748b',
+      accent: '#1d2a33',
+      accentForeground: '#e2e8f0',
+      success: '#10b981',
+      successForeground: '#ffffff',
+      warning: '#f59e0b',
+      warningForeground: '#1c1917',
+      danger: '#ef4444',
       dangerForeground: '#ffffff',
-      border: '#32334a',
-      input: '#242433',
-      ring: '#8b7cf0',
-      popover: '#1d1d28',
-      popoverForeground: '#f5f6f8',
+      border: '#1e2129',
+      input: '#1a1d24',
+      ring: '#06b6d4',
+      popover: '#161820',
+      popoverForeground: '#e2e8f0',
     },
   },
 

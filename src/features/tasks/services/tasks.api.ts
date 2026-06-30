@@ -42,7 +42,7 @@ export const tasksApi = {
 
   updateTask: (
     taskId: string,
-    input: { title?: string; description?: string; dueDate?: string | null; priority?: TaskPriority | null },
+    input: { title?: string; description?: string | null; dueDate?: string | null; priority?: TaskPriority | null },
   ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
 
   moveTask: (taskId: string, input: { columnId: string; position: number }) =>

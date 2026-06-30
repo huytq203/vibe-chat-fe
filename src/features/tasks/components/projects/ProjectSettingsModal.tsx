@@ -1,0 +1,72 @@
+'use client';
+
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog/Dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
+import { Badge } from '@/components/ui/badge/Badge';
+import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { ProjectInfoTab } from './ProjectInfoTab';
+import { ProjectSharingTab } from './ProjectSharingTab';
+import { ProjectTagsTab } from './ProjectTagsTab';
+import { SettingsPlaceholder } from './SettingsPlaceholder';
+import type { Project } from '../../types';
+
+const TABS = [
+  { value: 'info', label: 'Thông tin' },
+  { value: 'share', label: 'Chia sẻ' },
+  { value: 'powerups', label: 'Tiện ích' },
+  { value: 'automations', label: 'Tự động hoá' },
+  { value: 'checklists', label: 'Checklist' },
+  { value: 'labels', label: 'Nhãn' },
+  { value: 'customfields', label: 'Trường tuỳ chỉnh' },
+] as const;
+
+export function ProjectSettingsModal({ project }: { project: Project }) {
+  const settingsModal = useTasksUIStore((s) => s.settingsModal);
+  const closeSettings = useTasksUIStore((s) => s.closeSettings);
+
+  const open = settingsModal.open;
+  const defaultTab = settingsModal.open ? settingsModal.tab : 'info';
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && closeSettings()}>
+      <DialogContent className="max-w-[720px]">
+        <div className="mb-4 flex items-center gap-2">
+          <DialogTitle className="text-lg font-bold">Cài đặt dự án</DialogTitle>
+          <Badge variant="soft-primary" size="sm">Dự án nhóm</Badge>
+        </div>
+
+        <Tabs defaultValue={defaultTab} key={defaultTab}>
+          <TabsList className="mb-4 max-w-full flex-nowrap overflow-x-auto">
+            {TABS.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="info">
+            <ProjectInfoTab project={project} />
+          </TabsContent>
+          <TabsContent value="share">
+            <ProjectSharingTab project={project} />
+          </TabsContent>
+          <TabsContent value="labels">
+            <ProjectTagsTab project={project} />
+          </TabsContent>
+          <TabsContent value="powerups">
+            <SettingsPlaceholder title="Tiện ích (Power-Ups)" />
+          </TabsContent>
+          <TabsContent value="automations">
+            <SettingsPlaceholder title="Tự động hoá" />
+          </TabsContent>
+          <TabsContent value="checklists">
+            <SettingsPlaceholder title="Mẫu checklist" />
+          </TabsContent>
+          <TabsContent value="customfields">
+            <SettingsPlaceholder title="Trường tuỳ chỉnh" />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}

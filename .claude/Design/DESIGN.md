@@ -1,35 +1,41 @@
-# Design System Inspired by Kraken
+# Design System — Vibe Charcoal
 
 ## 1. Visual Theme & Atmosphere
 
-Kraken's website is a clean, trustworthy crypto exchange that uses purple as its commanding brand color. The design operates on white backgrounds with Kraken Purple (`#7132f5`, `#5741d8`, `#5b1ecf`) creating a distinctive, professional crypto identity. The proprietary Kraken-Brand font handles display headings with bold (700) weight and negative tracking, while Kraken-Product (with IBM Plex Sans fallback) serves as the UI workhorse.
+Vibe Chat sử dụng palette **Charcoal + Cyan** — nền tối trung tính (không tím), accent cyan nổi bật, tương phản cao. Phong cách hiện đại kiểu developer tool / terminal, dễ đọc sau nhiều giờ.
 
 **Key Characteristics:**
-- Kraken Purple (`#7132f5`) as primary brand with darker variants (`#5741d8`, `#5b1ecf`)
-- Kraken-Brand (display) + Kraken-Product (UI) dual font system
-- Near-black (`#101114`) text with cool blue-gray neutral scale
-- 12px radius buttons (rounded but not pill)
-- Subtle shadows (`rgba(0,0,0,0.03) 0px 4px 24px`) — whisper-level
-- Green accent (`#149e61`) for positive/success states
+- Charcoal (`#111318`) làm nền — neutral, không tím
+- Cyan (`#06b6d4`) làm brand accent — tương phản ~4.9:1 trên nền
+- Foreground `#e2e8f0` — tương phản ~14:1 trên nền
+- 12px radius buttons (rounded, không pill)
+- Subtle shadows (`rgba(0,0,0,0.03) 0px 4px 24px`)
+- Emerald (`#10b981`) cho success/online
 
 ## 2. Color Palette & Roles
 
-### Primary
-- **Kraken Purple** (`#7132f5`): Primary CTA, brand accent, links
-- **Purple Dark** (`#5741d8`): Button borders, outlined variants
-- **Purple Deep** (`#5b1ecf`): Deepest purple
-- **Purple Subtle** (`rgba(133,91,251,0.16)`): Purple at 16% — subtle button backgrounds
-- **Near Black** (`#101114`): Primary text
+### Primary (Default theme — Vibe Charcoal)
+- **Cyan** (`#06b6d4`): Primary CTA, brand accent, links, focus ring
+- **Charcoal** (`#111318`): Background chính
+- **Cool White** (`#e2e8f0`): Foreground / text chính
+- **Sidebar Dark** (`#0d1017`): Nền sidebar — sâu nhất
 
-### Neutral
-- **Cool Gray** (`#686b82`): Primary neutral, borders at 24% opacity
-- **Silver Blue** (`#9497a9`): Secondary text, muted elements
-- **White** (`#ffffff`): Primary surface
-- **Border Gray** (`#dedee5`): Divider borders
+### Surfaces
+- **Card / Bubble** (`#1a1d24`): Secondary surface
+- **Header / Input** (`#161820`): Muted surface
+- **Hover** (`#1d2a33`): Accent hover (gợi ý cyan nhẹ)
+- **Border** (`#1e2129`): Divider tinh tế
+
+### Text
+- **Primary** (`#e2e8f0`): Heading, body text
+- **Muted** (`#64748b`): Placeholder, subdued
+- **Secondary** (`#94a3b8`): Label trong card
 
 ### Semantic
-- **Green** (`#149e61`): Success/positive at 16% opacity for badges
-- **Green Dark** (`#026b3f`): Badge text
+- **Success** (`#10b981`): Online, ok, emerald
+- **Warning** (`#f59e0b`): Cảnh báo, amber
+- **Danger** (`#ef4444`): Lỗi, xóa, red
+- **Info** (`#38bdf8`): Link rich text, sky
 
 ## 3. Typography Rules
 
@@ -101,13 +107,14 @@ Kraken's website is a clean, trustworthy crypto exchange that uses purple as its
 ## 7. Do's and Don'ts
 
 ### Do
-- Use Kraken Purple (#7132f5) for CTAs and links
-- Apply 12px radius on all buttons
-- Use Kraken-Brand for headings, Kraken-Product for body
+- Dùng Cyan (`#06b6d4`) cho CTA, link, focus ring
+- Apply 12px radius trên mọi button
+- Dùng IBM Plex Sans cho heading, Inter cho body
 
 ### Don't
-- Don't use pill buttons — 12px is the max radius for buttons
-- Don't use other purples outside the defined scale
+- Không dùng pill button — 12px là max radius
+- Không hardcode màu tím/indigo cũ (`#8b7cf0`, `#17171f`)
+- Không thêm token màu ngoài palette Charcoal + Cyan đã định nghĩa
 
 ## 8. Responsive Behavior
 Breakpoints: 375px, 425px, 640px, 768px, 1024px, 1280px, 1536px
@@ -115,11 +122,13 @@ Breakpoints: 375px, 425px, 640px, 768px, 1024px, 1280px, 1536px
 ## 9. Agent Prompt Guide
 
 ### Quick Color Reference
-- Brand: Kraken Purple (`#7132f5`)
-- Dark variant: `#5741d8`
-- Text: Near Black (`#101114`)
-- Secondary text: `#9497a9`
-- Background: White (`#ffffff`)
+- Brand: Cyan (`#06b6d4`)
+- Background: Charcoal (`#111318`)
+- Foreground: Cool White (`#e2e8f0`)
+- Muted text: `#64748b`
+- Sidebar: `#0d1017`
+- Border: `#1e2129`
 
 ### Example Component Prompts
-- "Create hero: white background. Kraken-Brand 48px weight 700, letter-spacing -1px. Purple CTA (#7132f5, 12px radius, 13px 16px padding)."
+- "Create chat bubble: bg `#1a1d24`, text `#e2e8f0`, border `#1e2129`, radius 12px."
+- "Create CTA button: bg `#06b6d4`, text white, radius 12px, padding 13px 16px."

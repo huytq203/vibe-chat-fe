@@ -47,16 +47,18 @@ import { BannedMembersPanel } from "./BannedMembersPanel";
 import { AdminsPanel } from "./AdminsPanel";
 import { JoinRequestsPanel } from "./JoinRequestsPanel";
 import { MessageSearchPanel } from "./MessageSearchPanel";
+import { PinnedMessagesPanel } from "./PinnedMessagesPanel";
 import { MuteButton } from "./MuteButton";
 import { UserProfileDialog } from "./UserProfileDialog";
 import { GroupShareDialog } from "@/features/share-links";
 import { ConversationSettingsDialog } from "./ConversationSettingsDialog";
 import { WallpaperPickerDialog } from "./WallpaperPickerDialog";
+import { Separator } from "@/components/ui/separator/Separator";
 
 export function ContactInfo() {
   const data = useContactInfor();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "banned" | "admins" | "search">("info");
+  const [view, setView] = useState<"info" | "members" | "requests" | "settings" | "banned" | "admins" | "search" | "pinned">("info");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [shareGroupOpen, setShareGroupOpen] = useState(false);
   const [convSettingsOpen, setConvSettingsOpen] = useState(false);
@@ -237,6 +239,10 @@ export function ContactInfo() {
     return <MessageSearchPanel conversation={conversation} onBack={() => setView("info")} onClose={handleClose} />;
   }
 
+  if (view === "pinned") {
+    return <PinnedMessagesPanel conversation={conversation} meId={meId} onBack={() => setView("info")} onClose={handleClose} />;
+  }
+
   // Trên mobile, nút đóng panel quay về chat thay vì đóng sidebar.
   function handleClose() {
     if (isMobile) {
@@ -265,8 +271,8 @@ export function ContactInfo() {
         </Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
-        <section className="flex flex-col items-center border-b border-border px-4 pb-4 pt-5">
+      <div className="flex-1 overflow-y-auto mt-3">
+        <section className="flex flex-col items-center">
           {isDirect && otherUserId ? (
             <button
               type="button"
@@ -283,9 +289,12 @@ export function ContactInfo() {
               type={isGroup ? 'group' : 'user'}
               size="lg"
               status={status as AvatarStatus}
-              className="mb-3"
+              className=""
             />
           )}
+            <Badge variant={statusVariant} size="sm" >
+            {statusText}
+          </Badge>
           <div className="text-[17px] text-foreground flex items-center gap-2">
             <div className="flex items-center gap-2 flex-col">
               <div className="flex items-center gap-2">
@@ -304,27 +313,19 @@ export function ContactInfo() {
               {description && <div className="text-sm text-muted-foreground">{description}</div>}
             </div>
           </div>
-          <Badge variant={statusVariant} size="sm" className="mt-1.5">
-            {statusText}
-          </Badge>
+        
         </section>
-
-        <section className="grid grid-cols-4 gap-2 px-3 py-3">
-          <QuickAction
-            icon={<Phone className="h-[18px] w-[18px]" />}
-            label="Gọi"
-            disabled={!canCall || callBusy}
-            onClick={() => handleCall("AUDIO")}
-          />
-          <QuickAction
-            icon={<Video className="h-[18px] w-[18px]" />}
-            label="Video"
-            disabled={!canCall || callBusy}
-            onClick={() => handleCall("VIDEO")}
-          />
+        <section className="flex justify-center items-center">
+          {isDirect && canUnfriend && (
+            <QuickAction icon={<Users className="h-[18px] w-[18px]" />} label="Tạo nhóm" onClick={() => setCreateGroupOpen(true)} />
+          )}
+          {!isDirect && (
+            <QuickAction icon={isPinned ? <PinOff className="h-[18px] w-[18px]" /> : <Pin className="h-[18px] w-[18px]" />} label={isPinned ? "Bỏ ghim" : "Ghim"} onClick={handleTogglePin} />
+          )}
           <QuickAction icon={<Search className="h-[18px] w-[18px]" />} label="Tìm" onClick={() => setView("search")} />
           <MuteButton conversation={conversation} />
         </section>
+        <Separator className="h-px" />
 
         <section className="px-3 pt-2">
           <SharedTabs conversationId={conversation.id} />

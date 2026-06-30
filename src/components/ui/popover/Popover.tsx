@@ -52,9 +52,10 @@ export interface PopoverContentProps
 const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
   ({ className, sideOffset = 4, side = 'bottom', align = 'center', showArrow = true, children, ...props }, ref) => (
     <BasePopover.Portal>
-      {/* z-50 PHẢI ở Positioner (element fixed tạo stacking context). Nếu chỉ để z trên
-          Popup, cả cụm bị vẽ ở tầng z:auto → nằm dưới element positive-z gần đó (vd tab z-10). */}
-      <BasePopover.Positioner className="z-50" sideOffset={sideOffset} side={side} align={align}>
+      {/* z PHẢI ở Positioner (element fixed tạo stacking context). Nếu chỉ để z trên
+          Popup, cả cụm bị vẽ ở tầng z:auto → nằm dưới element positive-z gần đó (vd tab z-10).
+          z-[200] để popover luôn nổi TRÊN Dialog/modal (z-[100]) khi mở bên trong modal. */}
+      <BasePopover.Positioner className="z-[200]" sideOffset={sideOffset} side={side} align={align}>
         <BasePopover.Popup ref={ref} className={cn(popup(), className)} {...props}>
           {showArrow && <BasePopover.Arrow className={arrow()} />}
           {children}

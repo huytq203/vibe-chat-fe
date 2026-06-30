@@ -192,7 +192,6 @@ function MessageBubbleImpl({
                 ? "rounded-bl-md border border-border/40 bg-background text-foreground"
                 : "rounded-bl-md border border-border bg-muted text-foreground"),
             hasTheme && (isMe ? "rounded-br-md" : "rounded-bl-md border border-white/10"),
-            isSending && "opacity-70",
             isFailed && "border border-danger/60",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-1 ring-offset-background",
@@ -213,19 +212,16 @@ function MessageBubbleImpl({
             />
           )}
           <BubbleContent message={message} isMe={isMe} />
-          {/* Timestamp + status INSIDE bubble */}
+          {/* Timestamp + status INSIDE bubble — luôn hiển thị để tránh flash layout */}
           <div
             className={cn(
               "mt-1 flex items-center gap-1",
               isMe ? "justify-end" : "justify-start",
             )}
           >
-            {message.expireAt &&
-              !message.isDeleted &&
-              !isSending &&
-              !isFailed && (
-                <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
-              )}
+            {message.expireAt && !message.isDeleted && !isSending && !isFailed && (
+              <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
+            )}
             {message.isEdited && !message.isDeleted && (
               <span
                 className={cn(
@@ -244,11 +240,7 @@ function MessageBubbleImpl({
               )}
               style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
             >
-              {isSending
-                ? "Đang gửi…"
-                : isFailed
-                  ? "Gửi thất bại"
-                  : formatBubbleTime(message.createdAt)}
+              {isFailed ? "Gửi thất bại" : formatBubbleTime(message.createdAt)}
             </span>
             {isMe &&
               (isFailed ? (

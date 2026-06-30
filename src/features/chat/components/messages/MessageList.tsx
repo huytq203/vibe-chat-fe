@@ -203,7 +203,7 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
               : null;
             const isNew = msgDate.getTime() > mountAt;
             return (
-              <div key={m.id}>
+              <div key={(m.metadata?.clientNonce as string | undefined) ?? m.id}>
                 {showDateSep && <DateSeparator date={msgDate} />}
                 <div
                   data-msgid={m.id}

@@ -169,100 +169,100 @@
 @layer base {
     :root {
         /* GENERATED:theme-start */
-        /* Đồng bộ thủ công với themes.ts (theme "indigo" = Halo Night — bớt tím, sáng hơn) */
-        --background: #17171f;              /* Charcoal trung tính */
-        --foreground: #f5f6f8;
-        --primary: #8b7cf0;                 /* Indigo nhạt — bớt bão hòa tím */
+        /* Đồng bộ với themes.ts (theme "indigo" = Vibe Charcoal) */
+        --background: #111318;
+        --foreground: #e2e8f0;
+        --primary: #06b6d4;
         --primary-foreground: #ffffff;
-        --secondary: #242433;               /* Surface bubble / card */
-        --secondary-foreground: #b3b6f2;
-        --muted: #1d1d28;                   /* Surface header / sidebar / input */
-        --muted-foreground: #9a9db5;        /* Silver xám xanh */
-        --accent: #242433;                  /* Hover surface */
-        --accent-foreground: #f5f6f8;
-        --success: #3de87a;                 /* Online / xanh sáng */
-        --success-foreground: #0d1a13;
-        --warning: #f0d050;                 /* Vàng */
-        --warning-foreground: #1d1d28;
-        --danger: #f05050;
+        --secondary: #1a1d24;
+        --secondary-foreground: #94a3b8;
+        --muted: #161820;
+        --muted-foreground: #64748b;
+        --accent: #1d2a33;
+        --accent-foreground: #e2e8f0;
+        --success: #10b981;
+        --success-foreground: #ffffff;
+        --warning: #f59e0b;
+        --warning-foreground: #1c1917;
+        --danger: #ef4444;
         --danger-foreground: #ffffff;
-        --destructive: #f05050;
+        --destructive: #ef4444;
         --destructive-foreground: #ffffff;
-        --border: #32334a;
-        --input: #242433;
-        --ring: #8b7cf0;
-        --popover: #1d1d28;
-        --popover-foreground: #f5f6f8;
+        --border: #1e2129;
+        --input: #1a1d24;
+        --ring: #06b6d4;
+        --popover: #161820;
+        --popover-foreground: #e2e8f0;
         /* GENERATED:theme-end */
 
         /* Non-theme tokens (not managed by applyTheme) */
-        --switch-background: #32334a;       /* Toggle nền */
-        --info: #3b9cff;                    /* Xanh dương — màu chữ rich text (khác bubble tím) */
+        --switch-background: #1d2a33;
+        --info: #38bdf8;                    /* Sky-400 — rich text links */
 
-        --chart-1: #f05050;
-        --chart-2: #8b7cf0;                 /* Indigo thương hiệu */
-        --chart-3: #3de87a;                 /* Xanh */
-        --chart-4: #f0d050;                 /* Vàng */
-        --chart-5: #b3b6f2;                 /* Lavender nhạt */
+        --chart-1: #f87171;
+        --chart-2: #06b6d4;                 /* Cyan thương hiệu */
+        --chart-3: #10b981;                 /* Emerald */
+        --chart-4: #f59e0b;                 /* Amber */
+        --chart-5: #7dd3fc;                 /* Sky nhạt */
 
-        --sidebar: #1d1d28;
-        --sidebar-foreground: #f5f6f8;
-        --sidebar-border: #32334a;
-        --sidebar-accent: #242433;
-        --sidebar-accent-foreground: #f5f6f8;
-        --sidebar-ring: #8b7cf0;
+        --sidebar: #0d1017;
+        --sidebar-foreground: #e2e8f0;
+        --sidebar-border: #1e2129;
+        --sidebar-accent: #1a1d24;
+        --sidebar-accent-foreground: #e2e8f0;
+        --sidebar-ring: #06b6d4;
     }
 
     .dark {
-        /* Dark Theme — Kraken-inspired Deep Purple Night */
-        --background: #0e0c14;              /* Near-black with purple tint */
-        --foreground: #ededf0;              /* Off-white */
+        /* Dark Theme — Vibe Charcoal Deep (deeper variant) */
+        --background: #0c0e12;
+        --foreground: #f1f5f9;
 
-        --primary: #9b72ff;                 /* Lighter Kraken Purple — readable on dark */
+        --primary: #22d3ee;                 /* Cyan-400 — sáng hơn trên nền tối sâu */
         --primary-foreground: #ffffff;
 
-        --secondary: #1c1929;               /* Dark purple-tinted surface */
-        --secondary-foreground: #c4b0ff;    /* Soft lavender */
+        --secondary: #141720;
+        --secondary-foreground: #7dd3fc;    /* Sky-300 */
 
-        --muted: #17151f;                   /* Deeper surface */
-        --muted-foreground: #7b7d99;        /* Muted silver-blue */
+        --muted: #10131a;
+        --muted-foreground: #64748b;
 
-        --accent: #1c1929;
-        --accent-foreground: #ededf0;
+        --accent: #141e2a;
+        --accent-foreground: #f1f5f9;
 
-        --switch-background: #3d3860;
+        --switch-background: #1d2a33;
 
-        --border: #2a2740;                  /* Dark purple-tinted border */
-        --input: #2a2740;
+        --border: #181c26;
+        --input: #181c26;
 
-        --success: #1acc72;                 /* Brighter Kraken green for dark bg */
+        --success: #34d399;
         --success-foreground: #ffffff;
 
-        --warning: #f59e0b;
-        --warning-foreground: #ffffff;
+        --warning: #fbbf24;
+        --warning-foreground: #1c1917;
 
-        --danger: #f05555;
+        --danger: #f87171;
         --danger-foreground: #ffffff;
 
-        --ring: #9b72ff;
+        --ring: #22d3ee;
 
-        --chart-1: #fb7185;
-        --chart-2: #9b72ff;
-        --chart-3: #1acc72;
+        --chart-1: #f87171;
+        --chart-2: #22d3ee;
+        --chart-3: #34d399;
         --chart-4: #fbbf24;
-        --chart-5: #c4b0ff;
+        --chart-5: #7dd3fc;
 
-        --popover: #17151f;
-        --popover-foreground: #ededf0;
+        --popover: #10131a;
+        --popover-foreground: #f1f5f9;
 
-        --sidebar: #0b0a11;
-        --sidebar-foreground: #ededf0;
-        --sidebar-border: #2a2740;
-        --sidebar-accent: #1c1929;
-        --sidebar-accent-foreground: #c4b0ff;
-        --sidebar-ring: #9b72ff;
+        --sidebar: #080a0e;
+        --sidebar-foreground: #f1f5f9;
+        --sidebar-border: #181c26;
+        --sidebar-accent: #141720;
+        --sidebar-accent-foreground: #f1f5f9;
+        --sidebar-ring: #22d3ee;
 
-        --info: #5fa8ff;                    /* Xanh dương sáng hơn cho nền tối */
+        --info: #38bdf8;
     }
 }
 
@@ -414,4 +414,16 @@
     color: var(--color-primary);
     text-decoration: underline;
     cursor: pointer;
+}
+/* List: Tailwind preflight reset list-style → cần khai báo lại để hiện bullet/số. */
+.ProseMirror ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+}
+.ProseMirror ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+}
+.ProseMirror li {
+    margin: 0.125rem 0;
 }

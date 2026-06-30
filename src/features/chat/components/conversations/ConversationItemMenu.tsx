@@ -106,7 +106,7 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
             aria-label="Tuỳ chọn cuộc trò chuyện"
             title="Tuỳ chọn"
             onClick={(e) => e.stopPropagation()}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-popover text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-accent cursor-pointer hover:text-foreground"
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
