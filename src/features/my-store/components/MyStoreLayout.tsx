@@ -7,7 +7,8 @@ import { MyStoreFeed } from './MyStoreFeed';
 import { MyStoreComposer } from './MyStoreComposer';
 import { FolderSidebar } from './FolderSidebar';
 import { FilePanel } from './FilePanel';
-import { useStoreFolders } from '@/features/my-store/hooks/use-query';
+import { MyStoreInfoPanel } from './MyStoreInfoPanel';
+import { useStoreConversation, useStoreFolders } from '@/features/my-store/hooks/use-query';
 
 type ActiveTab = 'notes' | 'files';
 
@@ -15,13 +16,14 @@ export function MyStoreLayout() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('notes');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const { data: folders } = useStoreFolders();
+  const { data: selfConv } = useStoreConversation();
 
   const selectedFolder = folders?.find((f) => f.id === selectedFolderId) ?? null;
 
   return (
-    <div className="flex h-full bg-background">
-      {/* Left panel — always visible */}
-      <div className="flex flex-col w-full max-w-2xl border-r border-border">
+    <div className="flex h-full w-full bg-background">
+      {/* Panel chính — chiếm phần còn lại */}
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
           <Archive className="h-5 w-5 text-primary" />
@@ -57,7 +59,7 @@ export function MyStoreLayout() {
 
         {/* Body */}
         {activeTab === 'notes' ? (
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex w-full flex-col flex-1 min-h-0">
             <MyStoreFeed />
             <MyStoreComposer />
           </div>
@@ -83,6 +85,11 @@ export function MyStoreLayout() {
           </div>
         )}
       </div>
+
+      {/* Cột phải: media (ảnh/video/link), nhóm ghi chú, dung lượng */}
+      {selfConv?.id && (
+        <MyStoreInfoPanel conversationId={selfConv.id} onOpenFiles={() => setActiveTab('files')} />
+      )}
     </div>
   );
 }

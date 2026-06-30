@@ -19,6 +19,7 @@ export function useUpdateTask(projectId: string, taskId: string) {
       description?: string | null;
       dueDate?: string | null;
       priority?: TaskPriority | null;
+      isPinned?: boolean;
     }) => tasksApi.updateTask(taskId, input),
     onMutate: async (input) => {
       const key = ['tasks', projectId, taskId, 'detail'] as const;
@@ -32,6 +33,16 @@ export function useUpdateTask(projectId: string, taskId: string) {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
+      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    },
+  });
+}
+
+export function useDeleteTask(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => tasksApi.deleteTask(taskId),
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
     },
   });

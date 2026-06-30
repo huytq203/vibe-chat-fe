@@ -42,8 +42,16 @@ export const tasksApi = {
 
   updateTask: (
     taskId: string,
-    input: { title?: string; description?: string | null; dueDate?: string | null; priority?: TaskPriority | null },
+    input: {
+      title?: string;
+      description?: string | null;
+      dueDate?: string | null;
+      priority?: TaskPriority | null;
+      isPinned?: boolean;
+    },
   ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
+
+  deleteTask: (taskId: string) => taskClient.delete<void>(`/api/v1/tasks/${taskId}`),
 
   moveTask: (taskId: string, input: { columnId: string; position: number }) =>
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),

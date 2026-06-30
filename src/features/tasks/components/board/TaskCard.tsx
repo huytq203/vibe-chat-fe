@@ -7,13 +7,13 @@ import { cn } from '@/lib/utils/cn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardTask } from '../../types';
 
-const PRIORITY_CONFIG = {
+export const PRIORITY_CONFIG = {
   P1: { bg: 'bg-red-50', text: 'text-red-600', dot: '#EF4444', label: 'Ưu tiên cao' },
   P2: { bg: 'bg-orange-50', text: 'text-orange-600', dot: '#F97316', label: 'Ưu tiên trung bình' },
   P3: { bg: 'bg-green-50', text: 'text-green-600', dot: '#22C55E', label: 'Ưu tiên thấp' },
 } as const;
 
-function formatDueDate(dateStr: string): { label: string; isPast: boolean } {
+export function formatDueDate(dateStr: string): { label: string; isPast: boolean } {
   const date = new Date(dateStr);
   const now = new Date();
   const isPast = date < now;
@@ -22,7 +22,7 @@ function formatDueDate(dateStr: string): { label: string; isPast: boolean } {
   return { label: `${day}/${month}`, isPast };
 }
 
-function AssigneeAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl: string | null }) {
+export function AssigneeAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl: string | null }) {
   const initials = displayName.charAt(0).toUpperCase();
   if (avatarUrl) {
     return (

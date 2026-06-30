@@ -58,8 +58,6 @@ export function ConversationList() {
   const [notiOpen, setNotiOpen] = useState(false);
   const strangerOpen = useChatUIStore((s) => s.strangerOpen);
   const setStrangerOpen = useChatUIStore((s) => s.setStrangerOpen);
-  const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
-  const setMyStoreOpen = useChatUIStore((s) => s.setMyStoreOpen);
   const { data: selfConv } = useStoreConversation();
   const [lockedExpanded, setLockedExpanded] = useState(false);
 
@@ -98,11 +96,10 @@ export function ConversationList() {
 
   const handleSelectConversation = useCallback(
     (id: string) => {
-      setMyStoreOpen(false);
       setSelected(id);
       if (isMobile) setMobilePanel('chat');
     },
-    [setMyStoreOpen, setSelected, isMobile, setMobilePanel],
+    [setSelected, isMobile, setMobilePanel],
   );
 
   // Avatar lỗi = presigned URL hết hạn. Refetch list để BE ký lại URL mới (URL mới →
@@ -260,7 +257,7 @@ export function ConversationList() {
                   <ConversationItem
                     key={item.conv.id}
                     conversation={item.conv}
-                    selected={!myStoreOpen && selectedConversationId === item.conv.id}
+                    selected={selectedConversationId === item.conv.id}
                     meId={me?.id ?? null}
                     onSelect={handleSelectConversation}
                     onAvatarError={handleAvatarError}

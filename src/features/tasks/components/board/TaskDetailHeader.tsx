@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, UserPlus2 } from 'lucide-react';
+import { Check, ChevronDown, Pin, UserPlus2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { cn } from '@/lib/utils/cn';
@@ -8,6 +8,8 @@ import { useBoard } from '../../hooks/useBoard';
 import { useMoveTask } from '../../hooks/useMoveTask';
 import { useMembers } from '../../hooks/useMembers';
 import { useAssignees, useAddAssignee } from '../../hooks/useAssignees';
+import { useUpdateTask } from '../../hooks/useTaskDetail';
+import { TaskDetailMenu } from './TaskDetailMenu';
 import type { BoardColumn, TaskDetail } from '../../types';
 
 interface TaskDetailHeaderProps {
@@ -22,6 +24,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
   const { data: members = [] } = useMembers(projectId);
   const { data: assignees = [] } = useAssignees(projectId, taskId);
   const addAssignee = useAddAssignee(projectId, taskId);
+  const updateTask = useUpdateTask(projectId, taskId);
 
   const columns = board?.columns ?? [];
   const currentColumn = columns.find((c) => c.id === task.columnId);
@@ -35,7 +38,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
   const available = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-5">
+    <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border py-0 pl-5 pr-12">
       {/* Status (column) selector */}
       <Popover>
         <PopoverTrigger>
@@ -116,6 +119,23 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
       </Popover>
 
       <div className="flex-1" />
+
+      {/* Pin */}
+      <button
+        type="button"
+        aria-label={task.isPinned ? 'Bỏ ghim' : 'Ghim nhiệm vụ'}
+        aria-pressed={task.isPinned}
+        onClick={() => updateTask.mutate({ isPinned: !task.isPinned })}
+        className={cn(
+          'inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-muted',
+          task.isPinned ? 'text-primary' : 'text-muted-foreground',
+        )}
+      >
+        <Pin className={cn('h-4 w-4', task.isPinned && 'fill-current')} />
+      </button>
+
+      {/* More */}
+      <TaskDetailMenu projectId={projectId} taskId={taskId} taskTitle={task.title} />
     </div>
   );
 }

@@ -1,47 +1,40 @@
 'use client';
 
+import { useState } from 'react';
 import { useBoard } from '../../hooks/useBoard';
-import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { ListColumn } from './ListColumn';
 
 export function ListView({ projectId }: { projectId: string }) {
-  const { data: board, isLoading } = useBoard(projectId);
-  const openTask = useTasksUIStore((s) => s.openTask);
+  const { data: board, isLoading, isError } = useBoard(projectId);
+  // Demo UI (chưa có API deleteColumn): cột đã xóa giữ ở local state.
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<ReadonlySet<string>>(new Set());
 
-  if (isLoading) return <div className="p-4 text-muted-foreground">Đang tải…</div>;
+  const handleDeleteColumn = (columnId: string) => {
+    setHiddenColumnIds((prev) => new Set(prev).add(columnId));
+  };
+
+  if (isLoading) return <div className="p-7 text-muted-foreground">Đang tải danh sách…</div>;
+  if (isError) return <div className="p-7 text-red-500">Không tải được danh sách. Vui lòng thử lại.</div>;
   if (!board) return null;
 
-  const allTasks = board.columns.flatMap((col) =>
-    col.tasks.map((t) => ({ ...t, columnName: col.name })),
-  );
+  if (board.columns.length === 0) {
+    return <p className="p-7 text-center text-muted-foreground">Chưa có cột nào</p>;
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-muted-foreground">
-            <th className="pb-2 pr-4 font-medium">Tên task</th>
-            <th className="pb-2 pr-4 font-medium">Cột</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allTasks.map((task) => (
-            <tr
-              key={task.id}
-              className="cursor-pointer border-b border-border hover:bg-muted/50"
-              onClick={() => openTask(task.id)}
-            >
-              <td className="py-2 pr-4">
-                {task.isPinned && <span className="mr-1 text-primary">📌</span>}
-                {task.title}
-              </td>
-              <td className="py-2 pr-4 text-muted-foreground">{task.columnName}</td>
-            </tr>
+    <div className="min-h-0 flex-1 overflow-auto bg-muted px-7 py-2 pb-7">
+      <div className="mx-auto max-w-[940px] pt-2">
+        {board.columns
+          .filter((column) => !hiddenColumnIds.has(column.id))
+          .map((column) => (
+            <ListColumn
+              key={column.id}
+              projectId={projectId}
+              column={column}
+              onDelete={() => handleDeleteColumn(column.id)}
+            />
           ))}
-        </tbody>
-      </table>
-      {allTasks.length === 0 && (
-        <p className="py-8 text-center text-muted-foreground">Chưa có task nào</p>
-      )}
+      </div>
     </div>
   );
 }

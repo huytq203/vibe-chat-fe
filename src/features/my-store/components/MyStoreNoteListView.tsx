@@ -16,7 +16,7 @@ type Props = {
   title: string;
   emptyLabel: string;
   onBack: () => void;
-  onClose: () => void;
+  onClose?: () => void;
 };
 
 function NoteCardBody({ message }: { message: StoreMessage }) {
@@ -67,9 +67,11 @@ export function MyStoreNoteListView({ type, title, emptyLabel, onBack, onClose }
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <span className="flex-1 truncate text-sm font-bold">{title}</span>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Đóng" title="Đóng">
-          <X className="h-4 w-4" />
-        </Button>
+        {onClose && (
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Đóng" title="Đóng">
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </header>
 
       {isLoading ? (

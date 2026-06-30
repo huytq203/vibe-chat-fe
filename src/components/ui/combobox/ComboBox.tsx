@@ -7,9 +7,9 @@ import { cn } from '@/lib/utils/cn';
 
 const comboboxVariants = tv({
   slots: {
-    root: 'flex flex-col gap-1.5 w-fit',
-    inputContainer: 'flex items-center gap-1.5 min-h-10 w-fit rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus-within:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-shadow transition-colors',
-    input: 'field-sizing-content w-auto min-w-[60px] max-w-full bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed',
+    root: 'flex flex-col gap-1.5 w-full',
+    inputContainer: 'flex flex-wrap items-center gap-1.5 min-h-10 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus-within:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-shadow transition-colors',
+    input: 'flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed',
     popup: 'z-999 w-[var(--anchor-width,var(--reference-width))] max-w-[var(--available-width)] overflow-hidden rounded-lg border border-border bg-background text-popover-foreground shadow-[rgba(0,0,0,0.08)_0px_4px_16px] animate-in fade-in-0 zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2',
     item: 'cursor-pointer relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50',
     indicator: 'absolute left-2 flex h-3.5 w-3.5 items-center justify-center',
@@ -201,7 +201,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
                 />
               )}
 
-              <div className="flex items-center gap-1 shrink-0 text-muted-foreground">
+              <div className="flex items-center gap-1 shrink-0 ml-auto text-muted-foreground">
                 {hasValue && clearIcon ? (
                   <span
                     role="button"

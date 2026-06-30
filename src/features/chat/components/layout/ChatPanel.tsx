@@ -24,7 +24,6 @@ export function ChatPanel() {
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
   const toggleRight = useChatUIStore((s) => s.toggleRight);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
-  const myStoreOpen = useChatUIStore((s) => s.myStoreOpen);
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const isMobile = useIsMobile();
   const { selectedConversationId } = useSelectedConversation();

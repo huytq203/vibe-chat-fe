@@ -9,6 +9,7 @@ const SECTION_PATH = {
   chat: '/chat',
   'ai-full': '/ai',
   tasks: '/work',
+  store: '/store',
 } as const;
 
 type SectionNav = {
@@ -28,13 +29,16 @@ export function useSectionNav(): SectionNav {
 
   const isWork = pathname === '/work' || pathname.startsWith('/work/');
   const isAi = pathname === '/ai' || pathname.startsWith('/ai/');
+  const isStore = pathname === '/store' || pathname.startsWith('/store/');
   const activeSection: NavSection = isWork
     ? 'tasks'
     : isAi
       ? 'ai-full'
-      : storeSection === 'ai'
-        ? 'ai'
-        : 'chat';
+      : isStore
+        ? 'store'
+        : storeSection === 'ai'
+          ? 'ai'
+          : 'chat';
 
   const goToSection = useCallback(
     (section: NavSection) => {
@@ -43,7 +47,7 @@ export function useSectionNav(): SectionNav {
         router.push('/chat');
         return;
       }
-      setActiveSection(section === 'chat' ? 'chat' : 'ai-full');
+      setActiveSection(section);
       router.push(SECTION_PATH[section]);
     },
     [router, setActiveSection],

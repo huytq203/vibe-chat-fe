@@ -10,8 +10,9 @@ import { MyStoreNoteListView, type NoteType } from './MyStoreNoteListView';
 
 type Props = {
   conversationId: string;
-  onClose: () => void;
-  /** Mở chế độ Tệp & thư mục toàn màn hình. */
+  /** Khi nhúng cố định (layout Kho) thì bỏ qua → ẩn nút đóng. */
+  onClose?: () => void;
+  /** Mở chế độ Tệp & thư mục. */
   onOpenFiles: () => void;
 };
 
@@ -74,9 +75,11 @@ export function MyStoreInfoPanel({ conversationId, onClose, onOpenFiles }: Props
           <Archive className="h-3.5 w-3.5" />
         </span>
         <span className="flex-1 truncate text-sm font-bold">Kho của tôi</span>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Đóng" title="Đóng">
-          <X className="h-4 w-4" />
-        </Button>
+        {onClose && (
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Đóng" title="Đóng">
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto">

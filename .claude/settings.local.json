@@ -85,7 +85,9 @@
       "Bash(sed -n 1,40p /home/huytq/code/my/fe/vibe-chat-fe/src/services/chat.api.ts)",
       "Bash(rm icon.ico icon.png)",
       "Bash(mv \"icon copy.ico\" icon.ico)",
-      "Bash(mv \"icon copy.png\" icon.png)"
+      "Bash(mv \"icon copy.png\" icon.png)",
+      "Bash(sed -n '225,250p' src/components/ui/dropdown-menu/*.tsx)",
+      "Bash(sed -n '124,150p' src/components/ui/alert-dialog/*.tsx)"
     ]
   }
 }

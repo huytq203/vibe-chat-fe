@@ -1,5 +1,4 @@
-export { MyStoreInfoPanel } from './components/MyStoreInfoPanel';
-export { MyStoreFolderView } from './components/MyStoreFolderView';
+export { MyStoreLayout } from './components/MyStoreLayout';
 export { MyStoreFeed } from './components/MyStoreFeed';
 export { MyStoreComposer } from './components/MyStoreComposer';
 export { FolderSidebar } from './components/FolderSidebar';
