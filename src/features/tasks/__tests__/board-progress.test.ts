@@ -27,4 +27,23 @@ describe('computeBoardProgress', () => {
   it('board rỗng → pct 0', () => {
     expect(computeBoardProgress(board([])).pct).toBe(0);
   });
+  it('đếm task đã hoàn thành dù không nằm trong cột Done (status/completedAt)', () => {
+    const b: Board = {
+      project: {} as never,
+      columns: [
+        {
+          id: 'c0',
+          name: 'Todo',
+          color: null,
+          position: 0,
+          isDoneCol: false,
+          tasks: [
+            { id: 't1', status: 'DONE', completedAt: '2026-07-02T00:00:00Z' },
+            { id: 't2', status: 'OPEN', completedAt: null },
+          ] as never,
+        },
+      ],
+    };
+    expect(computeBoardProgress(b)).toEqual({ total: 2, done: 1, open: 1, pct: 50 });
+  });
 });
