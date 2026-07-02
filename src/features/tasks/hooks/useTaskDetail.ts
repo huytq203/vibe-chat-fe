@@ -20,12 +20,26 @@ export function useUpdateTask(projectId: string, taskId: string) {
       dueDate?: string | null;
       priority?: TaskPriority | null;
       isPinned?: boolean;
+      isCompleted?: boolean;
     }) => tasksApi.updateTask(taskId, input),
     onMutate: async (input) => {
       const key = ['tasks', projectId, taskId, 'detail'] as const;
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<TaskDetail>(key);
-      if (prev) qc.setQueryData<TaskDetail>(key, { ...prev, ...input });
+      if (prev) {
+        // isCompleted là flag gửi BE, không thuộc TaskDetail → map optimistic sang completedAt
+        const { isCompleted, ...rest } = input;
+        qc.setQueryData<TaskDetail>(key, {
+          ...prev,
+          ...rest,
+          completedAt:
+            isCompleted === undefined
+              ? prev.completedAt
+              : isCompleted
+                ? new Date().toISOString()
+                : null,
+        });
+      }
       return { prev };
     },
     onError: (_e, _input, ctx) => {

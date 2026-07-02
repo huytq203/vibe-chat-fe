@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckSquare, Plus } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import {
   AssigneeAvatar,
@@ -21,11 +21,22 @@ import { useUpdateColumn } from '../../hooks/useUpdateColumn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardColumn, BoardTask } from '../../types';
 
-function TaskRow({ task, dotColor }: { task: BoardTask; dotColor: string }) {
+function TaskRow({
+  task,
+  dotColor,
+  isDoneColumn,
+}: {
+  task: BoardTask;
+  dotColor: string;
+  /** Cột chứa task là cột Done → mọi task trong cột coi như hoàn thành */
+  isDoneColumn: boolean;
+}) {
   const openTask = useTasksUIStore((s) => s.openTask);
   const priority = task.priority ? PRIORITY_CONFIG[task.priority] : null;
   const due = task.dueDate ? formatDueDate(task.dueDate) : null;
   const assignees = task.assignees.slice(0, 3);
+  // Task done khi đã có completedAt HOẶC nằm trong cột Done
+  const isDone = task.completedAt !== null || isDoneColumn;
 
   return (
     <button
@@ -37,7 +48,13 @@ function TaskRow({ task, dotColor }: { task: BoardTask; dotColor: string }) {
         className="h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ backgroundColor: dotColor }}
       />
-      <span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold text-foreground">
+      {isDone && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />}
+      <span
+        className={cn(
+          'min-w-0 flex-1 truncate text-[14.5px] font-semibold',
+          isDone ? 'line-through text-muted-foreground' : 'text-foreground',
+        )}
+      >
         {task.title}
       </span>
 
@@ -169,6 +186,7 @@ export function ListColumn({ projectId, column }: ListColumnProps) {
           key={task.id}
           task={task}
           dotColor={task.priority ? PRIORITY_CONFIG[task.priority].dot : headerColor}
+          isDoneColumn={column.isDoneCol}
         />
       ))}
 

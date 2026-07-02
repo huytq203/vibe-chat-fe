@@ -2,7 +2,7 @@
 
 import { forwardRef, type HTMLAttributes } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { CheckSquare, MessageSquare, Pin } from 'lucide-react';
+import { CheckCircle2, CheckSquare, MessageSquare, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardTask } from '../../types';
@@ -48,13 +48,17 @@ export function AssigneeAvatar({ displayName, avatarUrl }: { displayName: string
 /* ─── Presentational card (no DnD) — reused by draggable wrapper & DragOverlay ─── */
 interface TaskCardViewProps extends HTMLAttributes<HTMLDivElement> {
   task: BoardTask;
+  /** Cột chứa task là cột Done → mọi task trong cột coi như hoàn thành */
+  isDoneColumn?: boolean;
 }
 
 export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
-  ({ task, className, ...rest }, ref) => {
+  ({ task, isDoneColumn = false, className, ...rest }, ref) => {
     const priorityConfig = task.priority ? PRIORITY_CONFIG[task.priority] : null;
     const dueDateInfo = task.dueDate ? formatDueDate(task.dueDate) : null;
     const visibleAssignees = task.assignees.slice(0, 3);
+    // Task done khi đã có completedAt HOẶC nằm trong cột Done
+    const isDone = task.completedAt !== null || isDoneColumn;
 
     return (
       <div
@@ -97,7 +101,13 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
 
         <div className="flex items-start gap-1.5 mb-3">
           {task.isPinned && <Pin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
-          <span className="text-[14.5px] font-semibold text-foreground leading-snug">
+          {isDone && <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />}
+          <span
+            className={cn(
+              'text-[14.5px] font-semibold leading-snug',
+              isDone ? 'line-through text-muted-foreground' : 'text-foreground',
+            )}
+          >
             {task.title}
           </span>
         </div>
@@ -147,7 +157,7 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
 TaskCardView.displayName = 'TaskCardView';
 
 /* ─── Draggable card — whole card is the drag handle; click opens detail ─── */
-export function TaskCard({ task }: { task: BoardTask }) {
+export function TaskCard({ task, isDoneColumn }: { task: BoardTask; isDoneColumn?: boolean }) {
   const openTask = useTasksUIStore((s) => s.openTask);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -159,6 +169,7 @@ export function TaskCard({ task }: { task: BoardTask }) {
     <TaskCardView
       ref={setNodeRef}
       task={task}
+      isDoneColumn={isDoneColumn}
       onClick={() => openTask(task.id)}
       className={cn(
         task.isPinned ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',

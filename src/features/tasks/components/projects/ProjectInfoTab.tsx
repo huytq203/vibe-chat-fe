@@ -19,21 +19,41 @@ import { useDeleteProject } from '../../hooks/useDeleteProject';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { Project } from '../../types';
 
+/** Cắt ISO date về dạng yyyy-MM-dd cho input type="date" */
+function toDateInputValue(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : '';
+}
+
 export function ProjectInfoTab({ project }: { project: Project }) {
   const qc = useQueryClient();
   const [name, setName] = useState(project.name);
   const [desc, setDesc] = useState(project.description ?? '');
+  const [startDate, setStartDate] = useState(toDateInputValue(project.startDate));
+  const [endDate, setEndDate] = useState(toDateInputValue(project.endDate));
+
+  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu (so sánh chuỗi yyyy-MM-dd là đủ)
+  const dateError =
+    startDate && endDate && endDate < startDate
+      ? 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu'
+      : undefined;
 
   const updateProject = useMutation({
     mutationFn: () =>
       tasksApi.updateProject(project.id, {
         name: name.trim(),
         description: desc.trim() || undefined,
+        // Gửi ISO khi có giá trị; null để xoá ngày đã đặt trước đó
+        startDate: startDate ? new Date(startDate).toISOString() : null,
+        endDate: endDate ? new Date(endDate).toISOString() : null,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.projects() }),
   });
 
-  const dirty = name.trim() !== project.name || desc.trim() !== (project.description ?? '');
+  const dirty =
+    name.trim() !== project.name ||
+    desc.trim() !== (project.description ?? '') ||
+    startDate !== toDateInputValue(project.startDate) ||
+    endDate !== toDateInputValue(project.endDate);
 
   // --- Vùng nguy hiểm: xoá dự án (confirm 2 bước — phải gõ đúng tên dự án) ---
   const closeSettings = useTasksUIStore((s) => s.closeSettings);
@@ -81,6 +101,22 @@ export function ProjectInfoTab({ project }: { project: Project }) {
         />
       </div>
 
+      <div className="grid grid-cols-2 items-start gap-4">
+        <Input
+          label="Ngày bắt đầu"
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <Input
+          label="Ngày kết thúc"
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          error={dateError}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tạo lúc</p>
@@ -92,7 +128,10 @@ export function ProjectInfoTab({ project }: { project: Project }) {
         </div>
       </div>
 
-      <Button onClick={() => updateProject.mutate()} disabled={!name.trim() || !dirty || updateProject.isPending}>
+      <Button
+        onClick={() => updateProject.mutate()}
+        disabled={!name.trim() || !dirty || !!dateError || updateProject.isPending}
+      >
         {updateProject.isPending ? 'Đang lưu…' : 'Lưu thay đổi'}
       </Button>
 

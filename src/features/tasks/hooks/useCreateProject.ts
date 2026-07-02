@@ -7,8 +7,12 @@ import { taskKeys } from '../services/keys';
 export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; description?: string }) =>
-      tasksApi.createProject(input),
+    mutationFn: (input: {
+      name: string;
+      description?: string;
+      startDate?: string | null;
+      endDate?: string | null;
+    }) => tasksApi.createProject(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.projects() }),
   });
 }

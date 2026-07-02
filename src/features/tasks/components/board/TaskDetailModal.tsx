@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog/Dialog';
+import { cn } from '@/lib/utils/cn';
 import { useTaskDetail, useUpdateTask } from '../../hooks/useTaskDetail';
 import { TaskDetailHeader } from './TaskDetailHeader';
 import { TaskDetailLeftPanel } from './TaskDetailLeftPanel';
@@ -83,7 +84,11 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
                       />
                     ) : (
                       <h2
-                        className="cursor-text text-2xl font-bold leading-tight hover:text-primary"
+                        className={cn(
+                          'cursor-text text-2xl font-bold leading-tight hover:text-primary',
+                          // Task đã hoàn thành → gạch ngang + màu mờ
+                          task.completedAt && 'line-through text-muted-foreground',
+                        )}
                         onClick={() => {
                           setTitleDraft(task.title);
                           setEditingTitle(true);

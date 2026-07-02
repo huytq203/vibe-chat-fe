@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, Pin, UserPlus2 } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, Pin, RotateCcw, UserPlus2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { cn } from '@/lib/utils/cn';
@@ -37,8 +37,37 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
 
   const available = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
 
+  const isCompleted = task.completedAt !== null;
+
   return (
     <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border py-0 pl-5 pr-12">
+      {/* Hoàn thành / Mở lại — hook có optimistic update nên UI phản hồi ngay */}
+      {isCompleted ? (
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-green-500/15 px-3 py-1.5 text-sm font-semibold text-green-500">
+            <CheckCircle2 className="h-4 w-4" />
+            Đã hoàn thành
+          </span>
+          <button
+            type="button"
+            onClick={() => updateTask.mutate({ isCompleted: false })}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Mở lại
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => updateTask.mutate({ isCompleted: true })}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-500"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          Hoàn thành
+        </button>
+      )}
+
       {/* Status (column) selector */}
       <Popover>
         <PopoverTrigger>

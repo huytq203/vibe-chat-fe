@@ -4,6 +4,9 @@ export interface Project {
   description?: string | null;
   ownerId: string;
   isBoardLocked: boolean;
+  /** Ngày bắt đầu / kết thúc dự kiến của dự án (ISO), null nếu chưa đặt */
+  startDate: string | null;
+  endDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,6 +35,8 @@ export interface BoardTask {
   assignees: BoardTaskAssignee[];
   checklistCount: number;
   commentCount: number;
+  /** Thời điểm hoàn thành (ISO) — null nghĩa là task chưa done */
+  completedAt: string | null;
 }
 
 export interface BoardColumn {
@@ -127,6 +132,8 @@ export interface TaskDetail {
   commentCount: number;
   checklistTotal: number;
   checklistDone: number;
+  /** Thời điểm hoàn thành (ISO) — null nghĩa là task chưa done */
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

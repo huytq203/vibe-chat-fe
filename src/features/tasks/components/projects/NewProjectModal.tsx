@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarDays } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +12,6 @@ import {
 import { Input } from '@/components/ui/input/Input';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Button } from '@/components/ui/button/Button';
-import { Label } from '@/components/ui/label/Label';
-import { Badge } from '@/components/ui/badge/Badge';
 import { useCreateProject } from '../../hooks/useCreateProject';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 
@@ -29,19 +26,31 @@ export function NewProjectModal({
   const setSelected = useTasksUIStore((s) => s.setSelectedProjectId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu (so sánh chuỗi yyyy-MM-dd là đủ)
+  const dateError =
+    startDate && endDate && endDate < startDate
+      ? 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu'
+      : undefined;
 
   const reset = () => {
     setName('');
     setDescription('');
+    setStartDate('');
+    setEndDate('');
   };
 
   const handleCreate = async () => {
     const trimmed = name.trim();
-    if (!trimmed || createProject.isPending) return;
+    if (!trimmed || createProject.isPending || dateError) return;
     try {
       const project = await createProject.mutateAsync({
         name: trimmed,
         description: description.trim() || undefined,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        endDate: endDate ? new Date(endDate).toISOString() : undefined,
       });
       reset();
       setSelected(project.id);
@@ -72,30 +81,20 @@ export function NewProjectModal({
             placeholder="VD: Task Management"
           />
 
-          {/* Ngày bắt đầu/kết thúc: schema Project của task-service CHƯA có field này → để placeholder. */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label muted className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" /> Ngày bắt đầu
-              </Label>
-              <div className="flex h-10 items-center justify-between rounded-lg border border-dashed border-border px-3 text-sm text-muted-foreground">
-                Chọn ngày
-                <Badge variant="soft-primary" size="sm">
-                  Sắp có
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label muted className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" /> Ngày kết thúc
-              </Label>
-              <div className="flex h-10 items-center justify-between rounded-lg border border-dashed border-border px-3 text-sm text-muted-foreground">
-                Chọn ngày
-                <Badge variant="soft-primary" size="sm">
-                  Sắp có
-                </Badge>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 items-start gap-3">
+            <Input
+              label="Ngày bắt đầu"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <Input
+              label="Ngày kết thúc"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              error={dateError}
+            />
           </div>
 
           <Textarea
@@ -116,7 +115,11 @@ export function NewProjectModal({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Huỷ
           </Button>
-          <Button isLoading={createProject.isPending} onClick={() => void handleCreate()}>
+          <Button
+            isLoading={createProject.isPending}
+            disabled={!!dateError}
+            onClick={() => void handleCreate()}
+          >
             Tạo project
           </Button>
         </DialogFooter>

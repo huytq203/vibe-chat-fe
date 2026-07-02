@@ -26,11 +26,22 @@ export const tasksApi = {
   listProjects: () =>
     taskClient.get<Project[]>('/api/v1/projects'),
 
-  createProject: (input: { name: string; description?: string }) =>
-    taskClient.post<Project>('/api/v1/projects', input),
+  createProject: (input: {
+    name: string;
+    description?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+  }) => taskClient.post<Project>('/api/v1/projects', input),
 
-  updateProject: (projectId: string, input: { name?: string; description?: string }) =>
-    taskClient.patch<Project>(`/api/v1/projects/${projectId}`, input),
+  updateProject: (
+    projectId: string,
+    input: {
+      name?: string;
+      description?: string;
+      startDate?: string | null;
+      endDate?: string | null;
+    },
+  ) => taskClient.patch<Project>(`/api/v1/projects/${projectId}`, input),
 
   deleteProject: (projectId: string) =>
     taskClient.delete<void>(`/api/v1/projects/${projectId}`),
@@ -62,6 +73,8 @@ export const tasksApi = {
       dueDate?: string | null;
       priority?: TaskPriority | null;
       isPinned?: boolean;
+      // true → BE set completedAt, false → BE clear completedAt
+      isCompleted?: boolean;
     },
   ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
 

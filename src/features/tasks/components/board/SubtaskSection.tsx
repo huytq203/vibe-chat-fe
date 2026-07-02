@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
 import { Table } from '@/components/ui/table/Table';
 import { useBoard } from '../../hooks/useBoard';
@@ -49,19 +50,39 @@ function buildColumns({
       header: 'Tên',
       cell: ({ row }) => {
         const node = row.original;
+        const isDone = node.done ?? false; // optional để state cũ không vỡ
         return (
-          <button
-            type="button"
-            onClick={() => navigateInto(node.id)}
-            className="flex min-w-0 items-center gap-1 text-left font-medium hover:text-primary cursor-pointer"
-          >
-            <span className="truncate">{node.title}</span>
-            {node.children.length > 0 && (
-              <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
-                {node.children.length}
-              </span>
-            )}
-          </button>
+          <div className="flex min-w-0 items-center gap-1.5">
+            {/* Toggle hoàn thành nhanh ngay trong danh sách — done → icon check xanh */}
+            <button
+              type="button"
+              onClick={() => updateSubtask(rootId, node.id, { done: !isDone })}
+              aria-label={isDone ? `Mở lại ${node.title}` : `Hoàn thành ${node.title}`}
+              className="shrink-0"
+            >
+              {isDone ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigateInto(node.id)}
+              className={cn(
+                'flex min-w-0 items-center gap-1 text-left font-medium hover:text-primary cursor-pointer',
+                // Done → gạch ngang + xám, giống checklist/task cha
+                isDone && 'text-muted-foreground line-through',
+              )}
+            >
+              <span className="truncate">{node.title}</span>
+              {node.children.length > 0 && (
+                <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
+                  {node.children.length}
+                </span>
+              )}
+            </button>
+          </div>
         );
       },
     },

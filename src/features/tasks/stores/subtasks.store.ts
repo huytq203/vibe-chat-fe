@@ -16,6 +16,13 @@ export interface SubtaskNode {
   tagIds: string[];
   assigneeIds: string[];
   description: string; // HTML từ editor
+  /**
+   * Đã hoàn thành hay chưa (subtask vẫn là local demo, chưa có BE API).
+   * Optional để state cũ (node tạo trước khi có field này) không vỡ — đọc qua `?? false`.
+   */
+  done?: boolean;
+  /** Ngày hết hạn dạng ISO string; optional vì lý do migrate như `done` — đọc qua `?? null`. */
+  dueDate?: string | null;
   children: SubtaskNode[];
 }
 
@@ -46,6 +53,8 @@ function createNode(title: string, status: string): SubtaskNode {
     tagIds: [],
     assigneeIds: [],
     description: '',
+    done: false,
+    dueDate: null,
     children: [],
   };
 }

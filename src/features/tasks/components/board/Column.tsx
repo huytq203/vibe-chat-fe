@@ -148,7 +148,7 @@ export function Column({ projectId, column }: ColumnProps) {
       {/* Task list */}
       <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
         {column.tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} isDoneColumn={column.isDoneCol} />
         ))}
       </div>
 
