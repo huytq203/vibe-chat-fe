@@ -35,6 +35,7 @@ import {
 } from '../../hooks/useTaskDetail';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useSubtasksStore } from '../../stores/subtasks.store';
+import { toast } from 'sonner';
 import { getCurrentUser } from '../../lib/current-user';
 import { TaskDetailMenu } from './TaskDetailMenu';
 import type { BoardColumn, TaskDetail } from '../../types';
@@ -85,10 +86,32 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
   const confirmDelete = () => {
     deleteTask.mutate(taskId, {
       onSuccess: () => {
+        toast.success('Đã xóa nhiệm vụ');
         setDeleteConfirmOpen(false);
         resetSubtaskPath();
         closeTask();
       },
+      onError: () => toast.error('Xóa nhiệm vụ thất bại, thử lại sau'),
+    });
+  };
+
+  const handleComplete = () => {
+    completeTask.mutate(undefined, {
+      onSuccess: (updated) => {
+        toast.success(
+          updated.status === 'DONE'
+            ? 'Đã hoàn thành nhiệm vụ'
+            : 'Đã gửi yêu cầu duyệt cho chủ dự án',
+        );
+      },
+      onError: () => toast.error('Thao tác thất bại, thử lại sau'),
+    });
+  };
+
+  const handleReopen = () => {
+    reopenTask.mutate(undefined, {
+      onSuccess: () => toast.success('Đã mở lại nhiệm vụ'),
+      onError: () => toast.error('Thao tác thất bại, thử lại sau'),
     });
   };
 
@@ -100,7 +123,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
           <button
             type="button"
             disabled={workflowPending}
-            onClick={() => completeTask.mutate()}
+            onClick={handleComplete}
             className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-500 disabled:opacity-60"
           >
             <CheckCircle2 className="h-4 w-4" />
@@ -119,7 +142,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
                 <button
                   type="button"
                   disabled={workflowPending}
-                  onClick={() => completeTask.mutate()}
+                  onClick={handleComplete}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-500 disabled:opacity-60"
                 >
                   <CheckCircle2 className="h-4 w-4" />
@@ -128,7 +151,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
                 <button
                   type="button"
                   disabled={workflowPending}
-                  onClick={() => reopenTask.mutate()}
+                  onClick={handleReopen}
                   className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -140,7 +163,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
               <button
                 type="button"
                 disabled={workflowPending}
-                onClick={() => reopenTask.mutate()}
+                onClick={handleReopen}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -167,7 +190,7 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
                 <button
                   type="button"
                   disabled={workflowPending}
-                  onClick={() => reopenTask.mutate()}
+                  onClick={handleReopen}
                   className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />

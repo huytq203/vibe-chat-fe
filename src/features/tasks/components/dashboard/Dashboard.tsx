@@ -33,6 +33,9 @@ const ACTION_LABELS: Record<string, string> = {
   'tag.deleted': 'đã xoá nhãn',
   'project.updated': 'đã cập nhật dự án',
   'project.deleted': 'đã xoá dự án',
+  'assignee.added': 'đã thêm người thực hiện',
+  'task.reopened': 'đã mở lại task',
+  'task.completed': 'đã hoàn thành task',
 };
 
 /** Thời gian tương đối tiếng Việt — helper nội bộ, không thêm dependency */
@@ -112,7 +115,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
           <span className="font-medium">{activity.actorName}</span>{' '}
           <span className="text-muted-foreground">{actionLabel}</span>
         </Text>
-        <Text size="xs" color="muted">{formatRelativeTime(activity.createdAt)}</Text>
+        <Text size="xs" color="muted"> - {formatRelativeTime(activity.createdAt)}</Text>
       </div>
     </div>
   );
@@ -147,11 +150,13 @@ export function Dashboard() {
                 />
               )}
               {myTasks.data && myTasks.data.length > 0 && (
-                <div className="flex flex-col">
-                  {myTasks.data.map((t) => (
-                    <MyTaskRow key={t.id} task={t} />
-                  ))}
-                </div>
+                <ScrollArea className="h-[360px]">
+                  <div className="flex flex-col pr-3">
+                    {myTasks.data.map((t) => (
+                      <MyTaskRow key={t.id} task={t} />
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -175,7 +180,7 @@ export function Dashboard() {
               )}
               {feed.data && feed.data.items.length > 0 && (
                 <div className="flex flex-col divide-y divide-border">
-                  {feed.data.items.map((a) => (
+                  {feed.data.items.slice(0, 8).map((a) => (
                     <ActivityRow key={a.id} activity={a} />
                   ))}
                 </div>

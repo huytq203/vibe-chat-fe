@@ -32,11 +32,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const json = (await res.json()) as Envelope<T>;
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message ?? `Request failed: ${res.status}`);
+
+  // DELETE trả 204 No Content (body rỗng) → không parse JSON, tránh lỗi "Unexpected end of JSON input"
+  const text = await res.text();
+  const json = text ? (JSON.parse(text) as Envelope<T>) : null;
+  if (!res.ok || (json !== null && !json.success)) {
+    throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);
   }
-  return json.data;
+  return (json ? json.data : undefined) as T;
 }
 
 export const taskClient = {
