@@ -21,6 +21,20 @@ const invalidateBoard: Invalidator = (qc, projectId) => {
   void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
 };
 
+/**
+ * Event trên 1 task có thể là subtask → task cha hiển thị danh sách con
+ * (['tasks', projectId, parentId, 'subtasks']). Không biết parentId từ payload
+ * nên invalidate MỌI subtask-list của project (rẻ, chỉ list nhỏ).
+ */
+function invalidateSubtaskLists(qc: QueryClient, projectId: string): void {
+  void qc.invalidateQueries({
+    predicate: (q) =>
+      q.queryKey[0] === 'tasks' &&
+      q.queryKey[1] === projectId &&
+      q.queryKey[3] === 'subtasks',
+  });
+}
+
 /** Invalidate 1 sub-resource của task (comments/checklist/...) + board (count trên card) */
 function taskSub(sub: string): Invalidator {
   return (qc, projectId, payload) => {
@@ -33,6 +47,7 @@ function taskSub(sub: string): Invalidator {
       });
     }
     invalidateBoard(qc, projectId, payload);
+    invalidateSubtaskLists(qc, projectId);
     // Feed hoạt động (Dashboard) cũng đổi theo mutation
     void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities'] });
   };
@@ -45,6 +60,7 @@ const boardAndDetail: Invalidator = (qc, projectId, payload) => {
       queryKey: ['tasks', projectId, payload.taskId, 'detail'],
     });
   }
+  invalidateSubtaskLists(qc, projectId);
   void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities'] });
 };
 

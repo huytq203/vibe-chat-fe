@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog/Dialog';
 import { cn } from '@/lib/utils/cn';
@@ -23,11 +24,25 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
   const subtaskPath = useTasksUIStore((s) => s.subtaskPath);
   const navigateBack = useTasksUIStore((s) => s.navigateSubtaskBack);
   const closeTask = useTasksUIStore((s) => s.closeTask);
+  const qc = useQueryClient();
 
   // Task đang xem = subtask sâu nhất (nếu drill-down) hoặc task gốc mở từ board.
   const currentTaskId =
     subtaskPath.length > 0 ? subtaskPath[subtaskPath.length - 1] : selectedTaskId;
   const isSubtask = subtaskPath.length > 0;
+
+  // Quay lại cha → refresh danh sách con để thấy thay đổi vừa làm trong subtask
+  // (assignee/ưu tiên/nhãn/trạng thái) mà list con không tự invalidate.
+  const handleBack = () => {
+    const parentId =
+      subtaskPath.length > 1 ? subtaskPath[subtaskPath.length - 2] : selectedTaskId;
+    if (parentId) {
+      void qc.invalidateQueries({
+        queryKey: ['tasks', projectId, parentId, 'subtasks'],
+      });
+    }
+    navigateBack();
+  };
 
   const { data: task, isLoading } = useTaskDetail(projectId, currentTaskId);
   const updateTask = useUpdateTask(projectId, currentTaskId ?? '');
@@ -60,7 +75,7 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
               <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-4 text-sm text-muted-foreground">
                 <button
                   type="button"
-                  onClick={navigateBack}
+                  onClick={handleBack}
                   className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
                 >
                   <ChevronLeft className="h-4 w-4" /> Quay lại
