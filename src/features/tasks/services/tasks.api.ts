@@ -1,15 +1,21 @@
 import { taskClient } from '../lib/task-client';
 import type {
   Activity,
+  ActivityFeed,
   Attachment,
   Board,
   BoardColumn,
   BoardTask,
   ChecklistItem,
   Comment,
+  DirectoryUser,
+  Leaderboard,
   Member,
+  MyTask,
   PresignResult,
   Project,
+  ProjectStats,
+  StatsOverview,
   Tag,
   TaskDetail,
   TaskPriority,
@@ -26,12 +32,20 @@ export const tasksApi = {
   updateProject: (projectId: string, input: { name?: string; description?: string }) =>
     taskClient.patch<Project>(`/api/v1/projects/${projectId}`, input),
 
+  deleteProject: (projectId: string) =>
+    taskClient.delete<void>(`/api/v1/projects/${projectId}`),
+
   // --- Board + Columns ---
   getBoard: (projectId: string) =>
     taskClient.get<Board>(`/api/v1/projects/${projectId}/board`),
 
   createColumn: (projectId: string, input: { name: string; color?: string }) =>
     taskClient.post<BoardColumn>(`/api/v1/projects/${projectId}/columns`, input),
+
+  updateColumn: (columnId: string, input: { name?: string; color?: string; position?: number }) =>
+    taskClient.patch<BoardColumn>(`/api/v1/columns/${columnId}`, input),
+
+  deleteColumn: (columnId: string) => taskClient.delete<void>(`/api/v1/columns/${columnId}`),
 
   // --- Tasks ---
   getTask: (projectId: string, taskId: string) =>
@@ -55,6 +69,8 @@ export const tasksApi = {
 
   moveTask: (taskId: string, input: { columnId: string; position: number }) =>
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),
+
+  getMyTasks: (limit = 20) => taskClient.get<MyTask[]>(`/api/v1/tasks/my?limit=${limit}`),
 
   // --- Tags (project) ---
   listProjectTags: (projectId: string) =>
@@ -110,6 +126,17 @@ export const tasksApi = {
   ) =>
     taskClient.post<Comment>(
       `/api/v1/projects/${projectId}/tasks/${taskId}/comments`,
+      input,
+    ),
+
+  updateComment: (
+    projectId: string,
+    taskId: string,
+    commentId: string,
+    input: { content: string },
+  ) =>
+    taskClient.patch<Comment>(
+      `/api/v1/projects/${projectId}/tasks/${taskId}/comments/${commentId}`,
       input,
     ),
 
@@ -177,6 +204,9 @@ export const tasksApi = {
   listActivities: (projectId: string) =>
     taskClient.get<Activity[]>(`/api/v1/projects/${projectId}/activities`),
 
+  getActivityFeed: (page = 1, limit = 20) =>
+    taskClient.get<ActivityFeed>(`/api/v1/activities/feed?page=${page}&limit=${limit}`),
+
   // --- Members ---
   listMembers: (projectId: string) =>
     taskClient.get<Member[]>(`/api/v1/projects/${projectId}/members`),
@@ -186,4 +216,19 @@ export const tasksApi = {
 
   removeMember: (projectId: string, userId: string) =>
     taskClient.delete<void>(`/api/v1/projects/${projectId}/members/${userId}`),
+
+  // --- Stats / Reports ---
+  getProjectStats: (projectId: string) =>
+    taskClient.get<ProjectStats>(`/api/v1/projects/${projectId}/stats`),
+
+  getStatsOverview: () => taskClient.get<StatsOverview>('/api/v1/stats/overview'),
+
+  getLeaderboard: (projectId: string) =>
+    taskClient.get<Leaderboard>(`/api/v1/projects/${projectId}/stats/leaderboard`),
+
+  // --- Users (directory) ---
+  searchUsers: (q: string, limit = 10) =>
+    taskClient.get<DirectoryUser[]>(
+      `/api/v1/users/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
 };

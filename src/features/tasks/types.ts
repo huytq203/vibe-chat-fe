@@ -136,3 +136,61 @@ export interface PresignResult {
   s3Key: string;
   attachmentId: string;
 }
+
+/** Task được gán cho user hiện tại (view "Việc của tôi", gộp từ nhiều project) */
+export interface MyTask {
+  id: string;
+  title: string;
+  projectId: string;
+  projectName: string;
+  columnId: string;
+  columnName: string;
+  priority: TaskPriority | null;
+  dueDate: string | null;
+  isPinned: boolean;
+  updatedAt: string;
+}
+
+/** Feed hoạt động tổng hợp (mọi project user tham gia), có phân trang */
+export interface ActivityFeed {
+  items: Activity[];
+  total: number;
+}
+
+export interface ProjectStats {
+  projectId: string;
+  projectName: string;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  overdueTasks: number;
+  completionRate: number;
+}
+
+export interface StatsOverview {
+  totalProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  projects: ProjectStats[];
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  completedTasks: number;
+  totalAssigned: number;
+}
+
+export interface Leaderboard {
+  entries: LeaderboardEntry[];
+}
+
+/** User từ directory chung (tìm để mời vào project) — khác Member (đã thuộc project) */
+export interface DirectoryUser {
+  userId: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string | null;
+  email: string | null;
+}
