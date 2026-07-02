@@ -142,12 +142,30 @@ export interface TaskDetail {
   reviewRequestedBy: string | null;
   /** Trạng thái workflow suy diễn từ BE */
   status: TaskWorkflowStatus;
+  /** ID task cha nếu đây là subtask; null nếu là task cấp cao nhất */
+  parentId: string | null;
+  /** Số task con */
+  subtaskCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 /** Trạng thái workflow của task (khớp BE). */
 export type TaskWorkflowStatus = 'OPEN' | 'IN_REVIEW' | 'DONE';
+
+/** Một dòng subtask trong danh sách task con. */
+export interface SubtaskItem {
+  id: string;
+  title: string;
+  columnId: string;
+  priority: TaskPriority | null;
+  dueDate: string | null;
+  completedAt: string | null;
+  status: TaskWorkflowStatus;
+  isPinned: boolean;
+  subtaskCount: number;
+  assignees: BoardTaskAssignee[];
+}
 
 export interface PresignResult {
   uploadUrl: string;

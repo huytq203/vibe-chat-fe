@@ -33,8 +33,8 @@ import {
   useReopenTask,
   useDeleteTask,
 } from '../../hooks/useTaskDetail';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import { useSubtasksStore } from '../../stores/subtasks.store';
 import { toast } from 'sonner';
 import { getCurrentUser } from '../../lib/current-user';
 import { TaskDetailMenu } from './TaskDetailMenu';
@@ -59,7 +59,8 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
   const reopenTask = useReopenTask(projectId, taskId);
   const deleteTask = useDeleteTask(projectId);
   const closeTask = useTasksUIStore((s) => s.closeTask);
-  const resetSubtaskPath = useSubtasksStore((s) => s.resetPath);
+  const navigateSubtaskBack = useTasksUIStore((s) => s.navigateSubtaskBack);
+  const qc = useQueryClient();
   const workflowPending =
     completeTask.isPending || reopenTask.isPending || deleteTask.isPending;
 
@@ -82,14 +83,21 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
 
   const available = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
 
-  // Xóa task đã hoàn thành để clear khỏi board → đóng modal + reset đường dẫn subtask
+  // Xóa task để clear khỏi board. Nếu là subtask → quay lại task cha (và
+  // refresh danh sách con của cha); nếu là task gốc → đóng modal.
   const confirmDelete = () => {
     deleteTask.mutate(taskId, {
       onSuccess: () => {
         toast.success('Đã xóa nhiệm vụ');
         setDeleteConfirmOpen(false);
-        resetSubtaskPath();
-        closeTask();
+        if (task.parentId) {
+          void qc.invalidateQueries({
+            queryKey: ['tasks', projectId, task.parentId, 'subtasks'],
+          });
+          navigateSubtaskBack();
+        } else {
+          closeTask();
+        }
       },
       onError: () => toast.error('Xóa nhiệm vụ thất bại, thử lại sau'),
     });

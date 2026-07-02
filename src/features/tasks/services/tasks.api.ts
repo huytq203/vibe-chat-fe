@@ -16,6 +16,7 @@ import type {
   Project,
   ProjectStats,
   StatsOverview,
+  SubtaskItem,
   Tag,
   TaskDetail,
   TaskPriority,
@@ -90,6 +91,13 @@ export const tasksApi = {
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),
 
   getMyTasks: (limit = 20) => taskClient.get<MyTask[]>(`/api/v1/tasks/my?limit=${limit}`),
+
+  // --- Subtasks (task con — là task thật có parentId) ---
+  listSubtasks: (parentTaskId: string) =>
+    taskClient.get<SubtaskItem[]>(`/api/v1/tasks/${parentTaskId}/subtasks`),
+
+  createSubtask: (parentTaskId: string, title: string) =>
+    taskClient.post<TaskDetail>(`/api/v1/tasks/${parentTaskId}/subtasks`, { title }),
 
   // --- Tags (project) ---
   listProjectTags: (projectId: string) =>

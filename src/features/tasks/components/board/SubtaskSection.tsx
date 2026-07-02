@@ -1,188 +1,66 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, Circle, Clock, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
-import { Table } from '@/components/ui/table/Table';
-import { useBoard } from '../../hooks/useBoard';
-import {
-  AssigneesControl,
-  LabelsControl,
-  PrioritySelect,
-  StatusSelect,
-} from './subtask-controls';
-import {
-  EMPTY_SUBTASKS,
-  findNode,
-  useSubtasksStore,
-  type SubtaskNode,
-  type SubtaskPatch,
-} from '../../stores/subtasks.store';
 import { Input } from '@/components/ui/input/Input';
+import { Avatar } from '@/components/ui/avatar/Avatar';
+import { useSubtasks, useCreateSubtask } from '../../hooks/useSubtasks';
+import {
+  useCompleteTask,
+  useReopenTask,
+  useDeleteTask,
+} from '../../hooks/useTaskDetail';
+import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import type { SubtaskItem } from '../../types';
 
 interface SubtaskSectionProps {
-  rootId: string;
-  /** null = cấp gốc của task cha; ngược lại = children của node này. */
-  parentId: string | null;
   projectId: string;
+  /** Task cha chứa các subtask này (subtask giờ là task thật). */
+  parentTaskId: string;
 }
 
-interface ColumnHandlers {
-  rootId: string;
-  projectId: string;
-  navigateInto: (nodeId: string) => void;
-  updateSubtask: (rootId: string, nodeId: string, patch: SubtaskPatch) => void;
-  removeSubtask: (rootId: string, nodeId: string) => void;
-}
-
-function buildColumns({
-  rootId,
-  projectId,
-  navigateInto,
-  updateSubtask,
-  removeSubtask,
-}: ColumnHandlers): ColumnDef<SubtaskNode>[] {
-  return [
-    {
-      id: 'title',
-      header: 'Tên',
-      cell: ({ row }) => {
-        const node = row.original;
-        const isDone = node.done ?? false; // optional để state cũ không vỡ
-        return (
-          <div className="flex min-w-0 items-center gap-1.5">
-            {/* Toggle hoàn thành nhanh ngay trong danh sách — done → icon check xanh */}
-            <button
-              type="button"
-              onClick={() => updateSubtask(rootId, node.id, { done: !isDone })}
-              aria-label={isDone ? `Mở lại ${node.title}` : `Hoàn thành ${node.title}`}
-              className="shrink-0"
-            >
-              {isDone ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              ) : (
-                <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateInto(node.id)}
-              className={cn(
-                'flex min-w-0 items-center gap-1 text-left font-medium hover:text-primary cursor-pointer',
-                // Done → gạch ngang + xám, giống checklist/task cha
-                isDone && 'text-muted-foreground line-through',
-              )}
-            >
-              <span className="truncate">{node.title}</span>
-              {node.children.length > 0 && (
-                <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
-                  {node.children.length}
-                </span>
-              )}
-            </button>
-          </div>
-        );
-      },
-    },
-    {
-      id: 'status',
-      header: 'Trạng thái',
-      size:100,
-      cell: ({ row }) => (
-        <StatusSelect
-          projectId={projectId}
-          status={row.original.status}
-          onChange={(status) => updateSubtask(rootId, row.original.id, { status })}
-        />
-      ),
-    },
-    {
-      id: 'priority',
-      header: 'Ưu tiên',
-      cell: ({ row }) => (
-        <PrioritySelect
-          priority={row.original.priority}
-          onChange={(priority) => updateSubtask(rootId, row.original.id, { priority })}
-        />
-      ),
-    },
-    {
-      id: 'labels',
-      header: 'Nhãn',
-      cell: ({ row }) => (
-        <LabelsControl
-          projectId={projectId}
-          tagIds={row.original.tagIds}
-          onChange={(tagIds) => updateSubtask(rootId, row.original.id, { tagIds })}
-        />
-      ),
-    },
-    {
-      id: 'assignees',
-      header: 'Người thực hiện',
-      cell: ({ row }) => (
-        <AssigneesControl
-          projectId={projectId}
-          assigneeIds={row.original.assigneeIds}
-          onChange={(assigneeIds) => updateSubtask(rootId, row.original.id, { assigneeIds })}
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      header: '',
-      size: 40,
-      meta: { align: 'right' },
-      cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={() => removeSubtask(rootId, row.original.id)}
-          aria-label={`Xoá ${row.original.title}`}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      ),
-    },
-  ];
-}
-
-export function SubtaskSection({ rootId, parentId, projectId }: SubtaskSectionProps) {
-  const tree = useSubtasksStore((s) => s.treesByRoot[rootId]) ?? EMPTY_SUBTASKS;
-  const addSubtask = useSubtasksStore((s) => s.addSubtask);
-  const updateSubtask = useSubtasksStore((s) => s.updateSubtask);
-  const removeSubtask = useSubtasksStore((s) => s.removeSubtask);
-  const navigateInto = useSubtasksStore((s) => s.navigateInto);
-  const { data: board } = useBoard(projectId);
+export function SubtaskSection({ projectId, parentTaskId }: SubtaskSectionProps) {
+  const { data: subtasks = [], isLoading } = useSubtasks(projectId, parentTaskId);
+  const createSubtask = useCreateSubtask(projectId, parentTaskId);
   const [draft, setDraft] = useState('');
 
-  const nodes = parentId ? (findNode(tree, parentId)?.children ?? EMPTY_SUBTASKS) : tree;
-
-  const columns = useMemo(
-    () => buildColumns({ rootId, projectId, navigateInto, updateSubtask, removeSubtask }),
-    [rootId, projectId, navigateInto, updateSubtask, removeSubtask],
-  );
+  const total = subtasks.length;
+  const done = subtasks.filter((s) => s.status === 'DONE').length;
 
   const handleAdd = () => {
     const title = draft.trim();
-    if (!title) return;
-    addSubtask(rootId, parentId, title, board?.columns[0]?.id ?? '');
-    setDraft('');
+    if (!title || createSubtask.isPending) return;
+    createSubtask.mutate(title, { onSuccess: () => setDraft('') });
   };
 
   return (
     <section>
-      <h3 className="mb-2 text-sm font-medium">Task con</h3>
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-sm font-medium">Task con</h3>
+        {total > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {done}/{total}
+          </span>
+        )}
+      </div>
 
-      <Table
-        data={[...nodes]}
-        columns={columns}
-        enableSorting={false}
-        pagination={false}
-        labels={{ empty: 'Không có task con' }}
-      />
+      <div className="space-y-1">
+        {isLoading && <p className="text-sm text-muted-foreground">Đang tải…</p>}
+        {!isLoading && total === 0 && (
+          <p className="text-sm text-muted-foreground">Chưa có task con</p>
+        )}
+        {subtasks.map((sub) => (
+          <SubtaskRow
+            key={sub.id}
+            projectId={projectId}
+            parentTaskId={parentTaskId}
+            sub={sub}
+          />
+        ))}
+      </div>
 
       <div className="mt-2 flex gap-2">
         <Input
@@ -192,12 +70,105 @@ export function SubtaskSection({ rootId, parentId, projectId }: SubtaskSectionPr
             if (e.key === 'Enter') handleAdd();
           }}
           placeholder="Thêm task con…"
-          className="h-8 flex-1 "
+          className="h-8 flex-1"
         />
         <Button size="sm" variant="ghost" className="h-8 px-2" onClick={handleAdd}>
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
     </section>
+  );
+}
+
+function SubtaskRow({
+  projectId,
+  parentTaskId,
+  sub,
+}: {
+  projectId: string;
+  parentTaskId: string;
+  sub: SubtaskItem;
+}) {
+  const qc = useQueryClient();
+  const openSubtask = useTasksUIStore((s) => s.openSubtask);
+  const complete = useCompleteTask(projectId, sub.id);
+  const reopen = useReopenTask(projectId, sub.id);
+  const del = useDeleteTask(projectId);
+  const pending = complete.isPending || reopen.isPending || del.isPending;
+
+  const isDone = sub.status === 'DONE';
+
+  // Sau khi đổi trạng thái/xóa subtask → refresh danh sách con của task cha
+  const refreshList = () =>
+    void qc.invalidateQueries({
+      queryKey: ['tasks', projectId, parentTaskId, 'subtasks'],
+    });
+
+  const toggleDone = () => {
+    if (pending) return;
+    if (isDone) reopen.mutate(undefined, { onSuccess: refreshList });
+    else complete.mutate(undefined, { onSuccess: refreshList });
+  };
+
+  return (
+    <div className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-muted/50">
+      <button
+        type="button"
+        onClick={toggleDone}
+        disabled={pending}
+        aria-label={isDone ? `Mở lại ${sub.title}` : `Hoàn thành ${sub.title}`}
+        className="shrink-0 disabled:opacity-50"
+      >
+        {isDone ? (
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+        ) : (
+          <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+        )}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => openSubtask(sub.id)}
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-1.5 text-left text-sm hover:text-primary',
+          isDone && 'text-muted-foreground line-through',
+        )}
+      >
+        <span className="truncate">{sub.title}</span>
+        {sub.status === 'IN_REVIEW' && (
+          <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+            <Clock className="h-3 w-3" /> Chờ duyệt
+          </span>
+        )}
+        {sub.subtaskCount > 0 && (
+          <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
+            {sub.subtaskCount}
+          </span>
+        )}
+      </button>
+
+      {/* Avatar người thực hiện (tối đa 3) */}
+      <div className="flex shrink-0 -space-x-1.5">
+        {sub.assignees.slice(0, 3).map((a) => (
+          <Avatar
+            key={a.userId}
+            src={a.avatarUrl ?? undefined}
+            alt={a.displayName}
+            fallback={a.displayName.charAt(0).toUpperCase()}
+            className="h-5 w-5 border border-background text-[9px]"
+          />
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => del.mutate(sub.id, { onSuccess: refreshList })}
+        disabled={pending}
+        aria-label={`Xoá ${sub.title}`}
+        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }

@@ -14,6 +14,10 @@ type TasksUIState = {
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
+  /** Ngăn xếp drill-down subtask (id các task con dưới task gốc đang mở). */
+  subtaskPath: string[];
+  openSubtask: (id: string) => void;
+  navigateSubtaskBack: () => void;
   boardView: 'board' | 'list';
   setBoardView: (v: 'board' | 'list') => void;
   settingsModal: SettingsModalState;
@@ -28,8 +32,11 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   setSelectedProjectId: (id) =>
     set({ selectedProjectId: id, activeView: id ? 'board' : 'home' }),
   selectedTaskId: null,
-  openTask: (id) => set({ selectedTaskId: id }),
-  closeTask: () => set({ selectedTaskId: null }),
+  openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
+  closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),
+  subtaskPath: [],
+  openSubtask: (id) => set((s) => ({ subtaskPath: [...s.subtaskPath, id] })),
+  navigateSubtaskBack: () => set((s) => ({ subtaskPath: s.subtaskPath.slice(0, -1) })),
   boardView: 'board',
   setBoardView: (v) => set({ boardView: v }),
   settingsModal: { open: false },

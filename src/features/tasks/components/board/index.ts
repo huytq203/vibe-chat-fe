@@ -4,7 +4,6 @@ export { Column } from './Column';
 export { ProjectSwitcher } from './ProjectSwitcher';
 export { ActivityTabs } from './ActivityTabs';
 export { SubtaskSection } from './SubtaskSection';
-export { SubtaskDetailView } from './SubtaskDetailView';
 export { TaskDescriptionEditor } from './TaskDescriptionEditor';
 export { TaskCard } from './TaskCard';
 export { ListView } from './ListView';

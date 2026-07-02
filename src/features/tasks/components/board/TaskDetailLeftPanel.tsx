@@ -88,8 +88,8 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
         </div>
       )}
 
-      {/* Subtasks */}
-      <SubtaskSection rootId={taskId} parentId={null} projectId={projectId} />
+      {/* Subtasks (task con — task thật, tái dùng detail modal) */}
+      <SubtaskSection projectId={projectId} parentTaskId={taskId} />
 
       <Separator />
 

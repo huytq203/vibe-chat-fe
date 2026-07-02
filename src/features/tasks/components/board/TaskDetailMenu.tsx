@@ -12,9 +12,9 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDeleteTask } from '../../hooks/useTaskDetail';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import { useSubtasksStore } from '../../stores/subtasks.store';
 
 interface TaskDetailMenuProps {
   projectId: string;
@@ -24,7 +24,10 @@ interface TaskDetailMenuProps {
 
 export function TaskDetailMenu({ projectId, taskId, taskTitle }: TaskDetailMenuProps) {
   const closeTask = useTasksUIStore((s) => s.closeTask);
-  const resetPath = useSubtasksStore((s) => s.resetPath);
+  const selectedTaskId = useTasksUIStore((s) => s.selectedTaskId);
+  const subtaskPath = useTasksUIStore((s) => s.subtaskPath);
+  const navigateSubtaskBack = useTasksUIStore((s) => s.navigateSubtaskBack);
+  const qc = useQueryClient();
   const deleteTask = useDeleteTask(projectId);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -34,8 +37,21 @@ export function TaskDetailMenu({ projectId, taskId, taskTitle }: TaskDetailMenuP
     deleteTask.mutate(taskId, {
       onSuccess: () => {
         setConfirmOpen(false);
-        resetPath();
-        closeTask();
+        // Đang xem subtask → quay lại cha + refresh danh sách con; ngược lại đóng modal
+        if (subtaskPath.length > 0) {
+          const parentId =
+            subtaskPath.length > 1
+              ? subtaskPath[subtaskPath.length - 2]
+              : selectedTaskId;
+          if (parentId) {
+            void qc.invalidateQueries({
+              queryKey: ['tasks', projectId, parentId, 'subtasks'],
+            });
+          }
+          navigateSubtaskBack();
+        } else {
+          closeTask();
+        }
       },
     });
   };
