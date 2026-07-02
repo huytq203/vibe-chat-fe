@@ -9,6 +9,7 @@ import { ProjectsPage, ProjectSettingsModal, NewProjectModal } from '../projects
 import { BoardHeader, KanbanBoard, ListView, ProjectSwitcher, TaskDetailModal } from '../board';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useProjects } from '../../hooks/useProjects';
+import { useTaskRealtime } from '../../hooks/useTaskRealtime';
 import { getViewTitle } from '../../lib/view-title';
 
 export function TaskManagementLayout() {
@@ -16,6 +17,8 @@ export function TaskManagementLayout() {
   const setActiveView = useTasksUIStore((s) => s.setActiveView);
   const selectedId = useTasksUIStore((s) => s.selectedProjectId);
   const boardView = useTasksUIStore((s) => s.boardView);
+  // Realtime: join room project đang mở, đồng bộ board/detail giữa các thành viên
+  useTaskRealtime(selectedId);
   const { data: projects = [] } = useProjects();
   const selectedProject = projects.find((p) => p.id === selectedId);
   const boardMeta = getViewTitle('board', selectedProject);
