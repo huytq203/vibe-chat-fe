@@ -16,7 +16,7 @@ export function useUploadAttachment(projectId: string, taskId: string) {
       const { uploadUrl, attachmentId } = await tasksApi.presignAttachment(
         projectId,
         taskId,
-        { originalName: file.name, mimeType: file.type, size: file.size },
+        { fileName: file.name, mimeType: file.type, fileSize: file.size },
       );
       // Upload trực tiếp lên S3 — không gửi auth header
       const s3Res = await fetch(uploadUrl, {

@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { Text } from '@/components/ui/typography/Typography';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import type { Project } from '../../types';
 import {
   ProjectNameCell,
@@ -14,10 +16,17 @@ import {
 
 const GRID = 'grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.6fr)_72px_120px_120px] items-center gap-4';
 
+// Cao ~5 dòng — mặc định thấy 5 dự án, cuộn trong khung để lazy load thêm.
+const SCROLL_MAX_H = 'max-h-[340px]';
+
 interface ProjectListProps {
   projects: Project[];
   isLoading: boolean;
   isError: boolean;
+  isSearching?: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
 function ProjectRow({ project }: { project: Project }) {
@@ -50,7 +59,23 @@ function ListHeader() {
   );
 }
 
-export function ProjectList({ projects, isLoading, isError }: ProjectListProps) {
+export function ProjectList({
+  projects,
+  isLoading,
+  isError,
+  isSearching,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: ProjectListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useInfiniteScroll({
+    rootRef: scrollRef,
+    hasNextPage,
+    isFetchingNextPage,
+    onLoadMore,
+  });
+
   if (isError) {
     return (
       <div className="rounded-2xl bg-muted/30 px-6 py-12 text-center">
@@ -84,7 +109,11 @@ export function ProjectList({ projects, isLoading, isError }: ProjectListProps) 
   if (projects.length === 0) {
     return (
       <div className="rounded-2xl bg-muted/30 px-6 py-16 text-center">
-        <Text size="sm" color="muted">Chưa có dự án. Bấm &quot;Dự án mới&quot; để tạo.</Text>
+        <Text size="sm" color="muted">
+          {isSearching
+            ? 'Không tìm thấy dự án khớp từ khoá.'
+            : 'Chưa có dự án. Bấm "Dự án mới" để tạo.'}
+        </Text>
       </div>
     );
   }
@@ -92,10 +121,19 @@ export function ProjectList({ projects, isLoading, isError }: ProjectListProps) 
   return (
     <div className="rounded-2xl bg-muted/30 p-2">
       <ListHeader />
-      <div className="space-y-1">
+      <div ref={scrollRef} className={`${SCROLL_MAX_H} space-y-1 overflow-y-auto`}>
         {projects.map((p) => (
           <ProjectRow key={p.id} project={p} />
         ))}
+        {hasNextPage && (
+          <div ref={sentinelRef} className="py-2 text-center">
+            {isFetchingNextPage && (
+              <Text size="xs" color="muted">
+                Đang tải thêm…
+              </Text>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,15 @@
 'use client';
 
+import { useRef } from 'react';
 import { CheckCircle2, Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card/Card';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Text } from '@/components/ui/typography/Typography';
 import { ScrollArea } from '@/components/ui/scroll-area/ScrollArea';
 import { cn } from '@/lib/utils/cn';
-import { useProjects } from '../../hooks/useProjects';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useProjectsInfinite } from '../../hooks/useProjectsInfinite';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useMyTasks } from '../../hooks/useMyTasks';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -122,7 +125,21 @@ function ActivityRow({ activity }: { activity: Activity }) {
 }
 
 export function Dashboard() {
-  const { data: projects, isLoading, isError } = useProjects();
+  // Tìm dự án nhập ở AppHeader (store) → lọc luôn card "Dự án" dưới đây.
+  const projectSearch = useTasksUIStore((s) => s.projectSearch);
+  const debouncedSearch = useDebouncedValue(projectSearch, 300);
+  const projectsQuery = useProjectsInfinite(debouncedSearch);
+  const projects = projectsQuery.data?.pages.flatMap((p) => p.data) ?? [];
+  const projectsScrollRef = useRef<HTMLDivElement>(null);
+  const projectsSentinelRef = useInfiniteScroll({
+    rootRef: projectsScrollRef,
+    hasNextPage: projectsQuery.hasNextPage,
+    isFetchingNextPage: projectsQuery.isFetchingNextPage,
+    onLoadMore: () => void projectsQuery.fetchNextPage(),
+  });
+  const isLoading = projectsQuery.isLoading;
+  const isError = projectsQuery.isError;
+
   const myTasks = useMyTasks();
   const feed = useActivityFeed(1, 15);
   const { title, sub } = getViewTitle('home');
@@ -196,13 +213,27 @@ export function Dashboard() {
           <CardContent className="pt-2">
             {isLoading && <Text size="sm" color="muted">Đang tải dự án…</Text>}
             {isError && <Text size="sm" color="muted">Không tải được danh sách dự án.</Text>}
-            {!isLoading && !isError && (projects?.length ?? 0) === 0 && (
-              <Text size="sm" color="muted">Chưa có dự án. Bấm &quot;Tạo mới&quot; để bắt đầu.</Text>
+            {!isLoading && !isError && projects.length === 0 && (
+              <Text size="sm" color="muted">
+                {debouncedSearch.trim()
+                  ? 'Không tìm thấy dự án khớp từ khoá.'
+                  : 'Chưa có dự án. Bấm "Tạo mới" để bắt đầu.'}
+              </Text>
             )}
-            <div className="flex flex-col">
-              {(projects ?? []).map((p) => (
+            {/* Khung cao ~5 dòng: mặc định thấy 5 dự án, cuộn xuống để lazy load thêm */}
+            <div ref={projectsScrollRef} className="flex max-h-[340px] flex-col overflow-y-auto">
+              {projects.map((p) => (
                 <DashboardProjectRow key={p.id} project={p} />
               ))}
+              {projectsQuery.hasNextPage && (
+                <div ref={projectsSentinelRef} className="py-2 text-center">
+                  {projectsQuery.isFetchingNextPage && (
+                    <Text size="xs" color="muted">
+                      Đang tải thêm…
+                    </Text>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

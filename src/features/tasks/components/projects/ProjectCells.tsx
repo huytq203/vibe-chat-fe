@@ -7,18 +7,11 @@ import { Text } from '@/components/ui/typography/Typography';
 import { useBoard } from '../../hooks/useBoard';
 import { useMembers } from '../../hooks/useMembers';
 import { computeBoardProgress } from '../../lib/board-progress';
+import { PROJECT_STATUS_META, PROJECT_OVERDUE_META } from '../../constants';
 import type { Project } from '../../types';
 
 interface ProjectCellProps {
   project: Project;
-}
-
-type StatusVariant = 'soft-primary' | 'soft-success' | 'outline';
-
-function statusOf(open: number, total: number): { label: string; variant: StatusVariant } {
-  if (total === 0) return { label: 'Chưa bắt đầu', variant: 'outline' };
-  if (open === 0) return { label: 'Hoàn thành', variant: 'soft-success' };
-  return { label: 'Đang làm', variant: 'soft-primary' };
 }
 
 export function ProjectNameCell({ project }: ProjectCellProps) {
@@ -71,9 +64,14 @@ export function ProjectMembersCell({ project }: ProjectCellProps) {
 }
 
 export function ProjectStatusCell({ project }: ProjectCellProps) {
-  const { data: board } = useBoard(project.id);
-  const stats = computeBoardProgress(board);
-  const status = statusOf(stats.open, stats.total);
+  // "Quá hạn" (suy diễn) được ưu tiên hiển thị hơn status owner đặt tay.
+  const meta = project.isOverdue
+    ? PROJECT_OVERDUE_META
+    : PROJECT_STATUS_META[project.status];
 
-  return <Badge variant={status.variant} size="sm" className="w-fit">{status.label}</Badge>;
+  return (
+    <Badge variant={meta.variant} size="sm" className="w-fit">
+      {meta.label}
+    </Badge>
+  );
 }

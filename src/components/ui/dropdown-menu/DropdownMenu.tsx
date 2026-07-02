@@ -58,8 +58,9 @@ const DropdownMenuContent = React.forwardRef<
   DropdownMenuContentProps
 >(({ className, side = 'bottom', align = 'start', sideOffset = 4, ...props }, ref) => (
   <BaseMenu.Portal>
-    {/* z-50 ở Positioner (fixed) — nếu chỉ để z trên Popup, cụm bị vẽ ở tầng z:auto, dưới element positive-z gần đó. */}
-    <BaseMenu.Positioner className="z-50" side={side} align={align} sideOffset={sideOffset}>
+    {/* z ở Positioner (fixed) — nếu chỉ để z trên Popup, cụm bị vẽ ở tầng z:auto, dưới element positive-z gần đó.
+        z-[200] để menu luôn nổi TRÊN Dialog/modal (z-[100]) khi mở bên trong modal — đồng bộ với Popover/DatePicker. */}
+    <BaseMenu.Positioner className="z-[200]" side={side} align={align} sideOffset={sideOffset}>
       <BaseMenu.Popup ref={ref} className={styles.content({ className })} {...props} />
     </BaseMenu.Positioner>
   </BaseMenu.Portal>
@@ -211,7 +212,7 @@ const DropdownMenuSubContent = React.forwardRef<
   DropdownMenuSubContentProps
 >(({ className, ...props }, ref) => (
   <BaseMenu.Portal>
-    <BaseMenu.Positioner className="z-50" sideOffset={-4}>
+    <BaseMenu.Positioner className="z-[200]" sideOffset={-4}>
       <BaseMenu.Popup ref={ref} className={styles.subContent({ className })} {...props} />
     </BaseMenu.Positioner>
   </BaseMenu.Portal>

@@ -51,13 +51,12 @@ export function ProjectSharingTab({ project }: { project: Project }) {
       </p>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Tìm người dùng để mời (tối thiểu 2 ký tự)…"
-          className="pl-9"
           aria-label="Tìm người dùng để mời"
+          icon={<Search className="h-5 w-5" />}
         />
 
         {searchActive && (

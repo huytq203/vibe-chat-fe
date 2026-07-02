@@ -129,6 +129,12 @@ export function ProjectInfoTab({ project }: { project: Project }) {
         />
       </div>
 
+      {project.isOverdue && (
+        <p className="text-xs text-danger">
+          Dự án đã quá hạn kết thúc — cập nhật trạng thái hoặc gia hạn ngày kết thúc.
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tạo lúc</p>

@@ -12,9 +12,11 @@ import type {
   Leaderboard,
   Member,
   MyTask,
+  PaginationMeta,
   PresignResult,
   Project,
   ProjectStats,
+  ProjectStatus,
   StatsOverview,
   SubtaskItem,
   Tag,
@@ -24,8 +26,20 @@ import type {
 
 export const tasksApi = {
   // --- Projects ---
+  // Danh sách phẳng (switcher/dashboard) — lấy tối đa 100 project đầu.
   listProjects: () =>
-    taskClient.get<Project[]>('/api/v1/projects'),
+    taskClient.get<Project[]>('/api/v1/projects?limit=100'),
+
+  // Danh sách phân trang + search — dùng cho trang quản lý dự án (lazy load).
+  listProjectsPaged: (params: { page?: number; limit?: number; q?: string }) => {
+    const sp = new URLSearchParams();
+    sp.set('page', String(params.page ?? 1));
+    sp.set('limit', String(params.limit ?? 20));
+    if (params.q?.trim()) sp.set('q', params.q.trim());
+    return taskClient.getPaged<Project[], PaginationMeta>(
+      `/api/v1/projects?${sp.toString()}`,
+    );
+  },
 
   createProject: (input: {
     name: string;
@@ -41,6 +55,7 @@ export const tasksApi = {
       description?: string;
       startDate?: string | null;
       endDate?: string | null;
+      status?: ProjectStatus;
     },
   ) => taskClient.patch<Project>(`/api/v1/projects/${projectId}`, input),
 
@@ -209,7 +224,7 @@ export const tasksApi = {
   presignAttachment: (
     projectId: string,
     taskId: string,
-    input: { originalName: string; mimeType: string; size: number },
+    input: { fileName: string; mimeType: string; fileSize: number },
   ) =>
     taskClient.post<PresignResult>(
       `/api/v1/projects/${projectId}/tasks/${taskId}/attachments/presign`,

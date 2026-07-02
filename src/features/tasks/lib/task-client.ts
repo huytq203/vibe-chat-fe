@@ -9,6 +9,7 @@ import { apiAuth } from '@/lib/api/client';
 interface Envelope<T> {
   success: boolean;
   data: T;
+  meta?: unknown;
   error?: { code: string; message: string };
 }
 
@@ -42,8 +43,30 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (json ? json.data : undefined) as T;
 }
 
+/** Như `request` nhưng giữ lại `meta` — dùng cho endpoint phân trang. */
+async function requestPaged<T, M>(
+  method: string,
+  path: string,
+): Promise<{ data: T; meta: M }> {
+  const token = apiAuth.getToken();
+  const res = await fetch(`${taskBase()}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const text = await res.text();
+  const json = text ? (JSON.parse(text) as Envelope<T>) : null;
+  if (!res.ok || (json !== null && !json.success)) {
+    throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);
+  }
+  return { data: json?.data as T, meta: json?.meta as M };
+}
+
 export const taskClient = {
   get: <T>(path: string) => request<T>('GET', path),
+  getPaged: <T, M>(path: string) => requestPaged<T, M>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),

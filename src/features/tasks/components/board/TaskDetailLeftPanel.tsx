@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import { Button } from '@/components/ui/button/Button';
 import { CheckCircle2, Clock, Paperclip, Plus, Trash2, Upload } from 'lucide-react';
@@ -20,6 +21,7 @@ import {
 } from '../../hooks/useAttachments';
 import { ActivityTabs } from './ActivityTabs';
 import { SubtaskSection } from './SubtaskSection';
+import { ALLOWED_ATTACHMENT_ACCEPT, MAX_ATTACHMENT_SIZE } from '../../constants';
 
 interface Props {
   projectId: string;
@@ -70,8 +72,16 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) uploadAttachment.mutate(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!file) return;
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      toast.error('Tệp vượt quá giới hạn 100MB');
+      return;
+    }
+    uploadAttachment.mutate(file, {
+      onSuccess: () => toast.success('Đã tải tệp lên'),
+      onError: () => toast.error('Tải tệp lên thất bại, thử lại sau'),
+    });
   };
 
   return (
@@ -163,7 +173,13 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
             <Upload className="mr-1 h-3.5 w-3.5" />
             {uploadAttachment.isPending ? 'Đang tải…' : 'Tải lên'}
           </Button>
-          <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ALLOWED_ATTACHMENT_ACCEPT}
+            className="hidden"
+            onChange={handleFileChange}
+          />
         </div>
         <div className="space-y-1">
           {attachments.map((att) => (
@@ -173,15 +189,15 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
             >
               <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <a
-                href={att.url}
+                href={att.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 truncate text-primary hover:underline"
               >
-                {att.originalName}
+                {att.fileName}
               </a>
               <span className="text-xs text-muted-foreground">
-                {(att.size / 1024).toFixed(0)} KB
+                {(att.fileSize / 1024).toFixed(0)} KB
               </span>
               <button
                 type="button"

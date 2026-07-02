@@ -9,6 +9,9 @@ type SettingsModalState = { open: true; tab: 'info' | 'share' | 'labels' } | { o
 type TasksUIState = {
   activeView: ActiveView;
   setActiveView: (v: ActiveView) => void;
+  /** Từ khoá tìm dự án — nhập ở AppHeader, dùng chung cho Dashboard + ProjectsPage. */
+  projectSearch: string;
+  setProjectSearch: (q: string) => void;
   selectedProjectId: string | null;
   setSelectedProjectId: (id: string | null) => void;
   selectedTaskId: string | null;
@@ -28,6 +31,8 @@ type TasksUIState = {
 export const useTasksUIStore = create<TasksUIState>((set) => ({
   activeView: 'home',
   setActiveView: (v) => set({ activeView: v }),
+  projectSearch: '',
+  setProjectSearch: (q) => set({ projectSearch: q }),
   selectedProjectId: null,
   setSelectedProjectId: (id) =>
     set({ selectedProjectId: id, activeView: id ? 'board' : 'home' }),

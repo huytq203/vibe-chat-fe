@@ -1,14 +1,36 @@
+/** Trạng thái vòng đời project do owner đặt tay (khớp BE enum ProjectStatus). */
+export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'PENDING' | 'COMPLETED';
+
 export interface Project {
   id: string;
   name: string;
   description?: string | null;
   ownerId: string;
   isBoardLocked: boolean;
+  /** Trạng thái vòng đời do owner đặt */
+  status: ProjectStatus;
+  /** Suy diễn từ BE: endDate đã qua và status chưa COMPLETED */
+  isOverdue: boolean;
   /** Ngày bắt đầu / kết thúc dự kiến của dự án (ISO), null nếu chưa đặt */
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Meta phân trang trả kèm list endpoint (khớp BE PaginationMeta). */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface Paged<T> {
+  data: T;
+  meta: PaginationMeta;
 }
 
 export interface BoardTaskTag {
@@ -99,14 +121,13 @@ export interface Comment {
 export interface Attachment {
   id: string;
   taskId: string;
-  projectId: string;
-  originalName: string;
-  s3Key: string;
-  url: string;
+  fileName: string;
   mimeType: string;
-  size: number;
+  fileSize: number;
   uploadedBy: string;
   createdAt: string;
+  /** Presigned URL để tải file — BE trả kèm khi list/confirm */
+  downloadUrl?: string;
 }
 
 export interface Activity {
@@ -170,7 +191,6 @@ export interface SubtaskItem {
 
 export interface PresignResult {
   uploadUrl: string;
-  s3Key: string;
   attachmentId: string;
 }
 

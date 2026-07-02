@@ -1,39 +1,77 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen } from '@/test/test-utils';
 
-const useProjectsMock = vi.fn();
-vi.mock('../hooks/useProjects', () => ({ useProjects: () => useProjectsMock() }));
+const useProjectsInfiniteMock = vi.fn();
+vi.mock('../hooks/useProjectsInfinite', () => ({
+  useProjectsInfinite: () => useProjectsInfiniteMock(),
+}));
 vi.mock('../hooks/useBoard', () => ({ useBoard: () => ({ data: undefined, isLoading: true }) }));
 
 import { Dashboard } from '../components/dashboard/Dashboard';
 
+/** Bọc list project thành shape của useInfiniteQuery (1 page). */
+function pagedResult(projects: Array<{ id: string; name: string }>) {
+  return {
+    data: {
+      pages: [
+        {
+          data: projects.map((p) => ({ status: 'ACTIVE', isOverdue: false, ...p })),
+          meta: {
+            page: 1,
+            limit: 5,
+            total: projects.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      ],
+    },
+    isLoading: false,
+    isError: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+  };
+}
+
 describe('Dashboard — 4 states panel Dự án', () => {
-  beforeEach(() => useProjectsMock.mockReset());
+  beforeEach(() => useProjectsInfiniteMock.mockReset());
 
   it('loading', () => {
-    useProjectsMock.mockReturnValue({ data: undefined, isLoading: true, isError: false });
+    useProjectsInfiniteMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+    });
     renderWithProviders(<Dashboard />);
     expect(screen.getByText('Đang tải dự án…')).toBeInTheDocument();
   });
 
   it('error', () => {
-    useProjectsMock.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+    useProjectsInfiniteMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+    });
     renderWithProviders(<Dashboard />);
     expect(screen.getByText(/không tải được/i)).toBeInTheDocument();
   });
 
   it('empty', () => {
-    useProjectsMock.mockReturnValue({ data: [], isLoading: false, isError: false });
+    useProjectsInfiniteMock.mockReturnValue(pagedResult([]));
     renderWithProviders(<Dashboard />);
     expect(screen.getByText(/chưa có dự án/i)).toBeInTheDocument();
   });
 
   it('data', () => {
-    useProjectsMock.mockReturnValue({
-      data: [{ id: 'p1', name: 'Dự án A' }],
-      isLoading: false,
-      isError: false,
-    });
+    useProjectsInfiniteMock.mockReturnValue(pagedResult([{ id: 'p1', name: 'Dự án A' }]));
     renderWithProviders(<Dashboard />);
     expect(screen.getByText('Dự án A')).toBeInTheDocument();
   });
