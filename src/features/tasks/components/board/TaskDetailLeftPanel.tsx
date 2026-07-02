@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import { Button } from '@/components/ui/button/Button';
-import { Paperclip, Plus, Trash2, Upload } from 'lucide-react';
+import { CheckCircle2, Clock, Paperclip, Plus, Trash2, Upload } from 'lucide-react';
 import { Progress } from '@/components/ui/progress/Progress';
 import { Separator } from '@/components/ui/separator/Separator';
 import {
@@ -12,6 +12,7 @@ import {
   useUpdateChecklistItem,
   useDeleteChecklistItem,
 } from '../../hooks/useChecklist';
+import { useTaskDetail } from '../../hooks/useTaskDetail';
 import {
   useAttachments,
   useUploadAttachment,
@@ -25,7 +26,26 @@ interface Props {
   taskId: string;
 }
 
+/** Định dạng khoảng thời gian hoàn thành (ms) sang tiếng Việt: "2 ngày 3 giờ" / "5 giờ 12 phút" / "8 phút". */
+function formatDuration(ms: number): string {
+  const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days} ngày ${hours} giờ`;
+  if (hours > 0) return `${hours} giờ ${minutes} phút`;
+  return `${minutes} phút`;
+}
+
 export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
+  // Đọc từ cache (đã fetch ở modal) để hiện thời gian hoàn thành trong body
+  const { data: task } = useTaskDetail(projectId, taskId);
+  const completedLabel =
+    task?.status === 'DONE' && task.completedAt
+      ? formatDuration(
+          new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime(),
+        )
+      : null;
   // Checklist
   const { data: items = [] } = useChecklist(projectId, taskId);
   const createItem = useCreateChecklistItem(projectId, taskId);
@@ -56,6 +76,18 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
+      {/* Banner thời gian hoàn thành (từ lúc tạo → lúc done) — phục vụ owner review */}
+      {completedLabel && (
+        <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span className="font-medium">Đã hoàn thành</span>
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            Thời gian thực hiện: {completedLabel}
+          </span>
+        </div>
+      )}
+
       {/* Subtasks */}
       <SubtaskSection rootId={taskId} parentId={null} projectId={projectId} />
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, CheckSquare, Plus } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Clock, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import {
   AssigneeAvatar,
@@ -37,6 +37,8 @@ function TaskRow({
   const assignees = task.assignees.slice(0, 3);
   // Task done khi đã có completedAt HOẶC nằm trong cột Done
   const isDone = task.completedAt !== null || isDoneColumn;
+  // Chờ owner duyệt → chip amber (không áp dụng khi task đã done)
+  const isInReview = task.status === 'IN_REVIEW' && !isDone;
 
   return (
     <button
@@ -57,6 +59,13 @@ function TaskRow({
       >
         {task.title}
       </span>
+
+      {isInReview && (
+        <span className="flex shrink-0 items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+          <Clock className="h-3 w-3" />
+          Chờ duyệt
+        </span>
+      )}
 
       {priority && (
         <span

@@ -17,6 +17,42 @@ interface ActivityTabsProps {
   taskId: string;
 }
 
+/** Nhãn tiếng Việt cho từng action activity (khớp action BE phát ra). */
+const ACTION_LABELS: Record<string, string> = {
+  'task.created': 'đã tạo task',
+  'task.updated': 'đã cập nhật task',
+  'task.completed': 'đã hoàn thành task',
+  'task.review_requested': 'đã gửi yêu cầu duyệt',
+  'task.reopened': 'đã mở lại task',
+  'task.archived': 'đã lưu trữ task',
+  'comment.created': 'đã bình luận',
+  'comment.updated': 'đã sửa bình luận',
+  'comment.deleted': 'đã xóa bình luận',
+  'checklist.added': 'đã thêm mục checklist',
+  'checklist.toggled': 'đã đánh dấu checklist',
+  'checklist.updated': 'đã sửa checklist',
+  'checklist.deleted': 'đã xóa mục checklist',
+  'attachment.added': 'đã đính kèm tệp',
+  'attachment.deleted': 'đã xóa tệp đính kèm',
+  'assignee.added': 'đã giao việc',
+  'assignee.removed': 'đã hủy giao việc',
+  'tag.attached': 'đã gắn nhãn',
+  'tag.detached': 'đã gỡ nhãn',
+};
+
+/** Thời gian tương đối tiếng Việt (vừa xong / X phút trước / …). */
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return 'vừa xong';
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} ngày trước`;
+  return new Date(iso).toLocaleDateString('vi-VN');
+}
+
 export function ActivityTabs({ projectId, taskId }: ActivityTabsProps) {
   const currentUser = getCurrentUser();
 
@@ -191,10 +227,9 @@ export function ActivityTabs({ projectId, taskId }: ActivityTabsProps) {
                   className="h-5 w-5 shrink-0"
                 />
                 <span>
-                  <strong className="text-foreground">{a.actorName}</strong> {a.action}{' '}
-                  <time className="text-[10px]">
-                    {new Date(a.createdAt).toLocaleString('vi-VN')}
-                  </time>
+                  <strong className="text-foreground">{a.actorName}</strong>{' '}
+                  {ACTION_LABELS[a.action] ?? a.action}{' '}
+                  <time className="text-[10px]">{formatRelativeTime(a.createdAt)}</time>
                 </span>
               </div>
             ))}

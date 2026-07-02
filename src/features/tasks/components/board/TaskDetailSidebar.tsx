@@ -2,7 +2,7 @@
 
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Button } from '@/components/ui/button/Button';
-import { Calendar, Eye, Flag, Hash, Tag as TagIcon, UserPlus, X } from 'lucide-react';
+import { Calendar, CheckCircle2, Eye, Flag, Hash, Tag as TagIcon, UserPlus, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { DatePicker } from '@/components/ui/datepicker/DatePicker';
@@ -11,6 +11,20 @@ import { useAssignees, useAddAssignee, useRemoveAssignee } from '../../hooks/use
 import { useTaskTags, useProjectTags, useAttachTag, useDetachTag } from '../../hooks/useTaskTags';
 import { useMembers } from '../../hooks/useMembers';
 import type { TaskDetail, TaskPriority } from '../../types';
+
+/**
+ * Định dạng khoảng thời gian hoàn thành (ms) sang tiếng Việt.
+ * Ví dụ: "2 ngày 3 giờ", "5 giờ 12 phút", "8 phút".
+ */
+function formatDuration(ms: number): string {
+  const totalMinutes = Math.max(0, Math.floor(ms / 60_000));
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days} ngày ${hours} giờ`;
+  if (hours > 0) return `${hours} giờ ${minutes} phút`;
+  return `${minutes} phút`;
+}
 
 const PRIORITY_META: Record<TaskPriority, { label: string; dot: string; active: string }> = {
   P1: { label: 'Cao', dot: '#EF4444', active: 'bg-red-100 text-red-700' },
@@ -62,6 +76,14 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
 
   const availableMembers = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
   const availableTags = projectTags.filter((pt) => !tags.some((t) => t.id === pt.id));
+
+  // Thời gian hoàn thành (từ lúc tạo tới lúc done) — chỉ tính khi task đã DONE.
+  const completedDurationLabel =
+    task.status === 'DONE' && task.completedAt
+      ? formatDuration(
+          new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime(),
+        )
+      : null;
 
   const handleDueDateChange = (value: Date | import('react-day-picker').DateRange | undefined) => {
     const date = value instanceof Date ? value : undefined;
@@ -229,6 +251,19 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
           <span className="font-medium text-foreground/70">Cập nhật</span>
           <p className="mt-0.5">{new Date(task.updatedAt).toLocaleString('vi-VN')}</p>
         </div>
+        {completedDurationLabel && (
+          <div className="rounded-lg bg-green-500/10 px-2.5 py-2 text-green-500">
+            <span className="flex items-center gap-1.5 font-semibold">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Hoàn thành trong {completedDurationLabel}
+            </span>
+            {task.completedAt && (
+              <p className="mt-0.5 text-green-500/80">
+                {new Date(task.completedAt).toLocaleString('vi-VN')}
+              </p>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-1.5">
           <Hash className="h-3.5 w-3.5" />
           <span className="font-medium text-foreground/70">Task ID</span>

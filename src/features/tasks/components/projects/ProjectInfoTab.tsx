@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input/Input';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -19,19 +20,26 @@ import { useDeleteProject } from '../../hooks/useDeleteProject';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { Project } from '../../types';
 
-/** Cắt ISO date về dạng yyyy-MM-dd cho input type="date" */
-function toDateInputValue(iso: string | null): string {
-  return iso ? iso.slice(0, 10) : '';
+/** ISO date → Date (bỏ qua nếu null) */
+function toDateValue(iso: string | null): Date | undefined {
+  return iso ? new Date(iso) : undefined;
+}
+
+/** So sánh 2 ngày theo mốc ngày (bỏ giờ) để phát hiện thay đổi */
+function sameDay(a: Date | undefined, b: Date | undefined): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.toDateString() === b.toDateString();
 }
 
 export function ProjectInfoTab({ project }: { project: Project }) {
   const qc = useQueryClient();
   const [name, setName] = useState(project.name);
   const [desc, setDesc] = useState(project.description ?? '');
-  const [startDate, setStartDate] = useState(toDateInputValue(project.startDate));
-  const [endDate, setEndDate] = useState(toDateInputValue(project.endDate));
+  const [startDate, setStartDate] = useState<Date | undefined>(toDateValue(project.startDate));
+  const [endDate, setEndDate] = useState<Date | undefined>(toDateValue(project.endDate));
 
-  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu (so sánh chuỗi yyyy-MM-dd là đủ)
+  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu
   const dateError =
     startDate && endDate && endDate < startDate
       ? 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu'
@@ -43,8 +51,8 @@ export function ProjectInfoTab({ project }: { project: Project }) {
         name: name.trim(),
         description: desc.trim() || undefined,
         // Gửi ISO khi có giá trị; null để xoá ngày đã đặt trước đó
-        startDate: startDate ? new Date(startDate).toISOString() : null,
-        endDate: endDate ? new Date(endDate).toISOString() : null,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.projects() }),
   });
@@ -52,8 +60,8 @@ export function ProjectInfoTab({ project }: { project: Project }) {
   const dirty =
     name.trim() !== project.name ||
     desc.trim() !== (project.description ?? '') ||
-    startDate !== toDateInputValue(project.startDate) ||
-    endDate !== toDateInputValue(project.endDate);
+    !sameDay(startDate, toDateValue(project.startDate)) ||
+    !sameDay(endDate, toDateValue(project.endDate));
 
   // --- Vùng nguy hiểm: xoá dự án (confirm 2 bước — phải gõ đúng tên dự án) ---
   const closeSettings = useTasksUIStore((s) => s.closeSettings);
@@ -102,17 +110,21 @@ export function ProjectInfoTab({ project }: { project: Project }) {
       </div>
 
       <div className="grid grid-cols-2 items-start gap-4">
-        <Input
+        <DatePicker
+          mode="single"
+          editable
           label="Ngày bắt đầu"
-          type="date"
+          placeholder="dd/mm/yyyy"
           value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          onChange={(d) => setStartDate(d instanceof Date ? d : undefined)}
         />
-        <Input
+        <DatePicker
+          mode="single"
+          editable
           label="Ngày kết thúc"
-          type="date"
+          placeholder="dd/mm/yyyy"
           value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
+          onChange={(d) => setEndDate(d instanceof Date ? d : undefined)}
           error={dateError}
         />
       </div>

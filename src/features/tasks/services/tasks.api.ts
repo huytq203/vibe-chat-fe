@@ -73,12 +73,20 @@ export const tasksApi = {
       dueDate?: string | null;
       priority?: TaskPriority | null;
       isPinned?: boolean;
-      // true → BE set completedAt, false → BE clear completedAt
-      isCompleted?: boolean;
     },
   ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
 
   deleteTask: (taskId: string) => taskClient.delete<void>(`/api/v1/tasks/${taskId}`),
+
+  // --- Workflow: complete → review → archive ---
+  completeTask: (taskId: string) =>
+    taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/complete`, {}),
+
+  reopenTask: (taskId: string) =>
+    taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/reopen`, {}),
+
+  archiveTask: (taskId: string) =>
+    taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/archive`, {}),
 
   moveTask: (taskId: string, input: { columnId: string; position: number }) =>
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),
@@ -214,8 +222,12 @@ export const tasksApi = {
     ),
 
   // --- Activities ---
-  listActivities: (projectId: string) =>
-    taskClient.get<Activity[]>(`/api/v1/projects/${projectId}/activities`),
+  // BE trả { items, total }; taskId để lọc history của 1 task (tab History trong modal)
+  listActivities: (projectId: string, taskId?: string, page = 1, limit = 50) =>
+    taskClient.get<{ items: Activity[]; total: number }>(
+      `/api/v1/projects/${projectId}/activities?page=${page}&limit=${limit}` +
+        (taskId ? `&taskId=${taskId}` : ''),
+    ),
 
   getActivityFeed: (page = 1, limit = 20) =>
     taskClient.get<ActivityFeed>(`/api/v1/activities/feed?page=${page}&limit=${limit}`),

@@ -2,7 +2,7 @@
 
 import { forwardRef, type HTMLAttributes } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { CheckCircle2, CheckSquare, MessageSquare, Pin } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Clock, MessageSquare, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardTask } from '../../types';
@@ -59,6 +59,8 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
     const visibleAssignees = task.assignees.slice(0, 3);
     // Task done khi đã có completedAt HOẶC nằm trong cột Done
     const isDone = task.completedAt !== null || isDoneColumn;
+    // Chờ owner duyệt → chip amber (không áp dụng khi task đã done)
+    const isInReview = task.status === 'IN_REVIEW' && !isDone;
 
     return (
       <div
@@ -82,6 +84,13 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
               style={{ backgroundColor: priorityConfig.dot }}
             />
             {priorityConfig.label}
+          </div>
+        )}
+
+        {isInReview && (
+          <div className="flex items-center gap-1 text-[11px] font-semibold rounded-full bg-amber-500/15 text-amber-500 px-2 py-0.5 mb-2 w-fit">
+            <Clock className="h-3 w-3" />
+            Chờ duyệt
           </div>
         )}
 

@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog/Dialog';
 import { Input } from '@/components/ui/input/Input';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Button } from '@/components/ui/button/Button';
 import { useCreateProject } from '../../hooks/useCreateProject';
@@ -26,10 +27,10 @@ export function NewProjectModal({
   const setSelected = useTasksUIStore((s) => s.setSelectedProjectId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu (so sánh chuỗi yyyy-MM-dd là đủ)
+  // Ràng buộc business: ngày kết thúc phải >= ngày bắt đầu
   const dateError =
     startDate && endDate && endDate < startDate
       ? 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu'
@@ -38,8 +39,8 @@ export function NewProjectModal({
   const reset = () => {
     setName('');
     setDescription('');
-    setStartDate('');
-    setEndDate('');
+    setStartDate(undefined);
+    setEndDate(undefined);
   };
 
   const handleCreate = async () => {
@@ -49,8 +50,8 @@ export function NewProjectModal({
       const project = await createProject.mutateAsync({
         name: trimmed,
         description: description.trim() || undefined,
-        startDate: startDate ? new Date(startDate).toISOString() : undefined,
-        endDate: endDate ? new Date(endDate).toISOString() : undefined,
+        startDate: startDate ? startDate.toISOString() : undefined,
+        endDate: endDate ? endDate.toISOString() : undefined,
       });
       reset();
       setSelected(project.id);
@@ -82,17 +83,21 @@ export function NewProjectModal({
           />
 
           <div className="grid grid-cols-2 items-start gap-3">
-            <Input
+            <DatePicker
+              mode="single"
+              editable
               label="Ngày bắt đầu"
-              type="date"
+              placeholder="dd/mm/yyyy"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(d) => setStartDate(d instanceof Date ? d : undefined)}
             />
-            <Input
+            <DatePicker
+              mode="single"
+              editable
               label="Ngày kết thúc"
-              type="date"
+              placeholder="dd/mm/yyyy"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(d) => setEndDate(d instanceof Date ? d : undefined)}
               error={dateError}
             />
           </div>

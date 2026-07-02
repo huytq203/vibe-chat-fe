@@ -37,6 +37,10 @@ export interface BoardTask {
   commentCount: number;
   /** Thời điểm hoàn thành (ISO) — null nghĩa là task chưa done */
   completedAt: string | null;
+  /** Thời điểm member yêu cầu owner duyệt (ISO) — null nếu chưa */
+  reviewRequestedAt: string | null;
+  /** Trạng thái workflow trên board (ARCHIVED đã bị loại nên chỉ 3 giá trị) */
+  status: 'OPEN' | 'IN_REVIEW' | 'DONE';
 }
 
 export interface BoardColumn {
@@ -108,13 +112,12 @@ export interface Attachment {
 export interface Activity {
   id: string;
   projectId: string;
+  taskId: string | null;
   actorId: string;
   actorName: string;
   actorAvatar: string | null;
   action: string;
-  entityType: string;
-  entityId: string;
-  payload: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -134,9 +137,19 @@ export interface TaskDetail {
   checklistDone: number;
   /** Thời điểm hoàn thành (ISO) — null nghĩa là task chưa done */
   completedAt: string | null;
+  /** Thời điểm member thường yêu cầu owner duyệt (ISO) — null nếu chưa */
+  reviewRequestedAt: string | null;
+  reviewRequestedBy: string | null;
+  /** Thời điểm owner lưu trữ (ISO) — null nếu chưa lưu trữ */
+  archivedAt: string | null;
+  /** Trạng thái workflow suy diễn từ BE */
+  status: TaskWorkflowStatus;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Trạng thái workflow của task (khớp BE). */
+export type TaskWorkflowStatus = 'OPEN' | 'IN_REVIEW' | 'DONE' | 'ARCHIVED';
 
 export interface PresignResult {
   uploadUrl: string;
