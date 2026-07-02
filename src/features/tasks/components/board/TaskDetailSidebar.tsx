@@ -91,8 +91,12 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
         avatarUrl: currentUser.avatarUrl,
       },
       {
-        onError: () =>
-          toast.error('Không giao được việc cho bạn — có thể bạn chưa là thành viên dự án'),
+        onError: (e) =>
+          toast.error(
+            e instanceof Error && e.message
+              ? `Giao việc thất bại: ${e.message}`
+              : 'Giao việc cho bạn thất bại',
+          ),
       },
     );
   };

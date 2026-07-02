@@ -14,7 +14,14 @@ import {
   useDeleteTask,
 } from '../../hooks/useTaskDetail';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import type { SubtaskItem } from '../../types';
+import type { SubtaskItem, TaskPriority } from '../../types';
+
+/** Màu chấm ưu tiên — đồng bộ với sidebar (P1 đỏ, P2 vàng, P3 xanh). */
+const PRIORITY_DOT: Record<TaskPriority, string> = {
+  P1: '#EF4444',
+  P2: '#F59E0B',
+  P3: '#22C55E',
+};
 
 interface SubtaskSectionProps {
   projectId: string;
@@ -134,7 +141,25 @@ function SubtaskRow({
           isDone && 'text-muted-foreground line-through',
         )}
       >
+        {/* Ưu tiên: chấm màu P1/P2/P3 */}
+        {sub.priority && (
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: PRIORITY_DOT[sub.priority] }}
+            title={`Ưu tiên ${sub.priority}`}
+          />
+        )}
         <span className="truncate">{sub.title}</span>
+        {/* Nhãn */}
+        {sub.tags.map((t) => (
+          <span
+            key={t.id}
+            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ backgroundColor: `${t.color}22`, color: t.color }}
+          >
+            {t.name}
+          </span>
+        ))}
         {sub.status === 'IN_REVIEW' && (
           <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
             <Clock className="h-3 w-3" /> Chờ duyệt

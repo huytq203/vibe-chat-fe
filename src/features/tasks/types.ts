@@ -165,6 +165,7 @@ export interface SubtaskItem {
   isPinned: boolean;
   subtaskCount: number;
   assignees: BoardTaskAssignee[];
+  tags: BoardTaskTag[];
 }
 
 export interface PresignResult {
