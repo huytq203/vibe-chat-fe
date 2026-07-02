@@ -16,6 +16,8 @@ import {
   type ColumnIconKey,
 } from './column-style';
 import { useCreateTask } from '../../hooks/useCreateTask';
+import { useDeleteColumn } from '../../hooks/useDeleteColumn';
+import { useUpdateColumn } from '../../hooks/useUpdateColumn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardColumn, BoardTask } from '../../types';
 
@@ -97,17 +99,33 @@ function TaskRow({ task, dotColor }: { task: BoardTask; dotColor: string }) {
 interface ListColumnProps {
   projectId: string;
   column: BoardColumn;
-  onDelete: () => void;
 }
 
-export function ListColumn({ projectId, column, onDelete }: ListColumnProps) {
+export function ListColumn({ projectId, column }: ListColumnProps) {
   const createTask = useCreateTask(projectId);
+  const updateColumn = useUpdateColumn(projectId);
+  const deleteColumn = useDeleteColumn(projectId);
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
-  // Demo UI (chưa có API updateColumn): icon + màu header giữ ở local state.
+  // Icon chưa có field backend nên vẫn giữ ở local state; màu persist qua updateColumn.
   const [iconKey, setIconKey] = useState<ColumnIconKey>(DEFAULT_COLUMN_ICON);
   const [headerColor, setHeaderColor] = useState<string>(column.color ?? DEFAULT_COLUMN_COLOR);
   const HeaderIcon = COLUMN_ICONS[iconKey];
+
+  const handleColorChange = (nextColor: string) => {
+    if (updateColumn.isPending || nextColor === headerColor) return;
+    const prevColor = headerColor;
+    setHeaderColor(nextColor); // optimistic
+    updateColumn.mutate(
+      { columnId: column.id, color: nextColor },
+      { onError: () => setHeaderColor(prevColor) }, // lỗi → trả lại màu cũ
+    );
+  };
+
+  // Trả promise để ColumnHeaderMenu đóng dialog khi thành công / hiện lỗi khi thất bại.
+  const handleDelete = async (): Promise<void> => {
+    await deleteColumn.mutateAsync(column.id);
+  };
 
   const handleAdd = async () => {
     const t = title.trim();
@@ -135,11 +153,14 @@ export function ListColumn({ projectId, column, onDelete }: ListColumnProps) {
           </span>
         </div>
         <ColumnHeaderMenu
+          columnName={column.name}
           iconKey={iconKey}
           color={headerColor}
+          isUpdating={updateColumn.isPending}
+          isDeleting={deleteColumn.isPending}
           onIconChange={setIconKey}
-          onColorChange={setHeaderColor}
-          onDelete={onDelete}
+          onColorChange={handleColorChange}
+          onDelete={handleDelete}
         />
       </div>
 

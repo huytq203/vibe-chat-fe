@@ -13,20 +13,23 @@ import {
   type ColumnIconKey,
 } from './column-style';
 import { useCreateTask } from '../../hooks/useCreateTask';
+import { useDeleteColumn } from '../../hooks/useDeleteColumn';
+import { useUpdateColumn } from '../../hooks/useUpdateColumn';
 import type { BoardColumn } from '../../types';
 
 interface ColumnProps {
   projectId: string;
   column: BoardColumn;
-  onDelete: () => void;
 }
 
-export function Column({ projectId, column, onDelete }: ColumnProps) {
+export function Column({ projectId, column }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const createTask = useCreateTask(projectId);
+  const updateColumn = useUpdateColumn(projectId);
+  const deleteColumn = useDeleteColumn(projectId);
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
-  // Demo UI (chưa có API updateColumn): icon + màu + tên header giữ ở local state.
+  // Icon chưa có field backend nên vẫn giữ ở local state; tên + màu persist qua updateColumn.
   const [iconKey, setIconKey] = useState<ColumnIconKey>(DEFAULT_COLUMN_ICON);
   const [headerColor, setHeaderColor] = useState<string>(column.color ?? DEFAULT_COLUMN_COLOR);
   const [name, setName] = useState(column.name);
@@ -34,8 +37,33 @@ export function Column({ projectId, column, onDelete }: ColumnProps) {
   const HeaderIcon = COLUMN_ICONS[iconKey];
 
   const commitName = () => {
-    setName((prev) => prev.trim() || column.name); // rỗng → giữ tên cũ
     setEditingName(false);
+    const trimmed = name.trim();
+    // Rỗng hoặc không đổi → giữ tên cũ, không gọi API.
+    if (!trimmed || trimmed === column.name) {
+      setName(column.name);
+      return;
+    }
+    setName(trimmed); // optimistic — board sẽ refetch sau khi mutation thành công
+    updateColumn.mutate(
+      { columnId: column.id, name: trimmed },
+      { onError: () => setName(column.name) }, // lỗi → khôi phục tên cũ
+    );
+  };
+
+  const handleColorChange = (nextColor: string) => {
+    if (updateColumn.isPending || nextColor === headerColor) return;
+    const prevColor = headerColor;
+    setHeaderColor(nextColor); // optimistic
+    updateColumn.mutate(
+      { columnId: column.id, color: nextColor },
+      { onError: () => setHeaderColor(prevColor) }, // lỗi → trả lại màu cũ
+    );
+  };
+
+  // Trả promise để ColumnHeaderMenu đóng dialog khi thành công / hiện lỗi khi thất bại.
+  const handleDelete = async (): Promise<void> => {
+    await deleteColumn.mutateAsync(column.id);
   };
 
   const handleAdd = async () => {
@@ -105,11 +133,14 @@ export function Column({ projectId, column, onDelete }: ColumnProps) {
             <Plus className="h-4 w-4" />
           </button>
           <ColumnHeaderMenu
+            columnName={name}
             iconKey={iconKey}
             color={headerColor}
+            isUpdating={updateColumn.isPending}
+            isDeleting={deleteColumn.isPending}
             onIconChange={setIconKey}
-            onColorChange={setHeaderColor}
-            onDelete={onDelete}
+            onColorChange={handleColorChange}
+            onDelete={handleDelete}
           />
         </div>
       </div>

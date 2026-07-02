@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import { Calendar, Eye, Flag, Hash, Tag as TagIcon, UserPlus, X } from 'lucide-react';
@@ -8,10 +7,10 @@ import { cn } from '@/lib/utils/cn';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { useUpdateTask } from '../../hooks/useTaskDetail';
-import { useAssignees } from '../../hooks/useAssignees';
-import { useTaskTags, useProjectTags } from '../../hooks/useTaskTags';
+import { useAssignees, useAddAssignee, useRemoveAssignee } from '../../hooks/useAssignees';
+import { useTaskTags, useProjectTags, useAttachTag, useDetachTag } from '../../hooks/useTaskTags';
 import { useMembers } from '../../hooks/useMembers';
-import type { Member, Tag, TaskDetail, TaskPriority } from '../../types';
+import type { TaskDetail, TaskPriority } from '../../types';
 
 const PRIORITY_META: Record<TaskPriority, { label: string; dot: string; active: string }> = {
   P1: { label: 'Cao', dot: '#EF4444', active: 'bg-red-100 text-red-700' },
@@ -47,27 +46,19 @@ interface TaskDetailSidebarProps {
 
 export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebarProps) {
   const updateTask = useUpdateTask(projectId, taskId);
-  const { data: serverAssignees } = useAssignees(projectId, taskId);
-  const { data: serverTaskTags } = useTaskTags(projectId, taskId);
   const { data: projectTags = [] } = useProjectTags(projectId);
   const { data: members = [] } = useMembers(projectId);
 
-  // Demo UI: quản lý nhãn & người thực hiện bằng local state (chưa nối API).
-  // Seed từ server khi data đổi — điều chỉnh state ngay trong render (pattern React),
-  // tránh useEffect + setState. Thao tác thêm/xoá chỉ đổi local nên hiện ngay.
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [tagsSeed, setTagsSeed] = useState<Tag[] | undefined>(undefined);
-  if (serverTaskTags !== tagsSeed) {
-    setTagsSeed(serverTaskTags);
-    if (serverTaskTags) setTags(serverTaskTags);
-  }
+  // Nhãn: attach/detach có optimistic update trong hook → UI hiện ngay, rollback khi lỗi.
+  const { data: tags = [] } = useTaskTags(projectId, taskId);
+  const attachTag = useAttachTag(projectId, taskId);
+  const detachTag = useDetachTag(projectId, taskId);
 
-  const [assignees, setAssignees] = useState<Member[]>([]);
-  const [assigneesSeed, setAssigneesSeed] = useState<Member[] | undefined>(undefined);
-  if (serverAssignees !== assigneesSeed) {
-    setAssigneesSeed(serverAssignees);
-    if (serverAssignees) setAssignees(serverAssignees);
-  }
+  // Người thực hiện: hook chưa optimistic → disable control khi đang mutate.
+  const { data: assignees = [] } = useAssignees(projectId, taskId);
+  const addAssignee = useAddAssignee(projectId, taskId);
+  const removeAssignee = useRemoveAssignee(projectId, taskId);
+  const assigneeMutating = addAssignee.isPending || removeAssignee.isPending;
 
   const availableMembers = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
   const availableTags = projectTags.filter((pt) => !tags.some((t) => t.id === pt.id));
@@ -127,8 +118,9 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
               <span className="text-xs">{a.displayName}</span>
               <button
                 type="button"
-                onClick={() => setAssignees((prev) => prev.filter((x) => x.userId !== a.userId))}
-                className="text-muted-foreground hover:text-foreground"
+                onClick={() => removeAssignee.mutate(a.userId)}
+                disabled={assigneeMutating}
+                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
                 aria-label={`Bỏ ${a.displayName}`}
               >
                 <X className="h-3 w-3" />
@@ -148,8 +140,15 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
                     <button
                       key={m.userId}
                       type="button"
-                      onClick={() => setAssignees((prev) => [...prev, m])}
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                      onClick={() =>
+                        addAssignee.mutate({
+                          userId: m.userId,
+                          displayName: m.displayName,
+                          avatarUrl: m.avatarUrl,
+                        })
+                      }
+                      disabled={assigneeMutating}
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
                     >
                       <Avatar
                         src={m.avatarUrl ?? undefined}
@@ -182,7 +181,7 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
               {tag.name}
               <button
                 type="button"
-                onClick={() => setTags((prev) => prev.filter((t) => t.id !== tag.id))}
+                onClick={() => detachTag.mutate(tag.id)}
                 aria-label={`Xoá nhãn ${tag.name}`}
                 className="hover:opacity-80"
               >
@@ -203,7 +202,7 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
                     <button
                       key={tag.id}
                       type="button"
-                      onClick={() => setTags((prev) => [...prev, tag])}
+                      onClick={() => attachTag.mutate(tag)}
                       className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
                     >
                       <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tag.color }} />

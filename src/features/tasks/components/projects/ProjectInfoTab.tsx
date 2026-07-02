@@ -5,8 +5,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input/Input';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Button } from '@/components/ui/button/Button';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog/AlertDialog';
 import { tasksApi } from '../../services/tasks.api';
 import { taskKeys } from '../../services/keys';
+import { useDeleteProject } from '../../hooks/useDeleteProject';
+import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { Project } from '../../types';
 
 export function ProjectInfoTab({ project }: { project: Project }) {
@@ -24,6 +34,29 @@ export function ProjectInfoTab({ project }: { project: Project }) {
   });
 
   const dirty = name.trim() !== project.name || desc.trim() !== (project.description ?? '');
+
+  // --- Vùng nguy hiểm: xoá dự án (confirm 2 bước — phải gõ đúng tên dự án) ---
+  const closeSettings = useTasksUIStore((s) => s.closeSettings);
+  const setSelectedProjectId = useTasksUIStore((s) => s.setSelectedProjectId);
+  const setActiveView = useTasksUIStore((s) => s.setActiveView);
+  const deleteProject = useDeleteProject(project.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+
+  const nameMatches = confirmName.trim() === project.name;
+
+  const handleConfirmDelete = () => {
+    if (!nameMatches || deleteProject.isPending) return;
+    deleteProject.mutate(undefined, {
+      onSuccess: () => {
+        setConfirmOpen(false);
+        closeSettings();
+        // setSelectedProjectId(null) đưa activeView về 'home' → ép lại 'projects' sau đó.
+        setSelectedProjectId(null);
+        setActiveView('projects');
+      },
+    });
+  };
 
   return (
     <div className="space-y-5">
@@ -62,6 +95,63 @@ export function ProjectInfoTab({ project }: { project: Project }) {
       <Button onClick={() => updateProject.mutate()} disabled={!name.trim() || !dirty || updateProject.isPending}>
         {updateProject.isPending ? 'Đang lưu…' : 'Lưu thay đổi'}
       </Button>
+
+      {/* Vùng nguy hiểm */}
+      <div className="rounded-lg border border-danger/40 p-4">
+        <p className="text-sm font-semibold text-danger">Vùng nguy hiểm</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Xoá dự án sẽ xoá vĩnh viễn toàn bộ cột, nhiệm vụ, bình luận và tệp đính kèm. Hành động
+          này không thể hoàn tác.
+        </p>
+        <Button variant="danger" size="sm" className="mt-3" onClick={() => setConfirmOpen(true)}>
+          Xoá dự án
+        </Button>
+      </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          setConfirmOpen(o);
+          if (!o) setConfirmName('');
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá dự án?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toàn bộ dữ liệu của dự án{' '}
+              <span className="font-semibold text-foreground">{project.name}</span> sẽ bị xoá vĩnh
+              viễn. Gõ chính xác tên dự án để xác nhận.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={project.name}
+            aria-label="Nhập tên dự án để xác nhận"
+          />
+          <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmOpen(false);
+                setConfirmName('');
+              }}
+              disabled={deleteProject.isPending}
+            >
+              Huỷ
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={!nameMatches}
+              isLoading={deleteProject.isPending}
+            >
+              Xoá vĩnh viễn
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

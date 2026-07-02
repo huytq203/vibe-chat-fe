@@ -24,12 +24,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [newCol, setNewCol] = useState('');
   const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
-  // Demo UI (chưa có API deleteColumn): cột đã xóa giữ ở local state.
-  const [hiddenColumnIds, setHiddenColumnIds] = useState<ReadonlySet<string>>(new Set());
-
-  const handleDeleteColumn = (columnId: string) => {
-    setHiddenColumnIds((prev) => new Set(prev).add(columnId));
-  };
 
   const handleAddColumn = async () => {
     const n = newCol.trim();
@@ -74,16 +68,9 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       onDragCancel={() => setActiveTask(null)}
     >
       <div className="flex h-full items-start gap-[18px] overflow-x-auto bg-muted px-7 py-6">
-        {board.columns
-          .filter((column) => !hiddenColumnIds.has(column.id))
-          .map((column) => (
-            <Column
-              key={column.id}
-              projectId={projectId}
-              column={column}
-              onDelete={() => handleDeleteColumn(column.id)}
-            />
-          ))}
+        {board.columns.map((column) => (
+          <Column key={column.id} projectId={projectId} column={column} />
+        ))}
         <div className="flex w-64 shrink-0 items-center gap-2 rounded-xl border border-dashed border-border p-2">
           <input
             value={newCol}

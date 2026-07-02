@@ -1,17 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useBoard } from '../../hooks/useBoard';
 import { ListColumn } from './ListColumn';
 
 export function ListView({ projectId }: { projectId: string }) {
   const { data: board, isLoading, isError } = useBoard(projectId);
-  // Demo UI (chưa có API deleteColumn): cột đã xóa giữ ở local state.
-  const [hiddenColumnIds, setHiddenColumnIds] = useState<ReadonlySet<string>>(new Set());
-
-  const handleDeleteColumn = (columnId: string) => {
-    setHiddenColumnIds((prev) => new Set(prev).add(columnId));
-  };
 
   if (isLoading) return <div className="p-7 text-muted-foreground">Đang tải danh sách…</div>;
   if (isError) return <div className="p-7 text-red-500">Không tải được danh sách. Vui lòng thử lại.</div>;
@@ -24,16 +17,9 @@ export function ListView({ projectId }: { projectId: string }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto bg-muted px-7 py-2 pb-7">
       <div className="mx-auto max-w-[940px] pt-2">
-        {board.columns
-          .filter((column) => !hiddenColumnIds.has(column.id))
-          .map((column) => (
-            <ListColumn
-              key={column.id}
-              projectId={projectId}
-              column={column}
-              onDelete={() => handleDeleteColumn(column.id)}
-            />
-          ))}
+        {board.columns.map((column) => (
+          <ListColumn key={column.id} projectId={projectId} column={column} />
+        ))}
       </div>
     </div>
   );

@@ -5,10 +5,12 @@ import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs/Tabs';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useComments, useCreateComment, useDeleteComment } from '../../hooks/useComments';
+import { useUpdateComment } from '../../hooks/useUpdateComment';
 import { useTaskActivities } from '../../hooks/useActivities';
 import { getCurrentUser } from '../../lib/current-user';
+import type { Comment } from '../../types';
 
 interface ActivityTabsProps {
   projectId: string;
@@ -21,7 +23,12 @@ export function ActivityTabs({ projectId, taskId }: ActivityTabsProps) {
   const { data: comments = [] } = useComments(projectId, taskId);
   const createComment = useCreateComment(projectId, taskId);
   const deleteComment = useDeleteComment(projectId, taskId);
+  const updateComment = useUpdateComment(projectId, taskId);
   const [commentDraft, setCommentDraft] = useState('');
+
+  // Sửa inline: chỉ cho phép với bình luận của chính mình.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
 
   const { data: activities = [] } = useTaskActivities(projectId, taskId);
 
@@ -31,6 +38,25 @@ export function ActivityTabs({ projectId, taskId }: ActivityTabsProps) {
     createComment.mutate(
       { content: text, displayName: currentUser.displayName, avatarUrl: currentUser.avatarUrl },
       { onSuccess: () => setCommentDraft('') },
+    );
+  };
+
+  const startEditComment = (c: Comment) => {
+    setEditingId(c.id);
+    setEditDraft(c.content);
+  };
+
+  const cancelEditComment = () => {
+    setEditingId(null);
+    setEditDraft('');
+  };
+
+  const handleSaveEdit = () => {
+    const text = editDraft.trim();
+    if (!text || !editingId || updateComment.isPending) return;
+    updateComment.mutate(
+      { commentId: editingId, content: text },
+      { onSuccess: cancelEditComment },
     );
   };
 
@@ -58,19 +84,64 @@ export function ActivityTabs({ projectId, taskId }: ActivityTabsProps) {
                     <span className="text-xs font-medium">{c.displayName}</span>
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(c.createdAt).toLocaleString('vi-VN')}
+                      {c.updatedAt !== c.createdAt && ' (đã sửa)'}
                     </span>
                   </div>
-                  <p className="mt-0.5 whitespace-pre-wrap text-sm">{c.content}</p>
+                  {editingId === c.id ? (
+                    <div className="mt-1">
+                      <Textarea
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        className="min-h-[60px] resize-none text-sm"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveEdit();
+                          if (e.key === 'Escape') cancelEditComment();
+                        }}
+                      />
+                      <div className="mt-1 flex gap-2">
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleSaveEdit}
+                          disabled={!editDraft.trim() || updateComment.isPending}
+                        >
+                          {updateComment.isPending ? 'Đang lưu…' : 'Lưu'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={cancelEditComment}
+                          disabled={updateComment.isPending}
+                        >
+                          Huỷ
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-0.5 whitespace-pre-wrap text-sm">{c.content}</p>
+                  )}
                 </div>
-                {currentUser?.userId === c.authorId && (
-                  <button
-                    type="button"
-                    onClick={() => deleteComment.mutate(c.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label="Xoá bình luận"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                {currentUser?.userId === c.authorId && editingId !== c.id && (
+                  <div className="flex items-start gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => startEditComment(c)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Sửa bình luận"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteComment.mutate(c.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Xoá bình luận"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}

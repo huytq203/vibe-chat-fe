@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils/cn';
 interface StatCardProps {
   label: string;
   value: string;
-  delta: string;
-  deltaTone: 'up' | 'down';
+  /** Dòng phụ dưới số liệu; không truyền deltaTone → hiển thị màu muted */
+  delta?: string;
+  deltaTone?: 'up' | 'down';
   icon: ReactNode;
 }
 
@@ -22,9 +23,20 @@ export function StatCard({ label, value, delta, deltaTone, icon }: StatCardProps
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">{icon}</span>
         </div>
         <div className="text-3xl font-extrabold tracking-tight text-foreground">{value}</div>
-        <Text size="xs" weight="medium" className={cn('mt-1', deltaTone === 'up' ? 'text-success' : 'text-danger')}>
-          {delta}
-        </Text>
+        {delta && (
+          <Text
+            size="xs"
+            weight="medium"
+            className={cn(
+              'mt-1',
+              deltaTone === 'up' && 'text-success',
+              deltaTone === 'down' && 'text-danger',
+              !deltaTone && 'text-muted-foreground',
+            )}
+          >
+            {delta}
+          </Text>
+        )}
       </CardContent>
     </Card>
   );
