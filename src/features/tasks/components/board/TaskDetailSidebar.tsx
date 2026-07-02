@@ -10,6 +10,8 @@ import { useUpdateTask } from '../../hooks/useTaskDetail';
 import { useAssignees, useAddAssignee, useRemoveAssignee } from '../../hooks/useAssignees';
 import { useTaskTags, useProjectTags, useAttachTag, useDetachTag } from '../../hooks/useTaskTags';
 import { useMembers } from '../../hooks/useMembers';
+import { toast } from 'sonner';
+import { getCurrentUser } from '../../lib/current-user';
 import type { TaskDetail, TaskPriority } from '../../types';
 
 /**
@@ -75,6 +77,25 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
   const assigneeMutating = addAssignee.isPending || removeAssignee.isPending;
 
   const availableMembers = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
+
+  // Tự gán bản thân — luôn khả dụng khi mình chưa được giao (không phụ thuộc list members)
+  const currentUser = getCurrentUser();
+  const isSelfAssigned =
+    !!currentUser && assignees.some((a) => a.userId === currentUser.userId);
+  const assignSelf = () => {
+    if (!currentUser || assigneeMutating) return;
+    addAssignee.mutate(
+      {
+        userId: currentUser.userId,
+        displayName: currentUser.displayName,
+        avatarUrl: currentUser.avatarUrl,
+      },
+      {
+        onError: () =>
+          toast.error('Không giao được việc cho bạn — có thể bạn chưa là thành viên dự án'),
+      },
+    );
+  };
   const availableTags = projectTags.filter((pt) => !tags.some((t) => t.id === pt.id));
 
   // Thời gian hoàn thành (từ lúc tạo tới lúc done) — chỉ tính khi task đã DONE.
@@ -149,6 +170,18 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
               </button>
             </span>
           ))}
+          {/* Tự giao việc cho bản thân — một chạm, luôn hiện khi chưa được giao */}
+          {currentUser && !isSelfAssigned && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="h-7 px-1.5 text-xs"
+              onClick={assignSelf}
+              disabled={assigneeMutating}
+            >
+              <UserPlus className="mr-1 h-3.5 w-3.5" /> Giao cho tôi
+            </Button>
+          )}
           {availableMembers.length > 0 && (
             <Popover>
               <PopoverTrigger>
@@ -185,9 +218,11 @@ export function TaskDetailSidebar({ projectId, taskId, task }: TaskDetailSidebar
               </PopoverContent>
             </Popover>
           )}
-          {assignees.length === 0 && availableMembers.length === 0 && (
-            <span className="text-xs text-muted-foreground">Chưa có thành viên</span>
-          )}
+          {assignees.length === 0 &&
+            availableMembers.length === 0 &&
+            (isSelfAssigned || !currentUser) && (
+              <span className="text-xs text-muted-foreground">Chưa có thành viên</span>
+            )}
         </div>
       </SidebarSection>
 
