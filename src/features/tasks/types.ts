@@ -140,8 +140,6 @@ export interface TaskDetail {
   /** Thời điểm member thường yêu cầu owner duyệt (ISO) — null nếu chưa */
   reviewRequestedAt: string | null;
   reviewRequestedBy: string | null;
-  /** Thời điểm owner lưu trữ (ISO) — null nếu chưa lưu trữ */
-  archivedAt: string | null;
   /** Trạng thái workflow suy diễn từ BE */
   status: TaskWorkflowStatus;
   createdAt: string;
@@ -149,7 +147,7 @@ export interface TaskDetail {
 }
 
 /** Trạng thái workflow của task (khớp BE). */
-export type TaskWorkflowStatus = 'OPEN' | 'IN_REVIEW' | 'DONE' | 'ARCHIVED';
+export type TaskWorkflowStatus = 'OPEN' | 'IN_REVIEW' | 'DONE';
 
 export interface PresignResult {
   uploadUrl: string;

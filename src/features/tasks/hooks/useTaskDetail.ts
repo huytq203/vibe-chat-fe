@@ -75,10 +75,6 @@ export function useReopenTask(projectId: string, taskId: string) {
   return useWorkflowMutation(projectId, taskId, tasksApi.reopenTask);
 }
 
-/** Lưu trữ task đã DONE để clear khỏi board (chỉ owner). */
-export function useArchiveTask(projectId: string, taskId: string) {
-  return useWorkflowMutation(projectId, taskId, tasksApi.archiveTask);
-}
 
 export function useDeleteTask(projectId: string) {
   const qc = useQueryClient();

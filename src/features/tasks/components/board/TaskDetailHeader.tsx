@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import {
-  Archive,
   Check,
   CheckCircle2,
   ChevronDown,
   Clock,
   Pin,
   RotateCcw,
+  Trash2,
   UserPlus2,
 } from 'lucide-react';
 import {
@@ -31,8 +31,10 @@ import {
   useUpdateTask,
   useCompleteTask,
   useReopenTask,
-  useArchiveTask,
+  useDeleteTask,
 } from '../../hooks/useTaskDetail';
+import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { useSubtasksStore } from '../../stores/subtasks.store';
 import { getCurrentUser } from '../../lib/current-user';
 import { TaskDetailMenu } from './TaskDetailMenu';
 import type { BoardColumn, TaskDetail } from '../../types';
@@ -51,16 +53,18 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
   const addAssignee = useAddAssignee(projectId, taskId);
   const updateTask = useUpdateTask(projectId, taskId);
 
-  // Workflow complete → review → done → archive.
+  // Workflow complete → review → done. Clear task đã done = xóa hẳn (soft-delete).
   const completeTask = useCompleteTask(projectId, taskId);
   const reopenTask = useReopenTask(projectId, taskId);
-  const archiveTask = useArchiveTask(projectId, taskId);
+  const deleteTask = useDeleteTask(projectId);
+  const closeTask = useTasksUIStore((s) => s.closeTask);
+  const resetSubtaskPath = useSubtasksStore((s) => s.resetPath);
   const workflowPending =
-    completeTask.isPending || reopenTask.isPending || archiveTask.isPending;
+    completeTask.isPending || reopenTask.isPending || deleteTask.isPending;
 
-  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  // Owner = chủ dự án; chỉ owner mới duyệt/lưu trữ. reviewRequester = người đã gửi yêu cầu duyệt.
+  // Owner = chủ dự án; chỉ owner mới duyệt/xóa. reviewRequester = người đã gửi yêu cầu duyệt.
   const currentUser = getCurrentUser();
   const isOwner = !!board && !!currentUser && board.project.ownerId === currentUser.userId;
   const isReviewRequester =
@@ -77,8 +81,15 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
 
   const available = members.filter((m) => !assignees.some((a) => a.userId === m.userId));
 
-  const confirmArchive = () => {
-    archiveTask.mutate(undefined, { onSuccess: () => setArchiveConfirmOpen(false) });
+  // Xóa task đã hoàn thành để clear khỏi board → đóng modal + reset đường dẫn subtask
+  const confirmDelete = () => {
+    deleteTask.mutate(taskId, {
+      onSuccess: () => {
+        setDeleteConfirmOpen(false);
+        resetSubtaskPath();
+        closeTask();
+      },
+    });
   };
 
   return (
@@ -139,46 +150,35 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
           </div>
         )}
 
-        {/* DONE: thời gian hoàn thành hiển thị ở body (sidebar). Header chỉ có action cho owner. */}
-        {task.status === 'DONE' && isOwner && (
+        {/* DONE: thời gian hoàn thành hiển thị ở body. Owner có nút Xóa (clear khỏi board) + Mở lại. */}
+        {task.status === 'DONE' && (
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={workflowPending}
-              onClick={() => setArchiveConfirmOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
-            >
-              <Archive className="h-4 w-4" />
-              Lưu trữ
-            </button>
-            <button
-              type="button"
-              disabled={workflowPending}
-              onClick={() => reopenTask.mutate()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Mở lại
-            </button>
-          </div>
-        )}
-
-        {task.status === 'ARCHIVED' && (
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-sm font-semibold text-muted-foreground">
-              <Archive className="h-4 w-4" />
-              Đã lưu trữ
-            </span>
-            {isOwner && (
-              <button
-                type="button"
-                disabled={workflowPending}
-                onClick={() => reopenTask.mutate()}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Mở lại
-              </button>
+            {isOwner ? (
+              <>
+                <button
+                  type="button"
+                  disabled={workflowPending}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-danger px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-danger/90 disabled:opacity-60"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Xóa nhiệm vụ
+                </button>
+                <button
+                  type="button"
+                  disabled={workflowPending}
+                  onClick={() => reopenTask.mutate()}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Mở lại
+                </button>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-500">
+                <CheckCircle2 className="h-4 w-4" />
+                Hoàn thành
+              </span>
             )}
           </div>
         )}
@@ -286,26 +286,26 @@ export function TaskDetailHeader({ projectId, taskId, task }: TaskDetailHeaderPr
         <TaskDetailMenu projectId={projectId} taskId={taskId} taskTitle={task.title} />
       </div>
 
-      {/* Xác nhận lưu trữ — task sẽ bị clear khỏi board */}
-      <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
+      {/* Xác nhận xóa — task đã hoàn thành sẽ bị xóa vĩnh viễn khỏi board */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Lưu trữ nhiệm vụ?</AlertDialogTitle>
+            <AlertDialogTitle>Xóa nhiệm vụ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Nhiệm vụ <span className="font-semibold text-foreground">{task.title}</span> sẽ được
-              ẩn khỏi board. Bạn có thể mở lại sau nếu cần.
+              Nhiệm vụ <span className="font-semibold text-foreground">{task.title}</span> cùng toàn
+              bộ subtask, comment, checklist sẽ bị xóa vĩnh viễn và không thể khôi phục.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button
               variant="ghost"
-              onClick={() => setArchiveConfirmOpen(false)}
-              disabled={archiveTask.isPending}
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={deleteTask.isPending}
             >
               Huỷ
             </Button>
-            <Button onClick={confirmArchive} isLoading={archiveTask.isPending}>
-              Lưu trữ
+            <Button variant="danger" onClick={confirmDelete} isLoading={deleteTask.isPending}>
+              Xóa
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

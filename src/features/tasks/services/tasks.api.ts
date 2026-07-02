@@ -78,15 +78,13 @@ export const tasksApi = {
 
   deleteTask: (taskId: string) => taskClient.delete<void>(`/api/v1/tasks/${taskId}`),
 
-  // --- Workflow: complete → review → archive ---
+  // --- Workflow: complete / reopen ---
   completeTask: (taskId: string) =>
     taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/complete`, {}),
 
   reopenTask: (taskId: string) =>
     taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/reopen`, {}),
 
-  archiveTask: (taskId: string) =>
-    taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/archive`, {}),
 
   moveTask: (taskId: string, input: { columnId: string; position: number }) =>
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),
