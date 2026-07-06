@@ -271,7 +271,20 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   const json = (await res.json()) as unknown;
 
   if (shouldCipher) {
-    return decipherResponse<T>(json, sessionKey);
+    // Plaintext sau giải mã vẫn là envelope chuẩn { success?, data, meta?, timestamp? }
+    // như response thường → phải unwrap `.data` để lớp cipher trong suốt với caller.
+    // Trước khi có E2E encryption, nhánh legacy bên dưới đã unwrap; migration cipher bỏ
+    // sót nên list endpoint (vd /conversations) trả nguyên envelope → caller nhận sai shape.
+    const decrypted = await decipherResponse<unknown>(json, sessionKey);
+    if (decrypted && typeof decrypted === 'object' && !Array.isArray(decrypted)) {
+      if ('timestamp' in decrypted) {
+        syncServerTime((decrypted as ApiEnvelope<T>).timestamp);
+      }
+      if ('data' in decrypted) {
+        return (decrypted as { data: T }).data;
+      }
+    }
+    return decrypted as T;
   }
 
   // Legacy format (auth service / public endpoints)

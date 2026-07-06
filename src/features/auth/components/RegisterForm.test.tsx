@@ -41,7 +41,10 @@ async function fillStep2() {
 }
 
 async function fillStep3() {
-  fireEvent.change(screen.getByLabelText('Ngày sinh'), { target: { value: '2000-01-15' } });
+  // DatePicker (editable) nhận định dạng dd/MM/yyyy và tự chuyển về yyyy-MM-dd cho form.
+  fireEvent.change(screen.getByPlaceholderText('Chọn ngày sinh'), {
+    target: { value: '15/01/2000' },
+  });
   await userEvent.click(screen.getByRole('button', { name: /tiếp theo/i }));
 }
 

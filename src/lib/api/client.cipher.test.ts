@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
+import { encryptBlob } from '@/lib/crypto/transport-cipher';
 
 // Setup: mock session-key để trả về CryptoKey thật
 const testKeyRaw = crypto.getRandomValues(new Uint8Array(32));
@@ -40,5 +40,40 @@ describe('apiClient cipher integration', () => {
     expect(searchParams.has('page')).toBe(false); // original params hidden
 
     expect(result).toEqual(responseData);
+  });
+
+  it('unwraps `.data` from an enveloped ciphered response (list endpoint)', async () => {
+    // Plaintext của list endpoint là envelope { data, meta } → caller phải nhận mảng đã bóc,
+    // không phải nguyên envelope (nếu không, .filter/.map trên "page" sẽ vỡ — regression E2E).
+    const conversations = [{ id: 'c1', type: 'GROUP' }, { id: 'c2', type: 'DIRECT' }];
+    const blob = await encryptBlob(
+      JSON.stringify({ data: conversations, meta: { page: 1, limit: 30 } }),
+      testKey,
+    );
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ error_code: 0, error_message: 'Successful.', data: blob }),
+    });
+
+    const { apiClient } = await import('@/lib/api/client');
+    const result = await apiClient.get<typeof conversations>('/api/v1/conversations');
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toEqual(conversations);
+  });
+
+  it('returns a bare ciphered payload unchanged (no envelope)', async () => {
+    const blob = await encryptBlob(JSON.stringify({ ok: true }), testKey);
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ error_code: 0, error_message: 'Successful.', data: blob }),
+    });
+
+    const { apiClient } = await import('@/lib/api/client');
+    const result = await apiClient.post('/api/v1/conversations/direct', { body: { userId: 'u1' } });
+
+    expect(result).toEqual({ ok: true });
   });
 });

@@ -250,6 +250,17 @@ const EVENT_HANDLERS: Record<string, Handler> = {
   'tag:deleted': (qc, projectId) => {
     void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'tags'] });
     void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    // Nhãn đã xoá khỏi config → BE cascade gỡ nhãn khỏi mọi task. Phải dọn cache
+    // nhãn của từng task đang mở (chip trong modal detail) — không biết task nào
+    // từng gắn nên invalidate mọi per-task tags (['tasks', projectId, taskId, 'tags'])
+    // của project. Kèm subtask lists vì subtask row cũng hiển thị nhãn.
+    void qc.invalidateQueries({
+      predicate: (q) =>
+        q.queryKey[0] === 'tasks' &&
+        q.queryKey[1] === projectId &&
+        q.queryKey[3] === 'tags',
+    });
+    invalidateSubtaskLists(qc, projectId);
   },
 
   // ── Tag gắn trên task: delta vào card (miss = subtask → bỏ qua) ──

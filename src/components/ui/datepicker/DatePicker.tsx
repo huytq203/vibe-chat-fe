@@ -110,6 +110,14 @@ function parseDateInput(raw: string): Date | undefined {
     return isValid ? date : undefined;
 }
 
+/** Chèn tự động dấu "/" theo mẫu dd/mm/yyyy khi người dùng gõ số — không cần tự gõ "/" */
+function maskDateInput(raw: string): string {
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 function padOptions(count: number) {
     return Array.from({ length: count }, (_, i) => ({
         label: i.toString().padStart(2, '0'),
@@ -296,14 +304,19 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     };
 
     const [inputValue, setInputValue] = React.useState('');
-    React.useEffect(() => {
+    // Đồng bộ ô nhập khi `date` đổi từ ngoài (chọn lịch / controlled) — chỉnh state ngay
+    // trong render (pattern React chính thức) thay vì effect để tránh cascading render.
+    const [syncedDate, setSyncedDate] = React.useState(date);
+    if (date !== syncedDate) {
+        setSyncedDate(date);
         if (date instanceof Date) setInputValue(format(date, 'dd/MM/yyyy'));
         else if (!date) setInputValue('');
-    }, [date]);
+    }
 
     const handleInputChange = (raw: string) => {
-        setInputValue(raw);
-        const parsed = parseDateInput(raw);
+        const masked = maskDateInput(raw);
+        setInputValue(masked);
+        const parsed = parseDateInput(masked);
         if (!parsed) return;
         setCalendarMonth(parsed);
         if (!isControlled) setInternalDate(parsed);
@@ -377,12 +390,13 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                         <input
                             type="text"
                             inputMode="numeric"
+                            maxLength={10}
                             disabled={disabled}
                             placeholder={placeholder}
                             value={inputValue}
                             onChange={(e) => handleInputChange(e.target.value)}
                             onBlur={commitInput}
-                            className="flex-1 bg-transparent text-left text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+                            className="min-w-0 flex-1 bg-transparent text-left text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
                         />
                         <BasePopover.Trigger
                             render={
