@@ -8,6 +8,7 @@ let testKey: CryptoKey;
 vi.mock('@/lib/crypto/session-key', () => ({
   getSessionKey: () => testKey,
   clearSessionKey: vi.fn(),
+  ensureSessionKey: vi.fn(),
 }));
 
 const mockFetch = vi.fn();

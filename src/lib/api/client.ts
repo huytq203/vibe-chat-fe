@@ -2,7 +2,7 @@ import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { syncServerTime } from '@/lib/time/server-clock';
 import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
-import { getSessionKey } from '@/lib/crypto/session-key';
+import { getSessionKey, ensureSessionKey, clearSessionKey } from '@/lib/crypto/session-key';
 
 export type ApiEnvelope<T> = {
   success: true;
@@ -189,26 +189,68 @@ async function refreshAccessToken(): Promise<void> {
 }
 
 async function parseError(res: Response): Promise<ApiError> {
-  const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-  const code = body?.error?.code ?? 'INTERNAL_ERROR';
-  const message = body?.error?.message ?? res.statusText ?? 'Có lỗi xảy ra';
+  const body = (await res.json().catch(() => null)) as
+    | (ApiErrorBody & { error_code?: number; error_message?: string })
+    | null;
+  // Middleware transport-cipher trả envelope { error_code, error_message } (vd
+  // SESSION_KEY_MISSING / INVALID_CIPHER) — map error_message thành code để FE phân loại.
+  const code = body?.error?.code ?? body?.error_message ?? 'INTERNAL_ERROR';
+  const message =
+    body?.error?.message ?? body?.error_message ?? res.statusText ?? 'Có lỗi xảy ra';
   return new ApiError(res.status, code, message, body?.error?.details);
 }
 
 /**
- * 401 với code AUTH_SESSION_REVOKED = phiên bị thu hồi (login thiết bị khác)
- * → logout ngay, KHÔNG retry refresh. Trả về ApiError nếu đúng case này.
+ * Xử lý 401 sau request đầu tiên. Trả về Response của lần retry, hoặc throw nếu
+ * không phục hồi được:
+ *  - AUTH_SESSION_REVOKED: phiên bị thu hồi (login thiết bị khác) → logout ngay, KHÔNG retry.
+ *  - SESSION_KEY_MISSING: server mất session key (restart/evict) → lập lại key + re-cipher
+ *    rồi retry (refresh access token KHÔNG cứu được lỗi này).
+ *  - còn lại: access token hết hạn → refresh rồi retry.
  */
-async function checkSessionRevoked(res: Response, path: string): Promise<ApiError | null> {
+async function recoverFrom401(
+  res: Response,
+  method: string,
+  path: string,
+  options: RequestOptions,
+  cipheredOptions: RequestOptions,
+): Promise<Response> {
   const err = await parseError(res.clone());
-  if (err.code !== 'AUTH_SESSION_REVOKED') return null;
-  logger.warn('Session revoked', { path });
-  applyToken(null);
-  onUnauthorized?.();
-  return err;
+
+  if (err.code === 'AUTH_SESSION_REVOKED') {
+    logger.warn('Session revoked', { path });
+    applyToken(null);
+    onUnauthorized?.();
+    throw err;
+  }
+
+  if (err.code === 'SESSION_KEY_MISSING') {
+    logger.warn('Session key missing — re-establish', { path });
+    clearSessionKey();
+    if (accessToken) await ensureSessionKey(accessToken);
+    const key = getSessionKey();
+    const retryOptions =
+      key && !isPublicPath(path) ? await cipherRequest(method, path, options, key) : options;
+    return rawRequest(method, path, retryOptions);
+  }
+
+  try {
+    await refreshAccessToken();
+    return await rawRequest(method, path, cipheredOptions);
+  } catch (e) {
+    logger.warn('Refresh failed', { path });
+    throw e;
+  }
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+  // Lập session key TRƯỚC khi gửi (nếu chưa có) — chống race sau login: query của
+  // ChatLayout bắn ngay khi render, nếu handshake /session/key chưa xong → BE trả 401
+  // SESSION_KEY_MISSING cho MỌI API. ensureSessionKey dedupe nên chỉ handshake 1 lần.
+  if (options.auth !== false && accessToken && !isPublicPath(path)) {
+    await ensureSessionKey(accessToken);
+  }
+
   const sessionKey = getSessionKey();
   const shouldCipher = !!sessionKey && !isPublicPath(path);
   const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
@@ -216,15 +258,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   let res = await rawRequest(method, path, cipheredOptions);
 
   if (res.status === 401 && options.auth !== false && accessToken) {
-    const revoked = await checkSessionRevoked(res, path);
-    if (revoked) throw revoked;
-    try {
-      await refreshAccessToken();
-      res = await rawRequest(method, path, cipheredOptions);
-    } catch (e) {
-      logger.warn('Refresh failed', { path });
-      throw e;
-    }
+    res = await recoverFrom401(res, method, path, options, cipheredOptions);
   }
 
   if (!res.ok) {
@@ -262,16 +296,17 @@ export const apiClient = {
   patch: <T>(path: string, options?: RequestOptions) => request<T>('PATCH', path, options),
   delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),
   rawWithMeta: async <T>(method: string, path: string, options: RequestOptions = {}) => {
+    if (options.auth !== false && accessToken && !isPublicPath(path)) {
+      await ensureSessionKey(accessToken);
+    }
+
     const sessionKey = getSessionKey();
     const shouldCipher = !!sessionKey && !isPublicPath(path);
     const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
 
     let res = await rawRequest(method, path, cipheredOptions);
     if (res.status === 401 && options.auth !== false && accessToken) {
-      const revoked = await checkSessionRevoked(res, path);
-      if (revoked) throw revoked;
-      await refreshAccessToken();
-      res = await rawRequest(method, path, cipheredOptions);
+      res = await recoverFrom401(res, method, path, options, cipheredOptions);
     }
     if (!res.ok) throw await parseError(res);
     const json = (await res.json()) as unknown;

@@ -39,4 +39,32 @@ describe('session-key', () => {
     clearSessionKey();
     expect(getSessionKey()).toBeNull();
   });
+
+  it('ensureSessionKey dedupe: N lời gọi song song chỉ handshake /session/key 1 lần', async () => {
+    const serverEphPubKey = makeServerEphPubKey();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ error_code: 0, data: { serverEphPubKey } }),
+    });
+
+    const { ensureSessionKey, getSessionKey } = await import('./session-key');
+    await Promise.all([ensureSessionKey('t'), ensureSessionKey('t'), ensureSessionKey('t')]);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(getSessionKey()).not.toBeNull();
+  });
+
+  it('ensureSessionKey KHÔNG handshake lại khi đã có key', async () => {
+    const serverEphPubKey = makeServerEphPubKey();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ error_code: 0, data: { serverEphPubKey } }),
+    });
+
+    const { ensureSessionKey } = await import('./session-key');
+    await ensureSessionKey('t');
+    await ensureSessionKey('t');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });

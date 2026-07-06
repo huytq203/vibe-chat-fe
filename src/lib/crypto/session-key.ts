@@ -1,6 +1,9 @@
 import { env } from '@/config/env';
 
 let _sessionKey: CryptoKey | null = null;
+// Handshake /session/key đang chạy — dedupe để nhiều request song song (vd hàng loạt
+// query bắn ngay sau login) chỉ lập key đúng 1 lần, tránh double-establish ghi đè key.
+let _establishing: Promise<void> | null = null;
 
 export function getSessionKey(): CryptoKey | null {
   return _sessionKey;
@@ -8,6 +11,7 @@ export function getSessionKey(): CryptoKey | null {
 
 export function clearSessionKey(): void {
   _sessionKey = null;
+  _establishing = null;
 }
 
 function toB64(bytes: Uint8Array): string {
@@ -91,4 +95,19 @@ export async function establishSessionKey(
   if (json.error_code !== 0) throw new Error('session/key error');
 
   _sessionKey = await deriveSessionKey(keyPair.privateKey, json.data.serverEphPubKey);
+}
+
+/**
+ * Đảm bảo đã có session key trước khi gửi request authed non-public. Chưa có key →
+ * BE trả 401 SESSION_KEY_MISSING (mọi API hỏng). Dedupe qua `_establishing`: nhiều
+ * lời gọi song song chỉ thực hiện 1 handshake, cùng chờ 1 promise.
+ */
+export async function ensureSessionKey(accessToken: string): Promise<void> {
+  if (_sessionKey) return;
+  if (!_establishing) {
+    _establishing = establishSessionKey('', accessToken).finally(() => {
+      _establishing = null;
+    });
+  }
+  await _establishing;
 }
