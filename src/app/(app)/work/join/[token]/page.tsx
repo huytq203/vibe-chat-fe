@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button/Button';
 import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
 import { useResolveInvite, useRequestJoin } from '@/features/tasks/hooks/useSharing';
 import { useTasksUIStore } from '@/features/tasks/stores/tasks-ui.store';
+import { useAuthStore } from '@/features/auth/stores/auth.store';
 
 export default function JoinPage() {
   const params = useParams();
@@ -31,10 +32,16 @@ function Card({ children }: { children: React.ReactNode }) {
 function JoinCard({ token }: { token: string }) {
   const router = useRouter();
   const setSelectedProjectId = useTasksUIStore((s) => s.setSelectedProjectId);
-  const { data, isPending, isError } = useResolveInvite(token);
+  // Chờ auth hydrate xong mới resolve — accessToken là in-memory, load trang
+  // trực tiếp thì null cho tới khi AuthBootstrap khôi phục phiên. Chưa đăng nhập
+  // thì AuthBootstrap tự redirect /login.
+  const hydrated = useAuthStore((s) => s.hydrated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authReady = hydrated && isAuthenticated;
+  const { data, isPending, isError } = useResolveInvite(token, authReady);
   const requestJoin = useRequestJoin(token);
 
-  if (isPending) {
+  if (!authReady || isPending) {
     return (
       <Card>
         <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />

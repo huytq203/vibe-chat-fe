@@ -75,11 +75,16 @@ export function useRejectJoinRequest(projectId: string) {
 
 // ── Trang join (mọi user đã đăng nhập) ────────────────────────────────────────
 
-export function useResolveInvite(token: string) {
+/**
+ * `enabled` phải = auth đã sẵn sàng (hydrated + đăng nhập). accessToken là biến
+ * in-memory, reset null mỗi lần load trang → nếu fetch trước khi AuthBootstrap
+ * hydrate xong sẽ gửi request thiếu token → 401. Gate để tránh điều đó.
+ */
+export function useResolveInvite(token: string, enabled: boolean) {
   return useQuery({
     queryKey: ['invite', token],
     queryFn: () => tasksApi.resolveInvite(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
     retry: false, // 404 (link sai/tắt) → không retry, hiện lỗi ngay
   });
 }
