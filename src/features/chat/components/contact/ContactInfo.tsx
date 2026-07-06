@@ -316,7 +316,7 @@ export function ContactInfo() {
         
         </section>
         <section className="flex justify-center items-center">
-          {isDirect && canUnfriend && (
+          {isDirect && (
             <QuickAction icon={<Users className="h-[18px] w-[18px]" />} label="Tạo nhóm" onClick={() => setCreateGroupOpen(true)} />
           )}
           {!isDirect && (
@@ -359,7 +359,7 @@ export function ContactInfo() {
                 onClick={() => setView("settings")}
               />
             )}
-            {isDirect && canUnfriend && (
+            {isDirect && (
               <OptionRow
                 icon={<Users className="h-4 w-4" />}
                 label="Tạo nhóm"
