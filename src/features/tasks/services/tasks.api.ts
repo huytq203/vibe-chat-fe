@@ -137,6 +137,9 @@ export const tasksApi = {
   detachTag: (taskId: string, tagId: string) =>
     taskClient.delete<void>(`/api/v1/tasks/${taskId}/tags/${tagId}`),
 
+  listTaskTags: (projectId: string, taskId: string) =>
+    taskClient.get<Tag[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/tags`),
+
   // --- Assignees ---
   listAssignees: (projectId: string, taskId: string) =>
     taskClient.get<Member[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`),
