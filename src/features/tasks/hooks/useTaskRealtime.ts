@@ -239,6 +239,15 @@ const EVENT_HANDLERS: Record<string, Handler> = {
     void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'leaderboard'] });
   },
 
+  // ── Yêu cầu tham gia (chia sẻ project qua link) ──
+  // accept còn bắn 'member:added' → members/board tự refresh.
+  'join-request:created': (qc, projectId) => {
+    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'join-requests'] });
+  },
+  'join-request:updated': (qc, projectId) => {
+    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'join-requests'] });
+  },
+
   // ── Tags của project (đổi tên/màu ảnh hưởng mọi card gắn tag → refetch board) ──
   'tag:created': (qc, projectId) => {
     void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'tags'] });

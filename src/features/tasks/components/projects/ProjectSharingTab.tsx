@@ -1,12 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import { Avatar } from '@/components/ui/avatar/Avatar';
-import { Search, UserMinus, UserPlus } from 'lucide-react';
+import { Check, Copy, Link2, RefreshCw, Search, UserMinus, UserPlus, X } from 'lucide-react';
 import { useMembers, useAddMember, useRemoveMember } from '../../hooks/useMembers';
 import { useUserSearch } from '../../hooks/useUserSearch';
+import {
+  useProjectInvite,
+  useEnableInvite,
+  useRotateInvite,
+  useDisableInvite,
+  useJoinRequests,
+  useAcceptJoinRequest,
+  useRejectJoinRequest,
+} from '../../hooks/useSharing';
+import { getCurrentUser } from '../../lib/current-user';
 import type { Project } from '../../types';
 
 /** Độ trễ debounce nhỏ để tránh spam directory khi user đang gõ. */
@@ -17,6 +28,9 @@ export function ProjectSharingTab({ project }: { project: Project }) {
   const { data: members = [] } = useMembers(project.id);
   const addMember = useAddMember(project.id);
   const removeMember = useRemoveMember(project.id);
+
+  // Chỉ OWNER mới quản lý link mời + duyệt yêu cầu.
+  const isOwner = getCurrentUser()?.userId === project.ownerId;
 
   // Ô tìm kiếm: debounce bằng setTimeout — không thêm dependency ngoài.
   const [query, setQuery] = useState('');
@@ -46,6 +60,9 @@ export function ProjectSharingTab({ project }: { project: Project }) {
 
   return (
     <div className="space-y-4">
+      {isOwner && <InviteLinkSection projectId={project.id} />}
+      {isOwner && <JoinRequestsSection projectId={project.id} />}
+
       <p className="text-sm text-muted-foreground">
         Quản lý quyền truy cập dự án. Tìm theo tên hoặc email để mời thành viên mới.
       </p>
@@ -140,6 +157,128 @@ export function ProjectSharingTab({ project }: { project: Project }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Mục quản lý link mời cố định — chỉ OWNER thấy. */
+function InviteLinkSection({ projectId }: { projectId: string }) {
+  const { data: invite } = useProjectInvite(projectId, true);
+  const enable = useEnableInvite(projectId);
+  const rotate = useRotateInvite(projectId);
+  const disable = useDisableInvite(projectId);
+
+  const active = !!invite?.isActive;
+  // FE tự ghép URL từ origin hiện tại (guard SSR).
+  const url =
+    invite && typeof window !== 'undefined'
+      ? `${window.location.origin}/work/join/${invite.token}`
+      : '';
+
+  const copy = async () => {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Đã copy link mời');
+    } catch {
+      toast.error('Không copy được, vui lòng copy thủ công');
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <Link2 className="h-4 w-4 text-muted-foreground" /> Link mời tham gia
+      </div>
+      {active ? (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Input value={url} readOnly aria-label="Link mời" className="flex-1 text-xs" />
+            <Button size="sm" onClick={copy}>
+              <Copy className="mr-1 h-3.5 w-3.5" /> Copy
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => rotate.mutate()}
+              disabled={rotate.isPending}
+            >
+              <RefreshCw className="mr-1 h-3.5 w-3.5" /> Đổi link
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => disable.mutate()}
+              disabled={disable.isPending}
+            >
+              Tắt link
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Ai có link (đã đăng nhập) đều gửi được yêu cầu tham gia — bạn duyệt bên dưới.
+          </p>
+        </div>
+      ) : (
+        <Button size="sm" onClick={() => enable.mutate()} disabled={enable.isPending}>
+          <Link2 className="mr-1 h-3.5 w-3.5" /> Tạo link mời
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Danh sách yêu cầu tham gia chờ duyệt — chỉ OWNER thấy. */
+function JoinRequestsSection({ projectId }: { projectId: string }) {
+  const { data: requests = [] } = useJoinRequests(projectId, true);
+  const accept = useAcceptJoinRequest(projectId);
+  const reject = useRejectJoinRequest(projectId);
+  const pending = accept.isPending || reject.isPending;
+
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Yêu cầu chờ duyệt{requests.length > 0 ? ` (${requests.length})` : ''}
+      </p>
+      {requests.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Không có yêu cầu nào</p>
+      ) : (
+        <div className="space-y-2">
+          {requests.map((r) => (
+            <div key={r.id} className="flex items-center gap-3">
+              <Avatar
+                src={r.avatarUrl ?? undefined}
+                alt={r.displayName}
+                fallback={r.displayName.charAt(0).toUpperCase()}
+                className="h-8 w-8"
+              />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.displayName}</span>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="text-green-600"
+                disabled={pending}
+                onClick={() => accept.mutate(r.id)}
+                aria-label={`Duyệt ${r.displayName}`}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="text-destructive"
+                disabled={pending}
+                onClick={() => reject.mutate(r.id)}
+                aria-label={`Từ chối ${r.displayName}`}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

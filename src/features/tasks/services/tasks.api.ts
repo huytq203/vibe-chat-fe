@@ -9,14 +9,17 @@ import type {
   ChecklistItem,
   Comment,
   DirectoryUser,
+  JoinRequest,
   Leaderboard,
   Member,
   MyTask,
   PaginationMeta,
   PresignResult,
   Project,
+  ProjectInvite,
   ProjectStats,
   ProjectStatus,
+  ResolveInvite,
   StatsOverview,
   SubtaskItem,
   Tag,
@@ -133,9 +136,6 @@ export const tasksApi = {
 
   detachTag: (taskId: string, tagId: string) =>
     taskClient.delete<void>(`/api/v1/tasks/${taskId}/tags/${tagId}`),
-
-  listTaskTags: (projectId: string, taskId: string) =>
-    taskClient.get<Tag[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/tags`),
 
   // --- Assignees ---
   listAssignees: (projectId: string, taskId: string) =>
@@ -262,6 +262,36 @@ export const tasksApi = {
 
   removeMember: (projectId: string, userId: string) =>
     taskClient.delete<void>(`/api/v1/projects/${projectId}/members/${userId}`),
+
+  // --- Sharing (invite link + join requests) ---
+  getInvite: (projectId: string) =>
+    taskClient.get<ProjectInvite | null>(`/api/v1/projects/${projectId}/invite`),
+
+  enableInvite: (projectId: string) =>
+    taskClient.post<ProjectInvite>(`/api/v1/projects/${projectId}/invite`, {}),
+
+  rotateInvite: (projectId: string) =>
+    taskClient.post<ProjectInvite>(`/api/v1/projects/${projectId}/invite/rotate`, {}),
+
+  disableInvite: (projectId: string) =>
+    taskClient.delete<void>(`/api/v1/projects/${projectId}/invite`),
+
+  listJoinRequests: (projectId: string) =>
+    taskClient.get<JoinRequest[]>(
+      `/api/v1/projects/${projectId}/join-requests?status=PENDING`,
+    ),
+
+  acceptJoinRequest: (reqId: string) =>
+    taskClient.post<void>(`/api/v1/join-requests/${reqId}/accept`, {}),
+
+  rejectJoinRequest: (reqId: string) =>
+    taskClient.post<void>(`/api/v1/join-requests/${reqId}/reject`, {}),
+
+  resolveInvite: (token: string) =>
+    taskClient.get<ResolveInvite>(`/api/v1/invite/${encodeURIComponent(token)}`),
+
+  requestJoin: (token: string) =>
+    taskClient.post<void>(`/api/v1/invite/${encodeURIComponent(token)}/request`, {}),
 
   // --- Stats / Reports ---
   getProjectStats: (projectId: string) =>

@@ -98,6 +98,33 @@ export interface Member {
   joinedAt: string;
 }
 
+export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+/** Link mời của project (FE tự ghép URL từ token + origin). */
+export interface ProjectInvite {
+  token: string;
+  isActive: boolean;
+}
+
+/** 1 yêu cầu tham gia project (đã enrich tên/avatar). */
+export interface JoinRequest {
+  id: string;
+  projectId: string;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  status: JoinRequestStatus;
+  createdAt: string;
+}
+
+/** Kết quả resolve token ở trang join. */
+export interface ResolveInvite {
+  projectId: string;
+  projectName: string;
+  alreadyMember: boolean;
+  requestStatus: JoinRequestStatus | null;
+}
+
 export interface ChecklistItem {
   id: string;
   taskId: string;
@@ -167,6 +194,8 @@ export interface TaskDetail {
   parentId: string | null;
   /** Số task con */
   subtaskCount: number;
+  /** Nhãn của task — BE trả kèm trong task detail (không có endpoint list riêng). */
+  tags: Tag[];
   createdAt: string;
   updatedAt: string;
 }
