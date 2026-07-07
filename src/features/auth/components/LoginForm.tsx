@@ -18,6 +18,7 @@ import { loginSchema, type LoginInput } from '@/features/auth/schemas';
 import { useLogin } from '@/features/auth/hooks/use-mutations';
 import { ApiError } from '@/lib/api/client';
 import { RestoreAccountDialog } from './RestoreAccountDialog';
+import { SocialLoginRow } from './SocialLoginRow';
 
 type RestoreInfo = { restoreToken: string; maskedEmail: string | null };
 
@@ -124,6 +125,10 @@ export const LoginForm = () => {
             </Button>
           </form>
         </Form>
+
+        <div className="mt-4">
+          <SocialLoginRow />
+        </div>
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Chưa có tài khoản?{' '}

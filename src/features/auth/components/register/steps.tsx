@@ -8,6 +8,7 @@ import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import type { RegisterFormInput } from '@/features/auth/schemas';
 import { PasswordStrength } from './PasswordStrength';
+import { SocialLoginRow } from '../SocialLoginRow';
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -57,6 +58,7 @@ export function StepIdentity() {
           />
         )}
       />
+      <SocialLoginRow label="Hoặc đăng ký nhanh với" />
     </div>
   );
 }
