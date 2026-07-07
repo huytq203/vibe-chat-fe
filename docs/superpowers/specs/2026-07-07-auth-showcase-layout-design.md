@@ -1,0 +1,117 @@
+# Auth Showcase Layout (Login/Register) — Design Spec
+
+**Date:** 2026-07-07
+**Reference design:** Figma Community "Login Page Design" (https://www.figma.com/design/Jo6gOiIapAAON8Wjo6wPce/) — chỉ tham khảo **bố cục**, không copy màu/pill-button/font (xung đột `Design/DESIGN.md`).
+**Color theme:** Giữ nguyên Charcoal + Cyan hiện có, radius tối đa 12px, không pill.
+**Scope:** `login/page.tsx` + `register/page.tsx` (KHÔNG đụng `forgot-password`, `verify-email`).
+
+---
+
+## 1. Mục tiêu
+
+Áp dụng bố cục split-screen (form bên trái + panel minh hoạ thương hiệu bên phải) tham khảo từ mẫu Figma cho 2 màn Login và Register, mà không phá vỡ Design System hiện tại (Charcoal+Cyan, radius 12px, Basuicn components).
+
+Không trong phạm vi: OAuth thật (Google/Facebook/GitHub chỉ là placeholder UI disabled), redesign forgot-password/verify-email.
+
+---
+
+## 2. Kiến trúc tổng thể
+
+```
+AuthShowcaseLayout (Server Component, src/components/layout/AuthShowcaseLayout.tsx)
+├── div.flex.min-h-screen
+│   ├── div.flex-1.flex.items-center.justify-center.p-4.lg:p-8   ← cột form (~55%)
+│   │   └── {children}   (LoginForm | RegisterForm, giữ nguyên logic)
+│   └── div.hidden.lg:block.lg:w-[45%].relative.overflow-hidden  ← cột minh hoạ (~45%), ẩn < lg (1024px)
+│       ├── next/image fill object-cover src="/asset/banner.png" priority
+│       ├── div overlay: gradient charcoal (from-background via-background/70 to-background/10)
+│       ├── 2 blur blob cyan nhẹ (bg-primary/20 blur-3xl) góc trên-phải & dưới-trái
+│       └── div nội dung (z-10, absolute bottom-0, p-10): logo/icon + heading + tagline
+```
+
+`login/page.tsx` / `register/page.tsx`: bỏ wrapper `<main className="flex min-h-screen items-center justify-center bg-background px-4">` hiện tại, thay bằng:
+
+```tsx
+<AuthShowcaseLayout>
+  <LoginForm />  {/* hoặc <RegisterForm /> */}
+</AuthShowcaseLayout>
+```
+
+`AuthBootstrap` giữ nguyên vị trí (sibling, ngoài layout).
+
+---
+
+## 3. `AuthShowcaseLayout` — chi tiết
+
+**File:** `src/components/layout/AuthShowcaseLayout.tsx` (Server Component — không cần `'use client'`, không có state/event).
+
+**Props:**
+```ts
+interface AuthShowcaseLayoutProps {
+  children: React.ReactNode;
+  /** Heading hiển thị đè lên ảnh, mặc định "Halo" */
+  title?: string;
+  /** Tagline ngắn dưới heading */
+  tagline?: string;
+}
+```
+
+**Panel minh hoạ (cột phải):**
+- Ảnh nền: `/asset/banner.png` (bản KHÔNG có nhãn tên thành phố — tránh rối mắt), `next/image` `fill` + `object-cover`, `priority`.
+- Overlay tối: `absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10` — hoà ảnh pastel vào nền charcoal `#111318`.
+- 2 blob glow cyan trang trí: `absolute rounded-full bg-primary/20 blur-3xl` (kích thước ~200-300px, đặt góc trên-phải và dưới-trái panel) — gợi accent cyan thương hiệu, không hardcode màu ngoài token `primary`.
+- Nội dung đè lên (góc dưới-trái, `absolute bottom-0 left-0 z-10 p-10`):
+  - Heading: `text-2xl font-bold text-foreground` — mặc định "Halo".
+  - Tagline: `text-sm text-muted-foreground` — mặc định `"Kết nối không giới hạn, trò chuyện mọi lúc."`, override được qua prop `tagline`.
+- Cột ẩn hoàn toàn dưới breakpoint `lg` (1024px, đúng bảng breakpoint DESIGN.md §8) — mobile chỉ thấy cột form full-width.
+
+---
+
+## 4. Điều chỉnh form panel (Login/Register)
+
+- Không đổi logic, chỉ nới `max-w-sm` → `max-w-md` trên `Card` gốc của `LoginForm`/`RegisterForm` để cân đối trong cột trái rộng hơn.
+- Giữ nguyên toàn bộ token màu/radius/spacing hiện có của `Card`, `Input`, `Button` — KHÔNG áp pill radius hay màu từ Figma.
+
+---
+
+## 5. `SocialLoginRow` (placeholder, disabled)
+
+**File:** `src/features/auth/components/SocialLoginRow.tsx` (Client Component — dùng `Tooltip`).
+
+**Cấu trúc:**
+```
+div.flex.flex-col.gap-3
+├── div.flex.items-center.gap-3          ← divider
+│   ├── Separator (flex-1)
+│   ├── span.text-xs.text-muted-foreground  "Hoặc tiếp tục với"
+│   └── Separator (flex-1)
+└── div.flex.gap-2.justify-center
+    └── 3x Tooltip > Button(variant="outline", size="icon", disabled, aria-label="Đăng nhập với Google/Facebook/GitHub")
+        content Tooltip: "Sắp ra mắt"
+        icon: <GoogleIcon /> | <FacebookIcon /> | <GithubIcon />
+```
+
+**Icon brand-mark:** `lucide-react` không có logo thương hiệu (chủ đích của lucide) → viết 3 SVG tĩnh mới:
+`src/components/common/icons/GoogleIcon.tsx`, `FacebookIcon.tsx`, `GithubIcon.tsx` — mỗi file <20 dòng, `<svg>` inline path chuẩn brand mark, nhận `className` để chỉnh size qua Tailwind. Không thêm dependency mới.
+
+**Vị trí sử dụng:**
+- `LoginForm.tsx`: thêm `<SocialLoginRow />` ngay dưới nút "Đăng nhập", trên đoạn "Chưa có tài khoản?".
+- `register/components/steps.tsx` → `StepIdentity`: thêm `<SocialLoginRow />` cuối component, kèm đổi label divider thành "Hoặc đăng ký nhanh với" (prop `label` cho `SocialLoginRow`, mặc định "Hoặc tiếp tục với").
+
+---
+
+## 6. Testing
+
+- `AuthShowcaseLayout.test.tsx`: render với `children` bất kỳ → assert children xuất hiện, assert ảnh/overlay render (theo pattern Vitest + Testing Library hiện có trong `RegisterForm.test.tsx`).
+- `SocialLoginRow.test.tsx`: assert cả 3 nút render với đúng `aria-label`, đều `disabled`.
+- `RegisterForm.test.tsx` hiện có: kiểm tra lại không bị vỡ khi `StepIdentity` có thêm `SocialLoginRow` (các `getByLabelText` hiện tại không đổi nên không cần sửa).
+- Verify thủ công qua `/run` hoặc browser: kiểm tra breakpoint `lg` ẩn/hiện đúng cột minh hoạ, dark/light mode (nếu áp dụng) không vỡ overlay.
+
+---
+
+## 7. Non-goals
+
+- Không tích hợp OAuth thật (Google/Facebook/GitHub) — chỉ UI disabled.
+- Không đổi `forgot-password`, `verify-email`.
+- Không thêm thư viện icon mới (dùng SVG viết tay).
+- Không đổi màu sắc/radius theo Figma gốc (giữ Charcoal+Cyan, 12px radius).
