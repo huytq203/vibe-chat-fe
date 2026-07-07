@@ -1,4 +1,5 @@
 import { LoginForm, AuthBootstrap } from '@/features/auth';
+import { AuthShowcaseLayout } from '@/components/layout/AuthShowcaseLayout';
 
 export const metadata = { title: 'Đăng nhập · Halo' };
 
@@ -6,9 +7,9 @@ export default function LoginPage() {
   return (
     <>
       <AuthBootstrap redirectIfAuthed="/chat" />
-      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <AuthShowcaseLayout>
         <LoginForm />
-      </main>
+      </AuthShowcaseLayout>
     </>
   );
 }
