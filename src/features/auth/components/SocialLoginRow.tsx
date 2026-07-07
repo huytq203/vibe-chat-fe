@@ -38,17 +38,25 @@ export function SocialLoginRow({ label = 'Hoặc tiếp tục với' }: SocialLo
         <div className="flex justify-center gap-2">
           {PROVIDERS.map(({ key, label: providerLabel, Icon }) => (
             <Tooltip key={key}>
+              {/*
+                Nút bên trong bị `disabled` nên trình duyệt không bắn
+                mouseenter/pointerenter lên chính nó → Tooltip hover sẽ
+                không bao giờ mở. Bọc một `span` không-disabled làm
+                TooltipTrigger thực sự (pattern chuẩn của Radix/Base UI).
+              */}
               <TooltipTrigger
                 render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    disabled
-                    aria-label={`Đăng nhập với ${providerLabel}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </Button>
+                  <span className="inline-flex">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled
+                      aria-label={`Đăng nhập với ${providerLabel}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </Button>
+                  </span>
                 }
               />
               <TooltipContent>Sắp ra mắt</TooltipContent>

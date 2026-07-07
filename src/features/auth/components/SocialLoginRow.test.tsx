@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { SocialLoginRow } from './SocialLoginRow';
 
 describe('SocialLoginRow', () => {
@@ -13,6 +14,16 @@ describe('SocialLoginRow', () => {
     expect(google).toBeDisabled();
     expect(facebook).toBeDisabled();
     expect(github).toBeDisabled();
+  });
+
+  it('shows the "Sắp ra mắt" tooltip when hovering a disabled provider button', async () => {
+    const user = userEvent.setup();
+    render(<SocialLoginRow />);
+
+    const google = screen.getByRole('button', { name: 'Đăng nhập với Google' });
+    await user.hover(google);
+
+    expect(await screen.findAllByText('Sắp ra mắt')).not.toHaveLength(0);
   });
 
   it('renders the default divider label', () => {
