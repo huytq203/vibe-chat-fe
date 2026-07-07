@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { Form } from '@/components/ui/form/Form';
 import { Button } from '@/components/ui/button/Button';
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
@@ -149,7 +148,7 @@ export const RegisterForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <div className="w-full max-w-md">
       <CardHeader className="pb-2 pt-8 text-center">
         <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
         <CardDescription>Tham gia Halo ngay hôm nay</CardDescription>
@@ -208,6 +207,6 @@ export const RegisterForm = () => {
           </Button>
         </p>
       </CardContent>
-    </Card>
+    </div>
   );
 };

@@ -8,7 +8,6 @@ import { Form, FormField } from '@/components/ui/form/Form';
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
@@ -63,7 +62,7 @@ export const LoginForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
+    <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
       <CardHeader className="text-center pb-4 pt-8">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-7 w-7 text-primary" />
@@ -149,6 +148,6 @@ export const LoginForm = () => {
           maskedEmail={restoreInfo.maskedEmail}
         />
       )}
-    </Card>
+    </div>
   );
 };
