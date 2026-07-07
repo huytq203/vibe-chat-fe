@@ -115,3 +115,18 @@ div.flex.flex-col.gap-3
 - Không đổi `forgot-password`, `verify-email`.
 - Không thêm thư viện icon mới (dùng SVG viết tay).
 - Không đổi màu sắc/radius theo Figma gốc (giữ Charcoal+Cyan, 12px radius).
+
+---
+
+## 8. Addendum (2026-07-07) — Đổi ảnh minh hoạ sang nhân vật Vespa
+
+Sau khi Task 3/4 đã hoàn thành với `banner.png` (bản đồ Việt Nam), user cung cấp thêm asset nhân vật 3D lấy trực tiếp từ file Figma tham khảo (`avatar_makata_vespa_04 1.png` — nhân vật đội mũ bảo hiểm đứng cạnh xe Vespa, đúng nhân vật ở trang "Login Page Design - 2"). Quyết định:
+
+- **Thay `banner.png` bằng ảnh nhân vật này**, dùng chung cho cả Login và Register (không dùng 2 nhân vật khác nhau theo 2 trang Figma).
+- Ảnh gốc có 1 khối nền hình chữ nhật bo góc màu xanh nhạt (`~rgb(225,239,246)`) phía sau xe (là nền gốc của ô minh hoạ trong Figma, không phải nền trong suốt hoàn toàn) — đã viết script Python (PIL, không thêm dependency vào project — chạy 1 lần, không phải runtime code) chroma-key vùng màu phẳng này về alpha=0. Kết quả lưu tại `public/asset/avatar-vespa.png` (1132×849, RGBA).
+- Còn sót 1 vệt bóng đổ mờ nhỏ dưới bánh xe (gradient bóng trong ảnh gốc pha quá gần màu thân xe/mũ bảo hiểm để tách an toàn bằng color-key đơn giản) — **được chấp nhận**, không chặn tiến độ.
+- Panel bên phải của `AuthShowcaseLayout` đổi cấu trúc:
+  - Nền: `bg-background` phẳng (bỏ ảnh `banner.png` + overlay gradient tối, vì không còn ảnh nền photo cần làm tối) + giữ 2 blob glow cyan (`bg-primary/20 blur-3xl`) như cũ.
+  - Heading/tagline "Halo" + logo chuyển lên **góc trên-trái** (`p-10`, thay vì góc dưới-trái như bản đầu) để tránh đè lên nhân vật.
+  - Ảnh nhân vật (`/asset/avatar-vespa.png`) đặt ở khu vực dưới của panel, `object-contain object-bottom`, chiều cao ước lượng ~70-80% panel, căn giữa theo chiều ngang.
+- Props `AuthShowcaseLayoutProps` không đổi (`children`, `title`, `tagline`) — chỉ đổi phần triển khai nội bộ.

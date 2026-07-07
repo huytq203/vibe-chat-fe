@@ -31,4 +31,14 @@ describe('AuthShowcaseLayout', () => {
     expect(screen.getByText('Custom')).toBeInTheDocument();
     expect(screen.getByText('Custom tagline')).toBeInTheDocument();
   });
+
+  it('renders the character illustration image', () => {
+    const { container } = render(
+      <AuthShowcaseLayout>
+        <div />
+      </AuthShowcaseLayout>
+    );
+    const img = container.querySelector('img[src*="avatar-vespa.png"]');
+    expect(img).toBeInTheDocument();
+  });
 });
