@@ -16,6 +16,12 @@ describe('SocialLoginRow', () => {
     expect(github).toBeDisabled();
   });
 
+  // Xác nhận Tooltip trigger→content wiring hoạt động đúng (nội dung tooltip
+  // hiển thị khi hover). KHÔNG bảo vệ trước regression "bỏ span wrapper, dùng
+  // Button disabled làm trigger trực tiếp": user-event's hover() dispatch
+  // mouseenter/pointerenter bằng dispatchEvent thô, bỏ qua thuộc tính native
+  // `disabled`, nên test này pass y hệt dù có span wrapper hay không. Regression
+  // đó được test riêng bên dưới ("does not use the disabled button itself...").
   it('shows the "Sắp ra mắt" tooltip when hovering a disabled provider button', async () => {
     const user = userEvent.setup();
     render(<SocialLoginRow />);
@@ -24,6 +30,21 @@ describe('SocialLoginRow', () => {
     await user.hover(google);
 
     expect(await screen.findAllByText('Sắp ra mắt')).not.toHaveLength(0);
+  });
+
+  // Regression test thực sự cho fix Critical: Base UI's TooltipTrigger gắn
+  // data-base-ui-tooltip-trigger="" lên chính DOM node mà nó render ra. Nếu ai
+  // đó revert fix (đưa Button disabled làm trigger trực tiếp thay vì bọc
+  // span), attribute này sẽ nằm trên <button> và test dưới đây FAIL — đã xác
+  // nhận thực nghiệm bằng cách render cả 2 biến thể và so sánh container.innerHTML.
+  it('does not use the disabled button itself as the tooltip trigger (span wrapper regression guard)', () => {
+    const { container } = render(<SocialLoginRow />);
+
+    const triggerButtons = container.querySelectorAll('button[data-base-ui-tooltip-trigger]');
+    const triggerSpans = container.querySelectorAll('span[data-base-ui-tooltip-trigger]');
+
+    expect(triggerButtons).toHaveLength(0);
+    expect(triggerSpans).toHaveLength(3);
   });
 
   it('renders the default divider label', () => {
