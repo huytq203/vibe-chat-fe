@@ -124,7 +124,7 @@ export function ChatPanel() {
   return (
     <main
       style={wallpaperStyle}
-      className={cn('flex h-full min-w-0 flex-1 flex-col', !wallpaperActive && 'bg-background')}
+      className={cn('flex h-full min-w-0 flex-1 flex-col gap-3', !wallpaperActive && 'bg-background')}
     >
       <ChatHeader
         conversation={conversation}
@@ -150,7 +150,7 @@ export function ChatPanel() {
               wallpaperActive={wallpaperActive}
             />
           ) : (
-            <div className={cn('shrink-0 border-t border-border px-4 py-3 text-center text-[12.5px] text-muted-foreground', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
+            <div className={cn('shrink-0 rounded-2xl px-4 py-3 text-center text-[12.5px] text-muted-foreground shadow-subtle', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
               Chỉ quản trị viên được nhắn trong nhóm này
             </div>
           )}
