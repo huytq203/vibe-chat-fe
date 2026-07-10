@@ -160,7 +160,7 @@ export function ConversationList() {
   }, [search, isLoading, strangerConversations.length, filtered]);
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px]">
       <header className="hidden shrink-0 items-center justify-between px-4 pb-3 pt-[18px] md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
