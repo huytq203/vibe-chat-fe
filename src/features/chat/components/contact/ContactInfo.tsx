@@ -130,7 +130,7 @@ export function ContactInfo() {
   // Hội thoại đang khoá & chưa mở trong phiên → chặn toàn bộ panel, chỉ cho nhập mật khẩu.
   if (isContentLocked) {
     return (
-      <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+      <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px]">
         <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
           <span className="text-sm font-bold">Thông tin</span>
           <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
@@ -263,7 +263,7 @@ export function ContactInfo() {
     !isDirect && canManageSettings && conversation.settings?.joinByLink !== false;
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
         <span className="text-sm font-bold">Thông tin</span>
         <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
