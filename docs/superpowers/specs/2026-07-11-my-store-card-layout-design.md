@@ -6,20 +6,20 @@
 
 Nhánh `activeSection === 'store'` trong `ChatLayout.tsx` trước đây chủ động **không** áp nền ảnh và không sửa nội dung `MyStoreLayout` (spec 07-10 ghi rõ "không nằm trong scope"). Yêu cầu lần này: đưa Store vào cùng pattern — tách khối, tách nhau, và ăn nền ảnh theo theme.
 
-## Phát hiện phụ: bug nền sáng dùng sai ảnh
+## Phát hiện phụ: bug nền sáng dùng sai ảnh (đã đảo quyết định)
 
-`getDefaultBackgroundImage()` (`src/lib/theme/themes.ts`) hiện trả về `/asset/banner.png` cho theme sáng, dù comment ngay phía trên ghi rõ "background-1.webp = theme sáng". Quyết định: sửa luôn hàm này cho đúng comment — ảnh hưởng cả nền chat mặc định lẫn nền Store (dùng chung 1 hàm).
+`getDefaultBackgroundImage()` (`src/lib/theme/themes.ts`) trả về `/asset/banner.png` cho theme sáng; comment phía trên từng ghi sai là "background-1.webp = theme sáng". Quyết định ban đầu là sửa hàm trả về `background-1.webp`, nhưng sau khi implement + review, **user đã đảo lại quyết định**: giữ nguyên `banner.png` cho theme sáng (không đổi hành vi), chỉ sửa lại comment cho khớp thực tế. `background-1.webp` không được dùng ở đâu trong scope này. Store vẫn dùng chung đúng hàm này với chat (không tách logic riêng).
 
 ## Quyết định phạm vi (đã chốt qua hỏi đáp)
 
-1. **Sửa `getDefaultBackgroundImage`** để theme sáng trả về `background-1.webp` thay vì `banner.png` — áp dụng luôn cho chat, không tách riêng logic cho Store.
+1. **Giữ nguyên `getDefaultBackgroundImage`** — theme sáng vẫn là `banner.png`, theme tối vẫn `background-2.webp`. Chỉ sửa doc comment cho đúng thực tế. Store dùng chung hàm này với chat, không có logic ảnh nền riêng.
 2. **Header Store tách thành card riêng** phía trên (giống `ChatHeader`), có khe hở lộ nền xuống nội dung bên dưới — không dính liền đỉnh khung nội dung chính.
 3. **FolderSidebar (tab File) tách thành card riêng thứ 3** — không nằm chung 1 card với `FilePanel`. Bố cục tab File: `FolderSidebar` | `FilePanel` | `MyStoreInfoPanel`, 3 card độc lập cách nhau `gap-3`.
 
 ## Kiến trúc
 
 ### 1. `src/lib/theme/themes.ts`
-`getDefaultBackgroundImage(theme)`: `theme.isDark ? '/asset/background-2.webp' : '/asset/background-1.webp'`.
+`getDefaultBackgroundImage(theme)`: `theme.isDark ? '/asset/background-2.webp' : '/asset/banner.png'` — không đổi hành vi, chỉ sửa comment.
 
 ### 2. `src/features/chat/components/layout/ChatLayout.tsx`
 Nhánh `activeSection === 'store'`: áp `style` nền ảnh theo theme lên wrapper `<div className="flex h-full w-full gap-3 overflow-hidden p-3">`, cùng công thức overlay tối 35% dùng cho nền chat mặc định:

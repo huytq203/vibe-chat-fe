@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Split `MyStoreLayout` ("Kho của tôi") into separate floating cards (header, content, folder sidebar, info panel) matching the chat rounded-card pattern, and give it a theme-based background image (`background-1.webp` light / `background-2.webp` dark) like the chat section already has.
+**Goal:** Split `MyStoreLayout` ("Kho của tôi") into separate floating cards (header, content, folder sidebar, info panel) matching the chat rounded-card pattern, and give it a theme-based background image (`banner.png` light / `background-2.webp` dark, same as chat) like the chat section already has.
 
-**Architecture:** Extract the inline header block from `MyStoreLayout` into a new `MyStoreHeader` component styled as its own floating card. Restyle the existing `MyStoreInfoPanel` and `FolderSidebar` root elements from "glued" (`border-l`/`border-r`, opaque `bg-sidebar`) to "floating card" (`rounded-2xl border bg-sidebar/75 backdrop-blur-md shadow-subtle`). Recompose `MyStoreLayout` so header/content/folder-sidebar/info-panel are siblings separated by `gap-3`. Apply a theme-derived background image to the `store` branch wrapper in `ChatLayout.tsx`, reusing `getDefaultBackgroundImage` (fixed to return `background-1.webp` for light theme, matching its own doc comment).
+**Architecture:** Extract the inline header block from `MyStoreLayout` into a new `MyStoreHeader` component styled as its own floating card. Restyle the existing `MyStoreInfoPanel` and `FolderSidebar` root elements from "glued" (`border-l`/`border-r`, opaque `bg-sidebar`) to "floating card" (`rounded-2xl border bg-sidebar/75 backdrop-blur-md shadow-subtle`). Recompose `MyStoreLayout` so header/content/folder-sidebar/info-panel are siblings separated by `gap-3`. Apply a theme-derived background image to the `store` branch wrapper in `ChatLayout.tsx`, reusing `getDefaultBackgroundImage` unchanged (shared with chat — light theme stays `banner.png`, dark stays `background-2.webp`; see Task 1 amendment below).
+
+> **Amendment (post Task 1):** Task 1 originally changed light-theme background to `background-1.webp`. After implementation + review, the user reversed this decision: light theme keeps `banner.png` (chat behavior unchanged), Store shares the exact same `getDefaultBackgroundImage` function/values as chat — no separate Store background logic. `background-1.webp` is not used anywhere in this feature. Commit `23536f9` reverts Task 1's behavior change (keeps the doc-comment fix only). Task 6 below is unaffected in code — it already just calls `getDefaultBackgroundImage(currentTheme)` — only the resulting light-theme image differs from what was originally planned.
 
 **Tech Stack:** Next.js 16 (App Router), React 19, TypeScript strict, Tailwind v4, Vitest + Testing Library.
 
@@ -568,7 +570,7 @@ Click the "File" tab. Confirm 3 separate rounded cards side by side: FolderSideb
 
 - [ ] **Step 4: Switch to light theme and repeat**
 
-Open the theme/settings picker, switch to a light (non-`isDark`) theme. Confirm the background image changes to `background-1.webp` in both Store and the default chat view (since `getDefaultBackgroundImage` is shared).
+Open the theme/settings picker, switch to a light (non-`isDark`) theme. Confirm the background image changes to `banner.png` in both Store and the default chat view (since `getDefaultBackgroundImage` is shared and unchanged from before this feature).
 
 - [ ] **Step 5: Check for regressions**
 
