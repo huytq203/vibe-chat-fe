@@ -390,9 +390,10 @@ export function createTheme(
 // ─── Default Background Image ─────────────────────────────────────────────────
 
 /**
- * Ảnh nền mặc định của trang chat theo độ sáng/tối của theme đang chọn
- * (background-1.webp = theme sáng, background-2.webp = theme tối/indigo).
+ * Ảnh nền mặc định theo độ sáng/tối của theme đang chọn — dùng chung cho
+ * cả chat lẫn Store (banner.png = theme sáng, background-2.webp = theme
+ * tối/indigo). Store dùng chung hàm này, không có ảnh nền riêng.
  */
 export function getDefaultBackgroundImage(theme: Theme): string {
-  return theme.isDark ? '/asset/background-2.webp' : '/asset/background-1.webp';
+  return theme.isDark ? '/asset/background-2.webp' : '/asset/banner.png';
 }

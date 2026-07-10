@@ -8,9 +8,9 @@ describe('getDefaultBackgroundImage', () => {
     expect(getDefaultBackgroundImage(darkTheme)).toBe('/asset/background-2.webp');
   });
 
-  it('trả về background-1.webp cho theme sáng', () => {
+  it('trả về banner.png cho theme sáng', () => {
     const lightTheme = themes.find((t) => !t.isDark);
     if (!lightTheme) throw new Error('Không tìm thấy theme sáng trong danh sách themes');
-    expect(getDefaultBackgroundImage(lightTheme)).toBe('/asset/background-1.webp');
+    expect(getDefaultBackgroundImage(lightTheme)).toBe('/asset/banner.png');
   });
 });
