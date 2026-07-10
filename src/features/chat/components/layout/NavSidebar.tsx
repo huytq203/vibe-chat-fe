@@ -38,7 +38,7 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
   const { total: unreadTotal } = useNavUnread();
 
   return (
-    <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl bg-sidebar py-3 shadow-subtle">
+    <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl bg-sidebar py-3 shadow-subtle border">
       {/* Main navigation icons */}
       <div className="flex flex-col items-center gap-1">
         {NAV_ITEMS.map(({ section, icon, label }) => {

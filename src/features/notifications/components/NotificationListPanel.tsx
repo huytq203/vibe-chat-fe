@@ -90,6 +90,7 @@ export function NotificationListPanel({ onBack }: NotificationListPanelProps) {
             notification={n}
             onClick={handleClick}
             onDelete={(id) => deleteMut.mutate(id)}
+            isDeleting={deleteMut.isPending && deleteMut.variables === n.id}
           />
         ))}
         {query.isFetchingNextPage && (

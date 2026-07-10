@@ -1,32 +1,19 @@
 "use client";
 
-import { memo, useState } from "react";
-import {
-  AlertCircle,
-  Check,
-  CheckCheck,
-  Clock,
-  Pin,
-  RotateCw,
-  X,
-} from "lucide-react";
+import { memo } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { Message } from "@/features/chat/types";
-import { formatBubbleTime } from "@/features/chat/utils";
 import { type BubbleConfig, DEFAULT_BUBBLE_CONFIG } from "@/features/chat/config/chat-themes";
-import {
-  useDiscardFailedMessage,
-  useResendMessage,
-} from "@/features/chat/hooks/use-mutations";
-import { Avatar } from "@/features/chat/components/common/Avatar";
-import { UserProfileDialog } from "@/features/chat/components/contact/UserProfileDialog";
 import { useBubbleTouchMenu } from "@/features/chat/hooks/useBubbleTouchMenu";
 import { MessageActions } from "./MessageActions";
 import { MessageReactions } from "./MessageReactions";
 import { MessageLikeButton } from "./MessageLikeButton";
 import { ReplyQuote } from "./ReplyQuote";
-import { SelfDestructTimer } from "./SelfDestructTimer";
 import { BubbleContent } from "./BubbleContent";
+import { BubbleMetaRow } from "./BubbleMetaRow";
+import { MessageFailedActions } from "./MessageFailedActions";
+import { BubbleSenderAvatar } from "./BubbleSenderAvatar";
+import { BubbleHeader } from "./BubbleHeader";
 
 type MessageBubbleProps = {
   message: Message;
@@ -77,8 +64,6 @@ function MessageBubbleImpl({
   const isSending = message.metadata?.optimistic === true;
   const isFailed = message.metadata?.failed === true;
   const isSeen = isMe && !isSending && !isFailed && message.isView === true;
-  const resendMut = useResendMessage();
-  const discardFailed = useDiscardFailedMessage();
   // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
   const isVisualMedia =
     !message.isDeleted &&
@@ -122,8 +107,6 @@ function MessageBubbleImpl({
     />
   );
 
-  const [senderProfileOpen, setSenderProfileOpen] = useState(false);
-
   // Tương tác cảm ứng: long-press mở menu action, double-tap thả nhanh cảm xúc.
   const { bubbleProps, drawer } = useBubbleTouchMenu({
     message,
@@ -144,44 +127,21 @@ function MessageBubbleImpl({
       )}
     >
       {!isMe && (
-        <div className="w-7 shrink-0">
-          {showAvatar && (
-            <button
-              type="button"
-              onClick={() => setSenderProfileOpen(true)}
-              className="cursor-pointer"
-            >
-              <Avatar
-                name={senderName ?? null}
-                src={senderAvatarUrl}
-                size="sm"
-                className="!h-7 !w-7 !rounded-lg"
-              />
-            </button>
-          )}
-        </div>
+        <BubbleSenderAvatar
+          userId={message.senderId}
+          senderName={senderName}
+          senderAvatarUrl={senderAvatarUrl}
+          showAvatar={showAvatar}
+        />
       )}
       <div className="max-w-[65%]">
-        {isPinned && (
-          <span
-            className={cn(
-              "mb-0.5 flex items-center gap-1 text-[10px] font-medium text-primary",
-              isMe ? "justify-end pr-1" : "ml-1.5",
-            )}
-          >
-            <Pin className="h-3 w-3" /> Đã ghim
-          </span>
-        )}
-        {!isMe && showSenderName && senderName && (
-          <p className="mb-0.5 ml-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-            {senderName}
-            {leaderLabel && (
-              <span className="rounded bg-primary/15 px-1.5 py-px text-[9.5px] font-bold text-primary">
-                {leaderLabel}
-              </span>
-            )}
-          </p>
-        )}
+        <BubbleHeader
+          isMe={isMe}
+          isPinned={isPinned}
+          showSenderName={showSenderName}
+          senderName={senderName}
+          leaderLabel={leaderLabel}
+        />
         <div
           className={cn(
             "relative rounded-2xl transition-all",
@@ -213,104 +173,21 @@ function MessageBubbleImpl({
           )}
           <BubbleContent message={message} isMe={isMe} />
           {/* Timestamp + status INSIDE bubble — luôn hiển thị để tránh flash layout */}
-          <div
-            className={cn(
-              "mt-1 flex items-center gap-1",
-              isMe ? "justify-end" : "justify-start",
-            )}
-          >
-            {message.expireAt && !message.isDeleted && !isSending && !isFailed && (
-              <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
-            )}
-            {message.isEdited && !message.isDeleted && (
-              <span
-                className={cn(
-                  "text-[9.5px] italic",
-                  !hasTheme && (isMe ? "text-primary-foreground/60" : "text-muted-foreground/70"),
-                )}
-                style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
-              >
-                đã chỉnh sửa
-              </span>
-            )}
-            <span
-              className={cn(
-                "text-[10px]",
-                !hasTheme && (isMe ? "text-primary-foreground/70" : "text-muted-foreground"),
-              )}
-              style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
-            >
-              {isFailed ? "Gửi thất bại" : formatBubbleTime(message.createdAt)}
-            </span>
-            {isMe &&
-              (isFailed ? (
-                <AlertCircle
-                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
-                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
-                  aria-label="Gửi thất bại"
-                />
-              ) : isSending ? (
-                <Clock
-                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
-                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
-                  aria-label="Đang gửi"
-                />
-              ) : isSeen ? (
-                <CheckCheck
-                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
-                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
-                  aria-label="Đã xem"
-                />
-              ) : (
-                <Check
-                  className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
-                  style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
-                  aria-label="Đã gửi"
-                />
-              ))}
-          </div>
+          <BubbleMetaRow
+            message={message}
+            isMe={isMe}
+            isSending={isSending}
+            isFailed={isFailed}
+            isSeen={isSeen}
+            hasTheme={hasTheme}
+            bubbleConfig={bubbleConfig}
+          />
         </div>
         {!message.isDeleted && (
           <MessageReactions message={message} isMe={isMe} />
         )}
-        {isFailed && isMe && (
-          <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-danger">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-danger/10"
-              disabled={resendMut.isPending}
-              onClick={() =>
-                resendMut.mutate({
-                  conversationId: message.conversationId,
-                  tempId: message.id,
-                })
-              }
-              aria-label="Gửi lại"
-              title="Gửi lại"
-            >
-              <RotateCw
-                className={cn("h-3 w-3", resendMut.isPending && "animate-spin")}
-              />
-              Gửi lại
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground hover:bg-muted"
-              onClick={() => discardFailed(message.conversationId, message.id)}
-              aria-label="Bỏ"
-              title="Bỏ"
-            >
-              <X className="h-3 w-3" />
-              Bỏ
-            </button>
-          </div>
-        )}
+        {isFailed && isMe && <MessageFailedActions message={message} />}
       </div>
-      <UserProfileDialog
-        open={senderProfileOpen}
-        onOpenChange={setSenderProfileOpen}
-        userId={message.senderId}
-      />
     </div>
   );
 }

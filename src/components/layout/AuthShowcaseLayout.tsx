@@ -50,7 +50,7 @@ export function AuthShowcaseLayout({
               priority vẫn preload qua thẻ <link> bất kể display — tốn băng thông
               mobile vô ích. Lazy loading mặc định của next/image bỏ qua ảnh không
               hiển thị. */}
-          <div className="absolute inset-x-2 bottom-0 h-[88%]">
+          <div className="absolute inset-x-2 h-[88%]">
             <Image
               src="/asset/avatar-vespa.png"
               alt=""

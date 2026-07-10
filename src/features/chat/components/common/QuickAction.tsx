@@ -18,7 +18,7 @@ export const QuickAction = forwardRef<HTMLButtonElement, QuickActionProps>(
       ref={ref}
       variant={active ? "solid" : "ghost"}
       className={cn(
-        "h-auto text-muted-foreground hover:bg-transparent focus-visible:bg-transparent",
+        "h-auto text-foreground hover:bg-transparent focus-visible:bg-transparent",
         className,
       )}
       {...props}

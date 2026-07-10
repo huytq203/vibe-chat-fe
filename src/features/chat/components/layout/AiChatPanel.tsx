@@ -18,12 +18,12 @@ import {
   GEMINI_FREE_MODELS,
   type GeminiModelInfo,
 } from "@/lib/gemini";
+import { getItem, setItem } from "@/lib/storage/local-storage";
 
 const MODEL_STORAGE_KEY = "ai-panel-model";
 
 function loadModel(): string {
-  if (typeof window === "undefined") return GEMINI_FREE_MODELS[0].value;
-  return localStorage.getItem(MODEL_STORAGE_KEY) ?? GEMINI_FREE_MODELS[0].value;
+  return getItem(MODEL_STORAGE_KEY) ?? GEMINI_FREE_MODELS[0].value;
 }
 
 export function AiChatPanel() {
@@ -61,7 +61,7 @@ export function AiChatPanel() {
   function handleModelChange(value: string | string[]) {
     const next = Array.isArray(value) ? (value[0] ?? model) : value;
     setModel(next);
-    try { localStorage.setItem(MODEL_STORAGE_KEY, next); } catch { /* ignore */ }
+    setItem(MODEL_STORAGE_KEY, next);
   }
 
   function handleNewChat() {

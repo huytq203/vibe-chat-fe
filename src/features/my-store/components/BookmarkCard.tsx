@@ -1,11 +1,10 @@
 'use client';
 
 import { Bookmark, ExternalLink } from 'lucide-react';
-import { useDecryptedMetadata } from '@/features/my-store/hooks/use-decrypted-metadata';
-import type { BookmarkMetadata, BookmarkSecret } from '@/features/my-store/types';
+import type { BookmarkMetadata } from '@/features/my-store/types';
 
 type BookmarkCardProps = {
-  message: { conversationId: string; metadata: Record<string, unknown> | null };
+  message: { metadata: Record<string, unknown> | null };
 };
 
 function getDomain(url: string): string {
@@ -18,14 +17,9 @@ function getDomain(url: string): string {
 
 export function BookmarkCard({ message }: BookmarkCardProps) {
   const meta = (message.metadata ?? {}) as BookmarkMetadata;
-  // url/title/description nhạy cảm: giải mã (Phase 1) hoặc plaintext (back-compat).
-  const { data: secret } = useDecryptedMetadata<BookmarkSecret>(
-    message.conversationId,
-    message.metadata,
-  );
-  const url = secret?.url ?? meta.url ?? '';
-  const title = secret?.title ?? meta.title;
-  const description = secret?.description ?? meta.description;
+  const url = meta.url ?? '';
+  const title = meta.title;
+  const description = meta.description;
   const domain = getDomain(url);
 
   return (

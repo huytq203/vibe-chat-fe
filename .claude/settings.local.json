@@ -87,7 +87,9 @@
       "Bash(mv \"icon copy.ico\" icon.ico)",
       "Bash(mv \"icon copy.png\" icon.png)",
       "Bash(sed -n '225,250p' src/components/ui/dropdown-menu/*.tsx)",
-      "Bash(sed -n '124,150p' src/components/ui/alert-dialog/*.tsx)"
+      "Bash(sed -n '124,150p' src/components/ui/alert-dialog/*.tsx)",
+      "WebFetch(domain:www.figma.com)",
+      "mcp__figma__get_screenshot"
     ]
   }
 }

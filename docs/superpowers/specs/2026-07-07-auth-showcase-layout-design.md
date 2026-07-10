@@ -130,3 +130,21 @@ Sau khi Task 3/4 đã hoàn thành với `banner.png` (bản đồ Việt Nam), 
   - Heading/tagline "Halo" + logo chuyển lên **góc trên-trái** (`p-10`, thay vì góc dưới-trái như bản đầu) để tránh đè lên nhân vật.
   - Ảnh nhân vật (`/asset/avatar-vespa.png`) đặt ở khu vực dưới của panel, `object-contain object-bottom`, chiều cao ước lượng ~70-80% panel, căn giữa theo chiều ngang.
 - Props `AuthShowcaseLayoutProps` không đổi (`children`, `title`, `tagline`) — chỉ đổi phần triển khai nội bộ.
+
+---
+
+## 9. Addendum (2026-07-08) — Pixel-clone Login theo Figma "Login Page Design - 2" (chỉ `/login`)
+
+User cung cấp link Figma cụ thể (node `2:2`, file `W6TbpTC0DL1wUqkA1OEbsI`) và yêu cầu implement **chính xác pixel** thiết kế này cho riêng trang Login. Lấy design context qua Figma MCP (`get_design_context` + `get_screenshot`) xác nhận: nền gradient `#00b4db → #0083b0`, card trắng bo góc 40px, input/button bo tròn pill (`rounded-full`), nút "Sign in" màu mận `#a93159`, panel ảnh nền `#e2eef5`.
+
+**Xung đột rule:** `rules/03-styling.md` cấm hardcode màu ngoài `Design/DESIGN.md` và cấm bo pill cho button (radius tối đa 12px). Theo CLAUDE.md §7 (yêu cầu mâu thuẫn rule → dừng hỏi user), đã hỏi user và được chọn: **override có chủ đích, chỉ áp dụng cho `/login`**, giữ nguyên `AuthShowcaseLayout` + theme Charcoal+Cyan cho `/register`.
+
+**Thay đổi:**
+- `AuthShowcaseLayout` **không còn dùng cho `/login`** (vẫn dùng cho `/register`, không đổi gì ở đó).
+- Component mới `src/app/(auth)/login/_components/LoginPageShell.tsx` (route-scoped, theo `rules/06-naming-structure.md`): nền gradient cyan hardcode, watermark nhân vật Vespa mờ 10% góc trái, card trắng `rounded-[40px]` chứa cột form + cột ảnh nền `#e2eef5`.
+- Asset tải trực tiếp qua Figma MCP (`get_design_context`) để đảm bảo đúng pixel, lưu tại `public/asset/login-vespa-card.png` (nhân vật trong card, RGBA có vùng trong suốt) và `public/asset/login-vespa-watermark.png` (ảnh nền mờ toàn trang).
+- `LoginForm.tsx`: giữ nguyên 100% logic (React Hook Form + Zod, `useLogin` mutation, xử lý lỗi `AUTH_EMAIL_NOT_VERIFIED`/`AUTH_ACCOUNT_DELETED`, `RestoreAccountDialog`) — chỉ đổi JSX/className sang style pill hardcode (`FIELD_CLASS`, `LABEL_CLASS` hằng số trong file, có comment giải thích override). Bỏ icon trái trong input (Figma không có), bỏ `Card*` wrapper, "Quên mật khẩu?" chuyển sang căn trái.
+- 3 icon social màu thật (`GoogleColorIcon`, `GithubColorIcon`, `FacebookColorIcon`) thêm vào `src/components/common/BrandIcons.tsx` — lấy path SVG chính xác từ Figma MCP, tách riêng khỏi `GoogleIcon`/`FacebookIcon`/`GithubIcon` (currentColor, dùng ở `SocialLoginRow` cho `/register`) để không ảnh hưởng route khác. Hàng social button trong `LoginForm` viết inline (không tái dùng `SocialLoginRow`) vì style khác biệt (pill 64px, không có divider line).
+- Responsive: thiết kế Figma là canvas cố định 1920×1080 — chuyển thành `flex` co giãn (`max-w-5xl`, `flex-col` → `lg:flex-row`), ẩn cột ảnh dưới `lg` giống pattern cũ, thay vì absolute-position tuyệt đối.
+
+**Non-goals của addendum này:** không đổi `/register`, không đổi ngôn ngữ hiển thị (giữ tiếng Việt thay vì copy tiếng Anh từ Figma), không thêm font Gilroy mới (giữ font hệ thống sẵn có).

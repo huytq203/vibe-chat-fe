@@ -146,7 +146,7 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup, wall
     ) : null;
 
   return (
-    <div className={cn('shrink-0 rounded-2xl px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-subtle', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
+    <div className={cn('shrink-0 rounded-2xl px-4 py-2 shadow-subtle border', wallpaperActive ? 'bg-sidebar' : 'bg-sidebar')}>
       {isEditing && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
           <Pencil className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -188,7 +188,7 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup, wall
       {!isEditing && (
         <AttachmentTray attachments={attachments} onRemove={remove} onRemoveAll={removeAll} />
       )}
-      <div className="rounded-2xl border border-border bg-muted px-2 py-1.5">
+      <div className="rounded-2xl ">
         {recorder.isRecording || sending ? (
           <VoiceRecorderBar
             elapsedMs={recorder.elapsedMs}

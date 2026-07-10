@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Spinner } from '@/components/ui/spinner/Spinner';
@@ -13,6 +13,8 @@ import {
 } from '@/features/notifications';
 import { useFriendRealtime } from '@/features/friends';
 import { CallContainer, useCallRealtime } from '@/features/call';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+import { getDefaultBackgroundImage } from '@/lib/theme/themes';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
@@ -25,7 +27,6 @@ import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 import { MyStoreLayout } from '@/features/my-store';
 import { NavSidebar } from './NavSidebar';
-import { BottomDock } from './BottomDock';
 import { AiChatPanel } from './AiChatPanel';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
@@ -44,6 +45,20 @@ export function ChatLayout() {
   // Wallpaper của hội thoại đang chọn — áp cho toàn bộ khung layout (không chỉ cột chat),
   // để nền hiển thị xuyên qua các khe hở giữa các card nổi, giống bố cục design gốc.
   const wallpaperStyle = useWallpaper(selectedConversationId);
+  // Chưa chọn wallpaper riêng cho hội thoại → dùng ảnh nền mặc định theo độ sáng/tối
+  // của theme đang chọn (background-1 = sáng, background-2 = tối/indigo), thay vì
+  // màu --background phẳng.
+  const { currentTheme } = useTheme();
+  const backgroundStyle: CSSProperties =
+    Object.keys(wallpaperStyle).length > 0
+      ? wallpaperStyle
+      : {
+          // Lớp phủ tối nhẹ (35%) đè lên ảnh nền mặc định để giảm loá mắt,
+          // không áp cho wallpaper người dùng tự chọn (đã qua bước xem trước riêng).
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url(${getDefaultBackgroundImage(currentTheme)})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        };
 
   useChatRealtime();
   useNotificationRealtime();
@@ -93,18 +108,15 @@ export function ChatLayout() {
 
   if (isMobile) {
     return (
-      // Safe-area trên: tránh notch/tai thỏ iPhone (viewport-fit=cover phủ vào vùng notch).
       <div
-        style={wallpaperStyle}
-        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]"
+        style={backgroundStyle}
+        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3"
       >
         <div className="min-h-0 flex-1 overflow-hidden">
           {mobilePanel === 'list' && <ConversationList />}
           {mobilePanel === 'chat' && <ChatPanel />}
           {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
         </div>
-        {/* Ẩn dock khi đang trong 1 cuộc trò chuyện — MessageInput đã chiếm đáy màn hình. */}
-        {mobilePanel !== 'chat' && <BottomDock />}
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -153,7 +165,7 @@ export function ChatLayout() {
     );
 
   return (
-    <div style={wallpaperStyle} className="flex h-full w-full flex-col gap-3 overflow-hidden p-3">
+    <div style={backgroundStyle} className="flex h-full w-full flex-col gap-3 overflow-hidden p-3">
       <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
         {/* Desktop nav sidebar */}
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
@@ -164,9 +176,6 @@ export function ChatLayout() {
         <ChatPanel />
         {rightPanelOpen && selectedConversationId && <ContactInfo />}
       </div>
-
-      {/* Dock điều hướng — full width, dưới toàn bộ hàng chính */}
-      <BottomDock />
 
       <CallContainer />
       <InviteProfileModal />

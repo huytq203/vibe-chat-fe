@@ -4,6 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 export interface ChatScrollOptions {
   lastMessageId: string | null;
+  /** Tin cuối do chính mình gửi → luôn scroll xuống đáy (bỏ qua gate atBottom). */
+  lastMessageIsOwn?: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => Promise<unknown>;
@@ -24,6 +26,7 @@ const AWAY_THRESHOLD = 240;
 
 export function useChatScroll({
   lastMessageId,
+  lastMessageIsOwn = false,
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
@@ -75,14 +78,14 @@ export function useChatScroll({
     el.scrollTop = el.scrollHeight;
   }, []);
 
-  // Khi có tin mới: scroll xuống nếu đang ở đáy
+  // Khi có tin mới: scroll xuống nếu đang ở đáy — hoặc luôn scroll nếu là tin mình vừa gửi.
   useEffect(() => {
     if (!lastMessageId || lastMessageId === lastMessageIdRef.current) return;
     lastMessageIdRef.current = lastMessageId;
-    if (!atBottomRef.current) return;
+    if (!atBottomRef.current && !lastMessageIsOwn) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [lastMessageId]);
+  }, [lastMessageId, lastMessageIsOwn]);
 
   // Khi load thêm trang cũ: giữ nguyên vị trí scroll (tránh nhảy lên đầu)
   useLayoutEffect(() => {

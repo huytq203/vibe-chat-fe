@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 
 /**
  * Socket riêng cho task-service (namespace /tasks) — tách khỏi chat socket
- * vì task-service dùng envelope thuần, KHÔNG có session-key cipher.
+ * vì task-service dùng envelope thuần riêng.
  * Singleton: 1 socket / tab. Auth = Keycloak token dùng chung với REST
  * (apiAuth.getToken), luôn lấy token mới nhất tại thời điểm (re)connect.
  */

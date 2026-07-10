@@ -12,9 +12,10 @@ type Props = {
   notification: Notification;
   onClick: (n: Notification) => void;
   onDelete: (id: string) => void;
+  isDeleting?: boolean;
 };
 
-export function NotificationItem({ notification, onClick, onDelete }: Props) {
+export function NotificationItem({ notification, onClick, onDelete, isDeleting = false }: Props) {
   const time = formatDistanceToNowStrict(new Date(notification.createdAt), {
     addSuffix: true,
     locale: vi,
@@ -66,14 +67,14 @@ export function NotificationItem({ notification, onClick, onDelete }: Props) {
         size="icon-sm"
         aria-label="Xoá thông báo"
         title="Xoá thông báo"
-        className="opacity-0 group-hover:opacity-100"
+        isLoading={isDeleting}
+        className={cn('opacity-0 group-hover:opacity-100', isDeleting && 'opacity-100')}
         onClick={(e) => {
           e.stopPropagation();
           onDelete(notification.id);
         }}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+        leftIcon={<Trash2 className="h-4 w-4" />}
+      />
     </div>
   );
 }

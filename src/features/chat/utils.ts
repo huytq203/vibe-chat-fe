@@ -1,6 +1,5 @@
 import { format, isToday, isYesterday, differenceInDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { isEncryptedMessage, peekDecrypted } from '@/lib/crypto/decrypt-cache';
 import type { Conversation, ConversationMember, MemberRole, Message } from './types';
 
 // ─── Sửa / gỡ tin & tin tự huỷ ───────────────────────────────────────────────
@@ -55,12 +54,6 @@ const MEDIA_SNIPPET: Partial<Record<Message['type'], string>> = {
  */
 export function getMessageSnippet(msg: Message): string {
   if (msg.isDeleted) return 'Tin nhắn đã thu hồi';
-  // Tin FE-encrypted: dùng plaintext đã giải mã trong cache (nếu có); chưa có → báo trạng thái.
-  if (isEncryptedMessage(msg)) {
-    const cached = peekDecrypted(msg)?.trim();
-    if (cached) return cached;
-    return MEDIA_SNIPPET[msg.type] ?? 'Tin nhắn đã mã hoá';
-  }
   const text = (msg.plaintext ?? msg.contentPreview ?? '').trim();
   if (text) return text;
   return MEDIA_SNIPPET[msg.type] ?? '[Tin nhắn]';

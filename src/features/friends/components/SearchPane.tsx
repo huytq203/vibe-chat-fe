@@ -79,7 +79,7 @@ export function SearchPane({
 
   return (
     <div className="px-2">
-      <div className="px-1 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="px-1 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-foreground">
         {items.length} kết quả cho {query}
       </div>
       <div className="flex flex-col gap-0.5">

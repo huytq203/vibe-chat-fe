@@ -1,9 +1,7 @@
 import { io, type Socket } from 'socket.io-client';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
-import { applyEventMap, clearEventMap } from './event-map';
-import { getSessionKey } from '@/lib/crypto/session-key';
-import { decryptBlob } from '@/lib/crypto/transport-cipher';
+import { clearEventMap } from './event-map';
 
 /**
  * Wrapper socket.io — feature code không import 'socket.io-client' trực tiếp.
@@ -116,15 +114,6 @@ export function getSocket(token: string | null): Socket | null {
   socket.on('connect', () => {
     logger.info('WS connected', { id: socket?.id });
     setConnectionState('connected');
-    // Listen for event map from server (sent on auth connect)
-    socket?.once('e0', async (blob: unknown) => {
-      try {
-        const key = getSessionKey();
-        if (!key || typeof blob !== 'string') return;
-        const json = await decryptBlob(blob, key);
-        applyEventMap(JSON.parse(json) as Record<string, string>);
-      } catch { /* ignore */ }
-    });
   });
 
   // BE emit khi user login trên thiết bị khác (single-session kick) → logout ngay, không reconnect.
@@ -214,27 +203,14 @@ export function closeSocket(): void {
   setConnectionState('disconnected');
 }
 
-/** Emit with cipher: sends payload plain (BE WebSocket handlers do not decrypt cipher blobs). */
-export async function cipherEmit(event: string, payload: unknown): Promise<void> {
-  if (!socket) return;
-  socket.emit(event, payload);
+/** Emit 1 event realtime (plaintext) qua socket hiện tại. No-op nếu chưa kết nối. */
+export function emitEvent(event: string, payload: unknown): void {
+  socket?.emit(event, payload);
 }
 
-/** Subscribe with cipher: decrypts payload if it's an encrypted string blob. */
-export function cipherOn(event: string, handler: (data: unknown) => void): () => void {
+/** Subscribe 1 event realtime (plaintext). Trả hàm unsubscribe — gọi trong cleanup. */
+export function onEvent(event: string, handler: (data: unknown) => void): () => void {
   if (!socket) return () => undefined;
-  const wrappedHandler = async (blob: unknown) => {
-    const key = getSessionKey();
-    if (!key || typeof blob !== 'string') {
-      handler(blob);
-      return;
-    }
-    try {
-      handler(JSON.parse(await decryptBlob(blob, key)));
-    } catch {
-      handler(blob); // fallback: pass raw
-    }
-  };
-  socket.on(event, wrappedHandler);
-  return () => { socket?.off(event, wrappedHandler); };
+  socket.on(event, handler);
+  return () => { socket?.off(event, handler); };
 }

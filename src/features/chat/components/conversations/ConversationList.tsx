@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input/Input';
@@ -18,7 +19,7 @@ import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { getConversationName } from '@/features/chat/utils';
 import { useStrangerConversations } from '@/features/chat/hooks/useStrangerConversations';
-import { useDecryptedPreviews } from '@/features/chat/hooks/use-decrypted-previews';
+import { ConversationDock } from './ConversationDock';
 import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
 import { StrangerInboxItem } from './StrangerInboxItem';
@@ -40,7 +41,6 @@ export function ConversationList() {
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations = [], isLoading } = useConversations();
-  const decryptedPreviews = useDecryptedPreviews(conversations);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const strangerOpen = useChatUIStore((s) => s.strangerOpen);
@@ -60,6 +60,7 @@ export function ConversationList() {
       qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
       setSelected(conv.id);
     },
+    onError: (e: Error) => toast.error(e.message || 'Không mở được cuộc trò chuyện'),
   });
 
   const handleMessageUser = useCallback(
@@ -110,9 +111,7 @@ export function ConversationList() {
       if (activeTab === 'group' && conversation.type === 'DIRECT') return false;
       if (!query) return true;
       const name = getConversationName(conversation, me?.id ?? null).toLowerCase();
-      const lm = conversation.lastMessage;
-      const previewText = (lm?.previewEncrypted ? decryptedPreviews.get(conversation.id) : lm?.preview) ?? '';
-      const preview = previewText.toLowerCase();
+      const preview = (conversation.lastMessage?.preview ?? '').toLowerCase();
       return name.includes(query) || preview.includes(query);
     });
 
@@ -122,7 +121,7 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id, isStranger, decryptedPreviews, selfConv]);
+  }, [conversations, activeTab, search, me?.id, isStranger, selfConv]);
 
   type ListItem =
     | { kind: 'stranger' }
@@ -136,7 +135,7 @@ export function ConversationList() {
   }, [search, isLoading, strangerConversations.length, filtered]);
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px]">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar/75 backdrop-blur-md  text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px] border">
       <header className="hidden shrink-0 items-center justify-between px-4 pb-3 pt-[18px] md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
@@ -163,7 +162,6 @@ export function ConversationList() {
             conversations={conversations}
             meId={me?.id ?? null}
             selectedConversationId={selectedConversationId}
-            decryptedPreviews={decryptedPreviews}
             onSelectConversation={(id) => { setSearchFocused(false); setSearch(''); handleSelectConversation(id); }}
             onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
           />
@@ -235,13 +233,16 @@ export function ConversationList() {
                     meId={me?.id ?? null}
                     onSelect={handleSelectConversation}
                     onAvatarError={handleAvatarError}
-                    decryptedPreview={decryptedPreviews.get(item.conv.id) ?? null}
                   />
                 );
               })}
             </div>
           </>
         )}
+      </div>
+
+      <div className="shrink-0">
+        <ConversationDock />
       </div>
     </aside>
   );

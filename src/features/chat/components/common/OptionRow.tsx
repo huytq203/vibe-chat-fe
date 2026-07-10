@@ -20,7 +20,7 @@ export function OptionRow({ icon, label, danger, onClick }: OptionRowProps) {
         'h-auto w-full justify-start gap-2 px-2 py-2 text-[13px] font-normal',
         danger
           ? 'text-danger hover:bg-danger/10 hover:text-danger'
-          : 'text-muted-foreground hover:text-foreground',
+          : 'text-foreground',
       )}
     >
       {icon}

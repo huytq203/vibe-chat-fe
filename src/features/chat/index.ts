@@ -21,6 +21,12 @@ export {
   useRemoveLock,
   useChangeLockPassword,
 } from './hooks/use-mutations';
+export { sendMessageWs } from './hooks/send-message-ws';
+export {
+  registerOptimisticNonce,
+  unregisterOptimisticNonce,
+  peekOptimisticNonce,
+} from './hooks/optimistic-nonce';
 export { useMessageEditStore } from './stores/message-edit.store';
 export { LockPasswordDialog } from './components/contact/PinDialog';
 export { ChangeLockPasswordDialog } from './components/contact/ChangeLockPasswordDialog';

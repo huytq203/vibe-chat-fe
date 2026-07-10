@@ -21,7 +21,7 @@ type ChatAvatarProps = {
 };
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
-  sm: 'h-9 w-9 rounded-full',
+  sm: 'h-8 w-8 rounded-full',
   md: 'h-11 w-11 rounded-full',
   lg: 'h-[72px] w-[72px] rounded-full',
 };

@@ -1,8 +1,6 @@
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { syncServerTime } from '@/lib/time/server-clock';
-import { encryptBlob, decryptBlob } from '@/lib/crypto/transport-cipher';
-import { getSessionKey, ensureSessionKey, clearSessionKey } from '@/lib/crypto/session-key';
 
 export type ApiEnvelope<T> = {
   success: true;
@@ -54,39 +52,6 @@ function clearRefreshTimer(): void {
     refreshTimer = null;
   }
 }
-
-const PUBLIC_PATHS = ['/api/v1/auth/', '/api/v1/session/key', '/api/v1/health'];
-
-function isPublicPath(path: string): boolean {
-  return PUBLIC_PATHS.some(p => path.includes(p));
-}
-
-async function cipherRequest(method: string, _path: string, options: RequestOptions, key: CryptoKey): Promise<RequestOptions> {
-  if (method === 'GET') {
-    // Luôn gửi cipher blob (kể cả không có params) để BE biết response cần encrypt.
-    const filtered: Record<string, string | number | boolean> = {};
-    for (const [k, v] of Object.entries(options.query ?? {})) {
-      if (v !== undefined && v !== null) filtered[k] = v as string | number | boolean;
-    }
-    const blob = await encryptBlob(JSON.stringify(filtered), key);
-    return { ...options, query: { params: blob } };
-  }
-  // POST / PUT / PATCH / DELETE — encrypt body hoặc {} nếu không có body.
-  const payload = options.body !== undefined ? options.body : {};
-  const blob = await encryptBlob(JSON.stringify(payload), key);
-  return { ...options, body: { params: blob } };
-}
-
-async function decipherResponse<T>(json: unknown, key: CryptoKey): Promise<T> {
-  const envelope = json as { error_code: number; error_message: string; data: string | null };
-  if (envelope.error_code !== 0) {
-    throw new ApiError(envelope.error_code, String(envelope.error_code), envelope.error_message);
-  }
-  if (!envelope.data) return undefined as T;
-  const plaintext = await decryptBlob(envelope.data, key);
-  return JSON.parse(plaintext) as T;
-}
-
 
 /** Lên lịch refresh chủ động: chạy trước khi token hết hạn REFRESH_SKEW_SECONDS giây. */
 function scheduleProactiveRefresh(expiresIn?: number): void {
@@ -192,8 +157,8 @@ async function parseError(res: Response): Promise<ApiError> {
   const body = (await res.json().catch(() => null)) as
     | (ApiErrorBody & { error_code?: number; error_message?: string })
     | null;
-  // Middleware transport-cipher trả envelope { error_code, error_message } (vd
-  // SESSION_KEY_MISSING / INVALID_CIPHER) — map error_message thành code để FE phân loại.
+  // Vibe service trả envelope { error_code, error_message, data } — map error_message
+  // thành code khi không có error.code (auth service dùng error.code) để FE phân loại.
   const code = body?.error?.code ?? body?.error_message ?? 'INTERNAL_ERROR';
   const message =
     body?.error?.message ?? body?.error_message ?? res.statusText ?? 'Có lỗi xảy ra';
@@ -204,8 +169,6 @@ async function parseError(res: Response): Promise<ApiError> {
  * Xử lý 401 sau request đầu tiên. Trả về Response của lần retry, hoặc throw nếu
  * không phục hồi được:
  *  - AUTH_SESSION_REVOKED: phiên bị thu hồi (login thiết bị khác) → logout ngay, KHÔNG retry.
- *  - SESSION_KEY_MISSING: server mất session key (restart/evict) → lập lại key + re-cipher
- *    rồi retry (refresh access token KHÔNG cứu được lỗi này).
  *  - còn lại: access token hết hạn → refresh rồi retry.
  */
 async function recoverFrom401(
@@ -213,7 +176,6 @@ async function recoverFrom401(
   method: string,
   path: string,
   options: RequestOptions,
-  cipheredOptions: RequestOptions,
 ): Promise<Response> {
   const err = await parseError(res.clone());
 
@@ -224,19 +186,9 @@ async function recoverFrom401(
     throw err;
   }
 
-  if (err.code === 'SESSION_KEY_MISSING') {
-    logger.warn('Session key missing — re-establish', { path });
-    clearSessionKey();
-    if (accessToken) await ensureSessionKey(accessToken);
-    const key = getSessionKey();
-    const retryOptions =
-      key && !isPublicPath(path) ? await cipherRequest(method, path, options, key) : options;
-    return rawRequest(method, path, retryOptions);
-  }
-
   try {
     await refreshAccessToken();
-    return await rawRequest(method, path, cipheredOptions);
+    return await rawRequest(method, path, options);
   } catch (e) {
     logger.warn('Refresh failed', { path });
     throw e;
@@ -244,21 +196,10 @@ async function recoverFrom401(
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-  // Lập session key TRƯỚC khi gửi (nếu chưa có) — chống race sau login: query của
-  // ChatLayout bắn ngay khi render, nếu handshake /session/key chưa xong → BE trả 401
-  // SESSION_KEY_MISSING cho MỌI API. ensureSessionKey dedupe nên chỉ handshake 1 lần.
-  if (options.auth !== false && accessToken && !isPublicPath(path)) {
-    await ensureSessionKey(accessToken);
-  }
-
-  const sessionKey = getSessionKey();
-  const shouldCipher = !!sessionKey && !isPublicPath(path);
-  const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
-
-  let res = await rawRequest(method, path, cipheredOptions);
+  let res = await rawRequest(method, path, options);
 
   if (res.status === 401 && options.auth !== false && accessToken) {
-    res = await recoverFrom401(res, method, path, options, cipheredOptions);
+    res = await recoverFrom401(res, method, path, options);
   }
 
   if (!res.ok) {
@@ -270,24 +211,8 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   if (res.status === 204) return undefined as T;
   const json = (await res.json()) as unknown;
 
-  if (shouldCipher) {
-    // Plaintext sau giải mã vẫn là envelope chuẩn { success?, data, meta?, timestamp? }
-    // như response thường → phải unwrap `.data` để lớp cipher trong suốt với caller.
-    // Trước khi có E2E encryption, nhánh legacy bên dưới đã unwrap; migration cipher bỏ
-    // sót nên list endpoint (vd /conversations) trả nguyên envelope → caller nhận sai shape.
-    const decrypted = await decipherResponse<unknown>(json, sessionKey);
-    if (decrypted && typeof decrypted === 'object' && !Array.isArray(decrypted)) {
-      if ('timestamp' in decrypted) {
-        syncServerTime((decrypted as ApiEnvelope<T>).timestamp);
-      }
-      if ('data' in decrypted) {
-        return (decrypted as { data: T }).data;
-      }
-    }
-    return decrypted as T;
-  }
-
-  // Legacy format (auth service / public endpoints)
+  // Unwrap envelope: auth service dùng { success, data, timestamp };
+  // vibe service dùng { error_code, error_message, data }. Đọc `.data` trong cả hai.
   if (json && typeof json === 'object') {
     if ('timestamp' in (json as object)) {
       syncServerTime((json as ApiEnvelope<T>).timestamp);
@@ -309,30 +234,12 @@ export const apiClient = {
   patch: <T>(path: string, options?: RequestOptions) => request<T>('PATCH', path, options),
   delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),
   rawWithMeta: async <T>(method: string, path: string, options: RequestOptions = {}) => {
-    if (options.auth !== false && accessToken && !isPublicPath(path)) {
-      await ensureSessionKey(accessToken);
-    }
-
-    const sessionKey = getSessionKey();
-    const shouldCipher = !!sessionKey && !isPublicPath(path);
-    const cipheredOptions = shouldCipher ? await cipherRequest(method, path, options, sessionKey) : options;
-
-    let res = await rawRequest(method, path, cipheredOptions);
+    let res = await rawRequest(method, path, options);
     if (res.status === 401 && options.auth !== false && accessToken) {
-      res = await recoverFrom401(res, method, path, options, cipheredOptions);
+      res = await recoverFrom401(res, method, path, options);
     }
     if (!res.ok) throw await parseError(res);
     const json = (await res.json()) as unknown;
-    if (shouldCipher) {
-      type Meta = ApiEnvelope<T>['meta'];
-      type WithMeta = { data: T; meta?: Meta };
-      const inner = await decipherResponse<WithMeta | T>(json, sessionKey);
-      if (inner && typeof inner === 'object' && 'data' in (inner as object)) {
-        const typed = inner as WithMeta;
-        return { data: typed.data, meta: typed.meta };
-      }
-      return { data: inner as T, meta: undefined };
-    }
     const envelope = json as ApiEnvelope<T>;
     syncServerTime(envelope.timestamp);
     return { data: envelope.data, meta: envelope.meta };

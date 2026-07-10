@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
-import { cipherEmit, getSocket } from '@/lib/ws/socket';
+import { emitEvent, getSocket } from '@/lib/ws/socket';
 import { messageToJson } from '@/lib/editor/serializer';
 import { useEditMessage, useSendMessage } from './use-mutations';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
@@ -70,7 +70,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
       if (typingStateRef.current === 'start') {
         const socket = getSocket(apiAuth.getToken());
-        if (socket?.connected) void cipherEmit('typing', { conversationId, state: 'stop' });
+        if (socket?.connected) emitEvent('typing', { conversationId, state: 'stop' });
         typingStateRef.current = 'stop';
       }
     };
@@ -106,7 +106,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
       typingStateRef.current = state;
       return;
     }
-    void cipherEmit('typing', { conversationId, state });
+    emitEvent('typing', { conversationId, state });
     typingStateRef.current = state;
   }
 

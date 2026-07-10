@@ -3,7 +3,7 @@ import { apiAuth } from '@/lib/api/client';
 
 /**
  * Client riêng cho task-service. KHÔNG đi qua `apiClient` của chat backend —
- * apiClient áp session-key cipher + envelope khác; task-service trả plain
+ * apiClient dùng envelope khác; task-service trả plain
  * `{ success, data, meta?, timestamp }`. Token Keycloak được chia sẻ (cùng realm).
  */
 interface Envelope<T> {

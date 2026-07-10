@@ -48,7 +48,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         : presence.lastSeenLabel ?? 'Ngoại tuyến';
 
   return (
-    <div className={cn('flex shrink-0 items-center justify-between rounded-2xl px-4 py-3 shadow-subtle', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md' : 'bg-sidebar')}>
+    <div className={cn('flex border shrink-0 items-center justify-between rounded-2xl px-4 py-3 shadow-subtle', wallpaperActive ? 'bg-sidebar/75 backdrop-blur-md ' : 'bg-sidebar')}>
       {onBack && (
         <Button
           variant="ghost"

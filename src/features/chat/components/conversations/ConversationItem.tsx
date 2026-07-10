@@ -23,8 +23,6 @@ type ConversationItemProps = {
   onSelect: (id: string) => void;
   /** Avatar lỗi (presigned URL hết hạn) → cho phép list refetch lấy URL mới. */
   onAvatarError?: () => void;
-  /** Preview đã giải mã (cho tin FE-encrypted). null = chưa giải mã xong/không có. */
-  decryptedPreview?: string | null;
 };
 
 function ConversationItemImpl({
@@ -33,17 +31,12 @@ function ConversationItemImpl({
   meId,
   onSelect,
   onAvatarError,
-  decryptedPreview,
 }: ConversationItemProps) {
   const name = getConversationName(conversation, meId);
   const avatarUrl = getConversationAvatar(conversation, meId);
   const isLocked = Boolean(conversation.isLocked);
   const lm = conversation.lastMessage;
-  // Tin FE-encrypted: dùng preview đã giải mã; chờ giải mã xong thì hiện placeholder.
-  const decoded = lm?.previewEncrypted
-    ? (decryptedPreview ?? '...')
-    : lm?.preview;
-  const mappedPreview = mapPreviewText(decoded) || null;
+  const mappedPreview = mapPreviewText(lm?.preview) || null;
   const preview = isLocked
     ? 'Cuộc hội thoại riêng tư'
     : mappedPreview

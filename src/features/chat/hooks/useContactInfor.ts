@@ -195,4 +195,7 @@ const useContactInfor = () => {
   };
 };
 
+/** Dữ liệu đã sẵn sàng render (khác null) từ useContactInfor — cho các section con. */
+export type ContactInfoData = NonNullable<ReturnType<typeof useContactInfor>>;
+
 export default useContactInfor;

@@ -7,7 +7,6 @@ import { apiAuth, ApiError } from '@/lib/api/client';
 import { authApi } from '@/services/auth.api';
 import { authKeys, chatKeys, notificationKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
-import { ensureSessionKey, clearSessionKey, getSessionKey } from '@/lib/crypto/session-key';
 
 type Props = {
   requireAuth?: boolean;
@@ -34,7 +33,6 @@ export function AuthBootstrap({
     let cancelled = false;
 
     apiAuth.onUnauthorized(() => {
-      clearSessionKey();
       // Chỉ clear user khi store còn đang authed — tránh đè lên login đang chạy song song.
       if (useAuthStore.getState().isAuthenticated) setUser(null);
       if (requireAuth) router.replace(redirectTo);
@@ -42,19 +40,7 @@ export function AuthBootstrap({
 
     // Nếu đã có session (vd login form vừa setSession trước khi bootstrap mount) → bỏ qua bootstrap.
     if (useAuthStore.getState().isAuthenticated) {
-      const token = apiAuth.getToken();
-      // PHẢI lập session key XONG trước khi hydrate: ChatLayout render song song sẽ bắn
-      // query ngay, chưa có key → BE trả 401 SESSION_KEY_MISSING. Client layer cũng tự
-      // ensure ở request đầu (dedupe chung), đây là để chủ động warm sớm.
-      void (async () => {
-        try {
-          if (token && !getSessionKey()) await ensureSessionKey(token);
-        } catch {
-          // best-effort: ensureSessionKey ở client sẽ thử lại ở request đầu tiên
-        } finally {
-          if (!cancelled) setHydrated(true);
-        }
-      })();
+      setHydrated(true);
       return () => {
         cancelled = true;
       };
@@ -66,7 +52,6 @@ export function AuthBootstrap({
           const tokens = await authApi.refreshAccessToken();
           if (cancelled || useAuthStore.getState().isAuthenticated) return;
           apiAuth.setToken(tokens.accessToken, tokens.expiresIn);
-          await ensureSessionKey(tokens.accessToken);
         }
         const { me, conversations, unreadCount, systemNotifCount } = await authApi.bootstrap();
         if (cancelled || useAuthStore.getState().isAuthenticated) return;
@@ -93,7 +78,6 @@ export function AuthBootstrap({
 
     return () => {
       cancelled = true;
-      clearSessionKey();
     };
   }, [hydrated, requireAuth, redirectTo, router, qc, setUser, setHydrated]);
 

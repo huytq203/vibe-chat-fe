@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useAuthStore } from '@/features/auth';
 import { useMessageSearch } from '@/features/chat/hooks/use-query';
 import { buildMemberNameMap, formatListTime } from '@/features/chat/utils';
-import { getKeyForConversation } from '@/lib/crypto/conversation-key-store';
-import { decryptToString } from '@/lib/crypto/message-crypto';
-import type { Conversation, Message } from '@/features/chat/types';
+import type { Conversation } from '@/features/chat/types';
 
 const HINT_CLS = 'px-2 py-6 text-center text-[12px] text-muted-foreground';
 
@@ -40,53 +38,6 @@ type MessageSearchResultsProps = {
   onJump: (messageId: string, createdAt: string) => void;
 };
 
-/**
- * Decrypt contentPreviewCipher cho các tin FE-encrypted trong kết quả search.
- * Trả Map<messageId, previewText>.
- */
-function useDecryptedSearchPreviews(
-  conversationId: string,
-  messages: Message[],
-): Map<string, string> {
-  const [decrypted, setDecrypted] = useState<Map<string, string>>(new Map);
-
-  const depKey = messages
-    .filter((m) => m.encrypted && m.contentPreviewCipher)
-    .map((m) => `${m.id}:${m.contentPreviewCipher!.ciphertext}`)
-    .join('|');
-
-  useEffect(() => {
-    const encrypted = messages.filter((m) => m.encrypted && m.contentPreviewCipher);
-    let cancelled = false;
-    void (async () => {
-      if (encrypted.length === 0) {
-        if (!cancelled) setDecrypted((prev) => (prev.size === 0 ? prev : new Map()));
-        return;
-      }
-      try {
-        const key = await getKeyForConversation(conversationId);
-        const updates = new Map<string, string>();
-        await Promise.all(
-          encrypted.map(async (m) => {
-            try {
-              updates.set(m.id, await decryptToString(m.contentPreviewCipher!, key));
-            } catch {
-              // Giữ nguyên nếu decrypt lỗi (key chưa load hoặc dữ liệu hỏng)
-            }
-          }),
-        );
-        if (!cancelled) setDecrypted((prev) => new Map([...prev, ...updates]));
-      } catch {
-        // Không crash nếu chưa lấy được key
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, depKey]);
-
-  return decrypted;
-}
-
 /** Danh sách kết quả tìm tin (debounce + highlight + phân trang). Dùng chung cho panel & dropdown. */
 export function MessageSearchResults({ conversation, query, onJump }: MessageSearchResultsProps) {
   const debounced = useDebouncedValue(query, 300);
@@ -96,7 +47,6 @@ export function MessageSearchResults({ conversation, query, onJump }: MessageSea
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useMessageSearch(conversation.id, { key: debounced });
   const results = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
-  const decryptedPreviews = useDecryptedSearchPreviews(conversation.id, results);
 
   if (debounced.trim().length < 1) {
     return <p className={HINT_CLS}>Nhập từ khoá để tìm trong tin nhắn văn bản.</p>;
@@ -125,7 +75,7 @@ export function MessageSearchResults({ conversation, query, onJump }: MessageSea
           </div>
           <span className="line-clamp-2 text-[13px] text-foreground">
             <Highlighted
-              text={m.plaintext ?? decryptedPreviews.get(m.id) ?? m.contentPreview ?? ''}
+              text={m.plaintext ?? m.contentPreview ?? ''}
               term={debounced}
             />
           </span>

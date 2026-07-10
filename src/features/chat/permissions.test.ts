@@ -24,7 +24,7 @@ function makeConv(opts: {
     description: null,
     avatarUrl: null,
     ownerId: 'owner',
-    encryptionType: 'SERVER',
+    encryptionType: 'NONE',
     memberCount: 2,
     messageCount: 0,
     memberIds: [ME],

@@ -8,10 +8,10 @@ import type {
   StoreMessagesPage,
   StoreFoldersPage,
   StoreFilesPage,
-  CreateReminderPayload,
-  CreateChecklistPayload,
-  CreateBookmarkPayload,
-  SendStoreMessagePayload,
+  CreateReminderInput,
+  CreateChecklistInput,
+  CreateBookmarkInput,
+  SendStoreMessageInput,
   StoreNoteType,
   PatchChecklistItemInput,
   EditStoreMessageInput,
@@ -41,7 +41,7 @@ export const myStoreApi = {
     return { items: data, nextCursor: (meta?.nextCursor as string | null | undefined) ?? null };
   },
 
-  sendMessage: (dto: SendStoreMessagePayload): Promise<StoreMessage> =>
+  sendMessage: (dto: SendStoreMessageInput): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages', { body: dto }),
 
   editMessage: (messageId: string, dto: EditStoreMessageInput): Promise<StoreMessage> =>
@@ -52,13 +52,13 @@ export const myStoreApi = {
 
   // ─── Special message types ─────────────────────────────────────────────────
 
-  createReminder: (dto: CreateReminderPayload): Promise<StoreMessage> =>
+  createReminder: (dto: CreateReminderInput): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/reminder', { body: dto }),
 
-  createChecklist: (dto: CreateChecklistPayload): Promise<StoreMessage> =>
+  createChecklist: (dto: CreateChecklistInput): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/checklist', { body: dto }),
 
-  createBookmark: (dto: CreateBookmarkPayload): Promise<StoreMessage> =>
+  createBookmark: (dto: CreateBookmarkInput): Promise<StoreMessage> =>
     apiClient.post<StoreMessage>('/api/v1/my-store/messages/bookmark', { body: dto }),
 
   patchChecklistItem: (messageId: string, dto: PatchChecklistItemInput): Promise<StoreMessage> =>

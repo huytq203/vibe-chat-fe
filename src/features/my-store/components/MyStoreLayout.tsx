@@ -9,6 +9,7 @@ import { FolderSidebar } from './FolderSidebar';
 import { FilePanel } from './FilePanel';
 import { MyStoreInfoPanel } from './MyStoreInfoPanel';
 import { useStoreConversation, useStoreFolders } from '@/features/my-store/hooks/use-query';
+import { useMyStoreRealtime } from '@/features/my-store/hooks/useMyStoreRealtime';
 
 type ActiveTab = 'notes' | 'files';
 
@@ -17,6 +18,7 @@ export function MyStoreLayout() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const { data: folders } = useStoreFolders();
   const { data: selfConv } = useStoreConversation();
+  useMyStoreRealtime(selfConv?.id ?? null);
 
   const selectedFolder = folders?.find((f) => f.id === selectedFolderId) ?? null;
 

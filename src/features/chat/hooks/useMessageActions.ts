@@ -12,7 +12,6 @@ import {
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 import { useForwardMessage } from '@/features/chat/hooks/useForwardMessage';
-import { useDecryptedBody } from '@/features/chat/hooks/use-decrypted-message';
 import { getRichText } from '@/features/chat/components/messages/rich-text-utils';
 
 type UseMessageActionsParams = {
@@ -47,9 +46,7 @@ export function useMessageActions({
 
   const canEdit = isMe && canEditMessage(message, meId);
   const canCopy = message.type === 'TEXT';
-  const decrypted = useDecryptedBody(message);
-  const resolvedText =
-    decrypted.text ?? message.plaintext ?? message.contentPreview ?? '';
+  const resolvedText = message.plaintext ?? message.contentPreview ?? '';
 
   function handleTogglePin() {
     const vars = { conversationId: message.conversationId, messageId: message.id };

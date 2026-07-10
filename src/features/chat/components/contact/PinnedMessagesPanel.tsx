@@ -22,8 +22,6 @@ import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { usePinnedMessages } from '@/features/chat/hooks/use-query';
 import { useUnpinMessage } from '@/features/chat/hooks/use-mutations';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
-import { useEnsureDecrypted } from '@/features/chat/hooks/use-decrypted-message';
-import { peekDecrypted } from '@/lib/crypto/decrypt-cache';
 import { canPinMessage, getMessageSnippet } from '@/features/chat/utils';
 import type { Conversation, Message } from '@/features/chat/types';
 import { useState } from 'react';
@@ -45,7 +43,6 @@ export function PinnedMessagesPanel({ conversation, meId, onBack, onClose }: Pin
   const hasPins = (conversation.pinnedCount ?? 0) > 0;
   const { data, isLoading, isError } = usePinnedMessages(conversation.id, hasPins);
   const pinned = Array.isArray(data) ? data : [];
-  useEnsureDecrypted(pinned);
 
   const canUnpin = canPinMessage(conversation, meId);
 
@@ -148,7 +145,7 @@ function PinItemMenu({ message, canUnpin, onUnpin, className }: PinItemMenuProps
   if (!canCopy && !canUnpin) return null;
 
   function handleCopy() {
-    const text = peekDecrypted(message) ?? message.plaintext ?? message.contentPreview ?? '';
+    const text = message.plaintext ?? message.contentPreview ?? '';
     if (!text || !navigator.clipboard) return;
     void navigator.clipboard.writeText(text).then(
       () => toast.success('Đã sao chép'),

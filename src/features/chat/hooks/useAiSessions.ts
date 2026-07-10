@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useSelectedAiSession } from '@/features/chat/hooks/useSelectedAiSession';
+import { getJSON, setJSON } from '@/lib/storage/local-storage';
 
 const KEY = 'ai-sessions';
 
@@ -20,12 +21,7 @@ export type AiMessage = {
 export type AiSession = { id: string; title: string; messages: AiMessage[]; updatedAt: number };
 
 function load(): AiSession[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]') as AiSession[];
-  } catch {
-    return [];
-  }
+  return getJSON<AiSession[]>(KEY, []);
 }
 
 function persist(sessions: AiSession[]): void {
@@ -42,11 +38,7 @@ function persist(sessions: AiSession[]): void {
       ),
     })),
   }));
-  try {
-    localStorage.setItem(KEY, JSON.stringify(clean.slice(0, 50)));
-  } catch {
-    // localStorage không khả dụng
-  }
+  setJSON(KEY, clean.slice(0, 50));
 }
 
 function getInitialSessions(): AiSession[] {

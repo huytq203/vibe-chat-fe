@@ -3,8 +3,7 @@
 import { CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { usePatchChecklistItem } from '@/features/my-store/hooks/use-mutations';
-import { useDecryptedMetadata } from '@/features/my-store/hooks/use-decrypted-metadata';
-import type { ChecklistMetadata, ChecklistSecret } from '@/features/my-store/types';
+import type { ChecklistMetadata } from '@/features/my-store/types';
 
 type ChecklistCardProps = {
   message: { id: string; conversationId: string; metadata: Record<string, unknown> | null; isDeleted: boolean };
@@ -13,18 +12,9 @@ type ChecklistCardProps = {
 export function ChecklistCard({ message }: ChecklistCardProps) {
   const meta = message.metadata as ChecklistMetadata | null;
   const patch = usePatchChecklistItem();
-  // title + text từng item nhạy cảm: giải mã (Phase 1) hoặc plaintext (back-compat).
-  const { data: secret } = useDecryptedMetadata<ChecklistSecret>(
-    message.conversationId,
-    message.metadata,
-  );
-  const textById = new Map((secret?.items ?? []).map((i) => [i.id, i.text]));
-  const title = secret?.title ?? meta?.title ?? 'Checklist';
+  const title = meta?.title ?? 'Checklist';
 
-  const items = (meta?.items ?? []).map((it) => ({
-    ...it,
-    text: textById.get(it.id) ?? it.text ?? '',
-  }));
+  const items = meta?.items ?? [];
   const checkedCount = items.filter((i) => i.checked).length;
   const total = items.length;
 

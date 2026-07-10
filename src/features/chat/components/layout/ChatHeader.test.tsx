@@ -16,7 +16,7 @@ function buildConversation(overrides: Partial<Conversation> = {}): Conversation 
     description: null,
     avatarUrl: null,
     ownerId: 'me',
-    encryptionType: 'SERVER',
+    encryptionType: 'NONE',
     memberCount: 2,
     messageCount: 5,
     memberIds: ['me', 'user-2'],

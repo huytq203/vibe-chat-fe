@@ -36,6 +36,8 @@ export interface Theme {
   name: string;
   label: string;
   colors: ThemeColors;
+  /** Nền tối (đóng vai trò "dark mode") → dùng background-2.webp thay vì background-1.webp. */
+  isDark: boolean;
 }
 
 export type BuiltInThemeName = 'indigo' | 'blue' | 'violet' | 'rose' | 'emerald' | 'orange' | 'slate';
@@ -48,6 +50,7 @@ export const themes: Theme[] = [
   {
     name: 'indigo',
     label: 'Vibe Charcoal (Default)',
+    isDark: true,
     colors: {
       background: '#111318',
       foreground: '#e2e8f0',
@@ -77,6 +80,7 @@ export const themes: Theme[] = [
   {
     name: 'blue',
     label: 'Blue',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -106,6 +110,7 @@ export const themes: Theme[] = [
   {
     name: 'violet',
     label: 'Violet',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -135,6 +140,7 @@ export const themes: Theme[] = [
   {
     name: 'rose',
     label: 'Rose',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -164,6 +170,7 @@ export const themes: Theme[] = [
   {
     name: 'emerald',
     label: 'Emerald',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -193,6 +200,7 @@ export const themes: Theme[] = [
   {
     name: 'orange',
     label: 'Orange',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -222,6 +230,7 @@ export const themes: Theme[] = [
   {
     name: 'slate',
     label: 'Slate',
+    isDark: false,
     colors: {
       background: '#ffffff',
       foreground: '#101114',
@@ -373,6 +382,17 @@ export function createTheme(
   return {
     name,
     label,
+    isDark: base.isDark,
     colors: { ...base.colors, ...colors },
   };
+}
+
+// ─── Default Background Image ─────────────────────────────────────────────────
+
+/**
+ * Ảnh nền mặc định của trang chat theo độ sáng/tối của theme đang chọn
+ * (background-1.webp = theme sáng, background-2.webp = theme tối/indigo).
+ */
+export function getDefaultBackgroundImage(theme: Theme): string {
+  return theme.isDark ? '/asset/background-2.webp' : '/asset/banner.png';
 }

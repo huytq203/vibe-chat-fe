@@ -2,8 +2,7 @@
 
 import { Bell, BellOff, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { useDecryptedMetadata } from '@/features/my-store/hooks/use-decrypted-metadata';
-import type { ReminderMetadata, ReminderSecret } from '@/features/my-store/types';
+import type { ReminderMetadata } from '@/features/my-store/types';
 
 function formatRemindAt(iso: string): string {
   const d = new Date(iso);
@@ -17,21 +16,13 @@ function formatRemindAt(iso: string): string {
 }
 
 type ReminderCardProps = {
-  message: { conversationId: string; metadata: Record<string, unknown> | null };
+  message: { metadata: Record<string, unknown> | null };
 };
 
 export function ReminderCard({ message }: ReminderCardProps) {
   const meta = (message.metadata ?? {}) as ReminderMetadata;
-  // title/note nhạy cảm: lấy từ blob đã giải mã (Phase 1) hoặc plaintext (back-compat).
-  const { data: secret, loading, failed } = useDecryptedMetadata<ReminderSecret>(
-    message.conversationId,
-    message.metadata,
-  );
-  const title =
-    secret?.title ??
-    meta.title ??
-    (loading ? 'Đang giải mã…' : failed ? 'Không giải mã được' : 'Nhắc nhở');
-  const note = secret?.note ?? meta.note;
+  const title = meta.title ?? 'Nhắc nhở';
+  const note = meta.note;
   const isPast = new Date(meta.remindAt) < new Date();
   const isFired = meta.fired;
 

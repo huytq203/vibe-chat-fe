@@ -110,7 +110,7 @@ export function ChatPanel() {
 
   if (!selectedConversationId || !conversation) {
     return (
-      <main className="flex h-full flex-1 flex-col items-center justify-center bg-background text-center">
+      <main className="flex h-full flex-1 flex-col items-center justify-center bg-background/75 backdrop-blur-md text-center border rounded-2xl">
         <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
           <MessageSquare className="h-7 w-7 text-primary/60" />
         </div>
@@ -124,7 +124,7 @@ export function ChatPanel() {
     'Cuộc trò chuyện';
 
   return (
-    <main className="flex h-full min-w-0 flex-1 flex-col gap-3">
+    <main className="flex h-full min-w-0 flex-1 flex-col">
       <ChatHeader
         conversation={conversation}
         meId={meId}

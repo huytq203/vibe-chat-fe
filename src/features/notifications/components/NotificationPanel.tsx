@@ -113,6 +113,7 @@ export function NotificationPanel({ open, onOpenChange }: Props) {
               notification={n}
               onClick={handleClick}
               onDelete={(id) => deleteMut.mutate(id)}
+              isDeleting={deleteMut.isPending && deleteMut.variables === n.id}
             />
           ))}
         </div>

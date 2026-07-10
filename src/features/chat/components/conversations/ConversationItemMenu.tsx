@@ -97,6 +97,11 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
     else lockWith(password);
   }
 
+  function handleConfirmDelete(scope: "ME" | "BOTH" | undefined){
+     deleteMut.mutate({ conversationId: id, scope })
+     setDeleteOpen(false)
+  }
+
   return (
     <>
       <Popover open={menuOpen} onOpenChange={setMenuOpen}>
@@ -197,7 +202,7 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
         name={getConversationName(conversation, meId)}
         isDirect={isDirect}
         isPending={deleteMut.isPending}
-        onConfirm={(scope) => deleteMut.mutate({ conversationId: id, scope })}
+        onConfirm={handleConfirmDelete}
       />
     </>
   );

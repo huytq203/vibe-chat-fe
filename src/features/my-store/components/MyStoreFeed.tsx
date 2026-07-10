@@ -4,7 +4,6 @@ import { useRef, useCallback } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useStoreMessages } from '@/features/my-store/hooks/use-query';
 import { useDeleteStoreMessage } from '@/features/my-store/hooks/use-mutations';
-import { useDecryptedBody } from '@/features/chat/hooks/use-decrypted-message';
 import type { StoreMessage, StoreNoteType } from '@/features/my-store/types';
 
 // Các loại ghi chú chỉ hiển thị ở list riêng (MyStoreNoteListView), KHÔNG render thành bubble.
@@ -21,13 +20,7 @@ function formatTime(iso: string): string {
 
 function MessageItem({ message }: { message: StoreMessage }) {
   const del = useDeleteStoreMessage();
-  // Giải mã text FE-encrypted (tin thường → trả plaintext ngay).
-  const decrypted = useDecryptedBody(message);
-  const body = decrypted.failed
-    ? 'Không giải mã được'
-    : decrypted.loading
-      ? 'Đang giải mã…'
-      : decrypted.text;
+  const body = message.plaintext;
 
   if (message.isDeleted) {
     return (

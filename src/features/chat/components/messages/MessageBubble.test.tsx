@@ -14,7 +14,7 @@ function buildMessage(overrides: Partial<Message> = {}): Message {
     conversationId: 'conv-1',
     senderId: 'user-2',
     type: 'TEXT',
-    encryptionType: 'SERVER',
+    encryptionType: 'NONE',
     plaintext: 'Hi',
     attachments: [],
     contentPreview: 'Hi',

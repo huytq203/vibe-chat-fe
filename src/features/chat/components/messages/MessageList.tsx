@@ -33,10 +33,8 @@ function formatDateLabel(date: Date): string {
 
 function DateSeparator({ date }: { date: Date }) {
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="h-px flex-1 bg-border/60" />
-      <span className="text-[11px] font-medium text-muted-foreground">{formatDateLabel(date)}</span>
-      <div className="h-px flex-1 bg-border/60" />
+    <div className="flex items-center justify-center gap-3 py-2">
+      <span className="text-[11px] font-medium text-white">{formatDateLabel(date)}</span>
     </div>
   );
 }
@@ -96,7 +94,10 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
   const bubbleConfig = useBubbleConfig(conversationId);
 
   const sendError = useSendErrorStore((s) => s.byConv[conversationId]);
-  const lastMessageId = messages[messages.length - 1]?.id ?? null;
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageId = lastMessage?.id ?? null;
+  // Tin cuối là của chính mình (vừa gửi) → luôn scroll xuống đáy, bỏ qua gate atBottom.
+  const lastMessageIsOwn = lastMessage?.senderId === meId;
 
   const typingUserIds = useTypingStore((s) => s.byConv[conversationId] ?? EMPTY_TYPING);
   const otherTypingIds = useMemo(
@@ -107,6 +108,7 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
   const { scrollRef, topSentinelRef, highlightId, showScrollDown, scrollToBottom, scrollToMessage, handleScroll } =
     useChatScroll({
       lastMessageId,
+      lastMessageIsOwn,
       hasNextPage: hasNextPage ?? false,
       isFetchingNextPage,
       fetchNextPage,
