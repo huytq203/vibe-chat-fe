@@ -18,6 +18,7 @@ import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useConversations } from '@/features/chat/hooks/use-query';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
+import { useWallpaper } from '@/features/chat/hooks/useWallpaper';
 import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
@@ -39,6 +40,9 @@ export function ChatLayout() {
   const { data: conversations } = useConversations();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Wallpaper của hội thoại đang chọn — áp cho toàn bộ khung layout (không chỉ cột chat),
+  // để nền hiển thị xuyên qua các khe hở giữa các card nổi, giống bố cục design gốc.
+  const wallpaperStyle = useWallpaper(selectedConversationId);
 
   useChatRealtime();
   useNotificationRealtime();
@@ -89,7 +93,10 @@ export function ChatLayout() {
   if (isMobile) {
     return (
       // Safe-area trên: tránh notch/tai thỏ iPhone (viewport-fit=cover phủ vào vùng notch).
-      <div className="flex h-full w-full flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div
+        style={wallpaperStyle}
+        className="flex h-full w-full flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+0.75rem)]"
+      >
         {mobilePanel === 'list' && <ConversationList />}
         {mobilePanel === 'chat' && <ChatPanel />}
         {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
@@ -141,7 +148,7 @@ export function ChatLayout() {
     );
 
   return (
-    <div className="flex h-full w-full gap-3 overflow-hidden p-3">
+    <div style={wallpaperStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
       {/* Desktop nav sidebar */}
       <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
