@@ -25,6 +25,7 @@ import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 import { MyStoreLayout } from '@/features/my-store';
 import { NavSidebar } from './NavSidebar';
+import { BottomDock } from './BottomDock';
 import { AiChatPanel } from './AiChatPanel';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
@@ -95,11 +96,15 @@ export function ChatLayout() {
       // Safe-area trên: tránh notch/tai thỏ iPhone (viewport-fit=cover phủ vào vùng notch).
       <div
         style={wallpaperStyle}
-        className="flex h-full w-full flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+0.75rem)]"
+        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]"
       >
-        {mobilePanel === 'list' && <ConversationList />}
-        {mobilePanel === 'chat' && <ChatPanel />}
-        {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {mobilePanel === 'list' && <ConversationList />}
+          {mobilePanel === 'chat' && <ChatPanel />}
+          {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        </div>
+        {/* Ẩn dock khi đang trong 1 cuộc trò chuyện — MessageInput đã chiếm đáy màn hình. */}
+        {mobilePanel !== 'chat' && <BottomDock />}
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -148,15 +153,20 @@ export function ChatLayout() {
     );
 
   return (
-    <div style={wallpaperStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
-      {/* Desktop nav sidebar */}
-      <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+    <div style={wallpaperStyle} className="flex h-full w-full flex-col gap-3 overflow-hidden p-3">
+      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+        {/* Desktop nav sidebar */}
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
-      {/* Left panel: ConversationList hoặc AiChatPanel */}
-      {leftPanel}
+        {/* Left panel: ConversationList hoặc AiChatPanel */}
+        {leftPanel}
 
-      <ChatPanel />
-      {rightPanelOpen && selectedConversationId && <ContactInfo />}
+        <ChatPanel />
+        {rightPanelOpen && selectedConversationId && <ContactInfo />}
+      </div>
+
+      {/* Dock điều hướng — full width, dưới toàn bộ hàng chính */}
+      <BottomDock />
 
       <CallContainer />
       <InviteProfileModal />

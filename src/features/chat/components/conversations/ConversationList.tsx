@@ -3,20 +3,13 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils/cn';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
-import { Bell, MessageSquare, Search, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button/Button';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input/Input';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { useAuthStore } from '@/features/auth';
-import {
-  FindFriendsPanel,
-  useIncomingFriendRequests,
-  type UserSearchItem,
-} from '@/features/friends';
-import { NotificationListPanel, useSystemNotifCount } from '@/features/notifications';
+import { type UserSearchItem } from '@/features/friends';
 import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useConversations, useLockedConversations } from '@/features/chat/hooks/use-query';
@@ -30,7 +23,6 @@ import { ConversationItem } from './ConversationItem';
 import { SearchOverlay } from './SearchOverlay';
 import { StrangerInboxItem } from './StrangerInboxItem';
 import { StrangerOverlay } from './StrangerOverlay';
-import { UserMenu } from '@/features/chat/components/common/UserMenu';
 
 const TABS = [
   { id: 'all', label: 'Tất cả' },
@@ -49,27 +41,12 @@ export function ConversationList() {
   const isMobile = useIsMobile();
   const { data: conversations = [], isLoading } = useConversations();
   const decryptedPreviews = useDecryptedPreviews(conversations);
-  const incomingRequests = useIncomingFriendRequests();
-  const incomingCount = incomingRequests.data?.items?.length ?? 0;
-  const unreadNotiCount = useSystemNotifCount().data?.unreadCount ?? 0;
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [findOpen, setFindOpen] = useState(false);
-  const [notiOpen, setNotiOpen] = useState(false);
   const strangerOpen = useChatUIStore((s) => s.strangerOpen);
   const setStrangerOpen = useChatUIStore((s) => s.setStrangerOpen);
   const { data: selfConv } = useStoreConversation();
   const [lockedExpanded, setLockedExpanded] = useState(false);
-
-  // Chat button active: không có overlay nào đang mở
-  const isChatActive = !notiOpen && !findOpen && !strangerOpen && !searchFocused;
-  const handleChatButtonClick = () => {
-    setNotiOpen(false);
-    setFindOpen(false);
-    setStrangerOpen(false);
-    setSearchFocused(false);
-    setSearch('');
-  };
 
   const { isStranger, strangerConversations, strangerUnreadCount } = useStrangerConversations(
     conversations,
@@ -82,7 +59,6 @@ export function ConversationList() {
     onSuccess: (conv) => {
       qc.invalidateQueries({ queryKey: chatKeys.conversationLists() });
       setSelected(conv.id);
-      setFindOpen(false);
     },
   });
 
@@ -191,8 +167,6 @@ export function ConversationList() {
             onSelectConversation={(id) => { setSearchFocused(false); setSearch(''); handleSelectConversation(id); }}
             onMessageFriend={(user) => { handleMessageUser(user); setSearchFocused(false); setSearch(''); }}
           />
-        ) : notiOpen ? (
-          <NotificationListPanel onBack={() => setNotiOpen(false)} />
         ) : strangerOpen ? (
           <StrangerOverlay
             conversations={strangerConversations}
@@ -269,62 +243,6 @@ export function ConversationList() {
           </>
         )}
       </div>
-
-      <footer className="flex shrink-0 items-center justify-around border-t border-border px-2 py-3">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Chat"
-          aria-label="Chat"
-          onClick={handleChatButtonClick}
-          className={cn(isChatActive && 'bg-primary/10 text-primary')}
-        >
-          <MessageSquare className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Bạn bè"
-          aria-label="Bạn bè"
-          onClick={() => setFindOpen(true)}
-          className="relative"
-        >
-          <Users className="h-5 w-5" />
-          {incomingCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
-              {incomingCount > 9 ? '9+' : incomingCount}
-            </span>
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Thông báo"
-          aria-label="Thông báo"
-          onClick={() => setNotiOpen((v) => !v)}
-          className="relative"
-        >
-          <Bell className="h-5 w-5" />
-          {unreadNotiCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-danger-foreground">
-              {unreadNotiCount > 9 ? '9+' : unreadNotiCount}
-            </span>
-          )}
-        </Button>
-
-        <UserMenu />
-      </footer>
-
-      <FindFriendsPanel
-        open={findOpen}
-        onOpenChange={setFindOpen}
-        meId={me?.id ?? null}
-        onMessageUser={handleMessageUser}
-        onOpenConversation={(id) => {
-          handleSelectConversation(id);
-          setFindOpen(false);
-        }}
-      />
     </aside>
   );
 }
