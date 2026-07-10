@@ -101,7 +101,7 @@ export function ChatLayout() {
 
   if (activeSection === 'ai-full') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <AiChatPage />
         <CallContainer />
@@ -112,7 +112,7 @@ export function ChatLayout() {
 
   if (activeSection === 'tasks') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
         <CallContainer />
@@ -123,7 +123,7 @@ export function ChatLayout() {
 
   if (activeSection === 'store') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <MyStoreLayout />
         <CallContainer />
@@ -141,7 +141,7 @@ export function ChatLayout() {
     );
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full gap-3 overflow-hidden p-3">
       {/* Desktop nav sidebar */}
       <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
