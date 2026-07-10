@@ -91,7 +91,7 @@ export function MobileTabBar() {
 
   return (
     <>
-      <nav className="flex shrink-0 items-stretch border-t border-border bg-sidebar pb-safe">
+      <nav className="flex shrink-0 items-stretch rounded-t-2xl bg-sidebar pb-safe shadow-subtle">
         <TabButton
           icon={<MessageSquare className="h-[22px] w-[22px]" />}
           label="Chat"
