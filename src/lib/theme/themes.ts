@@ -394,5 +394,5 @@ export function createTheme(
  * (background-1.webp = theme sáng, background-2.webp = theme tối/indigo).
  */
 export function getDefaultBackgroundImage(theme: Theme): string {
-  return theme.isDark ? '/asset/background-2.webp' : '/asset/banner.png';
+  return theme.isDark ? '/asset/background-2.webp' : '/asset/background-1.webp';
 }
