@@ -187,11 +187,11 @@ function MessageBubbleImpl({
             "relative rounded-2xl transition-all",
             isVisualMedia ? "p-1.5" : "px-3.5 py-2.5",
             !hasTheme && (isMe
-              ? "rounded-br-md bg-primary text-primary-foreground"
+              ? "bg-primary text-primary-foreground"
               : wallpaperActive
-                ? "rounded-bl-md border border-border/40 bg-background text-foreground"
-                : "rounded-bl-md border border-border bg-muted text-foreground"),
-            hasTheme && (isMe ? "rounded-br-md" : "rounded-bl-md border border-white/10"),
+                ? "border border-border/40 bg-background text-foreground"
+                : "border border-border bg-muted text-foreground"),
+            hasTheme && !isMe && "border border-white/10",
             isFailed && "border border-danger/60",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-1 ring-offset-background",

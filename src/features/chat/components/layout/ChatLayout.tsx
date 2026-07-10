@@ -18,12 +18,14 @@ import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useConversations } from '@/features/chat/hooks/use-query';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
+import { useWallpaper } from '@/features/chat/hooks/useWallpaper';
 import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 import { MyStoreLayout } from '@/features/my-store';
 import { NavSidebar } from './NavSidebar';
+import { BottomDock } from './BottomDock';
 import { AiChatPanel } from './AiChatPanel';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
@@ -39,6 +41,9 @@ export function ChatLayout() {
   const { data: conversations } = useConversations();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Wallpaper của hội thoại đang chọn — áp cho toàn bộ khung layout (không chỉ cột chat),
+  // để nền hiển thị xuyên qua các khe hở giữa các card nổi, giống bố cục design gốc.
+  const wallpaperStyle = useWallpaper(selectedConversationId);
 
   useChatRealtime();
   useNotificationRealtime();
@@ -89,10 +94,17 @@ export function ChatLayout() {
   if (isMobile) {
     return (
       // Safe-area trên: tránh notch/tai thỏ iPhone (viewport-fit=cover phủ vào vùng notch).
-      <div className="flex h-full w-full flex-col overflow-hidden pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-        {mobilePanel === 'list' && <ConversationList />}
-        {mobilePanel === 'chat' && <ChatPanel />}
-        {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+      <div
+        style={wallpaperStyle}
+        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]"
+      >
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {mobilePanel === 'list' && <ConversationList />}
+          {mobilePanel === 'chat' && <ChatPanel />}
+          {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
+        </div>
+        {/* Ẩn dock khi đang trong 1 cuộc trò chuyện — MessageInput đã chiếm đáy màn hình. */}
+        {mobilePanel !== 'chat' && <BottomDock />}
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -101,7 +113,7 @@ export function ChatLayout() {
 
   if (activeSection === 'ai-full') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <AiChatPage />
         <CallContainer />
@@ -112,7 +124,7 @@ export function ChatLayout() {
 
   if (activeSection === 'tasks') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
         <CallContainer />
@@ -123,7 +135,7 @@ export function ChatLayout() {
 
   if (activeSection === 'store') {
     return (
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <MyStoreLayout />
         <CallContainer />
@@ -141,15 +153,20 @@ export function ChatLayout() {
     );
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      {/* Desktop nav sidebar */}
-      <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+    <div style={wallpaperStyle} className="flex h-full w-full flex-col gap-3 overflow-hidden p-3">
+      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+        {/* Desktop nav sidebar */}
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
-      {/* Left panel: ConversationList hoặc AiChatPanel */}
-      {leftPanel}
+        {/* Left panel: ConversationList hoặc AiChatPanel */}
+        {leftPanel}
 
-      <ChatPanel />
-      {rightPanelOpen && selectedConversationId && <ContactInfo />}
+        <ChatPanel />
+        {rightPanelOpen && selectedConversationId && <ContactInfo />}
+      </div>
+
+      {/* Dock điều hướng — full width, dưới toàn bộ hàng chính */}
+      <BottomDock />
 
       <CallContainer />
       <InviteProfileModal />

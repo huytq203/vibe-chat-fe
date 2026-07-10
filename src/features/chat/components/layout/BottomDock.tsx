@@ -11,7 +11,7 @@ import {
   useIncomingFriendRequests,
   type UserSearchItem,
 } from '@/features/friends';
-import { NotificationPanel } from '@/features/notifications';
+import { NotificationPanel, useSystemNotifCount } from '@/features/notifications';
 import { useAuthStore } from '@/features/auth';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
@@ -33,7 +33,7 @@ function TabButton({ icon, label, active, badge, onClick }: TabButtonProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        'relative flex flex-1 flex-col items-center gap-0.5 py-1 transition-colors',
+        'relative flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors',
         active ? 'text-primary' : 'text-muted-foreground',
       )}
     >
@@ -51,10 +51,11 @@ function TabButton({ icon, label, active, badge, onClick }: TabButtonProps) {
 }
 
 /**
- * Bottom tab bar cho mobile (< 768px). Ẩn khi bàn phím ảo đang mở.
- * 4 tab: Chat · Bạn bè · Thông báo · Tôi.
+ * Dock điều hướng dưới cùng — full width, dùng chung cho cả desktop lẫn mobile (< 768px).
+ * 4 tab: Chat · Bạn bè · Thông báo · Tôi. Bạn bè/Thông báo mở qua overlay panel riêng
+ * (không swap nội dung ConversationList) nên tách được thành component full-width độc lập.
  */
-export function MobileTabBar() {
+export function BottomDock() {
   const mobilePanel = useChatUIStore((s) => s.mobilePanel);
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { setSelected } = useSelectedConversation();
@@ -65,6 +66,7 @@ export function MobileTabBar() {
 
   const incomingRequests = useIncomingFriendRequests();
   const incomingCount = incomingRequests.data?.items.length ?? 0;
+  const unreadNotiCount = useSystemNotifCount().data?.unreadCount ?? 0;
 
   const qc = useQueryClient();
   const openDirectMut = useMutation({
@@ -91,7 +93,7 @@ export function MobileTabBar() {
 
   return (
     <>
-      <nav className="flex shrink-0 items-stretch border-t border-border bg-sidebar pb-safe">
+      <nav className="flex shrink-0 items-stretch rounded-2xl bg-sidebar pb-safe shadow-subtle">
         <TabButton
           icon={<MessageSquare className="h-[22px] w-[22px]" />}
           label="Chat"
@@ -116,13 +118,14 @@ export function MobileTabBar() {
           icon={<Bell className="h-[22px] w-[22px]" />}
           label="Thông báo"
           active={activeTab === 'notifications'}
+          badge={unreadNotiCount}
           onClick={() => {
             setActiveTab('notifications');
             setNotiOpen(true);
           }}
         />
         {/* UserMenu tự render trigger của nó; wrap để fit vào tab */}
-        <div className="relative flex flex-1 flex-col items-center gap-0.5 py-1 text-muted-foreground">
+        <div className="relative flex flex-1 flex-col items-center gap-0.5 py-2 text-muted-foreground">
           <UserMenu />
           <span className="text-[10px] font-medium">Tôi</span>
         </div>
