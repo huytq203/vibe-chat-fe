@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test/test-utils';
 import type { Message } from '@/features/chat/types';
 import { MessageBubble } from './MessageBubble';
