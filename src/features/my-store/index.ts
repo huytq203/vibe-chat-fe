@@ -1,8 +1,6 @@
 export { MyStoreLayout } from './components/MyStoreLayout';
 export { MyStoreFeed } from './components/MyStoreFeed';
 export { MyStoreComposer } from './components/MyStoreComposer';
-export { FolderSidebar } from './components/FolderSidebar';
-export { FilePanel } from './components/FilePanel';
 export { QuotaBar } from './components/QuotaBar';
 export { ReminderCard } from './components/ReminderCard';
 export { ChecklistCard } from './components/ChecklistCard';
