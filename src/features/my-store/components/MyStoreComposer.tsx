@@ -47,7 +47,7 @@ export function MyStoreComposer() {
 
   return (
     <>
-      <div className="border-t border-border bg-background p-3 flex flex-col gap-2">
+      <div className="border-t border-border p-3 flex flex-col gap-2">
         <div className="flex items-end gap-2">
           <input
             ref={fileRef}
