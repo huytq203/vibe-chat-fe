@@ -128,7 +128,7 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
   }
 
   return (
-    <div className="flex flex-col h-full border-r border-border w-56 shrink-0">
+    <div className="flex flex-col h-full w-56 shrink-0 rounded-2xl border bg-sidebar/75 shadow-subtle backdrop-blur-md">
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thư mục</span>
         <button
