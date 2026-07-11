@@ -128,3 +128,13 @@ export const myStoreKeys = {
   files: (folderId: string) => [...myStoreKeys.all, 'files', folderId] as const,
   quota: () => [...myStoreKeys.all, 'quota'] as const,
 } as const;
+
+export const botKeys = {
+  all: ['bots'] as const,
+  list: (page: number, limit: number) => [...botKeys.all, 'list', page, limit] as const,
+} as const;
+
+export const botTokenKeys = {
+  all: ['bot-tokens'] as const,
+  list: (botId: string) => [...botTokenKeys.all, 'list', botId] as const,
+} as const;
