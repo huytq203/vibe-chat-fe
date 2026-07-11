@@ -10,6 +10,7 @@ const TEST_ENV: Record<string, string> = {
   NEXT_PUBLIC_CALL_WS_URL: 'http://localhost:3005/call',
   NEXT_PUBLIC_TASK_URL: 'http://localhost:3007',
   NEXT_PUBLIC_TASK_WS_URL: 'http://localhost:3007/tasks',
+  NEXT_PUBLIC_BOT_URL: 'http://localhost:3010',
 };
 for (const [key, value] of Object.entries(TEST_ENV)) {
   if (!process.env[key]) vi.stubEnv(key, value);

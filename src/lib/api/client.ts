@@ -91,7 +91,10 @@ export const apiAuth = {
 function resolveBase(path: string): string {
   // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.
   if (env.NEXT_PUBLIC_USE_PROXY) return '';
-  return path.startsWith('/api/v1/auth/') ? env.NEXT_PUBLIC_AUTH_URL : env.NEXT_PUBLIC_VIBE_URL;
+  if (path.startsWith('/api/v1/auth/')) return env.NEXT_PUBLIC_AUTH_URL;
+  // bot-service: cả /api/v1/bot/... (self, messages) lẫn /api/v1/bots/... (management).
+  if (path.startsWith('/api/v1/bot')) return env.NEXT_PUBLIC_BOT_URL;
+  return env.NEXT_PUBLIC_VIBE_URL;
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {

@@ -13,6 +13,8 @@ const VIBE_URL = process.env.VIBE_URL;
 // Task-service (modular monolith riêng). Proxy same-origin để tránh CORS.
 // Fallback sang NEXT_PUBLIC_TASK_URL để rewrite vẫn hoạt động nếu chỉ set biến public.
 const TASK_URL = process.env.TASK_URL || process.env.NEXT_PUBLIC_TASK_URL;
+// bot-service (Management API riêng, cùng envelope {success,data,error} với auth-service).
+const BOT_URL = process.env.BOT_URL || process.env.NEXT_PUBLIC_BOT_URL;
 
 if (!isElectron && (!AUTH_URL || !VIBE_URL)) {
   throw new Error('Missing AUTH_URL or VIBE_URL in env — BE deployed, must be set.');
@@ -34,6 +36,13 @@ const nextConfig: NextConfig = {
       // Proxy task-service qua prefix riêng (tránh đụng /api/v1 của chat). Same-origin → không CORS.
       if (TASK_URL) {
         rules.unshift({ source: '/task-proxy/:path*', destination: `${TASK_URL}/:path*` });
+      }
+      // bot-service: prefix riêng /api/v1/bot(s) — phải đứng trước catch-all /api/v1/:path*.
+      if (BOT_URL) {
+        rules.unshift(
+          { source: '/api/v1/bots/:path*', destination: `${BOT_URL}/api/v1/bots/:path*` },
+          { source: '/api/v1/bot/:path*', destination: `${BOT_URL}/api/v1/bot/:path*` },
+        );
       }
       return rules;
     },
