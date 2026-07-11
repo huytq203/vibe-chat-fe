@@ -60,6 +60,14 @@ export function ChatLayout() {
           backgroundPosition: 'center',
         };
 
+  // Nền Store luôn dùng ảnh mặc định theo theme — không có khái niệm wallpaper
+  // riêng theo hội thoại như bên chat.
+  const storeBackgroundStyle: CSSProperties = {
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url(${getDefaultBackgroundImage(currentTheme)})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+
   useChatRealtime();
   useNotificationRealtime();
   useFriendRealtime();
@@ -147,7 +155,7 @@ export function ChatLayout() {
 
   if (activeSection === 'store') {
     return (
-      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
+      <div style={storeBackgroundStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <MyStoreLayout />
         <CallContainer />
