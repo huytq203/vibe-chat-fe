@@ -69,7 +69,7 @@ export function MyStoreInfoPanel({ conversationId, onClose, onOpenFiles }: Props
   }
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl border bg-sidebar/75 text-sidebar-foreground shadow-subtle backdrop-blur-md md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 pb-3 pt-[18px]">
         <span className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-primary">
           <Archive className="h-3.5 w-3.5" />
