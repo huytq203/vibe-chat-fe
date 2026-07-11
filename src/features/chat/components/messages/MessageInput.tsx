@@ -21,7 +21,7 @@ import { ReminderDialog } from '@/features/my-store/components/ReminderDialog';
 import { ChecklistDialog } from '@/features/my-store/components/ChecklistDialog';
 import { BookmarkDialog } from '@/features/my-store/components/BookmarkDialog';
 import { CreatePollDialog } from '@/features/chat/components/polls/CreatePollDialog';
-import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
 import { cn } from '@/lib/utils/cn';
 
 type MessageInputProps = {
@@ -70,7 +70,6 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup, wall
   const [pollOpen, setPollOpen] = useState(false);
   const shareContact = useShareContact(conversationId);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
-  const setActiveSection = useChatUIStore((s) => s.setActiveSection);
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
   useEffect(() => {
@@ -92,7 +91,7 @@ export function MessageInput({ conversationId, disabled, selfConv, isGroup, wall
       onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
       onToggleExpanded={() => setExpanded((v) => !v)}
-      onAiClick={() => setActiveSection('ai')}
+      onAiClick={() => useAiWindowStore.getState().open()}
       onPollClick={isGroup ? () => setPollOpen(true) : undefined}
     />
   );
