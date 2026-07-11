@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    container_name: vibe-chat-test
+    environment:
+      - NODE_ENV=test
+    ports:
+      - "3003:3003"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm run dev & sleep 5 && npm run test:e2e"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -38,7 +38,7 @@ describe('AuthShowcaseLayout', () => {
         <div />
       </AuthShowcaseLayout>
     );
-    const img = container.querySelector('img[src*="avatar-vespa.png"]');
+    const img = container.querySelector('img[src*="avatar-2.png"]');
     expect(img).toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe('AuthShowcaseLayout', () => {
     const card = cards[0];
 
     const formContent = screen.getByText('form-content');
-    const illustration = container.querySelector('img[src*="avatar-vespa.png"]');
+    const illustration = container.querySelector('img[src*="avatar-2.png"]');
 
     expect(card.contains(formContent)).toBe(true);
     expect(card.contains(illustration)).toBe(true);
