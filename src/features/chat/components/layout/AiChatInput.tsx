@@ -80,7 +80,7 @@ export function AiChatInput({
           ref={textareaRef}
           variant="filled"
           rows={1}
-          className="min-h-[2.25rem] max-h-[6rem] resize-none overflow-y-auto py-2 text-[13px]"
+          className="min-h-10 max-h-24 resize-none overflow-y-auto py-2 text-[13px]"
           placeholder="Nhắn tin với AI..."
           value={input}
           disabled={disabled}

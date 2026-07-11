@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
-import { useAiSettings } from '@/features/chat/hooks/useAiSettings';
 import { AiSessionList } from './AiSessionList';
 import { AiChatMain } from './AiChatMain';
 
@@ -18,7 +17,6 @@ export function AiChatPage() {
     pushMessage,
     deleteSession,
   } = useAiSessions({ routed: true });
-  const { settings, saveSettings } = useAiSettings();
 
   // Vào /ai trống mà đã có session → chọn session gần nhất (giống auto-chọn hội thoại ở chat).
   useEffect(() => {
@@ -38,8 +36,6 @@ export function AiChatPage() {
       />
       <AiChatMain
         session={activeSession}
-        settings={settings}
-        onSaveSettings={saveSettings}
         onPushMessage={pushMessage}
         onBack={() => goToSection('chat')}
         onCreateSession={createSession}

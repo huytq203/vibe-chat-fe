@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { DEFAULT_GEMINI_MODEL } from '@/lib/gemini/constants';
 
 interface GeminiPart {
   text?: string;
@@ -16,17 +17,7 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
-const ALLOWED_MODELS = new Set([
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-]);
-
 const bodySchema = z.object({
-  model: z.string().refine((v) => ALLOWED_MODELS.has(v), { message: 'Model không hợp lệ' }),
   messages: z.array(z.object({ role: z.string(), content: z.string() })),
   attachments: z
     .array(z.object({ base64Data: z.string(), mimeType: z.string(), name: z.string() }))
@@ -66,7 +57,7 @@ export async function POST(req: NextRequest) {
   });
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${body.model}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },

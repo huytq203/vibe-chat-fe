@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Bot, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { useChatUIStore } from "@/features/chat/stores/chat-ui.store";
-import { ComboBox } from "@/components/ui/combobox/ComboBox";
 import { useAutoResizeTextarea } from "@/features/chat/hooks/useAutoResizeTextarea";
 import { useAiAttachments } from "@/features/chat/hooks/useAiAttachments";
 import { AiHistoryPanel } from "./AiHistoryPanel";
@@ -12,27 +11,12 @@ import { AiMessageList } from "./AiMessageList";
 import { AiChatInput } from "./AiChatInput";
 import { useAiSessions } from "@/features/chat/hooks/useAiSessions";
 import type { AiMessage } from "@/features/chat/hooks/useAiSessions";
-import {
-  callGemini,
-  fetchGeminiModels,
-  GEMINI_FREE_MODELS,
-  type GeminiModelInfo,
-} from "@/lib/gemini";
-import { getItem, setItem } from "@/lib/storage/local-storage";
-
-const MODEL_STORAGE_KEY = "ai-panel-model";
-
-function loadModel(): string {
-  return getItem(MODEL_STORAGE_KEY) ?? GEMINI_FREE_MODELS[0].value;
-}
+import { callGemini } from "@/lib/gemini";
 
 export function AiChatPanel() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [model, setModel] = useState<string>(loadModel);
-  const [modelOptions, setModelOptions] = useState<GeminiModelInfo[]>(GEMINI_FREE_MODELS);
-  const [loadingModels, setLoadingModels] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
 
   const { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession } =
@@ -46,23 +30,8 @@ export function AiChatPanel() {
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
 
-  useEffect(() => {
-    // loadingModels khởi tạo true → chỉ set false sau khi fetch xong (setState async
-    // trong .then là hợp lệ, tránh setState đồng bộ trong effect).
-    void fetchGeminiModels().then((models) => {
-      setModelOptions(models);
-      setLoadingModels(false);
-    });
-  }, []);
-
   useEffect(() => { resize(); }, [input, resize]);
   useEffect(() => { focusInput(); }, [focusInput]);
-
-  function handleModelChange(value: string | string[]) {
-    const next = Array.isArray(value) ? (value[0] ?? model) : value;
-    setModel(next);
-    setItem(MODEL_STORAGE_KEY, next);
-  }
 
   function handleNewChat() {
     setActiveId(null);
@@ -101,7 +70,7 @@ export function AiChatPanel() {
     setError(null);
 
     try {
-      const content = await callGemini(model, nextMessages, capturedAttachments);
+      const content = await callGemini(nextMessages, capturedAttachments);
       pushMessage(sid, { role: "assistant", content });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gửi tin nhắn thất bại");
@@ -151,15 +120,6 @@ export function AiChatPanel() {
             </Button>
           </div>
         </div>
-        {!showHistory && (
-          <ComboBox
-            clearIcon={false}
-            options={loadingModels ? [{ label: "Đang tải...", value: model }] : modelOptions}
-            value={model}
-            onValueChange={handleModelChange}
-            autocomplete={false}
-          />
-        )}
       </header>
 
       {showHistory ? (
