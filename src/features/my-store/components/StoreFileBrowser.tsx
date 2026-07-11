@@ -16,6 +16,7 @@ import { PromptDialog } from './PromptDialog';
 import { FolderRow } from './FolderRow';
 import { FileRow } from './FileRow';
 import { StoreFileBrowserHeader } from './StoreFileBrowserHeader';
+import { QuotaBar } from './QuotaBar';
 
 export function StoreFileBrowser() {
   const { data: folders, isLoading: foldersLoading } = useStoreFolders();
@@ -158,6 +159,8 @@ export function StoreFileBrowser() {
             </button>
           )}
         </div>
+
+        <QuotaBar />
       </ContextMenuTrigger>
 
       <ContextMenuContent>

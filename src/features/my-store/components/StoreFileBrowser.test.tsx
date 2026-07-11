@@ -38,6 +38,9 @@ vi.mock('@/features/my-store/hooks/use-mutations', () => ({
   useDeleteFolder: () => ({ mutate: vi.fn(), isPending: false }),
   useUploadStoreFile: () => ({ mutate: vi.fn(), isPending: false }),
 }));
+vi.mock('./QuotaBar', () => ({
+  QuotaBar: () => null,
+}));
 
 describe('StoreFileBrowser', () => {
   it('ở root: hiện thư mục top-level, breadcrumb chỉ có "Kho của tôi"', () => {
