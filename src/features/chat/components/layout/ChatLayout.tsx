@@ -27,7 +27,7 @@ import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
 import { MyStoreLayout } from '@/features/my-store';
 import { NavSidebar } from './NavSidebar';
-import { AiChatPanel } from './AiChatPanel';
+import { AiChatWindow } from './AiChatWindow';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
 
@@ -126,6 +126,7 @@ export function ChatLayout() {
           {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
         </div>
         <CallContainer />
+        <AiChatWindow />
         <InviteProfileModal />
       </div>
     );
@@ -148,6 +149,7 @@ export function ChatLayout() {
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
         <CallContainer />
+        <AiChatWindow />
         <InviteProfileModal />
       </div>
     );
@@ -159,18 +161,11 @@ export function ChatLayout() {
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <MyStoreLayout />
         <CallContainer />
+        <AiChatWindow />
         <InviteProfileModal />
       </div>
     );
   }
-
-  // Xác định panel trái hiển thị dựa theo activeSection
-  const leftPanel =
-    activeSection === 'ai' ? (
-      <AiChatPanel />
-    ) : (
-      <ConversationList />
-    );
 
   return (
     <div style={backgroundStyle} className="flex h-full w-full flex-col gap-3 overflow-hidden p-3">
@@ -178,14 +173,14 @@ export function ChatLayout() {
         {/* Desktop nav sidebar */}
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
-        {/* Left panel: ConversationList hoặc AiChatPanel */}
-        {leftPanel}
+        <ConversationList />
 
         <ChatPanel />
         {rightPanelOpen && selectedConversationId && <ContactInfo />}
       </div>
 
       <CallContainer />
+      <AiChatWindow />
       <InviteProfileModal />
     </div>
   );
