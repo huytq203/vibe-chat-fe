@@ -42,8 +42,7 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
       {/* Main navigation icons */}
       <div className="flex flex-col items-center gap-1">
         {NAV_ITEMS.map(({ section, icon, label }) => {
-          // Panel AI trong chat (section 'ai') vẫn thuộc khu vực Chat → giữ icon Chat sáng.
-          const isActive = section === 'chat' ? activeSection === 'chat' || activeSection === 'ai' : activeSection === section;
+          const isActive = activeSection === section;
           return (
           <button
             key={section}
