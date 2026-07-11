@@ -61,7 +61,7 @@ export function MyStoreNoteListView({ type, title, emptyLabel, onBack, onClose }
   );
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px]">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl border bg-sidebar/75 text-sidebar-foreground shadow-subtle backdrop-blur-md md:w-[300px] md:min-w-[260px]">
       <header className="flex shrink-0 items-center gap-1 border-b border-border px-2 pb-3 pt-[18px]">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Quay lại" title="Quay lại">
           <ArrowLeft className="h-4 w-4" />

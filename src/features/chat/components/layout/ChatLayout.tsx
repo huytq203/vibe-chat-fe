@@ -46,7 +46,7 @@ export function ChatLayout() {
   // để nền hiển thị xuyên qua các khe hở giữa các card nổi, giống bố cục design gốc.
   const wallpaperStyle = useWallpaper(selectedConversationId);
   // Chưa chọn wallpaper riêng cho hội thoại → dùng ảnh nền mặc định theo độ sáng/tối
-  // của theme đang chọn (background-1 = sáng, background-2 = tối/indigo), thay vì
+  // của theme đang chọn (sáng = banner.png, tối/indigo = background-2.webp), thay vì
   // màu --background phẳng.
   const { currentTheme } = useTheme();
   const backgroundStyle: CSSProperties =
