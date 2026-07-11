@@ -28,7 +28,7 @@ export function MyStoreLayout() {
           <StoreFileBrowser />
         )}
 
-        {selfConv?.id && (
+        {activeTab === 'notes' && selfConv?.id && (
           <MyStoreInfoPanel conversationId={selfConv.id} onOpenFiles={() => setActiveTab('files')} />
         )}
       </div>
