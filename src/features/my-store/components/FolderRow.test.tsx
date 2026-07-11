@@ -15,17 +15,31 @@ const folder: StoreFolder = {
 describe('FolderRow', () => {
   it('gọi onOpen với folder.id khi click vào hàng', () => {
     const onOpen = vi.fn();
-    render(<FolderRow folder={folder} onOpen={onOpen} onDelete={vi.fn()} />);
+    render(<FolderRow folder={folder} onOpen={onOpen} onRename={vi.fn()} onDelete={vi.fn()} />);
     fireEvent.click(screen.getByText('Ảnh'));
     expect(onOpen).toHaveBeenCalledWith('f1');
   });
 
-  it('menu "..." chỉ có "Xoá", không có "Đổi tên", và gọi onDelete khi bấm', () => {
+  it('menu "..." có "Đổi tên" và "Xoá", gọi đúng callback với folder.id', () => {
+    const onRename = vi.fn();
     const onDelete = vi.fn();
-    render(<FolderRow folder={folder} onOpen={vi.fn()} onDelete={onDelete} />);
+    render(<FolderRow folder={folder} onOpen={vi.fn()} onRename={onRename} onDelete={onDelete} />);
     fireEvent.click(screen.getByRole('button', { name: 'Tuỳ chọn thư mục' }));
-    expect(screen.queryByText(/Đổi tên/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Đổi tên/i }));
+    expect(onRename).toHaveBeenCalledWith('f1');
+    expect(onDelete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tuỳ chọn thư mục' }));
     fireEvent.click(screen.getByRole('button', { name: /Xoá/i }));
     expect(onDelete).toHaveBeenCalledWith('f1');
+  });
+
+  it('click "Đổi tên"/"Xoá" không trigger onOpen', () => {
+    const onOpen = vi.fn();
+    render(<FolderRow folder={folder} onOpen={onOpen} onRename={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tuỳ chọn thư mục' }));
+    fireEvent.click(screen.getByRole('button', { name: /Đổi tên/i }));
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

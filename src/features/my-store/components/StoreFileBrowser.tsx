@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { FolderOpen, FolderPlus, Loader2, Upload } from 'lucide-react';
+import { FolderPlus, Upload } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -9,13 +9,17 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu/ContextMenu';
 import { useStoreFiles, useStoreFolders } from '@/features/my-store/hooks/use-query';
-import { useCreateFolder, useDeleteFolder, useUploadStoreFile } from '@/features/my-store/hooks/use-mutations';
+import {
+  useCreateFolder,
+  useDeleteFolder,
+  useUpdateFolder,
+  useUploadStoreFile,
+} from '@/features/my-store/hooks/use-mutations';
 import { findFolderById } from '@/features/my-store/utils';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PromptDialog } from './PromptDialog';
-import { FolderRow } from './FolderRow';
-import { FileRow } from './FileRow';
 import { StoreFileBrowserHeader } from './StoreFileBrowserHeader';
+import { StoreFileBrowserList } from './StoreFileBrowserList';
 import { QuotaBar } from './QuotaBar';
 
 export function StoreFileBrowser() {
@@ -31,11 +35,13 @@ export function StoreFileBrowser() {
     isLoading: filesLoading,
   } = useStoreFiles(currentFolderId);
   const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const upload = useUploadStoreFile();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [uploads, setUploads] = useState<Array<{ id: string; name: string; progress: number }>>([]);
 
@@ -47,6 +53,7 @@ export function StoreFileBrowser() {
   const breadcrumbPath = path
     .map((id) => findFolderById(folders ?? [], id))
     .filter((f): f is NonNullable<typeof f> => f !== null);
+  const renamingFolder = renamingFolderId ? findFolderById(folders ?? [], renamingFolderId) : null;
 
   function openFolder(id: string) {
     setPath((p) => [...p, id]);
@@ -86,6 +93,14 @@ export function StoreFileBrowser() {
     );
   }
 
+  function submitRename(name: string) {
+    if (!renamingFolderId) return;
+    updateFolder.mutate(
+      { id: renamingFolderId, dto: { name } },
+      { onSuccess: () => setRenamingFolderId(null) },
+    );
+  }
+
   const showEmptyState =
     !foldersLoading &&
     childFolders.length === 0 &&
@@ -105,60 +120,20 @@ export function StoreFileBrowser() {
           uploading={upload.isPending}
         />
 
-        <div className="flex-1 overflow-y-auto px-2 py-2">
-          {uploads.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 rounded-lg px-3 py-2">
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{u.name}</p>
-                <span className="mt-1 flex items-center gap-2">
-                  <span className="h-1 flex-1 overflow-hidden rounded-full bg-border">
-                    <span
-                      className="block h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${u.progress}%` }}
-                    />
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{u.progress}%</span>
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {(foldersLoading || (currentFolderId !== null && filesLoading)) && (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-
-          {childFolders.map((folder) => (
-            <FolderRow
-              key={folder.id}
-              folder={folder}
-              onOpen={openFolder}
-              onDelete={(id) => setPendingDeleteId(id)}
-            />
-          ))}
-
-          {currentFolderId &&
-            allFiles.map((file) => <FileRow key={file.id} file={file} folderId={currentFolderId} />)}
-
-          {showEmptyState && (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-              <FolderOpen className="h-8 w-8 opacity-30" />
-              <p className="text-sm">{currentFolderId ? 'Thư mục trống' : 'Chưa có thư mục nào'}</p>
-            </div>
-          )}
-
-          {currentFolderId && hasNextPage && (
-            <button
-              onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="w-full text-xs text-muted-foreground hover:text-foreground py-2 text-center transition-colors"
-            >
-              {isFetchingNextPage ? <Loader2 className="h-3 w-3 animate-spin mx-auto" /> : 'Tải thêm'}
-            </button>
-          )}
-        </div>
+        <StoreFileBrowserList
+          currentFolderId={currentFolderId}
+          childFolders={childFolders}
+          files={allFiles}
+          uploads={uploads}
+          isLoading={foldersLoading || (currentFolderId !== null && filesLoading)}
+          showEmptyState={showEmptyState}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onFetchNextPage={() => fetchNextPage()}
+          onOpenFolder={openFolder}
+          onRenameFolder={(id) => setRenamingFolderId(id)}
+          onDeleteFolder={(id) => setPendingDeleteId(id)}
+        />
 
         <QuotaBar />
       </ContextMenuTrigger>
@@ -181,6 +156,19 @@ export function StoreFileBrowser() {
         placeholder="Tên thư mục..."
         isPending={createFolder.isPending}
         onSubmit={submitCreate}
+      />
+
+      <PromptDialog
+        open={renamingFolderId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRenamingFolderId(null);
+        }}
+        title="Đổi tên thư mục"
+        placeholder="Tên thư mục..."
+        confirmLabel="Lưu"
+        defaultValue={renamingFolder?.name ?? ''}
+        isPending={updateFolder.isPending}
+        onSubmit={submitRename}
       />
 
       <ConfirmDialog

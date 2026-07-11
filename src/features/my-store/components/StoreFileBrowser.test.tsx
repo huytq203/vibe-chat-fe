@@ -33,8 +33,10 @@ vi.mock('@/features/my-store/hooks/use-query', () => ({
     isLoading: false,
   }),
 }));
+const updateFolderMutate = vi.fn();
 vi.mock('@/features/my-store/hooks/use-mutations', () => ({
   useCreateFolder: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateFolder: () => ({ mutate: updateFolderMutate, isPending: false }),
   useDeleteFolder: () => ({ mutate: vi.fn(), isPending: false }),
   useUploadStoreFile: () => ({ mutate: vi.fn(), isPending: false }),
 }));
@@ -61,5 +63,22 @@ describe('StoreFileBrowser', () => {
     fireEvent.click(screen.getByText('Ảnh'));
     fireEvent.click(screen.getByRole('button', { name: 'Kho của tôi' }));
     expect(screen.queryByText('Vacation')).not.toBeInTheDocument();
+  });
+
+  it('đổi tên thư mục: mở dialog prefill tên hiện tại, submit gọi useUpdateFolder với id + tên mới', () => {
+    render(<StoreFileBrowser />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tuỳ chọn thư mục' }));
+    fireEvent.click(screen.getByRole('button', { name: /Đổi tên/i }));
+
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveValue('Ảnh');
+
+    fireEvent.change(input, { target: { value: 'Ảnh gia đình' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+
+    expect(updateFolderMutate).toHaveBeenCalledWith(
+      { id: 'a', dto: { name: 'Ảnh gia đình' } },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
   });
 });

@@ -18,10 +18,12 @@ type PromptDialogProps = {
   confirmLabel?: string;
   maxLength?: number;
   isPending?: boolean;
+  /** Giá trị prefill sẵn trong input (vd: tên hiện tại khi đổi tên). */
+  defaultValue?: string;
   onSubmit: (value: string) => void;
 };
 
-/** Hộp thoại nhập 1 dòng text dùng chung — thay cho window.prompt. */
+/** Hộp thoại nhập 1 dòng text dùng chung — thay cho window.prompt. Dùng cho cả tạo mới (input rỗng) và đổi tên (prefill `defaultValue`). */
 export function PromptDialog({
   open,
   onOpenChange,
@@ -30,11 +32,19 @@ export function PromptDialog({
   confirmLabel = 'Tạo',
   maxLength = 100,
   isPending = false,
+  defaultValue = '',
   onSubmit,
 }: PromptDialogProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(defaultValue);
+  // Theo dõi `open` của lần render trước để phát hiện thời điểm dialog vừa mở
+  // (đồng bộ state lúc render thay vì trong effect — dialog không unmount
+  // giữa các lần dùng nên cần đồng bộ lại `defaultValue` mỗi lần mở).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setValue(defaultValue);
+  }
 
-  // Reset khi đóng → lần mở sau bắt đầu rỗng (tránh setState trong effect).
   function handleOpenChange(next: boolean) {
     if (!next) setValue('');
     onOpenChange(next);

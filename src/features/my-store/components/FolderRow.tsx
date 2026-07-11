@@ -1,18 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, Folder, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronRight, Folder, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { StoreFolder } from '@/features/my-store/types';
 
 type FolderRowProps = {
   folder: StoreFolder;
   onOpen: (id: string) => void;
+  onRename: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
 /** 1 hàng thư mục trong StoreFileBrowser — click để "vào trong" (drill-in). */
-export function FolderRow({ folder, onOpen, onDelete }: FolderRowProps) {
+export function FolderRow({ folder, onOpen, onRename, onDelete }: FolderRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -47,7 +48,18 @@ export function FolderRow({ folder, onOpen, onDelete }: FolderRowProps) {
                 setMenuOpen(false);
               }}
             />
-            <div className="absolute right-0 top-5 z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[100px]">
+            <div className="absolute right-0 top-5 z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[120px]">
+              <button
+                type="button"
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onRename(folder.id);
+                }}
+              >
+                <Pencil className="h-3 w-3" /> Đổi tên
+              </button>
               <button
                 type="button"
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
