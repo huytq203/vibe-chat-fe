@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { SettingsSection } from '@/features/settings/components/SettingsSection';
 import { useBots } from '../hooks/use-query';
 import { BotRow } from './BotRow';
+import { BotTokensPanel } from './BotTokensPanel';
 import { CreateBotDialog } from './CreateBotDialog';
 import type { Bot } from '../types';
 
@@ -16,10 +17,7 @@ const PAGE_LIMIT = 20;
 export function BotsTab() {
   const { data, isLoading, isError } = useBots({ page: 1, limit: PAGE_LIMIT });
   const [createOpen, setCreateOpen] = useState(false);
-  // TODO(huy): Task 11 sẽ đổi lại thành `const [manageTokenBot, setManageTokenBot] = ...`
-  // khi BotTokensPanel được thêm và đọc `manageTokenBot` — tạm bỏ biến khỏi destructure
-  // để tránh lint no-unused-vars vì chưa có nơi dùng — 2026-07-12.
-  const [, setManageTokenBot] = useState<Bot | null>(null);
+  const [manageTokenBot, setManageTokenBot] = useState<Bot | null>(null);
 
   return (
     <SettingsSection
@@ -64,7 +62,15 @@ export function BotsTab() {
 
       <CreateBotDialog open={createOpen} onOpenChange={setCreateOpen} />
 
-      {/* BotTokensPanel gắn ở Task 11 — render khi manageTokenBot != null */}
+      {manageTokenBot && (
+        <BotTokensPanel
+          bot={manageTokenBot}
+          open
+          onOpenChange={(next) => {
+            if (!next) setManageTokenBot(null);
+          }}
+        />
+      )}
     </SettingsSection>
   );
 }
