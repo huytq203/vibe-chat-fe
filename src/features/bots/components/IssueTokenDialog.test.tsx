@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { IssueTokenDialog } from './IssueTokenDialog';
+import { ApiError } from '@/lib/api/client';
 
 vi.mock('@/services/bot-tokens.api', () => ({
   botTokensApi: { issue: vi.fn() },
+}));
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn() },
 }));
 
 import { botTokensApi } from '@/services/bot-tokens.api';
@@ -51,5 +57,20 @@ describe('IssueTokenDialog', () => {
 
     expect(mockIssue).toHaveBeenCalledWith('bot-1', { scopes: ['messages:send'] });
     await vi.waitFor(() => expect(onIssued).toHaveBeenCalledWith('bot-1:newtoken'));
+  });
+
+  it('lỗi khi submit → không gọi onIssued, hiện toast lỗi', async () => {
+    const user = userEvent.setup();
+    mockIssue.mockRejectedValue(
+      new ApiError(500, 'TOKEN_ISSUE_FAILED', 'Cấp token thất bại. Thử lại sau.'),
+    );
+    const { onIssued } = renderDialog();
+
+    await user.click(screen.getByRole('checkbox', { name: /gửi tin nhắn/i }));
+    await user.click(screen.getByRole('button', { name: /cấp token/i }));
+
+    await vi.waitFor(() => expect(mockIssue).toHaveBeenCalled());
+    expect(toast.error).toHaveBeenCalledWith('Cấp token thất bại. Thử lại sau.');
+    expect(onIssued).not.toHaveBeenCalled();
   });
 });
