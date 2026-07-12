@@ -2,11 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { DeleteBotAlertDialog } from './DeleteBotAlertDialog';
+import { ApiError } from '@/lib/api/client';
 import type { Bot } from '../types';
 
 vi.mock('@/services/bots.api', () => ({
   botsApi: { remove: vi.fn() },
+}));
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 import { botsApi } from '@/services/bots.api';
@@ -55,5 +61,21 @@ describe('DeleteBotAlertDialog', () => {
 
     expect(mockRemove).toHaveBeenCalledWith('bot-1');
     await vi.waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+  });
+
+  it('xoá lỗi → KHÔNG gọi onDeleted, dialog vẫn mở với nút Xoá hiển thị', async () => {
+    const user = userEvent.setup();
+    mockRemove.mockRejectedValue(
+      new ApiError(500, 'BOT_DELETE_FAILED', 'Xoá bot thất bại. Thử lại sau.'),
+    );
+    const { onDeleted } = renderDialog();
+
+    await user.click(screen.getByRole('button', { name: /xoá bot/i }));
+    await user.click(screen.getByRole('button', { name: /^xoá$/i }));
+
+    await vi.waitFor(() => expect(mockRemove).toHaveBeenCalledWith('bot-1'));
+    expect(toast.error).toHaveBeenCalledWith('Xoá bot thất bại. Thử lại sau.');
+    expect(onDeleted).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^xoá$/i })).toBeInTheDocument();
   });
 });

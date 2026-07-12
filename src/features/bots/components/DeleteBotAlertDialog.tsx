@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,12 +24,14 @@ export function DeleteBotAlertDialog({
   bot: Bot;
   onDeleted?: () => void;
 }) {
+  const [open, setOpen] = useState(false);
   const deleteBot = useDeleteBot();
 
   function handleDelete() {
     deleteBot.mutate(bot.id, {
       onSuccess: () => {
         toast.success('Đã xoá bot');
+        setOpen(false);
         onDeleted?.();
       },
       onError: (err) => {
@@ -38,7 +41,7 @@ export function DeleteBotAlertDialog({
   }
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger>
         <Button variant="danger" size="sm">
           Xoá bot
@@ -53,13 +56,13 @@ export function DeleteBotAlertDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="ghost" size="sm">Huỷ</Button>} />
-          <AlertDialogClose
-            render={
-              <Button variant="danger" size="sm" isLoading={deleteBot.isPending} onClick={handleDelete}>
-                Xoá
-              </Button>
-            }
-          />
+          {/* Không dùng AlertDialogClose ở đây: Base UI đóng dialog ngay khi click (setOpen(false)
+              chạy trong handler nội bộ của Close), bất kể mutation thành công hay lỗi — khiến
+              isLoading không kịp hiển thị và dialog biến mất trước khi user thấy toast lỗi.
+              Chỉ đóng dialog khi mutate thành công (onSuccess), giữ mở khi pending/lỗi. */}
+          <Button variant="danger" size="sm" isLoading={deleteBot.isPending} onClick={handleDelete}>
+            Xoá
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

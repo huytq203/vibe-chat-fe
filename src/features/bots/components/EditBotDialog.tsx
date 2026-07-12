@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -36,6 +37,20 @@ export function EditBotDialog({
       description: bot.description ?? '',
     },
   });
+
+  // defaultValues của react-hook-form chỉ áp dụng lần mount đầu tiên. Nếu component này
+  // được tái sử dụng cho nhiều bot khác nhau (không remount), hoặc mở lại sau khi đã sửa
+  // dở, form sẽ hiện dữ liệu cũ/stale. Reset lại mỗi khi đổi bot hoặc mỗi lần mở dialog.
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        username: bot.username,
+        displayName: bot.displayName,
+        description: bot.description ?? '',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bot.id, open]);
 
   function onSubmit(data: UpdateBotInput) {
     updateBot.mutate(data, {
