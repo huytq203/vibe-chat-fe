@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ComponentProps } from 'react';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -19,6 +20,16 @@ import { TokenRow } from './TokenRow';
 import { TokenRevealCard } from './TokenRevealCard';
 import { IssueTokenDialog } from './IssueTokenDialog';
 import type { Bot } from '../types';
+
+/**
+ * Chi tiết sự kiện đóng/mở dialog do Base UI phát ra (ESC, click ra ngoài,
+ * nút X). Suy ra từ prop `onOpenChange` của chính `Dialog` thay vì import
+ * thẳng type nội bộ của `@base-ui/react`, để không phụ thuộc vào đường dẫn
+ * internal của thư viện.
+ */
+type DialogChangeEventDetails = Parameters<
+  NonNullable<ComponentProps<typeof Dialog>['onOpenChange']>
+>[1];
 
 export function BotTokensPanel({
   bot,
@@ -54,7 +65,16 @@ export function BotTokensPanel({
     });
   }
 
-  function handleOpenChange(next: boolean) {
+  function handleOpenChange(next: boolean, eventDetails?: DialogChangeEventDetails) {
+    // Đang hiện token vừa rotate/issue: chặn mọi cách đóng ngầm định của Dialog
+    // (ESC, click ra ngoài, nút X) — chỉ cho đóng qua nút "Đóng" của
+    // TokenRevealCard, vốn đã bị khoá bởi checkbox "đã lưu token". `eventDetails`
+    // chỉ tồn tại khi Base UI tự gọi onOpenChange; lời gọi thủ công từ onDone
+    // không truyền tham số này.
+    if (!next && revealToken && eventDetails) {
+      eventDetails.cancel();
+      return;
+    }
     if (!next) setRevealToken(null);
     onOpenChange(next);
   }

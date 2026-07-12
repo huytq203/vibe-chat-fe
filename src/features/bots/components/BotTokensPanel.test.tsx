@@ -91,6 +91,41 @@ describe('BotTokensPanel', () => {
     expect(await screen.findByText('bot-1:newsecret')).toBeInTheDocument();
   });
 
+  it('bấm ESC hoặc nút X khi đang hiện token vừa rotate → KHÔNG đóng panel, không mất token', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([ACTIVE_TOKEN]);
+    mockRotate.mockResolvedValue({
+      id: 'token-3',
+      token: 'bot-1:newsecret',
+      prefix: 'newsecret',
+      scopes: ['messages:send'],
+      createdAt: '2026-03-01T00:00:00.000Z',
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const onOpenChange = vi.fn();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BotTokensPanel bot={BOT} open onOpenChange={onOpenChange} />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText('abc123••••');
+    await user.click(screen.getByRole('button', { name: /rotate/i }));
+    await user.click(screen.getByRole('button', { name: /xác nhận rotate/i }));
+
+    expect(await screen.findByText('bot-1:newsecret')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByText('bot-1:newsecret')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByText('bot-1:newsecret')).toBeInTheDocument();
+  });
+
   it('revoke token → gọi botTokensApi.revoke', async () => {
     const user = userEvent.setup();
     mockList.mockResolvedValue([ACTIVE_TOKEN]);
