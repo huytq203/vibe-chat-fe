@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -10,11 +11,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog/Dialog';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import { Button } from '@/components/ui/button/Button';
 import { ApiError } from '@/lib/api/client';
 import { useBotTokens } from '../hooks/use-query';
 import { useRotateToken, useRevokeToken } from '../hooks/use-mutations';
 import { TokenRow } from './TokenRow';
 import { TokenRevealCard } from './TokenRevealCard';
+import { IssueTokenDialog } from './IssueTokenDialog';
 import type { Bot } from '../types';
 
 export function BotTokensPanel({
@@ -30,6 +33,7 @@ export function BotTokensPanel({
   const rotateToken = useRotateToken(bot.id);
   const revokeToken = useRevokeToken(bot.id);
   const [revealToken, setRevealToken] = useState<string | null>(null);
+  const [issueOpen, setIssueOpen] = useState(false);
 
   function handleRotate(tokenId: string) {
     rotateToken.mutate(
@@ -98,7 +102,25 @@ export function BotTokensPanel({
               </ul>
             )}
 
-            {/* Nút "Cấp token mới" (IssueTokenDialog) gắn ở Task 12 */}
+            <div className="mt-2">
+              <Button
+                size="sm"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() => setIssueOpen(true)}
+              >
+                Cấp token mới
+              </Button>
+            </div>
+
+            <IssueTokenDialog
+              botId={bot.id}
+              open={issueOpen}
+              onOpenChange={setIssueOpen}
+              onIssued={(token) => {
+                setIssueOpen(false);
+                setRevealToken(token);
+              }}
+            />
           </>
         )}
       </DialogContent>
