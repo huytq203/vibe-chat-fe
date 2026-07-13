@@ -10,18 +10,9 @@ import { usersApi } from '@/services/users.api';
 import { chatApi } from '@/services/chat.api';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
-import type { CreateBotInput, UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
+import type { UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
 
 const BOTFATHER_USERNAME = 'botfather';
-
-/** Tạo bot mới — response kèm token plaintext (chỉ hiện 1 lần). */
-export function useCreateBot() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: CreateBotInput) => botsApi.create(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: botKeys.all }),
-  });
-}
 
 /** Sửa displayName/description của 1 bot. */
 export function useUpdateBot(botId: string) {
