@@ -39,3 +39,19 @@ export const issueTokenSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 export type IssueTokenInput = z.infer<typeof issueTokenSchema>;
+
+export const BOT_DEMO_COMMANDS = ['dice', 'coin', 'joke', 'time', 'hello'] as const;
+export type BotDemoCommand = (typeof BOT_DEMO_COMMANDS)[number];
+
+export const BOT_DEMO_COMMAND_LABELS: Record<BotDemoCommand, string> = {
+  dice: '🎲 Tung xúc xắc',
+  coin: '🪙 Tung đồng xu',
+  joke: '😂 Kể chuyện cười',
+  time: '🕐 Giờ hiện tại',
+  hello: '👋 Chào hỏi',
+};
+
+export const botDemoSendSchema = z.object({
+  conversationUuid: z.string().uuid('Phải là UUID hợp lệ (dán từ URL /chat/<uuid>)'),
+});
+export type BotDemoSendInput = z.infer<typeof botDemoSendSchema>;
