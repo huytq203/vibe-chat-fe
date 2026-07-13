@@ -10,8 +10,10 @@ import {
   useIssueToken,
   useRotateToken,
   useRevokeToken,
+  useOpenBotFatherChat,
 } from './use-mutations';
 import type { Bot, BotCreated, BotTokenIssued } from '../types';
+import type { Conversation } from '@/features/chat/types';
 
 vi.mock('@/services/bots.api', () => ({
   botsApi: { create: vi.fn(), update: vi.fn(), remove: vi.fn() },
@@ -21,12 +23,35 @@ vi.mock('@/services/bot-tokens.api', () => ({
   botTokensApi: { issue: vi.fn(), rotate: vi.fn(), revoke: vi.fn() },
 }));
 
+vi.mock('@/services/users.api', () => ({
+  usersApi: { search: vi.fn() },
+}));
+
+vi.mock('@/services/chat.api', () => ({
+  chatApi: { createDirect: vi.fn() },
+}));
+
+const routerReplace = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: routerReplace }),
+  useParams: () => ({}),
+}));
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn() },
+}));
+
 import { botsApi } from '@/services/bots.api';
 import { botTokensApi } from '@/services/bot-tokens.api';
+import { usersApi } from '@/services/users.api';
+import { chatApi } from '@/services/chat.api';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 
 const mockCreate = vi.mocked(botsApi.create);
 const mockUpdate = vi.mocked(botsApi.update);
 const mockRemove = vi.mocked(botsApi.remove);
+const mockSearch = vi.mocked(usersApi.search);
+const mockCreateDirect = vi.mocked(chatApi.createDirect);
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -37,6 +62,26 @@ function createWrapper() {
     return createElement(QueryClientProvider, { client: queryClient }, children);
   }
   return { Wrapper, invalidateSpy };
+}
+
+function buildConversation(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    id: 'conv-1',
+    type: 'DIRECT',
+    name: null,
+    description: null,
+    avatarUrl: null,
+    ownerId: 'me',
+    encryptionType: 'NONE',
+    memberCount: 2,
+    messageCount: 0,
+    memberIds: ['me', 'bf-1'],
+    lastMessage: null,
+    lastMessageAt: null,
+    unreadCount: 0,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
 }
 
 const BOT: Bot = {
@@ -146,5 +191,51 @@ describe('token mutation hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockRevoke).toHaveBeenCalledWith('bot-1', 'token-1');
+  });
+});
+
+describe('useOpenBotFatherChat', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useChatUIStore.setState({ mobilePanel: 'list' });
+  });
+
+  it('nên tìm BotFather, mở DIRECT conversation, điều hướng và chuyển mobilePanel sang chat khi thành công', async () => {
+    mockSearch.mockResolvedValue({
+      items: [
+        {
+          id: 'bf-1',
+          username: 'botfather',
+          displayName: 'BotFather',
+          avatarUrl: null,
+          friendship: 'NONE',
+        },
+      ],
+      nextCursor: null,
+    });
+    mockCreateDirect.mockResolvedValue(buildConversation({ id: 'conv-1' }));
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useOpenBotFatherChat(), { wrapper: Wrapper });
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockSearch).toHaveBeenCalledWith({ q: '@botfather', limit: 5 });
+    expect(mockCreateDirect).toHaveBeenCalledWith('bf-1');
+    expect(routerReplace).toHaveBeenCalledWith('/chat/conv-1', { scroll: false });
+    expect(useChatUIStore.getState().mobilePanel).toBe('chat');
+  });
+
+  it('nên báo lỗi và không điều hướng khi không tìm thấy BotFather trong kết quả tìm kiếm', async () => {
+    mockSearch.mockResolvedValue({ items: [], nextCursor: null });
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useOpenBotFatherChat(), { wrapper: Wrapper });
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockCreateDirect).not.toHaveBeenCalled();
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(useChatUIStore.getState().mobilePanel).toBe('list');
   });
 });

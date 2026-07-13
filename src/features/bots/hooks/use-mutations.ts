@@ -2,9 +2,17 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { botsApi } from '@/services/bots.api';
-import { botKeys, botTokenKeys } from '@/services/keys';
+import { botKeys, botTokenKeys, chatKeys } from '@/services/keys';
 import { botTokensApi } from '@/services/bot-tokens.api';
-import type { CreateBotInput, UpdateBotInput, IssueTokenInput } from '../schemas';
+import { sendBotDemoMessage } from '@/lib/bot-demo';
+import { toast } from 'sonner';
+import { usersApi } from '@/services/users.api';
+import { chatApi } from '@/services/chat.api';
+import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import type { CreateBotInput, UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
+
+const BOTFATHER_USERNAME = 'botfather';
 
 /** Tạo bot mới — response kèm token plaintext (chỉ hiện 1 lần). */
 export function useCreateBot() {
@@ -61,5 +69,46 @@ export function useRevokeToken(botId: string) {
     mutationFn: (tokenId: string) => botTokensApi.revoke(botId, tokenId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: botTokenKeys.list(botId) }),
+  });
+}
+
+/** Demo: bot gửi 1 tin nhắn "vui" vào conversation qua route nội bộ /api/bot-demo. */
+export function useSendBotDemoMessage() {
+  return useMutation({
+    mutationFn: ({
+      conversationUuid,
+      command,
+    }: {
+      conversationUuid: string;
+      command: BotDemoCommand;
+    }) => sendBotDemoMessage(conversationUuid, command),
+  });
+}
+
+/**
+ * Mở (hoặc tạo) hội thoại DIRECT với BotFather rồi điều hướng sang màn hình
+ * chat. `@`-prefix bắt buộc backend match CHÍNH XÁC theo username (xem
+ * comment ở users.api.ts) — tránh prefix-search mờ khớp nhầm bot khác.
+ */
+export function useOpenBotFatherChat() {
+  const queryClient = useQueryClient();
+  const { setSelected } = useSelectedConversation();
+  const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
+
+  return useMutation({
+    mutationFn: async () => {
+      const page = await usersApi.search({ q: `@${BOTFATHER_USERNAME}`, limit: 5 });
+      const botFather = page.items.find((u) => u.username === BOTFATHER_USERNAME);
+      if (!botFather) {
+        throw new Error('Không tìm thấy BotFather, thử lại sau');
+      }
+      return chatApi.createDirect(botFather.id);
+    },
+    onSuccess: (conv) => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversationLists() });
+      setSelected(conv.id);
+      setMobilePanel('chat');
+    },
+    onError: (err: Error) => toast.error(err.message || 'Không mở được cuộc trò chuyện'),
   });
 }
