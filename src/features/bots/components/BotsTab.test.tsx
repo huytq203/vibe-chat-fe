@@ -1,28 +1,63 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BotsTab } from './BotsTab';
 import type { BotListPage } from '../types';
+import type { Conversation } from '@/features/chat/types';
 
 vi.mock('@/services/bots.api', () => ({
-  botsApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+  botsApi: { list: vi.fn(), update: vi.fn(), remove: vi.fn() },
 }));
 vi.mock('@/services/bot-tokens.api', () => ({
   botTokensApi: { list: vi.fn(), issue: vi.fn(), rotate: vi.fn(), revoke: vi.fn() },
 }));
+vi.mock('@/services/users.api', () => ({
+  usersApi: { search: vi.fn() },
+}));
+vi.mock('@/services/chat.api', () => ({
+  chatApi: { createDirect: vi.fn() },
+}));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  useParams: () => ({}),
+}));
 
 import { botsApi } from '@/services/bots.api';
+import { usersApi } from '@/services/users.api';
+import { chatApi } from '@/services/chat.api';
 
 const mockList = vi.mocked(botsApi.list);
+const mockSearch = vi.mocked(usersApi.search);
+const mockCreateDirect = vi.mocked(chatApi.createDirect);
 
-function renderTab() {
+function buildConversation(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    id: 'conv-1',
+    type: 'DIRECT',
+    name: null,
+    description: null,
+    avatarUrl: null,
+    ownerId: 'me',
+    encryptionType: 'NONE',
+    memberCount: 2,
+    messageCount: 0,
+    memberIds: ['me', 'bf-1'],
+    lastMessage: null,
+    lastMessageAt: null,
+    unreadCount: 0,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function renderTab(onClose?: () => void) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <BotsTab />
+      <BotsTab onClose={onClose} />
     </QueryClientProvider>,
   );
 }
@@ -73,21 +108,29 @@ describe('BotsTab', () => {
     expect(screen.getByText('Weather Bot')).toBeInTheDocument();
   });
 
-  it('mở CreateBotDialog khi click nút Tạo bot mới', async () => {
+  it('mở chat với BotFather và gọi onClose khi click nút', async () => {
     const user = userEvent.setup();
+    const onClose = vi.fn();
     mockList.mockResolvedValue({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
-    renderTab();
+    mockSearch.mockResolvedValue({
+      items: [
+        {
+          id: 'bf-1',
+          username: 'botfather',
+          displayName: 'BotFather',
+          avatarUrl: null,
+          friendship: 'NONE',
+        },
+      ],
+      nextCursor: null,
+    });
+    mockCreateDirect.mockResolvedValue(buildConversation());
+    renderTab(onClose);
 
-    await user.click(await screen.findByRole('button', { name: /tạo bot mới/i }));
+    await user.click(await screen.findByRole('button', { name: /chat với botfather/i }));
 
-    // Dialog mở xong thì section phía sau (chứa nút "Tạo bot mới") bị đánh dấu
-    // aria-hidden bởi Base UI, nên từ đây chỉ còn nút submit "Tạo bot" khớp role.
-    // Điền username hợp lệ về format nhưng không chứa "bot" để kích hoạt đúng
-    // lỗi validate (giống pattern đã dùng ở CreateBotDialog.test.tsx).
-    await user.type(screen.getByLabelText(/username/i), 'weather_service');
-    await user.type(screen.getByLabelText(/tên hiển thị/i), 'Weather');
-    await user.click(screen.getByRole('button', { name: /tạo bot/i }));
-
-    expect(await screen.findByText(/username phải chứa/i)).toBeInTheDocument();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mockSearch).toHaveBeenCalledWith({ q: '@botfather', limit: 5 });
+    expect(mockCreateDirect).toHaveBeenCalledWith('bf-1');
   });
 });

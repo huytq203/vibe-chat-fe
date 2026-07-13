@@ -15,7 +15,12 @@ import { BackupTab } from './tabs/BackupTab';
 
 type TabId = 'general' | 'appearance' | 'notifications' | 'messages' | 'privacy' | 'devices' | 'backup' | 'bots';
 
-type TabDef = { id: TabId; label: string; icon: LucideIcon; Component: ComponentType };
+type TabDef = {
+  id: TabId;
+  label: string;
+  icon: LucideIcon;
+  Component: ComponentType<{ onClose?: () => void }>;
+};
 
 const TABS: readonly TabDef[] = [
   { id: 'general', label: 'Cài đặt chung', icon: SlidersHorizontal, Component: GeneralTab },
@@ -70,7 +75,7 @@ export function SettingsModal({
           </nav>
 
           <div className="flex-1 overflow-y-auto p-5">
-            <ActiveTab />
+            <ActiveTab onClose={() => onOpenChange(false)} />
           </div>
         </div>
       </DialogContent>
