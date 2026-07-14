@@ -209,7 +209,15 @@ export function MessageList({ conversationId, onAtBottom, wallpaperActive = fals
                 {showDateSep && <DateSeparator date={msgDate} />}
                 <div
                   data-msgid={m.id}
-                  className={cn('pb-1', isNew && 'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-150')}
+                  className={cn(
+                    // relative + hover:z-10: bubble được hover luôn nổi lên trên các bubble
+                    // liền kề. Không có z-index tường minh này, thứ tự đè phụ thuộc vào việc
+                    // bubble có đang chạy animate-in (tự tạo stacking context riêng do
+                    // transform) hay không → icon like/actions (z-20 bên trong) lúc nổi lúc
+                    // bị bubble dưới đè, tuỳ tin đó "mới" hay đã tải sẵn.
+                    'relative pb-1 [@media(hover:hover)]:hover:z-10',
+                    isNew && 'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-150',
+                  )}
                 >
                   <MessageBubble
                     message={m}

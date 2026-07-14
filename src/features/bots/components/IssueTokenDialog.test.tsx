@@ -33,12 +33,17 @@ function renderDialog(onIssued = vi.fn()) {
 describe('IssueTokenDialog', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('hiện đủ 4 checkbox scope', () => {
+  it('hiện đủ checkbox scope Bot API', () => {
     renderDialog();
     expect(screen.getByRole('checkbox', { name: /gửi tin nhắn/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /quản lý tin nhắn/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /gửi media/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /gửi broadcast/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /quản lý webhook/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /quản lý command/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /trả lời callback/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /đọc analytics/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /quản trị nhóm/i })).toBeInTheDocument();
   });
 
   it('tick 1 scope rồi submit → gọi botTokensApi.issue với đúng scope + gọi onIssued', async () => {

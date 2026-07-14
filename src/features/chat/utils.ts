@@ -208,6 +208,12 @@ export function getMyRole(conv: Conversation, meId: string | null): MemberRole |
   return conv.members?.find((m) => m.userId === meId)?.role ?? null;
 }
 
+export function isMemberChatRestricted(member: ConversationMember | null | undefined): boolean {
+  if (!member || member.canSendMessages !== false) return false;
+  if (!member.restrictedUntil) return true;
+  return new Date(member.restrictedUntil).getTime() > Date.now();
+}
+
 /** OWNER/ADMIN/MODERATOR — nhóm "quản trị viên" theo phạm vi `ADMIN`. */
 export function isAdminRole(role: MemberRole | null | undefined): boolean {
   return role != null && ADMIN_ROLES.includes(role);
@@ -226,6 +232,9 @@ function allowByScope(
 
 /** Có được gửi tin không (DIRECT luôn được; GROUP theo `settings.whoCanSend`). */
 export function canSendMessage(conv: Conversation, meId: string | null): boolean {
+  if (isMemberChatRestricted(conv.members?.find((m) => m.userId === meId))) {
+    return false;
+  }
   return allowByScope(conv, meId, conv.settings?.whoCanSend ?? 'ALL');
 }
 

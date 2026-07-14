@@ -7,6 +7,7 @@ export interface Bot {
   description?: string;
   status: 'ACTIVE' | 'SUSPENDED';
   provisioned: boolean;
+  botKeycloakId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

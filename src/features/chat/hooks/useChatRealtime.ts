@@ -46,6 +46,20 @@ import {
 
 const HEARTBEAT_MS = 30_000;
 
+type BotCallbackAnswerPayload = {
+  text?: string;
+  showAlert: boolean;
+};
+
+function onBotCallbackAnswer(payload: BotCallbackAnswerPayload): void {
+  if (!payload.text) return;
+  if (payload.showAlert) {
+    toast.message(payload.text);
+    return;
+  }
+  toast(payload.text);
+}
+
 export function useChatRealtime() {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   const clearSession = useAuthStore((s) => s.clear);
@@ -174,6 +188,10 @@ export function useChatRealtime() {
     const unsubPresenceUpdate = onEvent('presence:update', onPresenceUpdate as (data: unknown) => void);
     const unsubTyping = onEvent('typing', onTyping as (data: unknown) => void);
     const unsubUserUpdated = onEvent('user:updated', onUserUpdated as (data: unknown) => void);
+    const unsubBotCallbackAnswer = onEvent(
+      'bot:callback_answer',
+      onBotCallbackAnswer as (data: unknown) => void,
+    );
     socket.on('connect', onReconnect);
 
     function sendHeartbeat() {
@@ -215,6 +233,7 @@ export function useChatRealtime() {
       unsubPresenceUpdate();
       unsubTyping();
       unsubUserUpdated();
+      unsubBotCallbackAnswer();
       socket.off('connect', onReconnect);
       clearInterval(heartbeat);
       document.removeEventListener('visibilitychange', onVisibility);

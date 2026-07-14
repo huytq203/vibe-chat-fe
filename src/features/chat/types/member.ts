@@ -8,6 +8,12 @@ export type ConversationMember = {
   avatarUrl: string | null;
   nickname: string | null;
   role: MemberRole;
+  /** true = tài khoản bot (features/bots) — ẩn action kết bạn/chặn/báo cáo trên UI. */
+  isBot: boolean;
+  /** false = admin chặn member này gửi tin trong nhóm; undefined từ BE cũ được coi là true. */
+  canSendMessages?: boolean;
+  /** ISO time tự hết chặn chat; null/undefined khi không có hạn hoặc BE cũ chưa trả. */
+  restrictedUntil?: string | null;
 };
 
 /** Thành viên đang bị chặn (xem 28-group-settings.md §4) — từ GET /conversations/{id}/banned-members. */

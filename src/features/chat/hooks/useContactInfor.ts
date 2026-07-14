@@ -79,9 +79,16 @@ const useContactInfor = () => {
   const name = getConversationName(conversation, meId);
   const description = getConversationDescription(conversation);
   const isDirect = conversation.type === "DIRECT";
-  const canUnfriend = isDirect && isFriend && Boolean(otherUserId);
-  const canCancelRequest = isDirect && !isFriend && hasOutgoingRequest && Boolean(otherUserId);
-  const canBlock = isDirect && Boolean(otherUserId);
+  const otherMember = otherUserId
+    ? conversation.members?.find((m) => m.userId === otherUserId)
+    : undefined;
+  const otherIsBot = Boolean(otherMember?.isBot);
+  const otherUsername = otherMember?.username ?? null;
+  const canUnfriend = isDirect && isFriend && !otherIsBot && Boolean(otherUserId);
+  const canCancelRequest =
+    isDirect && !isFriend && hasOutgoingRequest && !otherIsBot && Boolean(otherUserId);
+  const canBlock = isDirect && !otherIsBot && Boolean(otherUserId);
+  const canFriendRequest = isDirect && !isFriend && !hasOutgoingRequest && !otherIsBot && Boolean(otherUserId);
   const canDelete = isDirect || conversation.ownerId === meId;
   // Rời nhóm: group/channel và mình KHÔNG phải owner (owner phải xoá nhóm).
   const canLeave = !isDirect && conversation.ownerId !== meId;
@@ -156,8 +163,11 @@ const useContactInfor = () => {
     name,
     description,
     isDirect,
+    otherIsBot,
+    otherUsername,
     canUnfriend,
     canCancelRequest,
+    canFriendRequest,
     canBlock,
     canDelete,
     canLeave,

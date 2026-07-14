@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiAuth } from '@/lib/api/client';
 import { getSocket, onEvent } from '@/lib/ws/socket';
 import type { Message } from '@/features/chat/types';
-import { patchMessage } from './store-mutation-helpers';
+import { patchMessage, removeMessage } from './store-mutation-helpers';
 import { mapChatMessageToStore, upsertStoreMessage } from './store-realtime-helpers';
 
 /** Đọc conversationId từ payload WS bất kỳ (socket là global → phải tự lọc). */
@@ -54,7 +54,7 @@ export function useMyStoreRealtime(selfConvId: string | null): void {
     const unsubDeleted = onEvent('message:deleted', (data) => {
       if (convIdOf(data) !== convId) return;
       const id = deletedIdOf(data);
-      if (id) patchMessage(qc, id, (x) => ({ ...x, isDeleted: true, plaintext: null }));
+      if (id) removeMessage(qc, id);
     });
 
     return () => {

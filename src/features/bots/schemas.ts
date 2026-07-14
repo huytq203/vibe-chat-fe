@@ -21,17 +21,27 @@ export type UpdateBotInput = z.infer<typeof updateBotSchema>;
 
 export const BOT_TOKEN_SCOPES = [
   'messages:send',
+  'messages:manage',
   'media:send',
+  'broadcast:send',
   'webhook:manage',
   'commands:manage',
+  'callbacks:answer',
+  'analytics:read',
+  'chat:admin',
 ] as const;
 export type BotTokenScope = (typeof BOT_TOKEN_SCOPES)[number];
 
 export const BOT_TOKEN_SCOPE_LABELS: Record<BotTokenScope, string> = {
   'messages:send': 'Gửi tin nhắn',
+  'messages:manage': 'Quản lý tin nhắn',
   'media:send': 'Gửi media',
+  'broadcast:send': 'Gửi broadcast',
   'webhook:manage': 'Quản lý webhook',
   'commands:manage': 'Quản lý command',
+  'callbacks:answer': 'Trả lời callback',
+  'analytics:read': 'Đọc analytics',
+  'chat:admin': 'Quản trị nhóm',
 };
 
 export const issueTokenSchema = z.object({

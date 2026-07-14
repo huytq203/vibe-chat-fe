@@ -22,7 +22,7 @@ export function MyStoreLayout() {
         {activeTab === 'notes' ? (
           <div className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-2xl border bg-background/75 shadow-subtle backdrop-blur-md">
             <MyStoreFeed />
-            <MyStoreComposer />
+            <MyStoreComposer conversationId={selfConv?.id ?? null} />
           </div>
         ) : (
           <StoreFileBrowser />

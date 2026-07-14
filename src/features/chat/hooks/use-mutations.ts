@@ -42,6 +42,8 @@ export {
   useRejectJoinRequest,
   useBanMember,
   useUnbanMember,
+  useRestrictMember,
+  useUnrestrictMember,
   useSetMemberRole,
   useTransferOwnership,
 } from './use-member-mutations';

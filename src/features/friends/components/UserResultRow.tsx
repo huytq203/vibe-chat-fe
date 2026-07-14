@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button/Button';
 import { Badge } from '@/components/ui/badge/Badge';
 import { cn } from '@/lib/utils/cn';
 import type { UserSearchItem } from '@/features/friends/types';
+import { isBotUser } from '@/features/friends/utils';
 
 type Props = {
   user: UserSearchItem;
@@ -107,6 +108,20 @@ function PrimaryAction({
   full,
 }: Props & { full?: boolean }) {
   const widthCls = full ? 'w-full' : '';
+  if (isBotUser(user)) {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        leftIcon={<MessageSquare className="h-3.5 w-3.5" />}
+        onClick={() => onMessage?.(user)}
+        className={cn(widthCls)}
+      >
+        Nhắn tin
+      </Button>
+    );
+  }
+
   switch (user.friendship) {
     case 'NONE':
       return (

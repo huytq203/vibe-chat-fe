@@ -66,7 +66,7 @@ export function IssueTokenDialog({
               control={form.control}
               name="scopes"
               render={({ field }) => (
-                <div className="flex flex-col gap-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {BOT_TOKEN_SCOPES.map((scope) => (
                     <Checkbox
                       key={scope}

@@ -1,4 +1,10 @@
-import type { MessageType } from '@/features/chat/types';
+import type {
+  Attachment,
+  Mention,
+  MessageReaction,
+  MessageType,
+  ReactionType,
+} from '@/features/chat/types';
 
 // ─── Re-export CHAT MessageType để dùng chung ─────────────────────────────
 export type { MessageType };
@@ -51,8 +57,19 @@ export type StoreMessage = {
   senderId: string;
   type: StoreMessageType;
   plaintext: string | null;
+  attachments?: Attachment[];
+  reactions?: MessageReaction[];
+  myReaction?: ReactionType | null;
+  contentPreview?: string | null;
   metadata: ReminderMetadata | ChecklistMetadata | BookmarkMetadata | Record<string, unknown> | null;
+  replyToMessageId?: string | null;
+  mentions?: Mention[];
+  isEdited?: boolean;
+  editedAt?: string | null;
   isDeleted: boolean;
+  deletedFor?: 'NONE' | 'SENDER' | 'EVERYONE';
+  expireAt?: string | null;
+  isView?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -112,6 +129,7 @@ export type SendStoreMessageInput = {
   plaintext?: string;
   attachmentIds?: string[];
   clientNonce?: string;
+  replyToMessageId?: string;
   metadata?: Record<string, unknown>;
 };
 

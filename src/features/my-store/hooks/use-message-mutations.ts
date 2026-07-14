@@ -59,7 +59,12 @@ export function useSendStoreMessage() {
       const selfConvId = resolveSelfConvId(qc);
       const nonce = dto.clientNonce ?? crypto.randomUUID();
       return sendMessageWs(
-        { conversationId: selfConvId, plaintext: dto.plaintext, type: dto.type ?? 'TEXT' },
+        {
+          conversationId: selfConvId,
+          plaintext: dto.plaintext,
+          type: dto.type ?? 'TEXT',
+          replyToMessageId: dto.replyToMessageId,
+        },
         nonce,
       );
     },
@@ -79,6 +84,7 @@ export function useSendStoreMessage() {
         type: dto.type ?? 'TEXT',
         plaintext: dto.plaintext ?? null,
         metadata: { optimistic: true, clientNonce: nonce },
+        replyToMessageId: dto.replyToMessageId ?? null,
         isDeleted: false,
         createdAt: now,
         updatedAt: now,
@@ -168,7 +174,7 @@ export function useDeleteStoreMessage() {
       const convId = cache?.pages
         .flatMap((p) => p.items)
         .find((m) => m.id === messageId)?.conversationId;
-      patchMessage(qc, messageId, (m) => ({ ...m, isDeleted: true, plaintext: null }));
+      removeMessage(qc, messageId);
       invalidateStoreUsage(qc, convId);
     },
     onError: (e) => toast.error(getErrorMessage(e)),

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { Message } from "@/features/chat/types";
 import { type BubbleConfig, DEFAULT_BUBBLE_CONFIG } from "@/features/chat/config/chat-themes";
@@ -14,6 +14,8 @@ import { BubbleMetaRow } from "./BubbleMetaRow";
 import { MessageFailedActions } from "./MessageFailedActions";
 import { BubbleSenderAvatar } from "./BubbleSenderAvatar";
 import { BubbleHeader } from "./BubbleHeader";
+import { BotInlineKeyboard } from "./BotInlineKeyboard";
+import { BotQuickReplies } from "./BotQuickReplies";
 
 type MessageBubbleProps = {
   message: Message;
@@ -40,6 +42,13 @@ type MessageBubbleProps = {
   leaderLabel?: string | null;
   wallpaperActive?: boolean;
   bubbleConfig?: BubbleConfig;
+  /** Cho surface khác (vd. My Store) thay toolbar action nhưng vẫn dùng chung chrome bubble. */
+  renderActions?: (args: { isMe: boolean; className: string }) => ReactNode;
+  enableDefaultActions?: boolean;
+  enableTouchMenu?: boolean;
+  enableLikeButton?: boolean;
+  showReactions?: boolean;
+  showBotMarkup?: boolean;
 };
 
 function MessageBubbleImpl({
@@ -58,6 +67,12 @@ function MessageBubbleImpl({
   leaderLabel,
   wallpaperActive,
   bubbleConfig = DEFAULT_BUBBLE_CONFIG,
+  renderActions,
+  enableDefaultActions = true,
+  enableTouchMenu = true,
+  enableLikeButton = true,
+  showReactions = true,
+  showBotMarkup = true,
 }: MessageBubbleProps) {
   const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
   const isMe = message.senderId === meId;
@@ -76,7 +91,12 @@ function MessageBubbleImpl({
   // Toolbar action (reply / forward / ⋮) nổi ở cạnh ngoài bong bóng. Hiện khi hover
   // cả DÒNG (group/row), không chỉ riêng bong bóng; pointer-events-none khi ẩn để
   // không chặn chuột. left-full/right-full đẩy ra ngoài cạnh bubble.
-  const actionsMenu = canActions && (
+  const actionsClassName = cn(
+    "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity",
+    "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
+    isMe ? "right-full mr-1.5" : "left-full ml-1.5",
+  );
+  const defaultActionsMenu = enableDefaultActions && canActions && (
     <MessageActions
       message={message}
       meId={meId}
@@ -84,18 +104,17 @@ function MessageBubbleImpl({
       senderName={senderName}
       canPin={canPin}
       isPinned={isPinned}
-      className={cn(
-        "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity",
-        "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
-        isMe ? "right-full mr-1.5" : "left-full ml-1.5",
-      )}
+      className={actionsClassName}
     />
   );
+  const actionsMenu = canActions
+    ? (renderActions?.({ isMe, className: actionsClassName }) ?? defaultActionsMenu)
+    : null;
 
   const hasReactions = (message.reactions?.length ?? 0) > 0;
 
   // Nút Like ở mép dưới bong bóng (chỉ hiện khi hover và CHƯA có reaction nào).
-  const likeButton = canActions && !hasReactions && (
+  const likeButton = enableLikeButton && canActions && !hasReactions && (
     <MessageLikeButton
       message={message}
       isMe={isMe}
@@ -115,7 +134,7 @@ function MessageBubbleImpl({
     senderName,
     canPin,
     isPinned,
-    enabled: canActions,
+    enabled: enableTouchMenu && canActions,
   });
 
   return (
@@ -183,9 +202,11 @@ function MessageBubbleImpl({
             bubbleConfig={bubbleConfig}
           />
         </div>
-        {!message.isDeleted && (
+        {showReactions && !message.isDeleted && (
           <MessageReactions message={message} isMe={isMe} />
         )}
+        {showBotMarkup && <BotQuickReplies message={message} isMe={isMe} />}
+        {showBotMarkup && <BotInlineKeyboard message={message} isMe={isMe} />}
         {isFailed && isMe && <MessageFailedActions message={message} />}
       </div>
     </div>

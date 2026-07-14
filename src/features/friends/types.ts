@@ -25,6 +25,8 @@ export type UserProfile = {
   /** Chế độ hiển thị hồ sơ (xem 30-profile-visibility.md). Chỉ chắc chắn có khi isMe=true. */
   visibility?: ProfileVisibility;
   isMe: boolean;
+  /** true = tài khoản bot (features/bots) — ẩn action kết bạn/chặn/báo cáo trên UI. */
+  isBot: boolean;
   friendship: FriendshipStatus;
   /** Số bạn chung với người xem (0 khi xem hồ sơ của chính mình). */
   mutualFriendsCount: number;
@@ -58,6 +60,8 @@ export type UserSummary = {
   phone?: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  /** true = tài khoản bot — không áp dụng quan hệ bạn bè. */
+  isBot?: boolean;
 };
 
 export type UserSearchItem = UserSummary & {

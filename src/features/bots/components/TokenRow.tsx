@@ -36,29 +36,38 @@ export function TokenRow({
   const revoked = token.revokedAt != null;
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-border px-3 py-2.5">
-      <div className="flex items-center gap-2">
-        <code className="text-[13px] font-semibold">{token.prefix}••••</code>
+    <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-border px-4 py-3">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <code className="min-w-0 break-all text-[13px] font-semibold leading-6">
+          {token.prefix}••••
+        </code>
         {revoked ? (
-          <Badge variant="soft-danger" size="sm">Đã thu hồi</Badge>
+          <Badge variant="soft-danger" size="sm" className="shrink-0">
+            Đã thu hồi
+          </Badge>
         ) : (
-          <Badge variant="soft-success" size="sm">Đang hoạt động</Badge>
+          <Badge variant="soft-success" size="sm" className="shrink-0">
+            Đang hoạt động
+          </Badge>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
         {token.scopes.map((s) => (
-          <Badge key={s} variant="secondary" size="sm">
-            {BOT_TOKEN_SCOPE_LABELS[s]}
+          <Badge key={s} variant="secondary" size="sm" className="max-w-full whitespace-normal">
+            {BOT_TOKEN_SCOPE_LABELS[s] ?? s}
           </Badge>
         ))}
       </div>
 
-      <p className="text-[12px] text-muted-foreground">
-        Tạo lúc {fmt(token.createdAt)} · Hết hạn: {token.expiresAt ? fmt(token.expiresAt) : 'Không giới hạn'}
-        {' · '}
-        Dùng lần cuối: {token.lastUsedAt ? fmt(token.lastUsedAt) : 'Chưa dùng'}
-      </p>
+      <div className="grid gap-1 text-[12px] leading-5 text-muted-foreground sm:grid-cols-3">
+        <span>Tạo lúc {fmt(token.createdAt)}</span>
+        <span>Hết hạn: {token.expiresAt ? fmt(token.expiresAt) : 'Không giới hạn'}</span>
+        <span>Dùng lần cuối: {token.lastUsedAt ? fmt(token.lastUsedAt) : 'Chưa dùng'}</span>
+      </div>
 
       {!revoked && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* isLoading gắn ở nút TRIGGER (Rotate), không phải nút bên trong AlertDialogClose:
               trigger vẫn mounted xuyên suốt vòng đời component (không nằm trong Portal của
               AlertDialogContent) nên khi AlertDialogClose đóng dialog ngay lúc click, spinner

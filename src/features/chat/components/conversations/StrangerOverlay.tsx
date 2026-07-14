@@ -24,7 +24,7 @@ export function StrangerOverlay({
   onAvatarError,
 }: StrangerOverlayProps) {
   return (
-    <div className="flex flex-1 flex-col bg-sidebar">
+    <div className="flex flex-1 flex-col ">
       <div className="flex shrink-0 items-center gap-1 px-2 py-2.5">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Quay lại" className="shrink-0">
           <ArrowLeft className="h-4 w-4" />

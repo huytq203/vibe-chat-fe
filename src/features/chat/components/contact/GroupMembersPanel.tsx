@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { ArrowLeft, X } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
-import type { Conversation, ConversationMember } from "@/features/chat/types";
+import { useMemo, useState } from 'react';
+import { ArrowLeft, X } from 'lucide-react';
+import { Button } from '@/components/ui/button/Button';
+import type { Conversation, ConversationMember } from '@/features/chat/types';
 import {
   useBanMember,
   useRemoveMember,
+  useRestrictMember,
   useSetMemberRole,
   useTransferOwnership,
-} from "@/features/chat/hooks/use-mutations";
-import { useJoinRequests } from "@/features/chat/hooks/use-query";
-import { useMemberFriendship } from "@/features/chat/hooks/useMemberFriendship";
-import { isAdminRole } from "@/features/chat/utils";
-import { GroupManageActions } from "./GroupManageActions";
-import { GroupMemberRow } from "./GroupMemberRow";
-import { UserProfileDialog } from "./UserProfileDialog";
-import { AddMembersDialog } from "./AddMembersDialog";
-import { AlertRemoveMember } from "./AlertRemoveMember";
-import { AlertBanMember } from "./AlertBanMember";
-import { AlertTransferOwner } from "./AlertTransferOwner";
+  useUnrestrictMember,
+} from '@/features/chat/hooks/use-mutations';
+import { useJoinRequests } from '@/features/chat/hooks/use-query';
+import { useMemberFriendship } from '@/features/chat/hooks/useMemberFriendship';
+import { isAdminRole, isMemberChatRestricted } from '@/features/chat/utils';
+import { GroupManageActions } from './GroupManageActions';
+import { GroupMemberRow } from './GroupMemberRow';
+import { UserProfileDialog } from './UserProfileDialog';
+import { AddMembersDialog } from './AddMembersDialog';
+import { AlertRemoveMember } from './AlertRemoveMember';
+import { AlertBanMember } from './AlertBanMember';
+import { AlertRestrictMember } from './AlertRestrictMember';
+import { AlertTransferOwner } from './AlertTransferOwner';
 
 type GroupMembersPanelProps = {
   conversation: Conversation;
@@ -48,10 +51,13 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
   const [addOpen, setAddOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ConversationMember | null>(null);
   const [banTarget, setBanTarget] = useState<ConversationMember | null>(null);
+  const [restrictTarget, setRestrictTarget] = useState<ConversationMember | null>(null);
   const [transferTarget, setTransferTarget] = useState<ConversationMember | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const removeMut = useRemoveMember();
   const banMut = useBanMember();
+  const restrictMut = useRestrictMember();
+  const unrestrictMut = useUnrestrictMember();
   const setRoleMut = useSetMemberRole();
   const transferMut = useTransferOwnership();
   const { getState, sendFriend, cancelFriend, isSending, isCancelling } = useMemberFriendship();
@@ -60,8 +66,8 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
     () => (conversation.members ?? []).slice().sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
     [conversation.members],
   );
-  const myRole = members.find((m) => m.userId === meId)?.role ?? "MEMBER";
-  const canManage = myRole !== "MEMBER";
+  const myRole = members.find((m) => m.userId === meId)?.role ?? 'MEMBER';
+  const canManage = myRole !== 'MEMBER';
   // Chỉ fetch danh sách yêu cầu khi user có quyền duyệt (badge số lượng).
   const { data: joinRequests = [] } = useJoinRequests(conversation.id, canManage);
   const pendingCount = joinRequests.length;
@@ -70,11 +76,12 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
     canManage && m.userId !== meId && ROLE_ORDER[myRole] < ROLE_ORDER[m.role];
 
   // Phân quyền (cấp/gỡ phó nhóm, nhượng trưởng nhóm): chỉ OWNER thao tác (xem 28).
-  const isOwner = myRole === "OWNER";
-  const canGrantDeputy = (m: ConversationMember) => isOwner && m.userId !== meId && m.role === "MEMBER";
-  const canRevokeDeputy = (m: ConversationMember) => isOwner && isAdminRole(m.role) && m.role !== "OWNER";
-  const canTransfer = (m: ConversationMember) => isOwner && m.userId !== meId && m.role !== "OWNER";
-  const setRole = (m: ConversationMember, role: "ADMIN" | "MEMBER") =>
+  const isOwner = myRole === 'OWNER';
+  const canGrantDeputy = (m: ConversationMember) => isOwner && m.userId !== meId && m.role === 'MEMBER';
+  const canRevokeDeputy = (m: ConversationMember) => isOwner && isAdminRole(m.role) && m.role !== 'OWNER';
+  const canTransfer = (m: ConversationMember) => isOwner && m.userId !== meId && m.role !== 'OWNER';
+  const canToggleChatRestriction = (m: ConversationMember) => canRemove(m);
+  const setRole = (m: ConversationMember, role: 'ADMIN' | 'MEMBER') =>
     setRoleMut.mutate({ conversationId: conversation.id, userId: m.userId, role });
 
   const handleConfirmRemove = () => {
@@ -90,6 +97,15 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
     banMut.mutate(
       { conversationId: conversation.id, userId: banTarget.userId },
       { onSuccess: () => setBanTarget(null) },
+    );
+  };
+
+  const handleConfirmRestrict = () => {
+    if (!restrictTarget) return;
+    const mutation = isMemberChatRestricted(restrictTarget) ? unrestrictMut : restrictMut;
+    mutation.mutate(
+      { conversationId: conversation.id, userId: restrictTarget.userId },
+      { onSuccess: () => setRestrictTarget(null) },
     );
   };
 
@@ -139,6 +155,8 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
               canRevokeDeputy: canRevokeDeputy(m),
               canTransfer: canTransfer(m),
               canRemove: canRemove(m),
+              canRestrict: canToggleChatRestriction(m) && !isMemberChatRestricted(m),
+              canUnrestrict: canToggleChatRestriction(m) && isMemberChatRestricted(m),
             }}
             onViewProfile={() => setProfileUserId(m.userId)}
             onAddFriend={() => sendFriend(m.userId)}
@@ -148,6 +166,8 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
             onTransfer={() => setTransferTarget(m)}
             onRemove={() => setRemoveTarget(m)}
             onBan={() => setBanTarget(m)}
+            onRestrict={() => setRestrictTarget(m)}
+            onUnrestrict={() => setRestrictTarget(m)}
           />
         ))}
 
@@ -185,6 +205,15 @@ export function GroupMembersPanel({ conversation, meId, onBack, onClose, onShowR
         name={banTarget?.nickname || banTarget?.displayName || banTarget?.username || ""}
         isPending={banMut.isPending}
         onConfirm={handleConfirmBan}
+      />
+
+      <AlertRestrictMember
+        open={Boolean(restrictTarget)}
+        onOpenChange={(o) => !o && setRestrictTarget(null)}
+        name={restrictTarget?.nickname || restrictTarget?.displayName || restrictTarget?.username || ''}
+        isRestricted={isMemberChatRestricted(restrictTarget)}
+        isPending={restrictMut.isPending || unrestrictMut.isPending}
+        onConfirm={handleConfirmRestrict}
       />
 
       <AlertTransferOwner

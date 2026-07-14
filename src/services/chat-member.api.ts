@@ -52,6 +52,18 @@ export const memberApi = {
       `/api/v1/conversations/${conversationId}/members/${userId}/ban`,
     ),
 
+  /** Chặn chat 1 thành viên — giữ trong nhóm nhưng không cho gửi tin. */
+  restrictMember: (conversationId: string, userId: string) =>
+    apiClient.post<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/restrict`,
+    ),
+
+  /** Bỏ chặn chat cho 1 thành viên. */
+  unrestrictMember: (conversationId: string, userId: string) =>
+    apiClient.delete<{ ok: true }>(
+      `/api/v1/conversations/${conversationId}/members/${userId}/restrict`,
+    ),
+
   /** Bỏ chặn 1 thành viên. Trả { ok: true }. */
   unbanMember: (conversationId: string, userId: string) =>
     apiClient.delete<{ ok: true }>(

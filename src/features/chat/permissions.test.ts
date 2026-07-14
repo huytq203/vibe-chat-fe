@@ -29,7 +29,7 @@ function makeConv(opts: {
     messageCount: 0,
     memberIds: [ME],
     members: [
-      { userId: ME, username: 'me', displayName: 'Me', avatarUrl: null, nickname: null, role: myRole },
+      { userId: ME, username: 'me', displayName: 'Me', avatarUrl: null, nickname: null, role: myRole, isBot: false },
     ],
     lastMessage: null,
     lastMessageAt: null,
@@ -62,6 +62,18 @@ describe('canSendMessage', () => {
   it('whoCanSend=ADMIN → MEMBER không gửi được, ADMIN gửi được', () => {
     expect(canSendMessage(makeConv({ myRole: 'MEMBER', settings: { whoCanSend: 'ADMIN' } }), ME)).toBe(false);
     expect(canSendMessage(makeConv({ myRole: 'ADMIN', settings: { whoCanSend: 'ADMIN' } }), ME)).toBe(true);
+  });
+  it('member bị chặn chat không gửi được dù whoCanSend=ALL', () => {
+    const conv = makeConv({ settings: { whoCanSend: 'ALL' } });
+    conv.members![0].canSendMessages = false;
+    conv.members![0].restrictedUntil = null;
+    expect(canSendMessage(conv, ME)).toBe(false);
+  });
+  it('member hết hạn chặn chat thì gửi lại được', () => {
+    const conv = makeConv({ settings: { whoCanSend: 'ALL' } });
+    conv.members![0].canSendMessages = false;
+    conv.members![0].restrictedUntil = '2026-01-01T00:00:00.000Z';
+    expect(canSendMessage(conv, ME)).toBe(true);
   });
 });
 

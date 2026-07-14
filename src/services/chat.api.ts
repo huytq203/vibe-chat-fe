@@ -1,3 +1,4 @@
+import { callbackApi } from '@/services/chat-callback.api';
 import { conversationApi } from '@/services/chat-conversation.api';
 import { messageApi } from '@/services/chat-message.api';
 import { memberApi } from '@/services/chat-member.api';
@@ -23,4 +24,5 @@ export const chatApi = {
   ...reactionApi,
   ...pinApi,
   ...pollApi,
+  ...callbackApi,
 } as const;

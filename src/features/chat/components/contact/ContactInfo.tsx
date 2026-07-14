@@ -18,6 +18,8 @@ import { ContactQuickActions } from "./ContactQuickActions";
 import { ContactOptionsSection } from "./ContactOptionsSection";
 import { ContactInfoDialogs } from "./ContactInfoDialogs";
 import { renderContactSubPanel, type ContactView } from "./ContactPanelRouter";
+import { BotDemoDialog } from "@/features/bots/components/BotDemoDialog";
+import { useBotDemoIdentity } from "@/features/bots/hooks/use-query";
 
 export function ContactInfo() {
   const data = useContactInfor();
@@ -28,6 +30,10 @@ export function ContactInfo() {
   const [convSettingsOpen, setConvSettingsOpen] = useState(false);
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [botDemoOpen, setBotDemoOpen] = useState(false);
+  // Chỉ hiện nút demo đúng trên conversation của CHÍNH bot đứng sau BOT_DEMO_TOKEN
+  // (so username) — tránh gửi nhầm sang bot khác → 403 "chưa là thành viên".
+  const botDemoIdentity = useBotDemoIdentity();
   const isMobile = useIsMobile();
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const convLockStore = useConvLockStore();
@@ -40,7 +46,10 @@ export function ContactInfo() {
 
   if (!data) return null;
 
-  const { conversation, meId, otherUserId, name, isDirect, setRightOpen } = data;
+  const { conversation, meId, otherUserId, name, isDirect, otherIsBot, otherUsername, setRightOpen } =
+    data;
+  const canBotDemo =
+    otherIsBot && otherUsername !== null && otherUsername === botDemoIdentity.data?.username;
 
   const isLocked = Boolean(conversation.isLocked);
   // Nội dung bị khoá: hội thoại đang khoá VÀ chưa mở khoá trong phiên này.
@@ -176,8 +185,16 @@ export function ContactInfo() {
           onMembers={() => setView("members")}
           onCreateGroup={() => setCreateGroupOpen(true)}
           onConvSettings={() => setConvSettingsOpen(true)}
+          canBotDemo={canBotDemo}
+          onBotDemo={() => setBotDemoOpen(true)}
         />
       </div>
+
+      <BotDemoDialog
+        open={botDemoOpen}
+        onOpenChange={setBotDemoOpen}
+        conversationUuid={conversation.id}
+      />
 
       <ContactInfoDialogs
         data={data}

@@ -1,30 +1,47 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Bell, BookmarkPlus, CheckSquare, Paperclip, Send } from 'lucide-react';
+import { Bell, BookmarkPlus, CheckSquare, Paperclip, Reply, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
 import {
   useSendStoreMessage,
   useSendStoreMediaMessage,
 } from '@/features/my-store/hooks/use-mutations';
+import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
 import { ReminderDialog } from './ReminderDialog';
 import { ChecklistDialog } from './ChecklistDialog';
 import { BookmarkDialog } from './BookmarkDialog';
 
 type ActiveDialog = 'reminder' | 'checklist' | 'bookmark' | null;
 
-export function MyStoreComposer() {
+type MyStoreComposerProps = {
+  conversationId: string | null;
+};
+
+export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
   const [text, setText] = useState('');
   const [dialog, setDialog] = useState<ActiveDialog>(null);
   const send = useSendStoreMessage();
   const sendMedia = useSendStoreMediaMessage();
   const fileRef = useRef<HTMLInputElement>(null);
+  const replyingState = useMessageReplyStore((s) => s.replying);
+  const cancelReply = useMessageReplyStore((s) => s.cancelReply);
+  const replying =
+    conversationId && replyingState?.conversationId === conversationId ? replyingState : null;
 
   function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || send.isPending) return;
-    send.mutate({ plaintext: trimmed }, { onSuccess: () => setText('') });
+    send.mutate(
+      { plaintext: trimmed, replyToMessageId: replying?.messageId },
+      {
+        onSuccess: () => {
+          setText('');
+          cancelReply();
+        },
+      },
+    );
   }
 
   function handlePickFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -48,6 +65,28 @@ export function MyStoreComposer() {
   return (
     <>
       <div className="border-t border-border p-3 flex flex-col gap-2">
+        {replying && (
+          <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
+            <Reply className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[12.5px] font-semibold text-primary">
+                Đang trả lời {replying.senderName}
+              </span>
+              <span className="truncate text-[12px] text-muted-foreground">
+                {replying.snippet}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={cancelReply}
+              aria-label="Huỷ trả lời"
+              title="Huỷ trả lời"
+              className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <input
             ref={fileRef}

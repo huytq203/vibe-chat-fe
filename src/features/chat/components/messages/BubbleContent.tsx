@@ -13,6 +13,7 @@ import { BookmarkCard } from '@/features/my-store/components/BookmarkCard';
 import { ContactCardContent } from './ContactCardContent';
 import { CallMessageContent } from './CallMessageContent';
 import { PollBubble } from './PollBubble';
+import { BotCommandText, hasBotCommand } from './BotCommandText';
 
 const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
 
@@ -41,6 +42,16 @@ export function BubbleContent({ message, isMe }: { message: Message; isMe: boole
     }
     if (message.mentions?.length) {
       return <MentionText text={body} mentions={message.mentions} className={textClass} largeEmoji isMe={isMe} />;
+    }
+    if (hasBotCommand(body)) {
+      return (
+        <BotCommandText
+          conversationId={message.conversationId}
+          text={body}
+          className={textClass}
+          isMe={isMe}
+        />
+      );
     }
     return <EmojiText text={body} className={textClass} largeEmoji linkify />;
   }

@@ -14,12 +14,13 @@ import type { FriendshipStatus } from "@/features/friends/types";
 type UserProfileActionsProps = {
   userId: string;
   friendship: FriendshipStatus;
+  isBot: boolean;
   onMessage: () => void;
   isMessaging: boolean;
 };
 
-/** Nút hành động trong modal hồ sơ user: nhắn tin / kết bạn / huỷ kết bạn theo friendship. */
-export function UserProfileActions({ userId, friendship, onMessage, isMessaging }: UserProfileActionsProps) {
+/** Nút hành động trong modal hồ sơ user: nhắn tin / kết bạn / huỷ kết bạn theo friendship. Bot: chỉ nhắn tin. */
+export function UserProfileActions({ userId, friendship, isBot, onMessage, isMessaging }: UserProfileActionsProps) {
   const sendMut = useSendFriendRequest();
   const cancelMut = useCancelFriendRequest();
   const unfriendMut = useUnfriend();
@@ -32,6 +33,14 @@ export function UserProfileActions({ userId, friendship, onMessage, isMessaging 
       Nhắn tin
     </Button>
   );
+
+  if (isBot) {
+    return (
+      <div className="px-6 pt-4">
+        <div className="flex gap-2">{messageBtn}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 pt-4">

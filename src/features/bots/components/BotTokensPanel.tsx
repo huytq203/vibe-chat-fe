@@ -81,8 +81,8 @@ export function BotTokensPanel({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Token của {bot.displayName}</DialogTitle>
           <DialogDescription>Quản lý token dùng để xác thực Bot API.</DialogDescription>
         </DialogHeader>
@@ -90,9 +90,9 @@ export function BotTokensPanel({
         {revealToken ? (
           <TokenRevealCard token={revealToken} onDone={() => setRevealToken(null)} />
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
             {isLoading && (
-              <div className="flex flex-col gap-2">
+              <div className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-1">
                 {[0, 1].map((i) => (
                   <Skeleton key={i} className="h-[70px] w-full" rounded="lg" />
                 ))}
@@ -108,7 +108,7 @@ export function BotTokensPanel({
             )}
 
             {!isLoading && !isError && tokens && tokens.length > 0 && (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
                 {tokens.map((token) => (
                   <TokenRow
                     key={token.id}
@@ -122,7 +122,7 @@ export function BotTokensPanel({
               </ul>
             )}
 
-            <div className="mt-2">
+            <div className="shrink-0 border-t border-border pt-3">
               <Button
                 size="sm"
                 leftIcon={<Plus className="h-4 w-4" />}
@@ -141,7 +141,7 @@ export function BotTokensPanel({
                 setRevealToken(token);
               }}
             />
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>

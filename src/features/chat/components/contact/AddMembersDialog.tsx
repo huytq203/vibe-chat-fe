@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Search } from 'lucide-react';
+import { Bot as BotIcon, Check, Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input/Input';
 import { Button } from '@/components/ui/button/Button';
 import { useFriends } from '@/features/friends/hooks/use-query';
+import { useBots } from '@/features/bots';
 import { useAddMembers } from '@/features/chat/hooks/use-mutations';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 
@@ -21,6 +22,13 @@ interface AddMembersDialogProps {
   existingMemberIds: string[];
 }
 
+type MemberCandidate = {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  isBot: boolean;
+};
+
 export function AddMembersDialog({
   open,
   onOpenChange,
@@ -30,19 +38,29 @@ export function AddMembersDialog({
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { data: friendsData } = useFriends();
+  const { data: botsData } = useBots({ page: 1, limit: 50 });
   const addMembers = useAddMembers();
 
   // State khởi tạo rỗng mỗi lần mount — parent mount theo điều kiện (addOpen)
   // nên không cần reset bằng effect.
   const existing = new Set(existingMemberIds);
-  const friends = (friendsData?.items ?? []).filter(({ user }) => !existing.has(user.id));
+  const friendCandidates: MemberCandidate[] = (friendsData?.items ?? []).map(({ user }) => ({
+    id: user.id,
+    name: user.displayName ?? user.username,
+    avatarUrl: user.avatarUrl,
+    isBot: false,
+  }));
+  const botCandidates: MemberCandidate[] = (botsData?.items ?? [])
+    .filter((bot) => bot.status === 'ACTIVE' && bot.provisioned && bot.botKeycloakId)
+    .map((bot) => ({
+      id: bot.botKeycloakId!,
+      name: bot.displayName || bot.username,
+      avatarUrl: null,
+      isBot: true,
+    }));
+  const candidates = [...friendCandidates, ...botCandidates].filter((c) => !existing.has(c.id));
   const q = search.trim().toLowerCase();
-  const filtered = q
-    ? friends.filter(({ user }) =>
-        (user.displayName?.toLowerCase().includes(q) ?? false) ||
-        user.username.toLowerCase().includes(q),
-      )
-    : friends;
+  const filtered = q ? candidates.filter((c) => c.name.toLowerCase().includes(q)) : candidates;
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -72,20 +90,20 @@ export function AddMembersDialog({
         <div className="px-4 pb-3">
           <Input
             icon={<Search className="h-4 w-4" />}
-            placeholder="Tìm bạn bè..."
+            placeholder="Tìm bạn bè hoặc bot..."
             value={search}
             onChange={(e) => setSearch((e.target as HTMLInputElement).value)}
           />
         </div>
 
         <div className="overflow-y-auto border-t border-border" style={{ height: 280 }}>
-          {filtered.map(({ user }) => {
-            const checked = selected.has(user.id);
+          {filtered.map((c) => {
+            const checked = selected.has(c.id);
             return (
               <button
-                key={user.id}
+                key={c.id}
                 type="button"
-                onClick={() => toggle(user.id)}
+                onClick={() => toggle(c.id)}
                 className="flex w-full items-center gap-3 px-4 py-2.5 hover:bg-accent"
               >
                 <div
@@ -95,18 +113,20 @@ export function AddMembersDialog({
                 >
                   {checked && <Check className="h-3 w-3 text-primary-foreground" />}
                 </div>
-                <Avatar
-                  name={user.displayName ?? user.username}
-                  src={user.avatarUrl}
-                  size="sm"
-                />
-                <span className="text-sm">{user.displayName ?? user.username}</span>
+                <Avatar name={c.name} src={c.avatarUrl} size="sm" />
+                <span className="text-sm">{c.name}</span>
+                {c.isBot && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <BotIcon className="h-3 w-3" />
+                    Bot
+                  </span>
+                )}
               </button>
             );
           })}
           {filtered.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              {q ? 'Không tìm thấy bạn bè' : 'Tất cả bạn bè đã ở trong nhóm'}
+              {q ? 'Không tìm thấy kết quả' : 'Không có ai để thêm'}
             </p>
           )}
         </div>

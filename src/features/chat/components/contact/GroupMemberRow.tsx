@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
-import { Ban, Crown, MoreVertical, Shield, ShieldOff, UserX } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
-import { Badge } from "@/components/ui/badge/Badge";
+import { Ban, CheckCircle2, Crown, MessageSquareOff, MoreVertical, Shield, ShieldOff, UserX } from 'lucide-react';
+import { Button } from '@/components/ui/button/Button';
+import { Badge } from '@/components/ui/badge/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu/DropdownMenu";
-import { Avatar } from "@/features/chat/components/common/Avatar";
-import type { ConversationMember } from "@/features/chat/types";
-import type { MemberFriendState } from "@/features/chat/hooks/useMemberFriendship";
-import { MemberFriendButton } from "./MemberFriendButton";
+} from '@/components/ui/dropdown-menu/DropdownMenu';
+import { Avatar } from '@/features/chat/components/common/Avatar';
+import type { ConversationMember } from '@/features/chat/types';
+import type { MemberFriendState } from '@/features/chat/hooks/useMemberFriendship';
+import { isMemberChatRestricted } from '@/features/chat/utils';
+import { MemberFriendButton } from './MemberFriendButton';
 
 export type MemberMenuFlags = {
   canGrantDeputy: boolean;
   canRevokeDeputy: boolean;
   canTransfer: boolean;
   canRemove: boolean;
+  canRestrict: boolean;
+  canUnrestrict: boolean;
 };
 
 type GroupMemberRowProps = {
@@ -39,11 +42,20 @@ type GroupMemberRowProps = {
   onTransfer: () => void;
   onRemove: () => void;
   onBan: () => void;
+  onRestrict: () => void;
+  onUnrestrict: () => void;
 };
 
 export function GroupMemberRow(props: GroupMemberRowProps) {
   const { member: m, label, roleLabel, isMe, menu } = props;
-  const hasMenu = menu.canGrantDeputy || menu.canRevokeDeputy || menu.canTransfer || menu.canRemove;
+  const isRestricted = isMemberChatRestricted(m);
+  const hasMenu =
+    menu.canGrantDeputy ||
+    menu.canRevokeDeputy ||
+    menu.canTransfer ||
+    menu.canRemove ||
+    menu.canRestrict ||
+    menu.canUnrestrict;
 
   return (
     <div className="group flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted">
@@ -64,10 +76,15 @@ export function GroupMemberRow(props: GroupMemberRowProps) {
               {roleLabel}
             </Badge>
           )}
+          {isRestricted && (
+            <Badge variant="soft-danger" size="sm" className="mt-0.5">
+              Bị chặn chat
+            </Badge>
+          )}
         </div>
       </button>
 
-      {!isMe && (
+      {!isMe && !m.isBot && (
         <MemberFriendButton
           state={props.friendState}
           name={label}
@@ -111,9 +128,21 @@ export function GroupMemberRow(props: GroupMemberRowProps) {
                 Nhượng quyền trưởng nhóm
               </DropdownMenuItem>
             )}
-            {(menu.canGrantDeputy || menu.canRevokeDeputy || menu.canTransfer) && menu.canRemove && (
-              <DropdownMenuSeparator />
+            {(menu.canGrantDeputy || menu.canRevokeDeputy || menu.canTransfer) &&
+              (menu.canRemove || menu.canRestrict || menu.canUnrestrict) && <DropdownMenuSeparator />}
+            {menu.canRestrict && (
+              <DropdownMenuItem onClick={props.onRestrict} className="text-danger focus:text-danger">
+                <MessageSquareOff className="h-4 w-4" />
+                Chặn chat
+              </DropdownMenuItem>
             )}
+            {menu.canUnrestrict && (
+              <DropdownMenuItem onClick={props.onUnrestrict}>
+                <CheckCircle2 className="h-4 w-4" />
+                Bỏ chặn chat
+              </DropdownMenuItem>
+            )}
+            {(menu.canRestrict || menu.canUnrestrict) && menu.canRemove && <DropdownMenuSeparator />}
             {menu.canRemove && (
               <>
                 <DropdownMenuItem onClick={props.onRemove} className="text-danger focus:text-danger">
@@ -122,7 +151,7 @@ export function GroupMemberRow(props: GroupMemberRowProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={props.onBan} className="text-danger focus:text-danger">
                   <Ban className="h-4 w-4" />
-                  Chặn thành viên
+                  Chặn khỏi nhóm
                 </DropdownMenuItem>
               </>
             )}

@@ -48,6 +48,16 @@ describe('issueTokenSchema', () => {
     expect(issueTokenSchema.safeParse({}).success).toBe(true);
   });
 
+  it('nên pass với scope broadcast:send', () => {
+    const result = issueTokenSchema.safeParse({ scopes: ['broadcast:send'] });
+    expect(result.success).toBe(true);
+  });
+
+  it('nên pass với scope chat:admin', () => {
+    const result = issueTokenSchema.safeParse({ scopes: ['chat:admin'] });
+    expect(result.success).toBe(true);
+  });
+
   it('nên reject scope không hợp lệ', () => {
     const result = issueTokenSchema.safeParse({ scopes: ['not:a:scope'] });
     expect(result.success).toBe(false);

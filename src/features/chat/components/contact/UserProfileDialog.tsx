@@ -13,6 +13,7 @@ import { useShareContactToFriend } from '@/features/chat/hooks/useShareContactTo
 import { ReportDialog } from '@/features/reports/components/ReportDialog';
 import { FriendPickerDialog } from './FriendPickerDialog';
 import type { FriendshipStatus } from '@/features/friends/types';
+import { isBotUser } from '@/features/friends/utils';
 import type { Gender } from '@/features/auth';
 import { UserProfileActions } from './UserProfileActions';
 import { UserProfileExtraActions } from './UserProfileExtraActions';
@@ -53,6 +54,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
   const groupsEnabled = open && Boolean(profile) && !profile?.isMe;
 
   const name = profile?.displayName ?? profile?.username ?? '—';
+  const isBot = isBotUser(profile);
   const friendshipText = profile ? FRIENDSHIP_LABEL[profile.friendship] : undefined;
   const genderText = profile?.gender ? GENDER_LABEL[profile.gender] : null;
   const dobText = formatDob(profile?.dateOfBirth);
@@ -107,17 +109,17 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
                   ) : (
                     <p className="text-[17px] font-bold text-foreground">{name}</p>
                   )}
-                  {friendshipText && (
+                  {!isBot && friendshipText && (
                     <Badge variant="secondary" size="sm" className="mt-1.5">
                       {friendshipText}
                     </Badge>
                   )}
-                  {profile && !profile.isMe && profile.mutualFriendsCount > 0 && (
+                  {profile && !profile.isMe && !isBot && profile.mutualFriendsCount > 0 && (
                     <p className="mt-1.5 text-[12.5px] text-muted-foreground">
                       {profile.mutualFriendsCount} bạn chung
                     </p>
                   )}
-                  {profile?.bio && (
+                  {profile?.bio && !isBot && (
                     <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] text-muted-foreground">
                       {profile.bio}
                     </p>
@@ -129,18 +131,23 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
                 <UserProfileActions
                   userId={userId}
                   friendship={profile.friendship}
+                  isBot={isBot}
                   onMessage={handleMessage}
                   isMessaging={openDirectMut.isPending}
                 />
               )}
 
               <div className="px-6 pb-2 pt-4">
-                <p className="mb-3 text-sm font-bold">Thông tin cá nhân</p>
+                <p className="mb-3 text-sm font-bold">{isBot ? 'Thông tin bot' : 'Thông tin cá nhân'}</p>
                 <div className="space-y-3">
                   <InfoRow icon={<AtSign className="h-4 w-4 text-muted-foreground" />} label="Tên đăng nhập" value={profile?.username} isLoading={isLoading} />
-                  <InfoRow icon={<Phone className="h-4 w-4 text-muted-foreground" />} label="Số điện thoại" value={maskOrValue(profile?.phone ?? null, 'phone', '*********')} isLoading={isLoading} />
-                  <InfoRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Giới tính" value={maskOrValue(genderText, 'gender', '****')} isLoading={isLoading} />
-                  <InfoRow icon={<Cake className="h-4 w-4 text-muted-foreground" />} label="Ngày sinh" value={maskOrValue(dobText, 'dateOfBirth', '**/**/****')} isLoading={isLoading} />
+                  {!isBot && (
+                    <>
+                      <InfoRow icon={<Phone className="h-4 w-4 text-muted-foreground" />} label="Số điện thoại" value={maskOrValue(profile?.phone ?? null, 'phone', '*********')} isLoading={isLoading} />
+                      <InfoRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Giới tính" value={maskOrValue(genderText, 'gender', '****')} isLoading={isLoading} />
+                      <InfoRow icon={<Cake className="h-4 w-4 text-muted-foreground" />} label="Ngày sinh" value={maskOrValue(dobText, 'dateOfBirth', '**/**/****')} isLoading={isLoading} />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -149,6 +156,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
               {profile && !profile.isMe && userId && (
                 <UserProfileExtraActions
                   isFriend={profile.friendship === 'ACCEPTED'}
+                  isBot={isBot}
                   isPending={isSharing}
                   onShareContact={() => setFriendPickerOpen(true)}
                   onReport={() => setReportOpen(true)}

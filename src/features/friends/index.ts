@@ -14,6 +14,7 @@ export {
   useUnfriend,
 } from './hooks/use-mutations';
 export { useFriendRealtime } from './hooks/useFriendRealtime';
+export { isBotUser } from './utils';
 export type {
   FriendshipStatus,
   UserSearchItem,

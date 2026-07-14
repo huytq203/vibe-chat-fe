@@ -4,6 +4,7 @@ import { Share2, ShieldAlert } from "lucide-react";
 
 type UserProfileExtraActionsProps = {
   isFriend: boolean;
+  isBot: boolean;
   isPending: boolean;
   onShareContact: () => void;
   onReport: () => void;
@@ -11,10 +12,13 @@ type UserProfileExtraActionsProps = {
 
 export function UserProfileExtraActions({
   isFriend,
+  isBot,
   isPending,
   onShareContact,
   onReport,
 }: UserProfileExtraActionsProps) {
+  if (isBot) return null;
+
   return (
     <div className="border-t border-border px-6 py-2">
       {isFriend && (

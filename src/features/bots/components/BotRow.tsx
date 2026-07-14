@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KeyRound, MoreVertical, Pencil } from 'lucide-react';
+import { KeyRound, MoreVertical, Pencil, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu/DropdownMenu';
 import { EditBotDialog } from './EditBotDialog';
 import { DeleteBotAlertDialog } from './DeleteBotAlertDialog';
+import { BotDemoDialog } from './BotDemoDialog';
 import type { Bot } from '../types';
 
 export function BotRow({
@@ -22,6 +23,7 @@ export function BotRow({
   onManageTokens: (bot: Bot) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
@@ -57,12 +59,17 @@ export function BotRow({
             <Pencil className="h-4 w-4" />
             Sửa thông tin
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setDemoOpen(true)}>
+            <Sparkles className="h-4 w-4" />
+            Demo gửi tin nhắn vui
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <DeleteBotAlertDialog bot={bot} />
 
       <EditBotDialog bot={bot} open={editOpen} onOpenChange={setEditOpen} />
+      <BotDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
     </li>
   );
 }

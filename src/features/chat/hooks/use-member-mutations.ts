@@ -120,6 +120,34 @@ export function useUnbanMember() {
   });
 }
 
+/** Chặn chat 1 thành viên: giữ trong nhóm nhưng không cho gửi tin. */
+export function useRestrictMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.restrictMember(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      toast.success('Đã chặn chat thành viên');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Chặn chat thất bại')),
+  });
+}
+
+/** Bỏ chặn chat cho 1 thành viên. */
+export function useUnrestrictMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.unrestrictMember(conversationId, userId),
+    onSuccess: (_res, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: chatKeys.conversationDetail(conversationId) });
+      toast.success('Đã bỏ chặn chat');
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Bỏ chặn chat thất bại')),
+  });
+}
+
 /** Cấp/gỡ quyền phó nhóm (ADMIN ↔ MEMBER). Chỉ OWNER. Refetch detail để cập nhật role. */
 export function useSetMemberRole() {
   const qc = useQueryClient();
