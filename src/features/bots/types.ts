@@ -8,6 +8,15 @@ export interface Bot {
   status: 'ACTIVE' | 'SUSPENDED';
   provisioned: boolean;
   botKeycloakId?: string | null;
+  inlineModeEnabled?: boolean;
+  inlinePlaceholder?: string | null;
+  privacyModeEnabled?: boolean;
+  joinGroupsEnabled?: boolean;
+  privacyPolicyUrl?: string | null;
+  webappEnabled?: boolean;
+  webappMenuUrl?: string | null;
+  webappMenuText?: string | null;
+  webappAllowedDomains?: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -1,32 +1,45 @@
-'use client';
+"use client";
 
-import type { Message } from '@/features/chat/types';
-import { readContactCard } from '@/features/chat/types';
-import { EmojiText } from '@/components/common/EmojiText';
-import { MentionText } from './MentionText';
-import { RichText } from './RichText';
-import { getRichText } from './rich-text-utils';
-import { MediaContent } from './MediaContent';
-import { ReminderCard } from '@/features/my-store/components/ReminderCard';
-import { ChecklistCard } from '@/features/my-store/components/ChecklistCard';
-import { BookmarkCard } from '@/features/my-store/components/BookmarkCard';
-import { ContactCardContent } from './ContactCardContent';
-import { CallMessageContent } from './CallMessageContent';
-import { PollBubble } from './PollBubble';
-import { BotCommandText, hasBotCommand } from './BotCommandText';
+import type { Message } from "@/features/chat/types";
+import { readContactCard } from "@/features/chat/types";
+import { EmojiText } from "@/components/common/EmojiText";
+import { MentionText } from "./MentionText";
+import { RichText } from "./RichText";
+import { getRichText } from "./rich-text-utils";
+import { MediaContent } from "./MediaContent";
+import { ReminderCard } from "@/features/my-store/components/ReminderCard";
+import { ChecklistCard } from "@/features/my-store/components/ChecklistCard";
+import { BookmarkCard } from "@/features/my-store/components/BookmarkCard";
+import { ContactCardContent } from "./ContactCardContent";
+import { CallMessageContent } from "./CallMessageContent";
+import { PollBubble } from "./PollBubble";
+import { BotCommandText, hasBotCommand } from "./BotCommandText";
 
-const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
+const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "FILE"] as const;
 
-export function BubbleContent({ message, isMe }: { message: Message; isMe: boolean }) {
+export function BubbleContent({
+  message,
+  isMe,
+  enableBotCommands = false,
+}: {
+  message: Message;
+  isMe: boolean;
+  enableBotCommands?: boolean;
+}) {
   // Content plaintext — render trực tiếp (không còn lớp giải mã).
-  const resolvedBody = message.plaintext ?? message.contentPreview ?? '';
+  const resolvedBody = message.plaintext ?? message.contentPreview ?? "";
 
   if (message.isDeleted) {
-    return <span className="text-[13.5px] italic opacity-70">Tin nhắn đã thu hồi</span>;
+    return (
+      <span className="text-[13.5px] italic opacity-70">
+        Tin nhắn đã thu hồi
+      </span>
+    );
   }
-  if (message.type === 'TEXT') {
+  if (message.type === "TEXT") {
     const body = resolvedBody;
-    const textClass = 'block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed';
+    const textClass =
+      "block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed";
     const richText = getRichText(message.metadata);
     if (richText) {
       return (
@@ -41,9 +54,17 @@ export function BubbleContent({ message, isMe }: { message: Message; isMe: boole
       );
     }
     if (message.mentions?.length) {
-      return <MentionText text={body} mentions={message.mentions} className={textClass} largeEmoji isMe={isMe} />;
+      return (
+        <MentionText
+          text={body}
+          mentions={message.mentions}
+          className={textClass}
+          largeEmoji
+          isMe={isMe}
+        />
+      );
     }
-    if (hasBotCommand(body)) {
+    if (enableBotCommands && hasBotCommand(body)) {
       return (
         <BotCommandText
           conversationId={message.conversationId}
@@ -55,19 +76,19 @@ export function BubbleContent({ message, isMe }: { message: Message; isMe: boole
     }
     return <EmojiText text={body} className={textClass} largeEmoji linkify />;
   }
-  if (message.type === 'CALL') {
+  if (message.type === "CALL") {
     return <CallMessageContent message={message} />;
   }
-  if (message.type === 'POLL') {
+  if (message.type === "POLL") {
     return <PollBubble message={message} />;
   }
-  if (message.type === 'CONTACT') {
+  if (message.type === "CONTACT") {
     const contact = readContactCard(message);
     if (contact) return <ContactCardContent contact={contact} />;
   }
-  if (message.type === 'REMINDER') return <ReminderCard message={message} />;
-  if (message.type === 'CHECKLIST') return <ChecklistCard message={message} />;
-  if (message.type === 'BOOKMARK') return <BookmarkCard message={message} />;
+  if (message.type === "REMINDER") return <ReminderCard message={message} />;
+  if (message.type === "CHECKLIST") return <ChecklistCard message={message} />;
+  if (message.type === "BOOKMARK") return <BookmarkCard message={message} />;
   if ((MEDIA_TYPES as readonly string[]).includes(message.type)) {
     // Caption media: plaintext (rỗng nếu tin media không caption).
     const caption = message.plaintext?.trim();

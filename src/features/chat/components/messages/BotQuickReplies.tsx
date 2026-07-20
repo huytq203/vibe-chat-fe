@@ -10,9 +10,19 @@ import { cn } from '@/lib/utils/cn';
 type BotQuickRepliesProps = {
   message: Message;
   isMe: boolean;
+  senderUsername?: string | null;
+  onLaunchWebapp?: (input: {
+    botUsername: string;
+    buttonPayload?: string;
+  }) => void;
 };
 
-export function BotQuickReplies({ message, isMe }: BotQuickRepliesProps) {
+export function BotQuickReplies({
+  message,
+  isMe,
+  senderUsername,
+  onLaunchWebapp,
+}: BotQuickRepliesProps) {
   const replyMarkup = readBotReplyMarkup(message);
   const quickReplies = replyMarkup?.quickReplies ?? [];
   const sendMessage = useSendMessage();
@@ -23,21 +33,30 @@ export function BotQuickReplies({ message, isMe }: BotQuickRepliesProps) {
     <div className="mt-1.5 flex max-w-full flex-wrap gap-1.5">
       {quickReplies.map((reply) => {
         const plaintext = reply.value ?? reply.text;
+        const botUsername = reply.webApp?.botUsername ?? senderUsername ?? '';
+        const isWebApp = Boolean(reply.webApp && botUsername);
         return (
           <Button
             key={`${reply.text}:${plaintext}`}
             variant="ghost"
             size="sm"
             type="button"
-            disabled={sendMessage.isPending}
-            onClick={() =>
+            disabled={sendMessage.isPending || (Boolean(reply.webApp) && !botUsername)}
+            onClick={() => {
+              if (isWebApp) {
+                onLaunchWebapp?.({
+                  botUsername,
+                  buttonPayload: reply.webApp?.startParam ?? plaintext,
+                });
+                return;
+              }
               sendMessage.mutate({
                 conversationId: message.conversationId,
                 plaintext,
                 type: 'TEXT',
                 replyToMessageId: message.id,
-              })
-            }
+              });
+            }}
             className={cn(
               'inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-full border border-primary/35 bg-background px-3 py-1 text-[12.5px] font-medium text-primary shadow-sm transition-colors',
               'hover:bg-primary/75 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60',

@@ -4,6 +4,7 @@ import type {
   UserProfile,
   UserSearchPage,
 } from '@/features/friends/types';
+import type { InlineBotSearchResponse } from '@/features/chat/types';
 
 export const usersApi = {
   // Hồ sơ user khác (viewer-scoped: kèm isMe, friendship). 404 USER_NOT_FOUND nếu
@@ -32,4 +33,9 @@ export const usersApi = {
       },
     });
   },
+
+  searchInlineBots: (params: { prefix: string }) =>
+    apiClient.get<InlineBotSearchResponse>('/api/v1/users/inline-bots', {
+      query: { prefix: params.prefix },
+    }),
 } as const;

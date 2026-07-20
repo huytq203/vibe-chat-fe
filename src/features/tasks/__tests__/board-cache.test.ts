@@ -142,6 +142,10 @@ describe('applyTaskUpdated', () => {
 });
 
 describe('applyTaskCreated', () => {
+  it('payload thiếu → trả null để caller refetch thay vì crash', () => {
+    expect(applyTaskCreated(makeBoard(), undefined)).toBeNull();
+  });
+
   it('chèn task mới vào đúng cột theo position với defaults rỗng', () => {
     const next = applyTaskCreated(makeBoard(), {
       id: 'new',

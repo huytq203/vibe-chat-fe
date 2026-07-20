@@ -28,6 +28,15 @@ export type {
 } from './message';
 
 export type {
+  InlineBotSummary,
+  InlineBotSearchResponse,
+  InlineResultType,
+  InlineResult,
+  InlineResultsPayload,
+  InlineSelectionSend,
+} from './inline';
+
+export type {
   ReactionType,
   MessageReaction,
   ReactionState,

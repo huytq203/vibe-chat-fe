@@ -16,7 +16,10 @@ import {
 import { TYPING_STOP_DEBOUNCE_MS } from '@/features/chat/components/messages/composer-utils';
 import { useTiptapMention } from './useTiptapMention';
 import type { EditorHandle } from '@/features/chat/components/messages/RichMessageEditor';
-import type { MessageType } from '@/features/chat/types';
+import type {
+  InlineSelectionSend,
+  MessageType,
+} from '@/features/chat/types';
 
 const KIND_TO_TYPE: Record<AttachmentKind, MessageType> = {
   image: 'IMAGE',
@@ -243,6 +246,29 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
     }
   }
 
+  function sendInlineResult(selection: InlineSelectionSend) {
+    if (disabled || submittingRef.current || isEditing) return;
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    emitTyping('stop');
+    editorRef.current?.clear();
+    setHasContent(false);
+    send.mutate({
+      conversationId,
+      plaintext: selection.plaintext,
+      clientNonce: crypto.randomUUID(),
+      type: selection.type ?? 'TEXT',
+      attachmentIds: selection.attachmentIds,
+      metadata: selection.metadata,
+      replyToMessageId: replying?.messageId,
+      selfDestructTtl: selfDestructTtl ?? undefined,
+      viaBotId: selection.viaBotId,
+      inlineQueryId: selection.inlineQueryId,
+      inlineResultId: selection.inlineResultId,
+      inlineQuery: selection.inlineQuery,
+    });
+    cancelReply();
+  }
+
   function handleEmojiButtonClick() {
     setEmojiOpen((v) => !v);
   }
@@ -272,6 +298,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
     handleUpdate,
     handlePasteFiles,
     submit,
+    sendInlineResult,
     exitEdit,
     handleEmojiButtonClick,
     handleEmojiSelect,

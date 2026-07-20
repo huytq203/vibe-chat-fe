@@ -6,6 +6,7 @@ import type {
   Board,
   BoardColumn,
   BoardTask,
+  ChangesResponse,
   ChecklistItem,
   Comment,
   DirectoryUser,
@@ -69,10 +70,15 @@ export const tasksApi = {
   getBoard: (projectId: string) =>
     taskClient.get<Board>(`/api/v1/projects/${projectId}/board`),
 
+  getChangesSince: (projectId: string, since: number) =>
+    taskClient.get<ChangesResponse>(
+      `/api/v1/projects/${projectId}/changes?since=${since}`,
+    ),
+
   createColumn: (projectId: string, input: { name: string; color?: string }) =>
     taskClient.post<BoardColumn>(`/api/v1/projects/${projectId}/columns`, input),
 
-  updateColumn: (columnId: string, input: { name?: string; color?: string; position?: number }) =>
+  updateColumn: (columnId: string, input: { name?: string; color?: string; position?: number; version?: number }) =>
     taskClient.patch<BoardColumn>(`/api/v1/columns/${columnId}`, input),
 
   deleteColumn: (columnId: string) => taskClient.delete<void>(`/api/v1/columns/${columnId}`),
@@ -92,6 +98,7 @@ export const tasksApi = {
       dueDate?: string | null;
       priority?: TaskPriority | null;
       isPinned?: boolean;
+      version?: number;
     },
   ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
 
@@ -105,7 +112,7 @@ export const tasksApi = {
     taskClient.post<TaskDetail>(`/api/v1/tasks/${taskId}/reopen`, {}),
 
 
-  moveTask: (taskId: string, input: { columnId: string; position: number }) =>
+  moveTask: (taskId: string, input: { columnId: string; position: number; version?: number }) =>
     taskClient.patch<BoardTask>(`/api/v1/tasks/${taskId}/move`, input),
 
   getMyTasks: (limit = 20) => taskClient.get<MyTask[]>(`/api/v1/tasks/my?limit=${limit}`),

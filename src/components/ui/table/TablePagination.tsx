@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { type Table as TanstackTable, type RowData } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import type { PaginationConfig, TableLabels } from './Table';
@@ -26,12 +26,6 @@ export function TablePagination<TData extends RowData>({
     const from = currentPageIndex * currentPageSize + 1;
     const to = Math.min((currentPageIndex + 1) * currentPageSize, totalRows);
     const pageSizeOptions = cfg.pageSizeOptions ?? [5, 10, 20, 50, 100];
-
-    const [inputValue, setInputValue] = useState<string | number>(currentPageIndex + 1);
-
-    useEffect(() => {
-        setInputValue(currentPageIndex + 1);
-    }, [currentPageIndex]);
 
     if (totalPageCount <= 0) return null;
 
@@ -105,19 +99,21 @@ export function TablePagination<TData extends RowData>({
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground border-l border-border pl-2 ml-1 shrink-0">
                     <span className="hidden sm:inline">{labels?.page ?? 'Page'}</span>
                     <input
+                        key={currentPageIndex}
                         type="number"
                         min={1}
                         max={totalPageCount}
-                        value={inputValue}
+                        defaultValue={currentPageIndex + 1}
                         onChange={e => {
                             const val = e.target.value;
-                            setInputValue(val);
                             const p = val ? Number(val) - 1 : 0;
                             if (val && p >= 0 && p < totalPageCount) {
                                 table.setPageIndex(p);
                             }
                         }}
-                        onBlur={() => setInputValue(currentPageIndex + 1)}
+                        onBlur={e => {
+                            e.currentTarget.value = String(currentPageIndex + 1);
+                        }}
                         className="w-10 px-1 py-1 text-xs border border-border rounded bg-background text-foreground text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                 </div>

@@ -58,6 +58,11 @@ describe('issueTokenSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('nên pass với scope inline:answer', () => {
+    const result = issueTokenSchema.safeParse({ scopes: ['inline:answer'] });
+    expect(result.success).toBe(true);
+  });
+
   it('nên reject scope không hợp lệ', () => {
     const result = issueTokenSchema.safeParse({ scopes: ['not:a:scope'] });
     expect(result.success).toBe(false);

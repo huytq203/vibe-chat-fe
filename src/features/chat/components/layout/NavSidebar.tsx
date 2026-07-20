@@ -4,6 +4,7 @@ import { Archive, Bot, MessageSquare, SquareKanban } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { NavSection } from '@/features/chat/stores/chat-ui.store';
 import { useNavUnread } from '@/features/chat/hooks/useNavUnread';
+import { useTaskActivityNotifications } from '@/features/tasks/hooks/useTaskActivityNotifications';
 
 type Props = {
   activeSection: NavSection;
@@ -36,6 +37,7 @@ function UnreadBadge({ count }: { count: number }) {
 
 export function NavSidebar({ activeSection, onSectionChange }: Props) {
   const { total: unreadTotal } = useNavUnread();
+  const { unreadCount: taskUnreadCount } = useTaskActivityNotifications();
 
   return (
     <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl bg-sidebar py-3 shadow-subtle border">
@@ -59,6 +61,7 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
           >
             {icon}
             {section === 'chat' && <UnreadBadge count={unreadTotal} />}
+            {section === 'tasks' && <UnreadBadge count={taskUnreadCount} />}
           </button>
           );
         })}

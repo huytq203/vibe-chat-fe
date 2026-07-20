@@ -6,6 +6,10 @@ vi.mock('@/features/chat/hooks/useNavUnread', () => ({
   useNavUnread: () => ({ messageCount: 0, notifCount: 0, total: 0 }),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskActivityNotifications', () => ({
+  useTaskActivityNotifications: () => ({ unreadCount: 0 }),
+}));
+
 describe('NavSidebar', () => {
   it('renders as a rounded floating card without a border seam', () => {
     render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);

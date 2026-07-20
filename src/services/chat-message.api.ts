@@ -82,6 +82,10 @@ export const messageApi = {
           metadata: input.metadata,
           // Tin tự huỷ (giây, 5–2592000). Bỏ field nếu không set. Xem doc 15.
           selfDestructTtl: input.selfDestructTtl,
+          viaBotId: input.viaBotId,
+          inlineQueryId: input.inlineQueryId,
+          inlineResultId: input.inlineResultId,
+          inlineQuery: input.inlineQuery,
         },
       },
     ),

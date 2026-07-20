@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { getTaskSocket } from '../lib/task-socket';
 import { getCurrentUser } from '../lib/current-user';
 import { taskKeys } from '../services/keys';
+import { tasksApi } from '../services/tasks.api';
 import {
   applyTaskMoved,
   applyTaskUpdated,
@@ -162,7 +163,12 @@ type Handler = (qc: QueryClient, projectId: string, payload: unknown) => void;
 const EVENT_HANDLERS: Record<string, Handler> = {
   // ── Task trên board: delta thẳng vào cache ──
   'task:created': (qc, projectId, p) => {
-    boardDelta(qc, projectId, (b) => applyTaskCreated(b, p as TaskCreatedEvent));
+    // WS phát TaskResponseDto trực tiếp; chấp nhận cả wrapper của change-log cũ.
+    const task =
+      typeof p === 'object' && p !== null && 'task' in p
+        ? (p as { task?: TaskCreatedEvent }).task
+        : (p as TaskCreatedEvent | null | undefined);
+    boardDelta(qc, projectId, (b) => applyTaskCreated(b, task));
     invalidateFeed(qc);
     invalidateReports(qc, projectId);
   },
@@ -197,7 +203,13 @@ const EVENT_HANDLERS: Record<string, Handler> = {
 
   // ── Column ──
   'column:created': (qc, projectId, p) => {
-    boardDelta(qc, projectId, (b) => applyColumnCreated(b, p as ColumnCreatedEvent));
+    // WS phát BoardColumnDto trực tiếp; chấp nhận cả wrapper của change-log cũ.
+    const column =
+      typeof p === 'object' && p !== null && 'column' in p
+        ? (p as { column?: ColumnCreatedEvent }).column
+        : (p as ColumnCreatedEvent | null | undefined);
+    if (column) boardDelta(qc, projectId, (b) => applyColumnCreated(b, column));
+    else void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
   },
   'column:updated': (qc, projectId, p) => {
     boardDelta(qc, projectId, (b) => applyColumnUpdated(b, p as ColumnUpdatedEvent));
@@ -411,6 +423,31 @@ export function useTaskRealtime(projectId: string | null): void {
     let disposed = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let teardown: (() => void) | null = null;
+    let lastSeq = 0;
+
+    const applyChange = (type: string, payload: unknown, seq: number): void => {
+      const handler = EVENT_HANDLERS[type];
+      if (!handler || seq <= lastSeq) return;
+      handler(qc, projectId, payload);
+      lastSeq = seq;
+    };
+
+    const resync = async (): Promise<void> => {
+      try {
+        const response = await tasksApi.getChangesSince(projectId, lastSeq);
+        if (disposed) return;
+        if (response.resync) {
+          await qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+          return;
+        }
+        for (const change of response.changes) {
+          applyChange(change.type, change.payload, change.seq);
+        }
+      } catch (error) {
+        logger.warn('Không thể resync task changes', { projectId, error });
+        await qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+      }
+    };
 
     const setup = (): void => {
       if (disposed) return;
@@ -424,7 +461,13 @@ export function useTaskRealtime(projectId: string | null): void {
       const handlers = new Map<string, (payload: unknown) => void>();
       for (const [event, handle] of Object.entries(EVENT_HANDLERS)) {
         const handler = (payload: unknown): void => {
+          const seq =
+            typeof payload === 'object' && payload !== null && 'seq' in payload
+              ? Number((payload as { seq: unknown }).seq)
+              : 0;
+          if (seq > 0 && seq <= lastSeq) return;
           handle(qc, projectId, payload ?? {});
+          if (seq > 0) lastSeq = seq;
         };
         handlers.set(event, handler);
         socket.on(event, handler);
@@ -445,12 +488,13 @@ export function useTaskRealtime(projectId: string | null): void {
         );
       };
       join();
+      void resync();
 
       // Sau reconnect: join lại room (server quên room cũ) + refetch các query
       // đang hiển thị — event trong lúc mất kết nối đã mất, phải resync
       const onReconnect = (): void => {
         join();
-        void qc.invalidateQueries({ queryKey: taskKeys.all });
+        void resync();
       };
       socket.on('connect', onReconnect);
 

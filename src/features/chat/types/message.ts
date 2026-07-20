@@ -50,6 +50,7 @@ export type Message = {
   id: string;
   conversationId: string;
   senderId: string;
+  viaBotId?: string | null;
   type: MessageType;
   encryptionType: EncryptionType;
   plaintext: string | null;
@@ -121,6 +122,11 @@ export type SendMessageInput = {
   optimisticAttachment?: Attachment;
   /** Nhiều attachment optimistic (tin gộp nhiều file). Ưu tiên hơn optimisticAttachment. */
   optimisticAttachments?: Attachment[];
+  /** Inline bot selection verified by BE before persisting. */
+  viaBotId?: string;
+  inlineQueryId?: string;
+  inlineResultId?: string;
+  inlineQuery?: string;
 };
 
 /** Metadata cục bộ gắn vào optimistic message (KHÔNG đến từ BE). */

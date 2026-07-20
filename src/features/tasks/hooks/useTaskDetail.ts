@@ -20,7 +20,15 @@ export function useUpdateTask(projectId: string, taskId: string) {
       dueDate?: string | null;
       priority?: TaskPriority | null;
       isPinned?: boolean;
-    }) => tasksApi.updateTask(taskId, input),
+    }) => {
+      const detail = qc.getQueryData<TaskDetail>([
+        'tasks',
+        projectId,
+        taskId,
+        'detail',
+      ]);
+      return tasksApi.updateTask(taskId, { ...input, version: detail?.version });
+    },
     onMutate: async (input) => {
       const key = ['tasks', projectId, taskId, 'detail'] as const;
       await qc.cancelQueries({ queryKey: key });

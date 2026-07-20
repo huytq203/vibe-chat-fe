@@ -42,6 +42,7 @@ describe('IssueTokenDialog', () => {
     expect(screen.getByRole('checkbox', { name: /quản lý webhook/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /quản lý command/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /trả lời callback/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /trả lời inline/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /đọc analytics/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /quản trị nhóm/i })).toBeInTheDocument();
   });

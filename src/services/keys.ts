@@ -18,6 +18,7 @@ export const userKeys = {
   all: ['users'] as const,
   search: (q: string, limit: number) =>
     [...userKeys.all, 'search', q, limit] as const,
+  inlineBots: (prefix: string) => [...userKeys.all, 'inline-bots', prefix] as const,
   profile: (id: string) => [...userKeys.all, 'profile', id] as const,
   privacy: () => [...userKeys.all, 'privacy'] as const,
 } as const;

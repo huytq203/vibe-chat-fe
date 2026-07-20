@@ -10,7 +10,13 @@ import { usersApi } from '@/services/users.api';
 import { chatApi } from '@/services/chat.api';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
-import type { UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
+import type {
+  BotDemoCommand,
+  IssueTokenInput,
+  UpdateBotInlineInput,
+  UpdateBotWebappInput,
+  UpdateBotInput,
+} from '../schemas';
 
 const BOTFATHER_USERNAME = 'botfather';
 
@@ -19,6 +25,35 @@ export function useUpdateBot(botId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: UpdateBotInput) => botsApi.update(botId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: botKeys.all }),
+  });
+}
+
+/** Bật/tắt inline mode cho bot. */
+export function useUpdateBotInline(botId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateBotInlineInput) => botsApi.updateInline(botId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: botKeys.all }),
+  });
+}
+
+/** Bật/tắt mini app WebApp cho bot. */
+export function useUpdateBotWebapp(botId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateBotWebappInput) => {
+      const allowedDomains = (input.allowedDomainsText ?? '')
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      return botsApi.updateWebapp(botId, {
+        enabled: input.enabled,
+        menuUrl: input.menuUrl?.trim() || undefined,
+        menuText: input.menuText?.trim() || undefined,
+        allowedDomains,
+      });
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: botKeys.all }),
   });
 }

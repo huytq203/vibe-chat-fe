@@ -3,13 +3,20 @@
 import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { toast } from "sonner";
-import { Check, Mic, Pencil, Reply, Send, X } from "lucide-react";
+import { Check, Mic, PanelTopOpen, Pencil, Reply, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { useMessageComposer } from "@/features/chat/hooks/useMessageComposer";
+import { useInlineMode } from "@/features/chat/hooks/useInlineMode";
 import { useVoiceMessage } from "@/features/chat/hooks/useVoiceMessage";
+import type {
+  ConversationType,
+  InlineBotSummary,
+  InlineResult,
+} from "@/features/chat/types";
 import { AttachmentTray } from "./attachment/AttachmentTray";
 import { VoiceRecorderBar } from "./VoiceRecorderBar";
 import { MentionSuggestPopup } from "./MentionSuggestPopup";
+import { InlineModePopup } from "./InlineModePopup";
 import { RichMessageEditor } from "./RichMessageEditor";
 import { MessageToolbar } from "./MessageToolbar";
 import { ComposerActions } from "./ComposerActions";
@@ -32,6 +39,7 @@ import { cn } from "@/lib/utils/cn";
 
 type MessageInputProps = {
   conversationId: string;
+  conversationType: ConversationType;
   disabled?: boolean;
   /** Khi true (SELF conv) hiện thêm nút Nhắc nhở / Checklist / Bookmark bên dưới. */
   selfConv?: boolean;
@@ -40,15 +48,18 @@ type MessageInputProps = {
   /** DIRECT conversation với BotFather — bật slash autocomplete cho command v1. */
   botFatherCommands?: boolean;
   wallpaperActive?: boolean;
+  onWebappMenuClick?: () => void;
 };
 
 export function MessageInput({
   conversationId,
+  conversationType,
   disabled,
   selfConv,
   isGroup,
   botFatherCommands,
   wallpaperActive,
+  onWebappMenuClick,
 }: MessageInputProps) {
   const {
     editorRef,
@@ -70,6 +81,7 @@ export function MessageInput({
     handleUpdate,
     handlePasteFiles,
     submit,
+    sendInlineResult,
     exitEdit,
     handleEmojiButtonClick,
     handleEmojiSelect,
@@ -83,6 +95,7 @@ export function MessageInput({
   const [checklistOpen, setChecklistOpen] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
+  const [plaintext, setPlaintext] = useState("");
   const [commandItems, setCommandItems] = useState<BotFatherCommand[]>([]);
   const [commandActiveIndex, setCommandActiveIndex] = useState(0);
   const draftCommand = useMessageDraftCommandStore((s) => s.byConv[conversationId]);
@@ -90,6 +103,12 @@ export function MessageInput({
   const shareContact = useShareContact(conversationId);
   const { recorder, sending, stopAndSend } = useVoiceMessage(conversationId);
   const isCommandSuggestOpen = commandItems.length > 0;
+  const inline = useInlineMode({
+    conversationId,
+    conversationType,
+    plaintext,
+    disabled: disabled || isEditing,
+  });
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
   useEffect(() => {
@@ -100,6 +119,7 @@ export function MessageInput({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset state tạm của popup khi đổi chat/chế độ composer.
     setCommandItems([]);
     setCommandActiveIndex(0);
+    setPlaintext("");
   }, [conversationId, botFatherCommands, isEditing]);
 
   useEffect(() => {
@@ -160,8 +180,24 @@ export function MessageInput({
   }
 
   function handleEditorUpdate(has: boolean, plaintext: string) {
+    setPlaintext(plaintext);
     handleUpdate(has);
     updateCommandSuggestions(plaintext);
+  }
+
+  function selectInlineBot(bot: InlineBotSummary) {
+    const next = `@${bot.username} `;
+    editorRef.current?.setPlainText(next);
+    editorRef.current?.focus();
+    setPlaintext(next);
+    handleUpdate(true);
+  }
+
+  function selectInlineResult(result: InlineResult) {
+    const selection = inline.buildSelection(result);
+    if (!selection) return;
+    setPlaintext("");
+    sendInlineResult(selection);
   }
 
   const actions = (
@@ -235,6 +271,21 @@ export function MessageInput({
       </Button>
     ) : null;
 
+  const webappMenuEl = onWebappMenuClick ? (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      type="button"
+      onClick={onWebappMenuClick}
+      disabled={disabled || isEditing}
+      aria-label="Mở WebApp của bot"
+      title="Mở WebApp"
+      className="shrink-0 text-muted-foreground hover:text-primary"
+    >
+      <PanelTopOpen className="h-[18px] w-[18px]" />
+    </Button>
+  ) : null;
+
   return (
     <div
       className={cn(
@@ -281,6 +332,17 @@ export function MessageInput({
           </button>
         </div>
       )}
+      <InlineModePopup
+        botSuggestions={inline.bots}
+        results={inline.results}
+        showBotSuggestions={inline.showBotSuggestions}
+        showResults={inline.showResults}
+        isSearchingBots={inline.isSearchingBots}
+        isQuerying={inline.isQuerying}
+        error={inline.error}
+        onSelectBot={selectInlineBot}
+        onSelectResult={selectInlineResult}
+      />
       <MentionSuggestPopup mention={mention.popup} />
       <BotFatherCommandSuggestPopup
         items={commandItems}
@@ -309,7 +371,10 @@ export function MessageInput({
             {editorEl}
             <div className="mt-1.5 flex items-center justify-between gap-1.5">
               {actions}
-              {sendEl}
+              <div className="flex items-center gap-1.5">
+                {webappMenuEl}
+                {sendEl}
+              </div>
             </div>
           </>
         ) : (
@@ -317,6 +382,7 @@ export function MessageInput({
             <div className="flex items-end gap-1.5">
               {actions}
               {editorEl}
+              {webappMenuEl}
               {sendEl}
             </div>
           </>

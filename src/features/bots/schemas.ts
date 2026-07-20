@@ -19,6 +19,58 @@ export type CreateBotInput = z.infer<typeof createBotSchema>;
 export const updateBotSchema = createBotSchema.partial();
 export type UpdateBotInput = z.infer<typeof updateBotSchema>;
 
+export const updateBotInlineSchema = z.object({
+  enabled: z.boolean(),
+  placeholder: z.string().max(64, 'Tối đa 64 ký tự').optional(),
+});
+export type UpdateBotInlineInput = z.infer<typeof updateBotInlineSchema>;
+
+export const updateBotWebappSchema = z
+  .object({
+    enabled: z.boolean(),
+    menuUrl: z
+      .string()
+      .trim()
+      .max(500, 'Tối đa 500 ký tự')
+      .optional()
+      .or(z.literal('')),
+    menuText: z
+      .string()
+      .trim()
+      .max(32, 'Tối đa 32 ký tự')
+      .optional()
+      .or(z.literal('')),
+    allowedDomainsText: z.string().max(2000, 'Tối đa 2000 ký tự').optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.enabled) return;
+    if (!value.menuUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['menuUrl'],
+        message: 'Bật WebApp cần URL menu',
+      });
+      return;
+    }
+    try {
+      const url = new URL(value.menuUrl);
+      if (url.protocol !== 'https:') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['menuUrl'],
+          message: 'WebApp URL phải dùng HTTPS',
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['menuUrl'],
+        message: 'URL không hợp lệ',
+      });
+    }
+  });
+export type UpdateBotWebappInput = z.infer<typeof updateBotWebappSchema>;
+
 export const BOT_TOKEN_SCOPES = [
   'messages:send',
   'messages:manage',
@@ -27,6 +79,8 @@ export const BOT_TOKEN_SCOPES = [
   'webhook:manage',
   'commands:manage',
   'callbacks:answer',
+  'inline:answer',
+  'webapp:access',
   'analytics:read',
   'chat:admin',
 ] as const;
@@ -40,6 +94,8 @@ export const BOT_TOKEN_SCOPE_LABELS: Record<BotTokenScope, string> = {
   'webhook:manage': 'Quản lý webhook',
   'commands:manage': 'Quản lý command',
   'callbacks:answer': 'Trả lời callback',
+  'inline:answer': 'Trả lời inline',
+  'webapp:access': 'WebApp',
   'analytics:read': 'Đọc analytics',
   'chat:admin': 'Quản trị nhóm',
 };

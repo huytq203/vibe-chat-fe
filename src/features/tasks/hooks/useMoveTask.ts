@@ -9,8 +9,15 @@ import type { Board } from '../types';
 export function useMoveTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { taskId: string; columnId: string; position: number }) =>
-      tasksApi.moveTask(input.taskId, { columnId: input.columnId, position: input.position }),
+    mutationFn: (input: { taskId: string; columnId: string; position: number }) => {
+      const board = qc.getQueryData<Board>(taskKeys.board(projectId));
+      const task = board?.columns.flatMap((column) => column.tasks).find((item) => item.id === input.taskId);
+      return tasksApi.moveTask(input.taskId, {
+        columnId: input.columnId,
+        position: input.position,
+        version: task?.version,
+      });
+    },
     // Optimistic: card nhảy ngay khi thả, không chờ server round-trip
     onMutate: async (vars) => {
       const key = taskKeys.board(projectId);

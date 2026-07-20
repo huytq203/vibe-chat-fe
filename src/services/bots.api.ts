@@ -1,6 +1,11 @@
 import { apiClient } from '@/lib/api/client';
 import type { Bot, BotCreated, BotListPage } from '@/features/bots/types';
-import type { CreateBotInput, UpdateBotInput } from '@/features/bots/schemas';
+import type {
+  CreateBotInput,
+  UpdateBotInlineInput,
+  UpdateBotWebappInput,
+  UpdateBotInput,
+} from '@/features/bots/schemas';
 
 /**
  * REST endpoints Management API bot-service (BotFather). Pure transport.
@@ -28,6 +33,21 @@ export const botsApi = {
 
   update: (botId: string, input: UpdateBotInput) =>
     apiClient.patch<Bot>(`/api/v1/bots/${encodeURIComponent(botId)}`, { body: input }),
+
+  updateInline: (botId: string, input: UpdateBotInlineInput) =>
+    apiClient.patch<Bot>(`/api/v1/bots/${encodeURIComponent(botId)}/inline`, {
+      body: input,
+    }),
+
+  updateWebapp: (
+    botId: string,
+    input: Omit<UpdateBotWebappInput, 'allowedDomainsText'> & {
+      allowedDomains?: string[];
+    },
+  ) =>
+    apiClient.patch<Bot>(`/api/v1/bots/${encodeURIComponent(botId)}/webapp`, {
+      body: input,
+    }),
 
   remove: (botId: string) =>
     apiClient.delete<void>(`/api/v1/bots/${encodeURIComponent(botId)}`),

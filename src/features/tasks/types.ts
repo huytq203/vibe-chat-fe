@@ -47,6 +47,7 @@ export interface BoardTaskAssignee {
 
 export interface BoardTask {
   id: string;
+  version?: number;
   columnId: string;
   title: string;
   position: number;
@@ -67,6 +68,7 @@ export interface BoardTask {
 
 export interface BoardColumn {
   id: string;
+  version?: number;
   name: string;
   color: string | null;
   position: number;
@@ -171,6 +173,7 @@ export interface Activity {
 
 export interface TaskDetail {
   id: string;
+  version: number;
   projectId: string;
   columnId: string;
   title: string;
@@ -279,4 +282,17 @@ export interface DirectoryUser {
   displayName: string;
   avatarUrl: string | null;
   email: string | null;
+}
+
+export interface ProjectChange {
+  seq: number;
+  type: string;
+  payload: unknown;
+  actorId: string;
+  at: string;
+}
+
+export interface ChangesResponse {
+  resync: boolean;
+  changes: ProjectChange[];
 }

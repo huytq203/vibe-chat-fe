@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Bot, CornerDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { BotFatherCommand } from "./botfather-commands";
@@ -17,16 +18,37 @@ export function BotFatherCommandSuggestPopup({
   onActiveIndexChange,
   onSelect,
 }: BotFatherCommandSuggestPopupProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const activeItem = itemRefs.current[activeIndex];
+    if (!list || !activeItem) return;
+
+    const listRect = list.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+    if (itemRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - itemRect.top;
+    } else if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    }
+  }, [activeIndex, items]);
+
   if (items.length === 0) return null;
 
   return (
     <div
+      ref={listRef}
       role="listbox"
       aria-label="Gợi ý lệnh BotFather"
       className="mb-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg"
     >
       {items.map((command, index) => (
         <button
+          ref={(element) => {
+            itemRefs.current[index] = element;
+          }}
           key={command.name}
           type="button"
           role="option"

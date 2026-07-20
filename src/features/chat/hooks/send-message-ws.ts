@@ -29,6 +29,10 @@ async function emitSend(input: SendMessageInput, clientNonce: string): Promise<s
       metadata: input.metadata,
       // Tin tự huỷ — giống REST. Bỏ field nếu không set (xem doc 15).
       selfDestructTtl: input.selfDestructTtl,
+      viaBotId: input.viaBotId,
+      inlineQueryId: input.inlineQueryId,
+      inlineResultId: input.inlineResultId,
+      inlineQuery: input.inlineQuery,
     })) as SendAck;
   if (!ack || ack.ok !== true) {
     throw new Error((ack as { error?: string })?.error ?? 'Gửi thất bại');

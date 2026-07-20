@@ -94,7 +94,7 @@ ContextMenu.displayName = 'ContextMenu';
 
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
-export interface ContextMenuTriggerProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type ContextMenuTriggerProps = React.HTMLAttributes<HTMLDivElement>;
 
 const ContextMenuTrigger = React.forwardRef<HTMLDivElement, ContextMenuTriggerProps>(
   ({ children, ...props }, ref) => (
@@ -105,7 +105,7 @@ ContextMenuTrigger.displayName = 'ContextMenuTrigger';
 
 // ─── Content ──────────────────────────────────────────────────────────────────
 
-export interface ContextMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type ContextMenuContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 const ContextMenuContent = React.forwardRef<HTMLDivElement, ContextMenuContentProps>(
   ({ className, children, ...props }, ref) => {

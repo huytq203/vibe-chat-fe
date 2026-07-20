@@ -1,11 +1,12 @@
 'use client';
 
-import { Bell, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useProjectsInfinite } from '../../hooks/useProjectsInfinite';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { ActivityNotifications } from './ActivityNotifications';
 
 interface AppHeaderProps {
   onCreateProject: () => void;
@@ -43,13 +44,7 @@ export function AppHeader({ onCreateProject }: AppHeaderProps) {
         aria-label="Tìm dự án"
       />
 
-      <button
-        type="button"
-        aria-label="Thông báo"
-        className="relative grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground hover:bg-accent"
-      >
-        <Bell className="h-[18px] w-[18px]" />
-      </button>
+      <ActivityNotifications />
 
       <Button leftIcon={<Plus className="h-4 w-4" />} onClick={onCreateProject}>
         Tạo mới

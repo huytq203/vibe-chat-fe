@@ -3,7 +3,10 @@
 import { memo, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { Message } from "@/features/chat/types";
-import { type BubbleConfig, DEFAULT_BUBBLE_CONFIG } from "@/features/chat/config/chat-themes";
+import {
+  type BubbleConfig,
+  DEFAULT_BUBBLE_CONFIG,
+} from "@/features/chat/config/chat-themes";
 import { useBubbleTouchMenu } from "@/features/chat/hooks/useBubbleTouchMenu";
 import { MessageActions } from "./MessageActions";
 import { MessageReactions } from "./MessageReactions";
@@ -30,6 +33,7 @@ type MessageBubbleProps = {
   repliedTo?: Message | null;
   /** Tên người gửi tin gốc đã resolve (cho ReplyQuote). */
   repliedToName?: string | null;
+  senderUsername?: string | null;
   /** Bấm quote → cuộn tới tin gốc (do MessageList cung cấp). */
   onQuoteClick?: (messageId: string) => void;
   /** Đang được nháy sáng do vừa cuộn tới từ một reply. */
@@ -49,6 +53,12 @@ type MessageBubbleProps = {
   enableLikeButton?: boolean;
   showReactions?: boolean;
   showBotMarkup?: boolean;
+  /** Chỉ conversation có bot mới cho phép click slash command. */
+  enableBotCommands?: boolean;
+  onLaunchWebapp?: (input: {
+    botUsername: string;
+    buttonPayload?: string;
+  }) => void;
 };
 
 function MessageBubbleImpl({
@@ -60,6 +70,7 @@ function MessageBubbleImpl({
   senderAvatarUrl,
   repliedTo,
   repliedToName,
+  senderUsername,
   onQuoteClick,
   isHighlighted,
   canPin,
@@ -73,12 +84,23 @@ function MessageBubbleImpl({
   enableLikeButton = true,
   showReactions = true,
   showBotMarkup = true,
+  enableBotCommands = false,
+  onLaunchWebapp,
 }: MessageBubbleProps) {
   const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
   const isMe = message.senderId === meId;
   const isSending = message.metadata?.optimistic === true;
   const isFailed = message.metadata?.failed === true;
   const isSeen = isMe && !isSending && !isFailed && message.isView === true;
+  const viaBotUsername =
+    typeof message.metadata?.inline === "object" &&
+    message.metadata.inline != null &&
+    "botUsername" in message.metadata.inline &&
+    typeof message.metadata.inline.botUsername === "string"
+      ? message.metadata.inline.botUsername
+      : message.viaBotId
+        ? "bot"
+        : null;
   // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
   const isVisualMedia =
     !message.isDeleted &&
@@ -108,7 +130,8 @@ function MessageBubbleImpl({
     />
   );
   const actionsMenu = canActions
-    ? (renderActions?.({ isMe, className: actionsClassName }) ?? defaultActionsMenu)
+    ? (renderActions?.({ isMe, className: actionsClassName }) ??
+      defaultActionsMenu)
     : null;
 
   const hasReactions = (message.reactions?.length ?? 0) > 0;
@@ -160,22 +183,30 @@ function MessageBubbleImpl({
           showSenderName={showSenderName}
           senderName={senderName}
           leaderLabel={leaderLabel}
+          viaBotUsername={viaBotUsername}
         />
         <div
           className={cn(
             "relative rounded-2xl transition-all",
             isVisualMedia ? "p-1.5" : "px-3.5 py-2.5",
-            !hasTheme && (isMe
-              ? "bg-primary text-primary-foreground"
-              : wallpaperActive
-                ? "border border-border/40 bg-background text-foreground"
-                : "border border-border bg-muted text-foreground"),
+            !hasTheme &&
+              (isMe
+                ? "bg-primary text-primary-foreground"
+                : wallpaperActive
+                  ? "border border-border/40 bg-background text-foreground"
+                  : "border border-border bg-muted text-foreground"),
             hasTheme && !isMe && "border border-white/10",
             isFailed && "border border-danger/60",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-1 ring-offset-background",
           )}
-          style={hasTheme ? (isMe ? bubbleConfig.myStyle : bubbleConfig.otherStyle) : undefined}
+          style={
+            hasTheme
+              ? isMe
+                ? bubbleConfig.myStyle
+                : bubbleConfig.otherStyle
+              : undefined
+          }
           {...bubbleProps}
         >
           {actionsMenu}
@@ -190,7 +221,11 @@ function MessageBubbleImpl({
               onClick={onQuoteClick ?? (() => {})}
             />
           )}
-          <BubbleContent message={message} isMe={isMe} />
+          <BubbleContent
+            message={message}
+            isMe={isMe}
+            enableBotCommands={enableBotCommands}
+          />
           {/* Timestamp + status INSIDE bubble — luôn hiển thị để tránh flash layout */}
           <BubbleMetaRow
             message={message}
@@ -205,8 +240,22 @@ function MessageBubbleImpl({
         {showReactions && !message.isDeleted && (
           <MessageReactions message={message} isMe={isMe} />
         )}
-        {showBotMarkup && <BotQuickReplies message={message} isMe={isMe} />}
-        {showBotMarkup && <BotInlineKeyboard message={message} isMe={isMe} />}
+        {showBotMarkup && (
+          <BotQuickReplies
+            message={message}
+            isMe={isMe}
+            senderUsername={senderUsername}
+            onLaunchWebapp={onLaunchWebapp}
+          />
+        )}
+        {showBotMarkup && (
+          <BotInlineKeyboard
+            message={message}
+            isMe={isMe}
+            senderUsername={senderUsername}
+            onLaunchWebapp={onLaunchWebapp}
+          />
+        )}
         {isFailed && isMe && <MessageFailedActions message={message} />}
       </div>
     </div>

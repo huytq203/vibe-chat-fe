@@ -17,6 +17,8 @@ import { PinnedBanner } from "@/features/chat/components/messages/PinnedBanner";
 import { useConvLockStore } from "@/features/chat/stores/conv-lock.store";
 import { canSendMessage, isMemberChatRestricted } from "@/features/chat/utils";
 import { useWallpaperActive } from "@/features/chat/hooks/useWallpaper";
+import { useWebAppLaunch } from "@/features/chat/hooks/useWebAppLaunch";
+import { WebAppContainer } from "@/features/chat/components/webapp/WebAppContainer";
 import { cn } from "@/lib/utils/cn";
 
 export function ChatPanel() {
@@ -28,6 +30,10 @@ export function ChatPanel() {
   const isMobile = useIsMobile();
   const { selectedConversationId } = useSelectedConversation();
   const { data: conversation } = useConversation(selectedConversationId);
+  const webapp = useWebAppLaunch({
+    conversationId: conversation?.id ?? null,
+    conversationType: conversation?.type ?? null,
+  });
   const { mutate: markRead } = useMarkRead();
   const lastReadRef = useRef<string | null>(null);
   const relock = useConvLockStore((s) => s.relock);
@@ -108,6 +114,8 @@ export function ChatPanel() {
         (m) => m.isBot && m.username.toLowerCase() === "botfather",
       ),
     );
+  const webappBotUsername =
+    conversation?.members?.find((m) => m.isBot)?.username ?? null;
   // Nền wallpaper giờ áp ở ChatLayout (xuyên suốt cả khung, kể cả khe hở giữa các card) —
   // ChatPanel chỉ cần biết có đang active để chuyển ChatHeader/MessageInput/bubble sang
   // biến thể trong suốt (backdrop-blur) cho phù hợp.
@@ -159,16 +167,23 @@ export function ChatPanel() {
             conversationId={conversation.id}
             onAtBottom={handleAtBottom}
             wallpaperActive={wallpaperActive}
+            onLaunchWebapp={webapp.launch}
           />
           {isSelfConv || canSendMessage(conversation, meId) ? (
             <MessageInput
               conversationId={conversation.id}
+              conversationType={conversation.type}
               selfConv={isSelfConv}
               isGroup={
                 conversation.type === "GROUP" || conversation.type === "CHANNEL"
               }
               botFatherCommands={isBotFatherConversation}
               wallpaperActive={wallpaperActive}
+              onWebappMenuClick={
+                webappBotUsername
+                  ? () => void webapp.launch({ botUsername: webappBotUsername })
+                  : undefined
+              }
             />
           ) : (
             <div
@@ -184,6 +199,12 @@ export function ChatPanel() {
                 : "Chỉ quản trị viên được nhắn trong nhóm này"}
             </div>
           )}
+          <WebAppContainer
+            session={webapp.session}
+            onSendData={webapp.sendData}
+            onClose={webapp.close}
+            onInvokeCustomMethod={webapp.invokeCustomMethod}
+          />
         </>
       )}
     </main>

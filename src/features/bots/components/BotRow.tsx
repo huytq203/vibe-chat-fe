@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KeyRound, MoreVertical, Pencil, Sparkles } from 'lucide-react';
+import { Globe2, KeyRound, MoreVertical, Pencil, Search, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -13,6 +13,8 @@ import {
 import { EditBotDialog } from './EditBotDialog';
 import { DeleteBotAlertDialog } from './DeleteBotAlertDialog';
 import { BotDemoDialog } from './BotDemoDialog';
+import { BotInlineDialog } from './BotInlineDialog';
+import { BotWebappDialog } from './BotWebappDialog';
 import type { Bot } from '../types';
 
 export function BotRow({
@@ -24,6 +26,8 @@ export function BotRow({
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [inlineOpen, setInlineOpen] = useState(false);
+  const [webappOpen, setWebappOpen] = useState(false);
 
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
@@ -36,6 +40,16 @@ export function BotRow({
           {!bot.provisioned && (
             <Badge variant="soft-warning" size="sm">
               Chưa provision
+            </Badge>
+          )}
+          {bot.inlineModeEnabled && (
+            <Badge variant="secondary" size="sm">
+              Inline
+            </Badge>
+          )}
+          {bot.webappEnabled && (
+            <Badge variant="secondary" size="sm">
+              WebApp
             </Badge>
           )}
         </div>
@@ -63,6 +77,14 @@ export function BotRow({
             <Sparkles className="h-4 w-4" />
             Demo gửi tin nhắn vui
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setInlineOpen(true)}>
+            <Search className="h-4 w-4" />
+            Inline mode
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setWebappOpen(true)}>
+            <Globe2 className="h-4 w-4" />
+            WebApp
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -70,6 +92,8 @@ export function BotRow({
 
       <EditBotDialog bot={bot} open={editOpen} onOpenChange={setEditOpen} />
       <BotDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
+      <BotInlineDialog bot={bot} open={inlineOpen} onOpenChange={setInlineOpen} />
+      <BotWebappDialog bot={bot} open={webappOpen} onOpenChange={setWebappOpen} />
     </li>
   );
 }

@@ -7,6 +7,7 @@ type BubbleHeaderProps = {
   showSenderName?: boolean;
   senderName?: string | null;
   leaderLabel?: string | null;
+  viaBotUsername?: string | null;
 };
 
 /** Phần đầu bong bóng: nhãn "Đã ghim" + tên người gửi + nhãn trưởng/phó nhóm. */
@@ -16,6 +17,7 @@ export function BubbleHeader({
   showSenderName,
   senderName,
   leaderLabel,
+  viaBotUsername,
 }: BubbleHeaderProps) {
   return (
     <>
@@ -37,6 +39,21 @@ export function BubbleHeader({
               {leaderLabel}
             </span>
           )}
+          {viaBotUsername && (
+            <span className="rounded bg-muted px-1.5 py-px text-[9.5px] font-bold text-muted-foreground">
+              qua @{viaBotUsername}
+            </span>
+          )}
+        </p>
+      )}
+      {viaBotUsername && (isMe || !showSenderName || !senderName) && (
+        <p
+          className={cn(
+            "mb-0.5 text-[10.5px] font-semibold text-muted-foreground",
+            isMe ? "mr-1.5 text-right" : "ml-1.5",
+          )}
+        >
+          qua @{viaBotUsername}
         </p>
       )}
     </>

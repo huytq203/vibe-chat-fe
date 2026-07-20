@@ -11,6 +11,7 @@ import type { Board, BoardColumn, BoardTask, TaskPriority } from '../types';
 
 export interface TaskMovedEvent {
   taskId: string;
+  seq?: number;
   columnId: string;
   position?: number;
 }
@@ -30,12 +31,14 @@ export interface TaskChanges {
 
 export interface TaskUpdatedEvent {
   taskId: string;
+  seq?: number;
   changes: TaskChanges;
 }
 
 /** Payload task:created = TaskResponseDto (BE) — task mới nên tags/counts rỗng */
 export interface TaskCreatedEvent {
   id: string;
+  version?: number;
   columnId: string;
   title: string;
   position: number;
@@ -48,6 +51,7 @@ export interface TaskCreatedEvent {
 
 export interface ColumnCreatedEvent {
   id: string;
+  version?: number;
   name: string;
   color: string | null;
   position: number;
@@ -56,6 +60,7 @@ export interface ColumnCreatedEvent {
 
 export interface ColumnUpdatedEvent {
   columnId: string;
+  seq?: number;
   changes: Partial<Pick<BoardColumn, 'name' | 'color' | 'position' | 'isDoneCol'>>;
 }
 
@@ -119,7 +124,12 @@ export function applyTaskUpdated(board: Board, ev: TaskUpdatedEvent): Board | nu
   };
 }
 
-export function applyTaskCreated(board: Board, ev: TaskCreatedEvent): Board | null {
+export function applyTaskCreated(
+  board: Board,
+  ev: TaskCreatedEvent | null | undefined,
+): Board | null {
+  // Socket/resync payload không hợp lệ → caller refetch thay vì làm crash UI.
+  if (!ev) return null;
   // Subtask là task thật nhưng không render thành card trên board
   if (ev.parentId) return board;
   const col = board.columns.find((c) => c.id === ev.columnId);
@@ -127,6 +137,7 @@ export function applyTaskCreated(board: Board, ev: TaskCreatedEvent): Board | nu
 
   const created: BoardTask = {
     id: ev.id,
+    version: ev.version ?? 0,
     columnId: ev.columnId,
     title: ev.title,
     position: ev.position,

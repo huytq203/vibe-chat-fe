@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Electron build output — không lint artifact đã build (gây hàng trăm lỗi giả).
     "dist-electron/**",
+    "playwright-report/**",
+    "test-results/**",
+    "coverage/**",
+    // Electron entrypoints chạy CommonJS và nằm ngoài bundle TypeScript/Next.js.
+    "electron/**",
   ]),
 ]);
 

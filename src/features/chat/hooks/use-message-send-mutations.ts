@@ -45,6 +45,7 @@ export function useSendMessage() {
         id: tempId,
         conversationId: input.conversationId,
         senderId: currentUserId,
+        viaBotId: input.viaBotId ?? null,
         type: input.type ?? 'TEXT',
         encryptionType: 'NONE',
         plaintext: input.plaintext ?? null,
@@ -57,6 +58,9 @@ export function useSendMessage() {
           ...(input.previewUrl ? { previewUrl: input.previewUrl } : {}),
           optimistic: true,
           clientNonce,
+          inlineQueryId: input.inlineQueryId,
+          inlineResultId: input.inlineResultId,
+          inlineQuery: input.inlineQuery,
         },
         replyToMessageId: input.replyToMessageId ?? null,
         mentions: input.mentions,
@@ -168,7 +172,12 @@ export function useResendMessage() {
       const msg = cache?.pages.flatMap((p) => p.items).find((m) => m.id === vars.tempId);
       if (!msg) throw new Error('Không tìm thấy tin nhắn để gửi lại');
       useSendErrorStore.getState().clear(vars.conversationId);
-      const meta = (msg.metadata ?? {}) as { clientNonce?: string };
+      const meta = (msg.metadata ?? {}) as {
+        clientNonce?: string;
+        inlineQueryId?: string;
+        inlineResultId?: string;
+        inlineQuery?: string;
+      };
       const nonce = meta.clientNonce ?? crypto.randomUUID();
       // Tin media đã upload xong (attachments có sẵn) → gửi lại nguyên attachmentIds + type.
       const attachmentIds = msg.attachments?.map((a) => a.mediaId) ?? [];
@@ -198,6 +207,13 @@ export function useResendMessage() {
           replyToMessageId: msg.replyToMessageId ?? undefined,
           clientNonce: nonce,
           attachmentIds: attachmentIds.length ? attachmentIds : undefined,
+          viaBotId: msg.viaBotId ?? undefined,
+          inlineQueryId:
+            typeof meta.inlineQueryId === 'string' ? meta.inlineQueryId : undefined,
+          inlineResultId:
+            typeof meta.inlineResultId === 'string' ? meta.inlineResultId : undefined,
+          inlineQuery:
+            typeof meta.inlineQuery === 'string' ? meta.inlineQuery : undefined,
         },
         nonce,
       );
