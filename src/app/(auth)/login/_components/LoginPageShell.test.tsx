@@ -20,6 +20,7 @@ describe('LoginPageShell', () => {
     );
     const img = container.querySelector('img[src*="login-vespa-card.png"]');
     expect(img).toBeInTheDocument();
+    expect(img?.parentElement).toHaveClass('-translate-x-44', '-translate-y-10', 'z-20');
   });
 
   it('renders the faint watermark image in the background', () => {
@@ -30,5 +31,18 @@ describe('LoginPageShell', () => {
     );
     const img = container.querySelector('img[src*="login-vespa-watermark.png"]');
     expect(img).toBeInTheDocument();
+  });
+
+  it('uses the same themed background and card palette as register', () => {
+    const { container } = render(
+      <LoginPageShell>
+        <div />
+      </LoginPageShell>
+    );
+
+    expect(container.firstElementChild).toHaveClass('bg-background');
+    expect(container.querySelector('.rounded-2xl.border-border.bg-background')).toBeInTheDocument();
+    expect(container.querySelector('.bg-sidebar')).toBeInTheDocument();
+    expect(container.querySelector('.bg-gradient-to-r')).not.toBeInTheDocument();
   });
 });

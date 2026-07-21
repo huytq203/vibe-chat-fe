@@ -11,6 +11,8 @@ const dialogVariants = tv({
    content: [
       'fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 p-6',
       'w-full max-w-lg rounded-xl border border-border bg-background shadow-2xl',
+      // Keep the parent in place when a nested dialog opens to avoid a visual jump.
+      'data-[nested-dialog-open]:brightness-[0.82]',
       'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 ',
       'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
       'data-[nested-dialog-open]:pointer-events-none',

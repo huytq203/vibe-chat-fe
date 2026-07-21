@@ -242,7 +242,7 @@ export function MessageList({
 
   return (
     <LightboxProvider>
-      <div className="animate-in fade-in relative flex min-h-0 flex-1 flex-col duration-200">
+      <div className="animate-in fade-in relative isolate flex min-h-0 flex-1 flex-col duration-200">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -351,7 +351,7 @@ export function MessageList({
               onAtBottom?.();
             }}
             aria-label="Xuống tin mới nhất"
-            className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-muted text-foreground transition-colors hover:bg-secondary"
+            className="absolute bottom-4 left-1/2 z-30 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm transition-colors hover:bg-secondary"
           >
             <ArrowDown className="h-4 w-4" />
           </button>

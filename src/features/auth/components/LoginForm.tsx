@@ -21,11 +21,9 @@ import { GoogleColorIcon, GithubColorIcon, FacebookColorIcon } from '@/component
 
 type RestoreInfo = { restoreToken: string; maskedEmail: string | null };
 
-// Style pill-shape hardcode theo Figma "Login Page Design - 2" (override có chủ
-// đích cho riêng LoginForm — xem docs/superpowers/specs/2026-07-07-auth-showcase-layout-design.md).
 const FIELD_CLASS =
-  'h-[50px] rounded-full border-[#bcbec0] bg-white px-5 text-[#414042] placeholder:text-[#bcbec0] focus:border-[#0083b0]';
-const LABEL_CLASS = 'text-sm text-[#414042]';
+  'h-[50px] rounded-full border-border bg-input px-5 text-foreground placeholder:text-muted-foreground focus:border-primary';
+const LABEL_CLASS = 'text-sm text-foreground';
 
 const SOCIAL_PROVIDERS = [
   { key: 'google', label: 'Google', Icon: GoogleColorIcon },
@@ -75,8 +73,8 @@ export const LoginForm = () => {
 
   return (
     <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-500">
-      <p className="text-2xl font-bold text-[#465685]">Halo</p>
-      <h1 className="mt-1 text-[32px] font-bold leading-tight text-[#414042] lg:text-[38px]">
+      <p className="text-2xl font-bold text-primary">Halo</p>
+      <h1 className="mt-1 text-[32px] font-bold leading-tight text-foreground lg:text-[38px]">
         Đăng nhập
       </h1>
 
@@ -125,7 +123,7 @@ export const LoginForm = () => {
           <Button
             variant="link"
             type="button"
-            className="h-auto p-0 text-xs text-[#465685]"
+            className="h-auto p-0 text-xs text-primary"
             onClick={() => router.push('/forgot-password')}
           >
             Quên mật khẩu?
@@ -133,7 +131,7 @@ export const LoginForm = () => {
 
           <Button
             type="submit"
-            className="h-[50px] w-full rounded-full bg-[#a93159] text-lg font-bold text-white hover:bg-[#8f2749]"
+            className="h-[50px] w-full rounded-full text-lg font-bold"
             isLoading={login.isPending}
             disabled={login.isPending}
           >
@@ -143,7 +141,7 @@ export const LoginForm = () => {
       </Form>
 
       <div className="mt-6 flex flex-col items-center gap-4">
-        <span className="text-sm text-[#798995]">Hoặc tiếp tục với</span>
+        <span className="text-sm text-muted-foreground">Hoặc tiếp tục với</span>
         <TooltipProvider>
           <div className="flex gap-3">
             {SOCIAL_PROVIDERS.map(({ key, label, Icon }) => (
@@ -158,7 +156,7 @@ export const LoginForm = () => {
                         variant="outline"
                         disabled
                         aria-label={`Đăng nhập với ${label}`}
-                        className="h-[50px] w-[64px] rounded-full border-[#bcbec0] bg-white p-0 hover:bg-white"
+                        className="h-[50px] w-[64px] rounded-full border-border bg-background p-0 hover:bg-background"
                       >
                         <Icon className="h-6 w-6" />
                       </Button>
@@ -172,12 +170,12 @@ export const LoginForm = () => {
         </TooltipProvider>
       </div>
 
-      <p className="mt-6 text-center text-sm text-[#bcbec0]">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Chưa có tài khoản?{' '}
         <Button
           variant="link"
           type="button"
-          className="h-auto p-0 text-sm font-semibold text-[#465685]"
+          className="h-auto p-0 text-sm font-semibold text-primary"
           onClick={() => router.push('/register')}
         >
           Đăng ký ngay
