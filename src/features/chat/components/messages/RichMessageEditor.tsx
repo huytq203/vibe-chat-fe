@@ -10,6 +10,33 @@ import { jsonToMessage, type SerializedMessage } from "@/lib/editor/serializer";
 import { MAX_LENGTH } from "@/features/chat/components/messages/composer-utils";
 import { cn } from "@/lib/utils/cn";
 
+/**
+ * Nội dung copy từ web thường mang theo màu chữ/nền của trang nguồn.
+ * Loại bỏ các thuộc tính phụ thuộc theme để text luôn đọc được trong composer,
+ * nhưng vẫn giữ cấu trúc và định dạng có nghĩa như bold/italic/link.
+ */
+export function sanitizePastedHtml(html: string): string {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+
+  template.content.querySelectorAll<HTMLElement>("*").forEach((element) => {
+    element.removeAttribute("class");
+    element.removeAttribute("color");
+    element.removeAttribute("bgcolor");
+
+    element.style.removeProperty("color");
+    element.style.removeProperty("background");
+    element.style.removeProperty("background-color");
+    element.style.removeProperty("-webkit-text-fill-color");
+
+    if (!element.getAttribute("style")?.trim()) {
+      element.removeAttribute("style");
+    }
+  });
+
+  return template.innerHTML;
+}
+
 const EMPTY: SerializedMessage = {
   plaintext: "",
   mentions: [],
@@ -68,10 +95,11 @@ export const RichMessageEditor = forwardRef<
       createMentionExtension(mentionSuggestion),
     ],
     editorProps: {
+      transformPastedHTML: sanitizePastedHtml,
       attributes: {
         // Chiều cao/scroll do wrapper EditorContent điều khiển (động theo expanded).
         class: cn(
-          "min-h-[32px] px-1.5 py-[5px] text-[13.5px] leading-relaxed outline-none",
+          "min-h-[32px] px-1.5 py-[5px] text-[13.5px] leading-relaxed text-foreground caret-foreground outline-none",
           disabled && "cursor-not-allowed opacity-50",
         ),
         role: "textbox",

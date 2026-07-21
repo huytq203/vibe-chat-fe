@@ -15,6 +15,7 @@ import { CallMessageContent } from "./CallMessageContent";
 import { PollBubble } from "./PollBubble";
 import { BotCommandText, hasBotCommand } from "./BotCommandText";
 import type { StickerSnapshot } from '@/features/chat/types/message';
+import { AiMessageContent } from '@/features/chat/components/layout/AiMessageContent';
 
 const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "FILE"] as const;
 
@@ -22,10 +23,13 @@ export function BubbleContent({
   message,
   isMe,
   enableBotCommands = false,
+  renderMarkdown = false,
 }: {
   message: Message;
   isMe: boolean;
   enableBotCommands?: boolean;
+  /** Chỉ bật cho tin do bot gửi; user message vẫn hiển thị plain text. */
+  renderMarkdown?: boolean;
 }) {
   // Content plaintext — render trực tiếp (không còn lớp giải mã).
   const resolvedBody = message.plaintext ?? message.contentPreview ?? "";
@@ -74,6 +78,9 @@ export function BubbleContent({
           isMe={isMe}
         />
       );
+    }
+    if (renderMarkdown) {
+      return <AiMessageContent content={body} />;
     }
     return <EmojiText text={body} className={textClass} largeEmoji linkify />;
   }

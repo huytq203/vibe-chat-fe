@@ -2,6 +2,7 @@ import { type InfiniteData } from '@tanstack/react-query';
 import { debouncedInvalidate } from '@/lib/query/debounced-invalidate';
 import { chatKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
+import { useTypingStore } from '@/features/chat/stores/typing.store';
 import type { Conversation, Message, MessagesPage, Presence } from '@/features/chat/types';
 import type { RealtimeHandlerDeps } from './chat-realtime-cache';
 import type {
@@ -14,6 +15,10 @@ import type {
 export function makeOnMessageNew(deps: RealtimeHandlerDeps): (message: Message) => void {
   const { qc, patchConvInList, upsertMessage } = deps;
   return function onMessageNew(message: Message) {
+    // Tin nhắn đã tới thì sender không còn ở trạng thái đang nhập.
+    useTypingStore
+      .getState()
+      .setTyping(message.conversationId, message.senderId, false);
     const inserted = upsertMessage(message);
     // Tin tới conv đang mở (đã join room) → cập nhật preview + thứ tự trong list NGAY,
     // KHÔNG tăng unread (user đang xem; markRead lo việc đọc). Conv lạ → refetch kéo về.

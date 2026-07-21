@@ -98,51 +98,83 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
   }
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkBreaks]}
-      rehypePlugins={[rehypeHighlight]}
-      components={{
-        pre: ({ children, ...props }) => (
-          <pre {...props} className="my-2 overflow-x-auto rounded-lg bg-[#282c34] p-3 text-[12px]">
-            {children}
-          </pre>
-        ),
-        code: ({ children, className, ...props }) => (
-          <code {...props} className={className ?? 'rounded bg-muted px-1 py-0.5 text-[12px] font-mono'}>
-            {children}
-          </code>
-        ),
-        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-        ul: ({ children }) => <ul className="mb-1 ml-4 list-disc space-y-0.5">{children}</ul>,
-        ol: ({ children }) => <ol className="mb-1 ml-4 list-decimal space-y-0.5">{children}</ol>,
-        li: ({ children }) => <li className="text-[13px]">{children}</li>,
-        h1: ({ children }) => <h1 className="mb-1 text-base font-bold">{children}</h1>,
-        h2: ({ children }) => <h2 className="mb-1 text-[14px] font-semibold">{children}</h2>,
-        h3: ({ children }) => <h3 className="mb-1 text-[13px] font-semibold">{children}</h3>,
-        blockquote: ({ children }) => (
-          <blockquote className="my-1 border-l-2 border-primary/40 pl-3 text-muted-foreground">
-            {children}
-          </blockquote>
-        ),
-        a: ({ children, href }) => (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
-            {children}
-          </a>
-        ),
-        table: ({ children }) => (
-          <div className="my-2 overflow-x-auto">
-            <table className="w-full border-collapse text-[12px]">{children}</table>
-          </div>
-        ),
-        th: ({ children }) => (
-          <th className="border border-border bg-muted px-2 py-1 text-left font-semibold">{children}</th>
-        ),
-        td: ({ children }) => (
-          <td className="border border-border px-2 py-1">{children}</td>
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+    <div className="min-w-0 break-words text-[13.5px] leading-relaxed">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          pre: ({ children, ...props }) => (
+            <pre
+              {...props}
+              className="my-2 max-w-full overflow-x-auto rounded-lg bg-[#20232a] p-3 text-[12px] leading-5 text-[#f3f4f6]"
+            >
+              {children}
+            </pre>
+          ),
+          code: ({ children, className, ...props }) => (
+            <code
+              {...props}
+              className={
+                className ??
+                'rounded bg-foreground/10 px-1 py-0.5 font-mono text-[12px]'
+              }
+            >
+              {children}
+            </code>
+          ),
+          p: ({ children }) => (
+            <p className="mb-2 text-pretty last:mb-0">{children}</p>
+          ),
+          ul: ({ children }) => (
+            <ul className="mb-2 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="mb-2 ml-5 list-decimal space-y-1 last:mb-0">{children}</ol>
+          ),
+          li: ({ children }) => <li>{children}</li>,
+          h1: ({ children }) => (
+            <h1 className="mb-2 text-base font-bold">{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mb-2 text-[14px] font-semibold">{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="mb-1.5 text-[13.5px] font-semibold">{children}</h3>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="my-1 border-l-2 border-primary/40 pl-3 text-muted-foreground">
+              {children}
+            </blockquote>
+          ),
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              {children}
+            </a>
+          ),
+          table: ({ children }) => (
+            <div className="my-2 overflow-x-auto">
+              <table className="w-full border-collapse text-[12px]">
+                {children}
+              </table>
+            </div>
+          ),
+          th: ({ children }) => (
+            <th className="border border-border bg-muted px-2 py-1 text-left font-semibold">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="border border-border px-2 py-1">{children}</td>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }

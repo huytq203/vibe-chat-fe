@@ -47,4 +47,23 @@ describe('MessageBubble', () => {
     expect(bubble).toHaveClass('rounded-2xl', 'border', 'border-border');
     expect(bubble.className).not.toMatch(/rounded-bl-md/);
   });
+
+  it('renders Markdown only when the sender is marked as a bot', () => {
+    const message = buildMessage({ plaintext: '**Xin chào**' });
+    const { container, rerender } = renderWithProviders(
+      <MessageBubble
+        message={message}
+        meId="me"
+        showAvatar={false}
+        renderMarkdown
+      />,
+    );
+    expect(container.querySelector('strong')).toHaveTextContent('Xin chào');
+
+    rerender(
+      <MessageBubble message={message} meId="me" showAvatar={false} />,
+    );
+    expect(container.querySelector('strong')).toBeNull();
+    expect(container).toHaveTextContent('**Xin chào**');
+  });
 });

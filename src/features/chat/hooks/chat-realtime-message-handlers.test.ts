@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { chatKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
+import { useTypingStore } from '@/features/chat/stores/typing.store';
 import type { Conversation, Message } from '@/features/chat/types';
 import {
   makePatchConvInList,
@@ -77,6 +78,7 @@ function getConv(qc: QueryClient): Conversation {
 
 describe('unread badge realtime — message:new rồi conversation:notify cho cùng 1 tin', () => {
   beforeEach(() => {
+    useTypingStore.setState({ byConv: {} });
     useAuthStore.getState().setUser({
       id: 'me',
       username: 'me',
@@ -91,6 +93,15 @@ describe('unread badge realtime — message:new rồi conversation:notify cho c�
       status: 'ACTIVE',
       visibility: 'PUBLIC',
     });
+  });
+
+  it('xoá typing của sender ngay khi message mới tới', () => {
+    const { deps } = setup();
+    useTypingStore.getState().setTyping('c1', 'other', true);
+
+    makeOnMessageNew(deps)(makeMessage());
+
+    expect(useTypingStore.getState().byConv.c1).not.toContain('other');
   });
 
   it('vẫn tăng unreadCount dù message:new đã insert nội dung trước đó (conv chưa mở, tin không phải của mình)', () => {

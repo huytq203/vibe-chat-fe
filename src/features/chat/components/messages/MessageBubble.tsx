@@ -55,6 +55,8 @@ type MessageBubbleProps = {
   showBotMarkup?: boolean;
   /** Chỉ conversation có bot mới cho phép click slash command. */
   enableBotCommands?: boolean;
+  /** Render Markdown an toàn cho nội dung do bot gửi. */
+  renderMarkdown?: boolean;
   onLaunchWebapp?: (input: {
     botUsername: string;
     buttonPayload?: string;
@@ -85,6 +87,7 @@ function MessageBubbleImpl({
   showReactions = true,
   showBotMarkup = true,
   enableBotCommands = false,
+  renderMarkdown = false,
   onLaunchWebapp,
 }: MessageBubbleProps) {
   const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
@@ -230,6 +233,7 @@ function MessageBubbleImpl({
             message={message}
             isMe={isMe}
             enableBotCommands={enableBotCommands}
+            renderMarkdown={renderMarkdown}
           />
           {/* Timestamp + status INSIDE bubble — luôn hiển thị để tránh flash layout */}
           <BubbleMetaRow
