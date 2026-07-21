@@ -5,17 +5,93 @@ import { chatKeys } from '@/services/keys';
 import { serverNow } from '@/lib/time/server-clock';
 import { useAuthStore } from '@/features/auth';
 import { useSendErrorStore } from '@/features/chat/stores/send-error.store';
-import type { Message, SendMessageInput } from '@/features/chat/types';
+import { useTypingStore } from '@/features/chat/stores/typing.store';
+import type {
+  Conversation,
+  ConversationMember,
+  Message,
+  SendMessageInput,
+} from '@/features/chat/types';
 import { sendMessageWs } from './send-message-ws';
 import { registerOptimisticNonce, unregisterOptimisticNonce } from './optimistic-nonce';
 import type { MessagesCache } from './mutation-helpers';
+import { getMemberRuntimeIds } from '@/features/chat/utils';
 
 type SendContext = {
   tempId: string;
   clientNonce: string;
   conversationId: string;
   previous: MessagesCache | undefined;
+  pendingBotIds: string[];
 };
+
+const BOT_PENDING_TYPING_MS = 45_000;
+const botPendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function isBotMember(member: ConversationMember): boolean {
+  return member.isBot === true || /bot/i.test(member.username);
+}
+
+function mentionsMember(input: SendMessageInput, member: ConversationMember): boolean {
+  const ids = new Set(getMemberRuntimeIds(member));
+  return input.mentions?.some((mention) => ids.has(mention.userId)) ?? false;
+}
+
+function textMentionsMember(input: SendMessageInput, member: ConversationMember): boolean {
+  const text = input.plaintext?.toLowerCase() ?? '';
+  if (!text) return false;
+  return (
+    text.includes(`@${member.username.toLowerCase()}`) ||
+    text.includes(`@${member.displayName.toLowerCase()}`)
+  );
+}
+
+export function getPendingBotTypingTargets(
+  conversation: Conversation | undefined,
+  input: SendMessageInput,
+  currentUserId: string,
+): string[] {
+  const botMembers = (conversation?.members ?? []).filter(
+    (member) => member.userId !== currentUserId && isBotMember(member),
+  );
+  if (botMembers.length === 0) return [];
+
+  if (conversation?.type === 'DIRECT') {
+    return botMembers.map((member) => member.userId);
+  }
+
+  return botMembers
+    .filter(
+      (member) => mentionsMember(input, member) || textMentionsMember(input, member),
+    )
+    .map((member) => member.userId);
+}
+
+function startPendingBotTyping(conversationId: string, userIds: string[]): void {
+  for (const userId of userIds) {
+    const key = `${conversationId}:${userId}`;
+    const existing = botPendingTimers.get(key);
+    if (existing) clearTimeout(existing);
+    useTypingStore.getState().setTyping(conversationId, userId, true);
+    botPendingTimers.set(
+      key,
+      setTimeout(() => {
+        useTypingStore.getState().setTyping(conversationId, userId, false);
+        botPendingTimers.delete(key);
+      }, BOT_PENDING_TYPING_MS),
+    );
+  }
+}
+
+function stopPendingBotTyping(conversationId: string, userIds: string[]): void {
+  for (const userId of userIds) {
+    const key = `${conversationId}:${userId}`;
+    const timer = botPendingTimers.get(key);
+    if (timer) clearTimeout(timer);
+    botPendingTimers.delete(key);
+    useTypingStore.getState().setTyping(conversationId, userId, false);
+  }
+}
 
 export function useSendMessage() {
   const qc = useQueryClient();
@@ -93,8 +169,23 @@ export function useSendMessage() {
       registerOptimisticNonce(input.conversationId, clientNonce);
       // Lượt gửi mới → xoá thông báo lỗi hệ thống của lần gửi trước.
       useSendErrorStore.getState().clear(input.conversationId);
+      const conversation = qc.getQueryData<Conversation>(
+        chatKeys.conversationDetail(input.conversationId),
+      );
+      const pendingBotIds = getPendingBotTypingTargets(
+        conversation,
+        input,
+        currentUserId,
+      );
+      startPendingBotTyping(input.conversationId, pendingBotIds);
 
-      return { tempId, clientNonce, conversationId: input.conversationId, previous };
+      return {
+        tempId,
+        clientNonce,
+        conversationId: input.conversationId,
+        previous,
+        pendingBotIds,
+      };
     },
 
     onSuccess: (messageId, _vars, ctx) => {
@@ -131,6 +222,7 @@ export function useSendMessage() {
     onError: (err, vars, ctx) => {
       if (!ctx) return;
       unregisterOptimisticNonce(ctx.conversationId, ctx.clientNonce);
+      stopPendingBotTyping(ctx.conversationId, ctx.pendingBotIds);
       // Báo lỗi dạng "tin nhắn hệ thống" ở cuối MessageList.
       useSendErrorStore.getState().setError(ctx.conversationId, err.message);
       const key = chatKeys.messages(ctx.conversationId);

@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { chatKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
-import type { Conversation, Message } from '@/features/chat/types';
+import type { Conversation, ConversationMember, Message } from '@/features/chat/types';
 import {
   makePatchConvInList,
   makeShouldBumpUnread,
   makeUpsertMessage,
   type RealtimeHandlerDeps,
 } from './chat-realtime-cache';
+import { makeOnTyping } from './chat-realtime-group-handlers';
 import { makeOnConversationNotify, makeOnMessageNew } from './chat-realtime-message-handlers';
 
 const LIST_KEY = chatKeys.conversationList({ page: 1, limit: 30 });
@@ -102,6 +103,49 @@ describe('unread badge realtime — message:new rồi conversation:notify cho c�
     makeOnMessageNew(deps)(makeMessage());
 
     expect(useTypingStore.getState().byConv.c1).not.toContain('other');
+  });
+
+  it('chuẩn hoá typing bot từ runtime/keycloak id sang member userId', () => {
+    const { qc, deps } = setup();
+    qc.setQueryData<Conversation>(chatKeys.conversationDetail('c1'), {
+      ...makeConversation(),
+      type: 'GROUP',
+      memberIds: ['me', 'bot-user-id'],
+      members: [
+        {
+          userId: 'me',
+          username: 'me',
+          displayName: 'Me',
+          avatarUrl: null,
+          nickname: null,
+          role: 'MEMBER',
+          isBot: false,
+        },
+        {
+          userId: 'bot-user-id',
+          username: 'bot_service_logs',
+          displayName: 'Bot Service Logs',
+          avatarUrl: null,
+          nickname: null,
+          role: 'MEMBER',
+          isBot: true,
+          keycloakId: 'bot-keycloak-id',
+        } as ConversationMember & { keycloakId: string },
+      ],
+    });
+
+    makeOnTyping(deps)({
+      conversationId: 'c1',
+      userId: 'bot-keycloak-id',
+      state: 'start',
+    });
+
+    expect(useTypingStore.getState().byConv.c1).toContain('bot-user-id');
+    expect(useTypingStore.getState().byConv.c1).not.toContain('bot-keycloak-id');
+
+    makeOnMessageNew(deps)(makeMessage({ senderId: 'bot-keycloak-id' }));
+
+    expect(useTypingStore.getState().byConv.c1).not.toContain('bot-user-id');
   });
 
   it('vẫn tăng unreadCount dù message:new đã insert nội dung trước đó (conv chưa mở, tin không phải của mình)', () => {

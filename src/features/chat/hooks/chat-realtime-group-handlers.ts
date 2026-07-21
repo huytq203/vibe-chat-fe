@@ -4,6 +4,7 @@ import { chatKeys, friendKeys, userKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import type { Conversation } from '@/features/chat/types';
+import { resolveMemberRuntimeId } from '@/features/chat/utils';
 import type { RealtimeHandlerDeps } from './chat-realtime-cache';
 import type {
   ConversationDeletedPayload,
@@ -21,15 +22,19 @@ import type {
 const TYPING_AUTOCLEAR_MS = 6_000;
 
 export function makeOnTyping(deps: RealtimeHandlerDeps): (payload: TypingPayload) => void {
-  const { typingTimersRef } = deps;
+  const { qc, typingTimersRef } = deps;
   return function onTyping(payload: TypingPayload) {
     const meId = useAuthStore.getState().user?.id ?? null;
-    if (payload.userId === meId) return;
+    const conversation = qc.getQueryData<Conversation>(
+      chatKeys.conversationDetail(payload.conversationId),
+    );
+    const userId = resolveMemberRuntimeId(conversation, payload.userId);
+    if (payload.userId === meId || userId === meId) return;
     const isStart = payload.state === 'start';
     useTypingStore
       .getState()
-      .setTyping(payload.conversationId, payload.userId, isStart);
-    const key = `${payload.conversationId}:${payload.userId}`;
+      .setTyping(payload.conversationId, userId, isStart);
+    const key = `${payload.conversationId}:${userId}`;
     const timer = typingTimersRef.current[key];
     if (timer) clearTimeout(timer);
     if (isStart) {

@@ -149,7 +149,10 @@ export function buildMemberNameMap(conv: Conversation | null | undefined): Recor
   const map: Record<string, string> = {};
   conv?.members?.forEach((m) => {
     const name = getMemberName(m);
-    if (name) map[m.userId] = name;
+    if (!name) return;
+    getMemberRuntimeIds(m).forEach((id) => {
+      map[id] = name;
+    });
   });
   return map;
 }
@@ -160,7 +163,10 @@ export function buildMemberAvatarMap(
 ): Record<string, string> {
   const map: Record<string, string> = {};
   conv?.members?.forEach((m) => {
-    if (m.avatarUrl) map[m.userId] = m.avatarUrl;
+    if (!m.avatarUrl) return;
+    getMemberRuntimeIds(m).forEach((id) => {
+      map[id] = m.avatarUrl!;
+    });
   });
   return map;
 }
@@ -178,7 +184,7 @@ function isBotMember(member: ConversationMember | null | undefined): boolean {
   return member.isBot === true || BOT_USERNAME_RE.test(member.username ?? '');
 }
 
-function getMemberRuntimeIds(member: ConversationMember): string[] {
+export function getMemberRuntimeIds(member: ConversationMember): string[] {
   const runtimeMember = member as RuntimeConversationMember;
   return [
     runtimeMember.userId,
@@ -186,6 +192,26 @@ function getMemberRuntimeIds(member: ConversationMember): string[] {
     runtimeMember.keycloakId,
     runtimeMember.botKeycloakId,
   ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+}
+
+export function resolveMemberRuntimeId(
+  conv: Conversation | null | undefined,
+  runtimeId: string,
+): string {
+  const member = conv?.members?.find((m) =>
+    getMemberRuntimeIds(m).includes(runtimeId),
+  );
+  return member?.userId ?? runtimeId;
+}
+
+export function getMemberRuntimeAliases(
+  conv: Conversation | null | undefined,
+  runtimeId: string,
+): string[] {
+  const member = conv?.members?.find((m) =>
+    getMemberRuntimeIds(m).includes(runtimeId),
+  );
+  return Array.from(new Set([runtimeId, ...(member ? getMemberRuntimeIds(member) : [])]));
 }
 
 function hasBotMetadata(message: Message): boolean {

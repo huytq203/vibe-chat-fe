@@ -23,6 +23,7 @@ import {
   buildMemberAvatarMap,
   buildMemberNameMap,
   canPinMessage,
+  getMemberRuntimeIds,
   getLeaderLabel,
   isBotAuthoredMessage,
 } from "@/features/chat/utils";
@@ -78,7 +79,9 @@ export function MessageList({
   const memberUsernames = useMemo(() => {
     const map: Record<string, string> = {};
     conversation?.members?.forEach((m) => {
-      map[m.userId] = m.username;
+      getMemberRuntimeIds(m).forEach((id) => {
+        map[id] = m.username;
+      });
     });
     return map;
   }, [conversation]);
@@ -102,7 +105,9 @@ export function MessageList({
   const memberRoles = useMemo(() => {
     const map: Record<string, MemberRole> = {};
     conversation?.members?.forEach((m) => {
-      map[m.userId] = m.role;
+      getMemberRuntimeIds(m).forEach((id) => {
+        map[id] = m.role;
+      });
     });
     return map;
   }, [conversation]);
