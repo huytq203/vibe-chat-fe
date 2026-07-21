@@ -19,6 +19,37 @@ import { AiMessageContent } from '@/features/chat/components/layout/AiMessageCon
 
 const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "FILE"] as const;
 
+function countMatches(value: string, pattern: RegExp): number {
+  return value.match(pattern)?.length ?? 0;
+}
+
+export function shouldRenderAssistantMarkdown(
+  body: string,
+  isMe: boolean,
+): boolean {
+  if (isMe) return false;
+
+  const text = body.trim();
+  if (!text) return false;
+
+  const hasCodeFence = /(^|\n)\s*```/.test(text);
+  const hasTable = /(^|\n)\s*\|.+\|\s*(\n|$)/.test(text);
+  const hasRawLogJson =
+    /(^|\n)\s*[\[{]\s*(\n|$)/.test(text) &&
+    /"(time|level|req|res|statusCode|msg|message)"\s*:/i.test(text);
+  if (hasCodeFence || hasTable || hasRawLogJson) return true;
+
+  const strongCount = countMatches(text, /\*\*[^*\n][\s\S]*?[^*\n]\*\*/g);
+  const hasInlineCode = /`[^`\n]+`/.test(text);
+  const hasListLine = /(^|\n)\s*[-*]\s+\S/.test(text);
+  const hasHeading = /(^|\n)\s{0,3}#{1,3}\s+\S/.test(text);
+
+  // Assistant answers usually combine emphasis with structure. A lone
+  // "**hello**" from a human stays plain text; log summaries like the bot-service
+  // screenshot render as Markdown even when BE metadata/member info is missing.
+  return strongCount >= 2 || (strongCount >= 1 && (hasInlineCode || hasListLine || hasHeading));
+}
+
 export function BubbleContent({
   message,
   isMe,
@@ -45,6 +76,9 @@ export function BubbleContent({
     const body = resolvedBody;
     const textClass =
       "block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed";
+    if (renderMarkdown || shouldRenderAssistantMarkdown(body, isMe)) {
+      return <AiMessageContent content={body} />;
+    }
     const richText = getRichText(message.metadata);
     if (richText) {
       return (
@@ -78,9 +112,6 @@ export function BubbleContent({
           isMe={isMe}
         />
       );
-    }
-    if (renderMarkdown) {
-      return <AiMessageContent content={body} />;
     }
     return <EmojiText text={body} className={textClass} largeEmoji linkify />;
   }

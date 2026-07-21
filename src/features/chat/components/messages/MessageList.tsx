@@ -24,6 +24,7 @@ import {
   buildMemberNameMap,
   canPinMessage,
   getLeaderLabel,
+  isBotAuthoredMessage,
 } from "@/features/chat/utils";
 import { MessageBubble } from "./MessageBubble";
 import { TypingBubble } from "./TypingBubble";
@@ -84,15 +85,6 @@ export function MessageList({
   const showSenderNames = conversation ? conversation.type !== "DIRECT" : false;
   const hasBotMember =
     conversation?.members?.some((member) => member.isBot) ?? false;
-  const botMemberIds = useMemo(
-    () =>
-      new Set(
-        conversation?.members
-          ?.filter((member) => member.isBot)
-          .map((member) => member.userId) ?? [],
-      ),
-    [conversation],
-  );
 
   const canPin = conversation ? canPinMessage(conversation, meId) : false;
   const hasPins = (conversation?.pinnedCount ?? 0) > 0;
@@ -323,7 +315,7 @@ export function MessageList({
                     wallpaperActive={wallpaperActive}
                     bubbleConfig={bubbleConfig}
                     enableBotCommands={hasBotMember}
-                    renderMarkdown={botMemberIds.has(m.senderId)}
+                    renderMarkdown={isBotAuthoredMessage(m, conversation, meId)}
                     onLaunchWebapp={onLaunchWebapp}
                   />
                 </div>

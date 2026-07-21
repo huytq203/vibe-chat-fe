@@ -12,7 +12,7 @@ import { MessageActions } from "./MessageActions";
 import { MessageReactions } from "./MessageReactions";
 import { MessageLikeButton } from "./MessageLikeButton";
 import { ReplyQuote } from "./ReplyQuote";
-import { BubbleContent } from "./BubbleContent";
+import { BubbleContent, shouldRenderAssistantMarkdown } from "./BubbleContent";
 import { BubbleMetaRow } from "./BubbleMetaRow";
 import { MessageFailedActions } from "./MessageFailedActions";
 import { BubbleSenderAvatar } from "./BubbleSenderAvatar";
@@ -138,6 +138,11 @@ function MessageBubbleImpl({
     : null;
 
   const hasReactions = (message.reactions?.length ?? 0) > 0;
+  const resolvedBody = message.plaintext ?? message.contentPreview ?? "";
+  const isMarkdownText =
+    message.type === "TEXT" &&
+    !message.isDeleted &&
+    (renderMarkdown || shouldRenderAssistantMarkdown(resolvedBody, isMe));
 
   // Nút Like ở mép dưới bong bóng (chỉ hiện khi hover và CHƯA có reaction nào).
   const likeButton = enableLikeButton && canActions && !hasReactions && (
@@ -179,7 +184,13 @@ function MessageBubbleImpl({
           showAvatar={showAvatar}
         />
       )}
-      <div className="max-w-[65%]">
+      <div
+        className={cn(
+          isMarkdownText
+            ? "max-w-[88%] sm:max-w-[78%] md:max-w-[720px]"
+            : "max-w-[65%]",
+        )}
+      >
         <BubbleHeader
           isMe={isMe}
           isPinned={isPinned}

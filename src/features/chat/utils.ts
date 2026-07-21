@@ -165,6 +165,71 @@ export function buildMemberAvatarMap(
   return map;
 }
 
+type RuntimeConversationMember = ConversationMember & {
+  id?: string | null;
+  keycloakId?: string | null;
+  botKeycloakId?: string | null;
+};
+
+const BOT_USERNAME_RE = /bot/i;
+
+function isBotMember(member: ConversationMember | null | undefined): boolean {
+  if (!member) return false;
+  return member.isBot === true || BOT_USERNAME_RE.test(member.username ?? '');
+}
+
+function getMemberRuntimeIds(member: ConversationMember): string[] {
+  const runtimeMember = member as RuntimeConversationMember;
+  return [
+    runtimeMember.userId,
+    runtimeMember.id,
+    runtimeMember.keycloakId,
+    runtimeMember.botKeycloakId,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+}
+
+function hasBotMetadata(message: Message): boolean {
+  const bot = message.metadata?.bot;
+  return typeof bot === 'object' && bot !== null;
+}
+
+export function isBotAuthoredMessage(
+  message: Message,
+  conversation: Conversation | null | undefined,
+  meId: string | null,
+): boolean {
+  if (message.senderId === meId) return false;
+
+  const members = conversation?.members ?? [];
+  const senderMember = members.find((member) =>
+    getMemberRuntimeIds(member).includes(message.senderId),
+  );
+  if (isBotMember(senderMember)) return true;
+
+  // Bot-service stores bot-only UI payloads in metadata.bot. ReactMarkdown is still
+  // escaped, but keep this off for my own messages so user-authored text stays plain.
+  if (hasBotMetadata(message)) return true;
+
+  if (conversation?.type === 'DIRECT') {
+    if (!meId) {
+      const matchedHumanMember = members.some(
+        (member) =>
+          !isBotMember(member) &&
+          getMemberRuntimeIds(member).includes(message.senderId),
+      );
+      const botMembers = members.filter(isBotMember);
+      return botMembers.length === 1 && !matchedHumanMember;
+    }
+
+    const otherMembers = members.filter(
+      (member) => !getMemberRuntimeIds(member).includes(meId),
+    );
+    return otherMembers.length === 1 && isBotMember(otherMembers[0]);
+  }
+
+  return false;
+}
+
 export function getConversationName(conv: Conversation, meId: string | null): string {
   if (conv.name) return conv.name;
   if (conv.type === 'DIRECT') {

@@ -66,4 +66,52 @@ describe('MessageBubble', () => {
     expect(container.querySelector('strong')).toBeNull();
     expect(container).toHaveTextContent('**Xin chào**');
   });
+
+  it('renders assistant-style Markdown fallback for incoming bot/log summaries', () => {
+    const message = buildMessage({
+      senderId: 'bot-runtime-id',
+      plaintext: [
+        'Mình vừa kiểm tra **30 log gần nhất** của bot-service.',
+        '',
+        '**Chi tiết:**',
+        '- **29 dòng:** `info` — health check chạy ổn',
+        '- **1 dòng:** `warn` — token sai',
+        '',
+        '**Kết luận:** hệ thống ổn.',
+      ].join('\n'),
+    });
+
+    const { container } = renderWithProviders(
+      <MessageBubble message={message} meId="me" showAvatar={false} />,
+    );
+
+    expect(container.querySelectorAll('strong').length).toBeGreaterThan(0);
+    expect(container.querySelector('code')).toHaveTextContent('info');
+    expect(container.querySelector('ul')).toHaveTextContent('health check');
+  });
+
+  it('renders assistant Markdown before mention metadata in group bot replies', () => {
+    const message = buildMessage({
+      senderId: 'bot-runtime-id',
+      plaintext: [
+        'Dưới đây là 10 dòng log gần nhất của **Bot Service**:',
+        '',
+        '| Thời gian | Mức | Nội dung |',
+        '|---|---|---|',
+        '| 1784652998881 | ERROR | `GET /api/v1/bot/me` → **401** |',
+        '',
+        '**Phát hiện:**',
+        '- Có **1 lỗi 401** ở đầu log.',
+      ].join('\n'),
+      mentions: [{ userId: 'bot-runtime-id', startOffset: 0, length: 4 }],
+    });
+
+    const { container } = renderWithProviders(
+      <MessageBubble message={message} meId="me" showAvatar={false} />,
+    );
+
+    expect(container.querySelector('table')).toHaveTextContent('Thời gian');
+    expect(container.querySelector('strong')).toHaveTextContent('Bot Service');
+    expect(container.querySelector('code')).toHaveTextContent('GET /api/v1/bot/me');
+  });
 });

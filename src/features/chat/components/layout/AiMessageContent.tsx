@@ -7,6 +7,7 @@ import remarkBreaks from 'remark-breaks';
 import rehypeHighlight from 'rehype-highlight';
 import { ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
+import { cn } from '@/lib/utils/cn';
 
 interface ImageAction {
   prompt: string;
@@ -91,14 +92,77 @@ interface AiMessageContentProps {
   content: string;
 }
 
+const FENCE_RE = /^\s*```/;
+const LOG_KEY_RE =
+  /"(time|timestamp|level|req|res|method|url|statusCode|status|msg|message|err|error)"\s*:/i;
+
+function isLikelyRawLogLine(line: string): boolean {
+  const value = line.trim();
+  if (!value) return false;
+  if (/^[\[{]$/.test(value) || /^[\]}],?$/.test(value)) return true;
+  if (/^"[^"]+"\s*:/.test(value)) return true;
+  if (/^\{.*\},?$/.test(value) && LOG_KEY_RE.test(value)) return true;
+  if (/^\[?\s*\{/.test(value) && LOG_KEY_RE.test(value)) return true;
+  return /^\d{4}-\d{2}-\d{2}[T\s].*\b(trace|debug|info|warn|error|fatal)\b/i.test(
+    value,
+  );
+}
+
+function fenceRawLogBlock(lines: string[]): string[] {
+  if (lines.length === 0) return [];
+  const shouldFence =
+    lines.length >= 2 || lines.some((line) => LOG_KEY_RE.test(line));
+  if (!shouldFence) return lines;
+  return ['```json', ...lines, '```'];
+}
+
+/**
+ * Model đôi khi trả raw JSON/log trước phần tóm tắt mà không bọc bằng ```
+ * khiến chat thành một mảng chữ khó đọc. Giữ nguyên Markdown người dùng thấy,
+ * chỉ tự bọc các cụm log rõ ràng thành code block để UI hiển thị đúng chất liệu.
+ */
+export function normalizeAiMarkdownContent(content: string): string {
+  const lines = content.split(/\r?\n/);
+  const output: string[] = [];
+  let rawLogBlock: string[] = [];
+  let inFence = false;
+
+  const flushRawLogBlock = () => {
+    output.push(...fenceRawLogBlock(rawLogBlock));
+    rawLogBlock = [];
+  };
+
+  for (const line of lines) {
+    if (FENCE_RE.test(line)) {
+      flushRawLogBlock();
+      output.push(line);
+      inFence = !inFence;
+      continue;
+    }
+
+    if (!inFence && isLikelyRawLogLine(line)) {
+      rawLogBlock.push(line);
+      continue;
+    }
+
+    flushRawLogBlock();
+    output.push(line);
+  }
+
+  flushRawLogBlock();
+  return output.join('\n');
+}
+
 export function AiMessageContent({ content }: AiMessageContentProps) {
   const imageAction = parseImageAction(content);
   if (imageAction) {
     return <ImageActionCard prompt={imageAction.prompt} thought={imageAction.thought} />;
   }
 
+  const normalizedContent = normalizeAiMarkdownContent(content);
+
   return (
-    <div className="min-w-0 break-words text-[13.5px] leading-relaxed">
+    <div className="min-w-0 max-w-full break-words text-[13.5px] leading-relaxed text-current">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeHighlight]}
@@ -106,7 +170,7 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
           pre: ({ children, ...props }) => (
             <pre
               {...props}
-              className="my-2 max-w-full overflow-x-auto rounded-lg bg-[#20232a] p-3 text-[12px] leading-5 text-[#f3f4f6]"
+              className="my-2 max-w-full overflow-x-auto rounded-xl bg-zinc-950 px-3.5 py-3 text-[12px] leading-5 text-zinc-100"
             >
               {children}
             </pre>
@@ -114,10 +178,13 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
           code: ({ children, className, ...props }) => (
             <code
               {...props}
-              className={
-                className ??
-                'rounded bg-foreground/10 px-1 py-0.5 font-mono text-[12px]'
-              }
+              className={cn(
+                'font-mono',
+                className
+                  ? 'text-[12px]'
+                  : 'rounded-md bg-foreground/10 px-1 py-0.5 text-[12px]',
+                className,
+              )}
             >
               {children}
             </code>
@@ -133,16 +200,19 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
           ),
           li: ({ children }) => <li>{children}</li>,
           h1: ({ children }) => (
-            <h1 className="mb-2 text-base font-bold">{children}</h1>
+            <h1 className="mb-2 text-base font-semibold leading-snug text-balance">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="mb-2 text-[14px] font-semibold">{children}</h2>
+            <h2 className="mb-2 text-[14px] font-semibold leading-snug text-balance">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="mb-1.5 text-[13.5px] font-semibold">{children}</h3>
+            <h3 className="mb-1.5 text-[13.5px] font-semibold leading-snug text-balance">{children}</h3>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-current">{children}</strong>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="my-1 border-l-2 border-primary/40 pl-3 text-muted-foreground">
+            <blockquote className="my-2 rounded-xl border border-border/70 bg-background/45 px-3 py-2 text-muted-foreground">
               {children}
             </blockquote>
           ),
@@ -157,23 +227,25 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
             </a>
           ),
           table: ({ children }) => (
-            <div className="my-2 overflow-x-auto">
+            <div className="my-2 max-w-full overflow-x-auto rounded-xl border border-border/70 bg-background/35">
               <table className="w-full border-collapse text-[12px]">
                 {children}
               </table>
             </div>
           ),
           th: ({ children }) => (
-            <th className="border border-border bg-muted px-2 py-1 text-left font-semibold">
+            <th className="border-b border-r border-border/70 bg-muted/70 px-2 py-1.5 text-left font-semibold last:border-r-0">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-border px-2 py-1">{children}</td>
+            <td className="border-b border-r border-border/60 px-2 py-1.5 align-top last:border-r-0">
+              {children}
+            </td>
           ),
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );
