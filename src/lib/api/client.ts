@@ -5,7 +5,13 @@ import { syncServerTime } from '@/lib/time/server-clock';
 export type ApiEnvelope<T> = {
   success: true;
   data: T;
-  meta?: { page?: number; limit?: number; total?: number; nextCursor?: string | null };
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    nextCursor?: string | null;
+    archived?: { total: number; unread: number };
+  };
   timestamp: string;
 };
 

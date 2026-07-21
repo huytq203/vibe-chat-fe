@@ -3,29 +3,8 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { chatApi } from '@/services/chat.api';
-import { useSendMessage } from '@/features/chat/hooks/use-mutations';
-import { readContactCard } from '@/features/chat/types';
-import type { Message, SendMessageInput, ShareContactTarget } from '@/features/chat/types';
-
-const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'AUDIO', 'FILE'] as const;
-
-type ForwardPayload = Pick<SendMessageInput, 'type' | 'plaintext' | 'attachmentIds' | 'metadata'>;
-
-/** Dựng payload gửi lại theo loại tin gốc (media giữ attachment, CONTACT giữ danh thiếp). */
-function buildForwardPayload(message: Message): ForwardPayload {
-  if ((MEDIA_TYPES as readonly string[]).includes(message.type)) {
-    return {
-      type: message.type,
-      attachmentIds: message.attachments.map((a) => a.mediaId),
-      plaintext: message.plaintext ?? undefined,
-    };
-  }
-  const contact = readContactCard(message);
-  if (contact) {
-    return { type: 'CONTACT', metadata: { contactUserId: contact.contactUserId } };
-  }
-  return { type: 'TEXT', plaintext: message.plaintext ?? message.contentPreview ?? '' };
-}
+import { messageApi } from '@/services/chat-message.api';
+import type { Message, ShareContactTarget } from '@/features/chat/types';
 
 /**
  * Chuyển tiếp một tin nhắn tới nhiều target (bạn bè → tạo direct; nhóm → gửi thẳng).
@@ -36,23 +15,22 @@ export function useForwardMessage(message: Message): {
   isPending: boolean;
 } {
   const [isPending, setIsPending] = useState(false);
-  const sendMessage = useSendMessage();
 
   const forward = async (targets: ShareContactTarget[]): Promise<void> => {
     if (targets.length === 0) return;
     setIsPending(true);
     try {
-      const payload = buildForwardPayload(message);
-      await Promise.all(
-        targets.map(async (target) => {
-          const conversationId =
+      const conversationIds = await Promise.all(
+        targets.map(async (target) =>
             target.type === 'friend'
               ? (await chatApi.createDirect(target.userId)).id
-              : target.conversationId;
-          await sendMessage.mutateAsync({ conversationId, ...payload });
-        }),
+              : target.conversationId,
+        ),
       );
-      toast.success('Đã chuyển tiếp');
+      const result = await messageApi.forward(message.conversationId, message.id, conversationIds);
+      if (result.failed.length === 0) toast.success('Đã chuyển tiếp');
+      else if (result.success.length === 0) toast.error(result.failed[0]?.message ?? 'Không thể chuyển tiếp');
+      else toast.warning(`Đã chuyển tiếp ${result.success.length}/${conversationIds.length}. ${result.failed[0]?.message ?? ''}`);
     } catch {
       toast.error('Không thể chuyển tiếp');
     } finally {

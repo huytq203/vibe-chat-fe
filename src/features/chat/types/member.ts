@@ -41,6 +41,8 @@ export type GroupSettings = {
   whoCanSend: PermissionScope;
   /** Ai được ghim/bỏ ghim tin. */
   whoCanPin: PermissionScope;
+  /** Chặn forward có nhãn; không thể ngăn copy/chụp màn hình. */
+  protectContent: boolean;
   /** Bật badge đánh dấu tin của trưởng/phó nhóm trên UI. */
   markLeaderMessages: boolean;
 };

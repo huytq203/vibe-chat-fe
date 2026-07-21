@@ -9,7 +9,7 @@ export type {
   GroupSettings,
 } from './member';
 
-export type { ConversationType, Conversation } from './conversation';
+export type { ConversationType, Conversation, ConversationListResult } from './conversation';
 
 export type {
   EncryptionType,
@@ -25,7 +25,11 @@ export type {
   OptimisticMeta,
   MessagesPage,
   SharedContentType,
+  ForwardInfo,
+  StickerSnapshot,
 } from './message';
+
+export type { Sticker, StickerPack, MyStickers } from './sticker';
 
 export type {
   InlineBotSummary,

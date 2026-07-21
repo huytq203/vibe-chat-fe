@@ -10,6 +10,7 @@ import {
   IdCard,
   MoreHorizontal,
   Smile,
+  Sticker,
   Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
@@ -32,6 +33,8 @@ import { cn } from "@/lib/utils/cn";
 import { SELF_DESTRUCT_OPTIONS } from "@/features/chat/utils";
 import type { AttachmentKind } from "@/features/chat/hooks/useAttachments";
 import { AttachmentButtons } from "./attachment/AttachmentButtons";
+import { StickerPicker } from './StickerPicker';
+import { useSendSticker } from '@/features/chat/hooks/use-stickers';
 
 type ActionItemProps = {
   icon: ReactNode;
@@ -57,6 +60,7 @@ function ActionItem({ icon, label, onClick, active }: ActionItemProps) {
 }
 
 type ComposerActionsProps = {
+  conversationId: string;
   disabled?: boolean;
   isEditing: boolean;
   expanded: boolean;
@@ -76,6 +80,7 @@ type ComposerActionsProps = {
 
 /** Cụm nút trái của ô soạn: đính kèm, tin tự huỷ, emoji, mở rộng vùng soạn. */
 export function ComposerActions({
+  conversationId,
   disabled,
   isEditing,
   expanded,
@@ -93,6 +98,8 @@ export function ComposerActions({
   onPollClick,
 }: ComposerActionsProps) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const sendSticker = useSendSticker(conversationId);
 
   function handleMoreAction(fn: () => void) {
     setMoreOpen(false);
@@ -129,6 +136,19 @@ export function ComposerActions({
           <EmojiPicker onSelect={onEmojiSelect} />
         </PopoverContent>
       </Popover>
+
+      {!isEditing && (
+        <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
+          <PopoverTrigger>
+            <Button variant="ghost" size="icon-sm" disabled={disabled || sendSticker.isPending} title="Sticker" aria-label="Sticker" className="text-muted-foreground hover:text-primary">
+              <Sticker className="h-[18px] w-[18px]" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" sideOffset={8} showArrow={false} className="w-auto p-0">
+            <StickerPicker onPick={(sticker) => sendSticker.mutate(sticker, { onSuccess: () => setStickerOpen(false) })} />
+          </PopoverContent>
+        </Popover>
+      )}
 
       {!isEditing && (
         <Popover open={moreOpen} onOpenChange={setMoreOpen}>

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
-import { Search } from 'lucide-react';
+import { Archive, ArrowLeft, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input/Input';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
@@ -41,6 +41,11 @@ export function ConversationList() {
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
   const { data: conversations = [], isLoading } = useConversations();
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const { data: archivedConversations = [], isLoading: archivedLoading } = useConversations({
+    archived: true,
+    enabled: archiveOpen,
+  });
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const strangerOpen = useChatUIStore((s) => s.strangerOpen);
@@ -102,7 +107,8 @@ export function ConversationList() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const matched = conversations.filter((conversation) => {
+    const source = archiveOpen ? archivedConversations : conversations;
+    const matched = source.filter((conversation) => {
       if (conversation.isLocked) return false;
       if (isStranger(conversation)) return false;
       // SELF conv mở qua icon "Kho của tôi" ở NavSidebar — không render trong list chính.
@@ -121,7 +127,7 @@ export function ConversationList() {
       if (Boolean(first.isPinned) !== Boolean(second.isPinned)) return first.isPinned ? -1 : 1;
       return toTimestamp(second.lastMessageAt) - toTimestamp(first.lastMessageAt);
     });
-  }, [conversations, activeTab, search, me?.id, isStranger, selfConv]);
+  }, [conversations, archivedConversations, archiveOpen, activeTab, search, me?.id, isStranger, selfConv]);
 
   type ListItem =
     | { kind: 'stranger' }
@@ -129,10 +135,13 @@ export function ConversationList() {
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
-    if (!isLoading && !search && strangerConversations.length > 0) items.push({ kind: 'stranger' });
+    if (!archiveOpen && !isLoading && !search && strangerConversations.length > 0) items.push({ kind: 'stranger' });
     for (const conv of filtered) items.push({ kind: 'conversation', conv });
     return items;
-  }, [search, isLoading, strangerConversations.length, filtered]);
+  }, [archiveOpen, search, isLoading, strangerConversations.length, filtered]);
+
+  const archiveMeta = conversations.meta?.archived;
+  const currentLoading = archiveOpen ? archivedLoading : isLoading;
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl bg-sidebar/75 backdrop-blur-md  text-sidebar-foreground shadow-subtle md:w-[300px] md:min-w-[260px] border">
@@ -188,31 +197,53 @@ export function ConversationList() {
               />
             </div>
 
-            <div className="shrink-0 border-b border-border px-3 pb-2.5 md:border-b-0 md:pb-2">
-              <Tabs
-                value={activeTab}
-                onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}
-              >
-                <TabsList size="xs" className="w-full">
-                  {TABS.map((tab) => (
-                    <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
-                      {tab.label}
-                      {tab.id === 'unread' && unreadTotal > 0 && (
-                        <Badge variant="default" size="sm">{unreadTotal}</Badge>
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            </div>
+            {archiveOpen ? (
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-3">
+                <button
+                  type="button"
+                  onClick={() => setArchiveOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Quay lại danh sách chính"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm font-semibold">Kho lưu trữ</span>
+              </div>
+            ) : (
+              <div className="shrink-0 border-b border-border px-3 pb-2.5 md:border-b-0 md:pb-2">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab((v as TabId) ?? 'all')}>
+                  <TabsList size="xs" className="w-full">
+                    {TABS.map((tab) => (
+                      <TabsTrigger key={tab.id} value={tab.id} className="flex-1 gap-1">
+                        {tab.label}
+                        {tab.id === 'unread' && unreadTotal > 0 && <Badge variant="default" size="sm">{unreadTotal}</Badge>}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-2 pb-2">
-              {isLoading && (
+              {!archiveOpen && !search && (archiveMeta?.total ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setArchiveOpen(true)}
+                  className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Archive className="h-4 w-4" />
+                  </span>
+                  <span className="flex-1">Kho lưu trữ</span>
+                  {(archiveMeta?.unread ?? 0) > 0 && <Badge size="sm">{archiveMeta?.unread}</Badge>}
+                </button>
+              )}
+              {currentLoading && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">Đang tải...</div>
               )}
-              {!isLoading && filtered.length === 0 && listItems.every((i) => i.kind !== 'conversation') && (Boolean(search) || strangerConversations.length === 0) && (
+              {!currentLoading && filtered.length === 0 && listItems.every((i) => i.kind !== 'conversation') && (archiveOpen || Boolean(search) || strangerConversations.length === 0) && (
                 <div className="px-3 py-10 text-center text-xs text-muted-foreground">
-                  {search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
+                  {archiveOpen ? 'Kho lưu trữ đang trống' : search ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện'}
                 </div>
               )}
               {listItems.map((item) => {

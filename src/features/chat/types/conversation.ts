@@ -21,6 +21,7 @@ export type Conversation = {
   // Ghim hội thoại — conv đã ghim luôn nổi lên đầu danh sách. BE sẽ trả 2 field
   // này (endpoint pin đang chờ chốt — xem chatApi.pinConversation).
   isPinned?: boolean;
+  isArchived?: boolean;
   pinnedAt?: string | null;
   isLocked?: boolean;
   /** Nền hội thoại — null = mặc định; "theme:key" = preset; "custom:{mediaId}" = ảnh tự chọn */
@@ -36,4 +37,13 @@ export type Conversation = {
   /** Public/private nhóm — đổi qua PATCH /conversations/{id}. */
   isPublic?: boolean;
   createdAt: string;
+};
+
+export type ConversationListResult = Conversation[] & {
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    archived?: { total: number; unread: number };
+  };
 };

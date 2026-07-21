@@ -9,6 +9,7 @@ import {
   Palette,
   ShieldCheck,
   SlidersHorizontal,
+  Sticker,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -24,6 +25,7 @@ import { MessagesTab } from "./tabs/MessagesTab";
 import { PrivacyTab } from "./tabs/PrivacyTab";
 import { DevicesTab } from "./tabs/DevicesTab";
 import { BackupTab } from "./tabs/BackupTab";
+import { StickersTab } from "./tabs/StickersTab";
 
 type TabId =
   | "general"
@@ -32,7 +34,8 @@ type TabId =
   | "messages"
   | "privacy"
   | "devices"
-  | "backup";
+  | "backup"
+  | "stickers";
 
 type TabDef = {
   id: TabId;
@@ -65,6 +68,12 @@ const TABS: readonly TabDef[] = [
     label: "Tin nhắn",
     icon: MessageSquare,
     Component: MessagesTab,
+  },
+  {
+    id: "stickers",
+    label: "Sticker",
+    icon: Sticker,
+    Component: StickersTab,
   },
   {
     id: "privacy",

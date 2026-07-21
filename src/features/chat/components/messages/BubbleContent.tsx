@@ -14,6 +14,7 @@ import { ContactCardContent } from "./ContactCardContent";
 import { CallMessageContent } from "./CallMessageContent";
 import { PollBubble } from "./PollBubble";
 import { BotCommandText, hasBotCommand } from "./BotCommandText";
+import type { StickerSnapshot } from '@/features/chat/types/message';
 
 const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "FILE"] as const;
 
@@ -81,6 +82,12 @@ export function BubbleContent({
   }
   if (message.type === "POLL") {
     return <PollBubble message={message} />;
+  }
+  if (message.type === 'STICKER') {
+    const value = message.metadata?.sticker;
+    if (!value || typeof value !== 'object' || !('url' in value) || typeof value.url !== 'string') return null;
+    const sticker = value as unknown as StickerSnapshot;
+    return <img src={sticker.url} alt={sticker.emoji || 'Sticker'} width={sticker.width} height={sticker.height} className="h-32 w-32 object-contain" />;
   }
   if (message.type === "CONTACT") {
     const contact = readContactCard(message);

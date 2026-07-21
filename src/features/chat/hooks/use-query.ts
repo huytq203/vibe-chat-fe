@@ -13,14 +13,17 @@ import type { Conversation, ReactionType, SharedContentType } from '@/features/c
 const MESSAGES_STALE_TIME = 2 * 60 * 60_000;
 const MESSAGES_GC_TIME = 2 * 60 * 60_000;
 
-export function useConversations(params: { page?: number; limit?: number } = {}) {
+export function useConversations(
+  params: { page?: number; limit?: number; archived?: boolean; enabled?: boolean } = {},
+) {
   const page = params.page ?? 1;
   const limit = params.limit ?? 30;
+  const archived = params.archived ?? false;
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
-    queryKey: chatKeys.conversationList({ page, limit }),
-    queryFn: () => chatApi.listConversations({ page, limit }),
-    enabled: isAuthed,
+    queryKey: chatKeys.conversationList({ page, limit, archived }),
+    queryFn: () => chatApi.listConversations({ page, limit, archived }),
+    enabled: isAuthed && (params.enabled ?? true),
     staleTime: 30_000,
   });
 }

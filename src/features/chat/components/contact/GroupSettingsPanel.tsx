@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, BadgeCheck, Ban, Globe, Link2, MessageSquare, Pencil, Pin, Shield, UserCheck, X } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Ban, Forward, Globe, Link2, MessageSquare, Pencil, Pin, Shield, UserCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { ToggleRow } from '@/features/chat/components/common/ToggleRow';
 import { OptionRow } from '@/features/chat/components/common/OptionRow';
@@ -39,6 +39,7 @@ const DEFAULT_SETTINGS: GroupSettings = {
   whoCanEditInfo: 'ADMIN',
   whoCanSend: 'ALL',
   whoCanPin: 'ADMIN',
+  protectContent: false,
   markLeaderMessages: true,
 };
 
@@ -97,6 +98,14 @@ export function GroupSettingsPanel({
                 onChange={(v) =>
                   updateConvMut.mutate({ conversationId: conversation.id, input: { isPublic: v } })
                 }
+              />
+              <ToggleRow
+                icon={<Forward className="h-4 w-4" />}
+                label="Cấm chuyển tiếp"
+                subtitle="Chặn nút chuyển tiếp; không ngăn copy thủ công hoặc chụp màn hình"
+                checked={settings.protectContent}
+                disabled={busy}
+                onChange={(value) => setFlag('protectContent', value)}
               />
               <ToggleRow
                 icon={<Link2 className="h-4 w-4" />}

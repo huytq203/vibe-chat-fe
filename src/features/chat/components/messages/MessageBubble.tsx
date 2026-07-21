@@ -221,6 +221,11 @@ function MessageBubbleImpl({
               onClick={onQuoteClick ?? (() => {})}
             />
           )}
+          {message.forwardFrom && (
+            <div className="mb-1 text-xs font-medium text-current opacity-70">
+              Chuyển tiếp từ {message.forwardFrom.displayName}
+            </div>
+          )}
           <BubbleContent
             message={message}
             isMe={isMe}

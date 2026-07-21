@@ -7,8 +7,18 @@ import type {
   SharedContentType,
 } from '@/features/chat/types';
 
+export type ForwardResult = {
+  success: { conversationId: string; message: Message }[];
+  failed: { conversationId: string; code: string; message: string }[];
+};
+
 /** Transport cho tin nhắn: liệt kê/tìm/gửi/sửa/gỡ + đọc + refresh URL attachment. */
 export const messageApi = {
+  forward: (conversationId: string, messageId: string, targetConversationIds: string[]) =>
+    apiClient.post<ForwardResult>(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/forward`,
+      { body: { targetConversationIds } },
+    ),
   listMessages: async (
     conversationId: string,
     params: { limit?: number; before?: string } = {},

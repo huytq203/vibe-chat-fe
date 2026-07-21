@@ -202,6 +202,7 @@ export function MessageInput({
 
   const actions = (
     <ComposerActions
+      conversationId={conversationId}
       disabled={disabled}
       isEditing={isEditing}
       expanded={expanded}

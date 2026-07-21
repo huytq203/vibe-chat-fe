@@ -4,6 +4,8 @@ import { memo, useState } from 'react';
 import {
   Bell,
   BellOff,
+  Archive,
+  ArchiveRestore,
   Lock,
   LockOpen,
   MoreHorizontal,
@@ -27,6 +29,7 @@ import {
   useRemoveLock,
   useTogglePinConversation,
 } from '@/features/chat/hooks/use-mutations';
+import { useArchiveConversation } from '@/features/chat/hooks/use-archive-mutations';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
 import { useSettingsStore } from '@/features/settings/stores/settings.store';
 import { LockPasswordDialog } from '@/features/chat/components/contact/PinDialog';
@@ -65,6 +68,7 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
   const lockMut = useLockConversation();
   const removeLockMut = useRemoveLock();
   const deleteMut = useDeleteConversation();
+  const archiveMut = useArchiveConversation();
   const lockPin = useSettingsStore((s) => s.lockPin);
   const markUnlocked = useConvLockStore((s) => s.markUnlocked);
 
@@ -73,6 +77,7 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
   const isMuted = Boolean(conversation.isMuted);
   const isLocked = Boolean(conversation.isLocked);
   const isDirect = conversation.type === 'DIRECT';
+  const isArchived = Boolean(conversation.isArchived);
 
   function lockWith(password: string) {
     lockMut.mutate(
@@ -123,6 +128,14 @@ function ConversationItemMenuImpl({ conversation, meId }: ConversationItemMenuPr
           >
             {isPinned ? <PinOff className="h-4 w-4 shrink-0" /> : <Pin className="h-4 w-4 shrink-0" />}
             {isPinned ? 'Bỏ ghim' : 'Ghim cuộc trò chuyện'}
+          </PopoverClose>
+
+          <PopoverClose
+            onClick={() => archiveMut.mutate({ conversationId: id, archived: !isArchived })}
+            className={itemCls}
+          >
+            {isArchived ? <ArchiveRestore className="h-4 w-4 shrink-0" /> : <Archive className="h-4 w-4 shrink-0" />}
+            {isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
           </PopoverClose>
 
           {/* Tắt thông báo: đang tắt → bỏ tắt; chưa tắt → submenu chọn thời lượng. */}

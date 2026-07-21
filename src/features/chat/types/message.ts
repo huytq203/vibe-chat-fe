@@ -61,6 +61,7 @@ export type Message = {
   myReaction?: ReactionType | null;
   contentPreview: string | null;
   metadata: Record<string, unknown> | null;
+  forwardFrom?: ForwardInfo | null;
   replyToMessageId: string | null;
   /** Danh sách @user được tag (group). BE đã filter chỉ giữ member hợp lệ. */
   mentions?: Mention[];
@@ -74,6 +75,23 @@ export type Message = {
   expireAt?: string | null;
   isView: boolean;
   createdAt: string;
+};
+
+export type ForwardInfo = {
+  senderId: string | null;
+  displayName: string;
+  conversationId: string | null;
+  originalSentAt: string;
+};
+
+export type StickerSnapshot = {
+  stickerId: string;
+  packId: string;
+  url: string;
+  width: number;
+  height: number;
+  emoji: string;
+  isAnimated: boolean;
 };
 
 /**

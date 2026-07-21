@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api/client';
 import type {
   CommonGroupsPage,
   Conversation,
+  ConversationListResult,
   GroupSettings,
   Presence,
 } from '@/features/chat/types';
@@ -18,8 +19,19 @@ export type UpdateConversationInput = {
 
 /** Transport cho hội thoại: tạo/liệt kê/xoá + ghim/mute/nền/cài đặt + presence. */
 export const conversationApi = {
-  listConversations: (params: { page: number; limit: number }) =>
-    apiClient.get<Conversation[]>('/api/v1/conversations', { query: params }),
+  listConversations: async (params: { page: number; limit: number; archived?: boolean }) => {
+    // Không gửi `archived=false`: endpoint mặc định trả danh sách đang hoạt động,
+    // đồng thời tránh các BE parser coi chuỗi query "false" là truthy.
+    const query = params.archived
+      ? { page: params.page, limit: params.limit, archived: true }
+      : { page: params.page, limit: params.limit };
+    const result = await apiClient.rawWithMeta<Conversation[]>(
+      'GET',
+      '/api/v1/conversations',
+      { query },
+    );
+    return Object.assign(result.data, { meta: result.meta }) as ConversationListResult;
+  },
 
   getConversation: (id: string) =>
     apiClient.get<Conversation>(`/api/v1/conversations/${id}`),
@@ -51,6 +63,11 @@ export const conversationApi = {
   setPin: (id: string, pinned: boolean) =>
     apiClient.patch<Conversation>(`/api/v1/conversations/${id}/pin`, {
       body: { pinned },
+    }),
+
+  setArchived: (id: string, archived: boolean) =>
+    apiClient.patch<Conversation>(`/api/v1/conversations/${id}/archive`, {
+      body: { archived },
     }),
 
   // ─── Mute thông báo (per-user) ──────────────────────────────────────────

@@ -55,7 +55,7 @@ export const chatKeys = {
   all: ['chat'] as const,
   conversations: () => [...chatKeys.all, 'conversations'] as const,
   conversationLists: () => [...chatKeys.conversations(), 'list'] as const,
-  conversationList: (params: { page: number; limit: number }) =>
+  conversationList: (params: { page: number; limit: number; archived?: boolean }) =>
     [...chatKeys.conversationLists(), params] as const,
   // Danh sách nhóm (lazy-load) cho modal Tìm kiếm & Kết bạn — InfiniteData theo page.
   groupList: () => [...chatKeys.conversations(), 'group-list'] as const,
