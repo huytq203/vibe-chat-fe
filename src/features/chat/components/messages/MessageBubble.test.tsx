@@ -29,6 +29,25 @@ function buildMessage(overrides: Partial<Message> = {}): Message {
 }
 
 describe('MessageBubble', () => {
+  it('renders the original sender label for a forwarded message', () => {
+    const { getByText } = renderWithProviders(
+      <MessageBubble
+        message={buildMessage({
+          forwardFrom: {
+            senderId: 'original-sender',
+            displayName: 'Người gửi gốc',
+            conversationId: null,
+            originalSentAt: '2026-07-09T08:00:00.000Z',
+          },
+        })}
+        meId="me"
+        showAvatar={false}
+      />,
+    );
+
+    expect(getByText('Chuyển tiếp từ Người gửi gốc')).toBeInTheDocument();
+  });
+
   it('uses uniform rounded-2xl corners for my own message (no tail cut)', () => {
     const { container } = renderWithProviders(
       <MessageBubble message={buildMessage({ senderId: 'me' })} meId="me" showAvatar={false} />,
