@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/button/Button';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
-import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { useAiConversation } from '@/features/chat/hooks/useAiConversation';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
-import { callGemini } from '@/lib/gemini';
 import { AiHistoryPanel } from './AiHistoryPanel';
 import { AiMessageList } from './AiMessageList';
 import { AiChatInput } from './AiChatInput';
@@ -22,12 +21,9 @@ export function AiChatWindow() {
   const setPosition = useAiWindowStore((s) => s.setPosition);
 
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession } =
-    useAiSessions();
+  const { sessions, activeSession, activeId, setActiveId, deleteSession, actions } = useAiSessions();
   const messages = activeSession?.messages ?? [];
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
@@ -35,6 +31,12 @@ export function AiChatWindow() {
 
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
+
+  const { loading, streaming, send, resend, regenerate, stop, recall, discard } = useAiConversation({
+    session: activeSession,
+    actions,
+    onSettled: focusInput,
+  });
 
   const nodeRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,48 +46,23 @@ export function AiChatWindow() {
   function handleNewChat() {
     setActiveId(null);
     setInput('');
-    setError(null);
     clearAttachments();
     setShowHistory(false);
   }
 
   async function handleSend() {
-    const trimmed = input.trim();
-    if ((!trimmed && attachments.length === 0) || loading) return;
-
-    let sid = activeId;
-    if (!sid) sid = createSession();
-
-    const currentMessages = sessions.find((s) => s.id === sid)?.messages ?? [];
-    const capturedAttachments = attachments;
-
-    const userMsg: AiMessage = {
-      role: 'user',
-      content: trimmed,
-      attachments: capturedAttachments.map(({ name, mimeType, size, previewUrl }) => ({
-        name,
-        mimeType,
-        size,
-        previewUrl,
-      })),
-    };
-    const nextMessages = [...currentMessages, userMsg];
-
-    pushMessage(sid, userMsg);
+    const captured = attachments;
+    if (loading || (!input.trim() && captured.length === 0)) return;
+    const text = input;
     setInput('');
     clearAttachments();
-    setLoading(true);
-    setError(null);
+    await send(text, captured);
+  }
 
-    try {
-      const content = await callGemini(nextMessages, capturedAttachments);
-      pushMessage(sid, { role: 'assistant', content });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gửi tin nhắn thất bại');
-    } finally {
-      setLoading(false);
-      focusInput();
-    }
+  /** "Sửa": gỡ tin lỗi, đổ nguyên văn về ô nhập để chỉnh rồi gửi lại. */
+  function handleEdit(index: number) {
+    setInput(recall(index));
+    focusInput();
   }
 
   if (!isOpen || typeof document === 'undefined') return null;
@@ -142,7 +119,15 @@ export function AiChatWindow() {
         />
       ) : (
         <>
-          <AiMessageList messages={messages} loading={loading} error={error} />
+          <AiMessageList
+            messages={messages}
+            loading={loading}
+            streaming={streaming}
+            onRegenerate={regenerate}
+            onResend={resend}
+            onEdit={handleEdit}
+            onDiscard={discard}
+          />
           <AiChatInput
             input={input}
             loading={loading}
@@ -153,6 +138,7 @@ export function AiChatWindow() {
             onResize={resize}
             onKeyDown={handleTextareaKeyDown}
             onSend={() => void handleSend()}
+            onStop={stop}
             onAddFiles={addFiles}
             onRemoveAttachment={removeAttachment}
           />

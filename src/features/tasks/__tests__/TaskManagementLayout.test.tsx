@@ -8,15 +8,13 @@ describe('TaskManagementLayout', () => {
     useTasksUIStore.setState({ activeView: 'home', selectedProjectId: null });
   });
 
-  it('mặc định hiển thị Trang chủ, dock mở qua nút home ảo', () => {
+  it('mặc định hiển thị Trang chủ trong thanh điều hướng ổn định', () => {
     renderWithProviders(<TaskManagementLayout />);
-    fireEvent.click(screen.getByRole('button', { name: 'Mở thanh điều hướng' }));
-    expect(screen.getByRole('button', { name: 'Trang chủ' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trang chủ' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('bấm Báo cáo chuyển sang ReportsView', () => {
     renderWithProviders(<TaskManagementLayout />);
-    fireEvent.click(screen.getByRole('button', { name: 'Mở thanh điều hướng' }));
     fireEvent.click(screen.getByRole('button', { name: 'Báo cáo' }));
     expect(useTasksUIStore.getState().activeView).toBe('reports');
   });

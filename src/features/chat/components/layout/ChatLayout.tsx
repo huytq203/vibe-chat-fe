@@ -60,9 +60,9 @@ export function ChatLayout() {
           backgroundPosition: 'center',
         };
 
-  // Nền Store luôn dùng ảnh mặc định theo theme — không có khái niệm wallpaper
+  // Store và AI luôn dùng ảnh nền mặc định theo theme — không có khái niệm wallpaper
   // riêng theo hội thoại như bên chat.
-  const storeBackgroundStyle: CSSProperties = {
+  const defaultBackgroundStyle: CSSProperties = {
     backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url(${getDefaultBackgroundImage(currentTheme)})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
@@ -114,6 +114,30 @@ export function ChatLayout() {
     );
   }
 
+  // Mobile không có NavSidebar; khu vực AI tự xử lý điều hướng danh sách ↔ hội thoại.
+  if (isMobile && activeSection === 'ai-full') {
+    return (
+      <div
+        style={defaultBackgroundStyle}
+        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3"
+      >
+        <AiChatPage />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (isMobile && activeSection === 'tasks') {
+    return (
+      <div className="flex h-full w-full overflow-hidden bg-background p-2">
+        <TaskManagementLayout />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
   if (isMobile) {
     return (
       <div
@@ -134,7 +158,7 @@ export function ChatLayout() {
 
   if (activeSection === 'ai-full') {
     return (
-      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
+      <div style={defaultBackgroundStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <AiChatPage />
         <CallContainer />
@@ -145,7 +169,7 @@ export function ChatLayout() {
 
   if (activeSection === 'tasks') {
     return (
-      <div className="flex h-full w-full gap-3 overflow-hidden p-3">
+      <div className="flex h-full w-full gap-3 overflow-hidden bg-background p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
         <CallContainer />
@@ -157,7 +181,7 @@ export function ChatLayout() {
 
   if (activeSection === 'store') {
     return (
-      <div style={storeBackgroundStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
+      <div style={defaultBackgroundStyle} className="flex h-full w-full gap-3 overflow-hidden p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <MyStoreLayout />
         <CallContainer />

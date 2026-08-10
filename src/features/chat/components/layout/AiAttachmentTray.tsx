@@ -2,7 +2,7 @@
 
 import { X, FileText, FileJson, File } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import type { AiAttachment } from '@/lib/gemini';
+import type { AiAttachment } from '@/features/chat/types/ai-attachment';
 
 interface AiAttachmentTrayProps {
   attachments: AiAttachment[];

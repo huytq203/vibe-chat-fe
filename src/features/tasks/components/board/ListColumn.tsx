@@ -44,7 +44,7 @@ function TaskRow({
     <button
       type="button"
       onClick={() => openTask(task.id)}
-      className="flex w-full items-center gap-3 border-t border-border px-[18px] py-3.5 text-left transition-colors hover:bg-muted/60"
+      className="flex w-full items-start gap-3 border-t border-border px-4 py-3 text-left transition-colors hover:bg-muted/60"
     >
       <span
         className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -60,28 +60,29 @@ function TaskRow({
         {task.title}
       </span>
 
-      {isInReview && (
-        <span className="flex shrink-0 items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
-          <Clock className="h-3 w-3" />
-          Chờ duyệt
-        </span>
-      )}
+      <span className="flex max-w-[58%] shrink-0 flex-wrap items-center justify-end gap-1.5">
+        {isInReview && (
+          <span className="flex shrink-0 items-center gap-1 rounded-md bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            <Clock className="h-3 w-3" />
+            Chờ duyệt
+          </span>
+        )}
 
-      {priority && (
-        <span
-          className={cn(
-            'shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold',
-            priority.bg,
-            priority.text,
-          )}
-        >
-          {priority.label}
-        </span>
-      )}
+        {priority && (
+          <span
+            className={cn(
+              'shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold',
+              priority.bg,
+              priority.text,
+            )}
+          >
+            {priority.label}
+          </span>
+        )}
 
-      {task.tags.length > 0 && (
-        <span className="flex shrink-0 gap-1.5">
-          {task.tags.map((tag) => (
+        {task.tags.length > 0 && (
+          <span className="hidden shrink-0 gap-1.5 sm:flex">
+            {task.tags.slice(0, 2).map((tag) => (
             <span
               key={tag.id}
               className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white"
@@ -89,35 +90,41 @@ function TaskRow({
             >
               {tag.name}
             </span>
-          ))}
-        </span>
-      )}
+            ))}
+            {task.tags.length > 2 && (
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                +{task.tags.length - 2}
+              </span>
+            )}
+          </span>
+        )}
 
-      {task.checklistCount > 0 && (
-        <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-muted-foreground">
-          <CheckSquare className="h-3.5 w-3.5" />
-          {task.checklistCount}
-        </span>
-      )}
+        {task.checklistCount > 0 && (
+          <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-muted-foreground">
+            <CheckSquare className="h-3.5 w-3.5" />
+            {task.checklistCount}
+          </span>
+        )}
 
-      {due && (
-        <span
-          className={cn(
-            'shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11.5px] font-semibold',
-            due.isPast ? 'text-red-500' : 'text-muted-foreground',
-          )}
-        >
-          {due.label}
-        </span>
-      )}
+        {due && (
+          <span
+            className={cn(
+              'shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11.5px] font-semibold',
+              due.isPast ? 'text-red-500' : 'text-muted-foreground',
+            )}
+          >
+            {due.label}
+          </span>
+        )}
 
-      {assignees.length > 0 && (
-        <span className="flex shrink-0 -space-x-1.5">
-          {assignees.map((a) => (
-            <AssigneeAvatar key={a.userId} displayName={a.displayName} avatarUrl={a.avatarUrl} />
-          ))}
-        </span>
-      )}
+        {assignees.length > 0 && (
+          <span className="flex shrink-0 -space-x-1.5">
+            {assignees.map((a) => (
+              <AssigneeAvatar key={a.userId} displayName={a.displayName} avatarUrl={a.avatarUrl} />
+            ))}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -166,15 +173,15 @@ export function ListColumn({ projectId, column }: ListColumnProps) {
   };
 
   return (
-    <div className="mb-4 overflow-hidden rounded-[14px] border border-border bg-secondary shadow-[0_2px_12px_rgba(80,60,160,0.05)]">
+    <div className="mb-4 overflow-hidden rounded-xl border border-border bg-background">
       <div
-        className="flex items-center justify-between gap-2 px-[18px] py-3"
-        style={{ backgroundColor: headerColor }}
+        className="flex items-center justify-between gap-2 border-t-[3px] px-4 py-2.5"
+        style={{ borderTopColor: headerColor }}
       >
         <div className="flex min-w-0 items-center gap-2">
-          <HeaderIcon className="h-[17px] w-[17px] shrink-0 text-white" />
-          <span className="truncate text-[14.5px] font-bold text-white">{column.name}</span>
-          <span className="shrink-0 rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold text-white">
+          <HeaderIcon className="h-4 w-4 shrink-0" style={{ color: headerColor }} />
+          <span className="truncate text-sm font-bold text-foreground">{column.name}</span>
+          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
             {column.tasks.length}
           </span>
         </div>

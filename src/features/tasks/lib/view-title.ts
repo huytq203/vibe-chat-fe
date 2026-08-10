@@ -1,7 +1,7 @@
 import type { ActiveView } from '../stores/tasks-ui.store';
 import type { Project } from '../types';
 
-function greeting(): string {
+export function getGreeting(): string {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return 'Chào buổi sáng';
   if (h >= 12 && h < 18) return 'Chào buổi chiều';
@@ -14,7 +14,7 @@ export function getViewTitle(
 ): { title: string; sub: string } {
   switch (activeView) {
     case 'home':
-      return { title: 'Trang chủ', sub: greeting() };
+      return { title: 'Trang chủ', sub: 'Tổng quan công việc của bạn' };
     case 'projects':
       return { title: 'Dự án', sub: 'Tổng quan tất cả dự án' };
     case 'reports':

@@ -78,7 +78,7 @@ export function ProjectList({
 
   if (isError) {
     return (
-      <div className="rounded-2xl bg-muted/30 px-6 py-12 text-center">
+      <div className="rounded-2xl border border-border bg-background px-6 py-12 text-center">
         <Text size="sm" color="muted">Không tải được danh sách dự án.</Text>
       </div>
     );
@@ -86,7 +86,7 @@ export function ProjectList({
 
   if (isLoading) {
     return (
-      <div role="status" aria-label="Đang tải danh sách dự án" className="rounded-2xl bg-muted/30 p-2">
+      <div role="status" aria-label="Đang tải danh sách dự án" className="rounded-2xl border border-border bg-background p-2 shadow-micro">
         <ListHeader />
         <div className="space-y-1">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -108,7 +108,7 @@ export function ProjectList({
 
   if (projects.length === 0) {
     return (
-      <div className="rounded-2xl bg-muted/30 px-6 py-16 text-center">
+      <div className="rounded-2xl border border-border bg-background px-6 py-16 text-center">
         <Text size="sm" color="muted">
           {isSearching
             ? 'Không tìm thấy dự án khớp từ khoá.'
@@ -119,7 +119,7 @@ export function ProjectList({
   }
 
   return (
-    <div className="rounded-2xl bg-muted/30 p-2">
+    <div className="rounded-2xl border border-border bg-background p-2 shadow-micro">
       <ListHeader />
       <div ref={scrollRef} className={`${SCROLL_MAX_H} space-y-1 overflow-y-auto`}>
         {projects.map((p) => (

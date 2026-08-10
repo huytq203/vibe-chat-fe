@@ -3,10 +3,11 @@ import { renderWithProviders, screen } from '@/test/test-utils';
 import { ReportsView } from '../components/reports/ReportsView';
 
 describe('ReportsView', () => {
-  it('hiển thị header + trạng thái đang tải khi chưa có số liệu', () => {
+  // Tiêu đề "Báo cáo" giờ nằm ở AppHeader (chrome dùng chung), không lặp trong view.
+  it('hiển thị trạng thái đang tải khi chưa có số liệu', () => {
     // Không mock API → overview query pending → view hiện loading state
     renderWithProviders(<ReportsView />);
-    expect(screen.getByText('Báo cáo')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /đang tải số liệu báo cáo/i })).toBeInTheDocument();
     expect(screen.getByText(/đang tải số liệu báo cáo/i)).toBeInTheDocument();
   });
 

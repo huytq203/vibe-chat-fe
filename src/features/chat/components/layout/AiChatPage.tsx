@@ -1,45 +1,54 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
 import { AiSessionList } from './AiSessionList';
 import { AiChatMain } from './AiChatMain';
 
 export function AiChatPage() {
+  const isMobile = useIsMobile();
   const { goToSection } = useSectionNav();
-  const {
-    sessions,
-    activeSession,
-    activeId,
-    setActiveId,
-    createSession,
-    pushMessage,
-    deleteSession,
-  } = useAiSessions({ routed: true });
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const { sessions, activeSession, activeId, setActiveId, deleteSession, actions } = useAiSessions({
+    routed: true,
+  });
 
-  // Vào /ai trống mà đã có session → chọn session gần nhất (giống auto-chọn hội thoại ở chat).
+  // Desktop: vào /ai trống mà đã có session → mở session gần nhất (giống auto-chọn hội thoại
+  // ở chat). Mobile chỉ có một cột nên giữ nguyên màn danh sách để người dùng tự chọn.
   useEffect(() => {
-    if (activeId) return;
+    if (isMobile || activeId) return;
     const first = sessions[0];
     if (first) setActiveId(first.id);
-  }, [activeId, sessions, setActiveId]);
+  }, [isMobile, activeId, sessions, setActiveId]);
+
+  const showHistory = isMobile ? !activeId : historyOpen;
+  const showConversation = !isMobile || Boolean(activeId);
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      <AiSessionList
-        sessions={sessions}
-        activeId={activeId}
-        onSelect={setActiveId}
-        onCreate={createSession}
-        onDelete={deleteSession}
-      />
-      <AiChatMain
-        session={activeSession}
-        onPushMessage={pushMessage}
-        onBack={() => goToSection('chat')}
-        onCreateSession={createSession}
-      />
+    <div className="flex min-h-0 min-w-0 flex-1 gap-3 overflow-hidden">
+      {showHistory && (
+        <AiSessionList
+          sessions={sessions}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onCreate={actions.createSession}
+          onDelete={deleteSession}
+          onCollapse={isMobile ? undefined : () => setHistoryOpen(false)}
+          onBack={isMobile ? () => goToSection('chat') : undefined}
+        />
+      )}
+
+      {showConversation && (
+        <AiChatMain
+          session={activeSession}
+          actions={actions}
+          onDeleteSession={deleteSession}
+          onBack={isMobile ? () => setActiveId(null) : undefined}
+          onExpandSidebar={!isMobile && !historyOpen ? () => setHistoryOpen(true) : undefined}
+        />
+      )}
     </div>
   );
 }

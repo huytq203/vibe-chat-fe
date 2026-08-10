@@ -8,9 +8,9 @@ import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardTask } from '../../types';
 
 export const PRIORITY_CONFIG = {
-  P1: { bg: 'bg-red-50', text: 'text-red-600', dot: '#EF4444', label: 'Ưu tiên cao' },
-  P2: { bg: 'bg-orange-50', text: 'text-orange-600', dot: '#F97316', label: 'Ưu tiên trung bình' },
-  P3: { bg: 'bg-green-50', text: 'text-green-600', dot: '#22C55E', label: 'Ưu tiên thấp' },
+  P1: { bg: 'bg-danger/10', text: 'text-foreground', dot: '#EF4444', label: 'Ưu tiên cao' },
+  P2: { bg: 'bg-warning/15', text: 'text-foreground', dot: '#F97316', label: 'Ưu tiên trung bình' },
+  P3: { bg: 'bg-success/10', text: 'text-foreground', dot: '#22C55E', label: 'Ưu tiên thấp' },
 } as const;
 
 export function formatDueDate(dateStr: string): { label: string; isPast: boolean } {
@@ -66,40 +66,57 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
       <div
         ref={ref}
         className={cn(
-          'bg-secondary rounded-[15px] border border-border shadow-[0_1px_3px_rgba(80,60,160,0.08)] p-3',
+          'rounded-xl border border-border bg-background p-3 transition-colors hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           className,
         )}
         {...rest}
       >
-        {priorityConfig && (
-          <div
+        <div className="mb-2.5 flex items-start gap-1.5">
+          {task.isPinned && <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />}
+          {isDone && <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />}
+          <span
             className={cn(
-              'flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 mb-2 w-fit',
-              priorityConfig.bg,
-              priorityConfig.text,
+              'text-sm font-semibold leading-snug',
+              isDone ? 'text-muted-foreground line-through' : 'text-foreground',
             )}
           >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: priorityConfig.dot }}
-            />
-            {priorityConfig.label}
-          </div>
-        )}
+            {task.title}
+          </span>
+        </div>
 
-        {isInReview && (
-          <div className="flex items-center gap-1 text-[11px] font-semibold rounded-full bg-amber-500/15 text-amber-500 px-2 py-0.5 mb-2 w-fit">
-            <Clock className="h-3 w-3" />
-            Chờ duyệt
+        {(priorityConfig || isInReview) && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {priorityConfig && (
+              <div
+                className={cn(
+                  'flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                  priorityConfig.bg,
+                  priorityConfig.text,
+                )}
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: priorityConfig.dot }}
+                />
+                {priorityConfig.label}
+              </div>
+            )}
+
+            {isInReview && (
+              <div className="flex w-fit items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <Clock className="h-3 w-3" />
+                Chờ duyệt
+              </div>
+            )}
           </div>
         )}
 
         {task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="mb-2 flex flex-wrap gap-1">
             {task.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="text-[11px] rounded-full px-2 py-0.5 font-medium text-white"
+                className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
                 style={{ backgroundColor: tag.color }}
               >
                 {tag.name}
@@ -107,19 +124,6 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
             ))}
           </div>
         )}
-
-        <div className="flex items-start gap-1.5 mb-3">
-          {task.isPinned && <Pin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
-          {isDone && <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />}
-          <span
-            className={cn(
-              'text-[14.5px] font-semibold leading-snug',
-              isDone ? 'line-through text-muted-foreground' : 'text-foreground',
-            )}
-          >
-            {task.title}
-          </span>
-        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

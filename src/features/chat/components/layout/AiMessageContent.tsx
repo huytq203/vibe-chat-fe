@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeHighlight from 'rehype-highlight';
 import { ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
+import { linkifyBotCommands } from '@/features/chat/components/messages/BotCommandText';
 import { cn } from '@/lib/utils/cn';
 
 interface ImageAction {
@@ -90,6 +91,13 @@ function ImageActionCard({ prompt, thought }: ImageActionCardProps) {
 
 interface AiMessageContentProps {
   content: string;
+  /** Ghi đè cỡ chữ/line-height — trang /ai đọc dài nên dùng thân chữ lớn hơn cửa sổ nổi. */
+  className?: string;
+  /**
+   * Hội thoại có bot: slash command trong nội dung Markdown thành chip dán vào ô nhập.
+   * Bỏ trống (chat AI, tin thường) → command giữ nguyên là chữ.
+   */
+  commandConversationId?: string;
 }
 
 const FENCE_RE = /^\s*```/;
@@ -153,16 +161,27 @@ export function normalizeAiMarkdownContent(content: string): string {
   return output.join('\n');
 }
 
-export function AiMessageContent({ content }: AiMessageContentProps) {
+export function AiMessageContent({
+  content,
+  className,
+  commandConversationId,
+}: AiMessageContentProps) {
   const imageAction = parseImageAction(content);
   if (imageAction) {
     return <ImageActionCard prompt={imageAction.prompt} thought={imageAction.thought} />;
   }
 
   const normalizedContent = normalizeAiMarkdownContent(content);
+  const cmd = (children: ReactNode): ReactNode =>
+    commandConversationId ? linkifyBotCommands(children, commandConversationId) : children;
 
   return (
-    <div className="min-w-0 max-w-full break-words text-[13.5px] leading-relaxed text-current">
+    <div
+      className={cn(
+        'min-w-0 max-w-full break-words text-[13.5px] leading-relaxed text-current',
+        className,
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeHighlight]}
@@ -190,7 +209,7 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
             </code>
           ),
           p: ({ children }) => (
-            <p className="mb-2 text-pretty last:mb-0">{children}</p>
+            <p className="mb-2 text-pretty last:mb-0">{cmd(children)}</p>
           ),
           ul: ({ children }) => (
             <ul className="mb-2 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>
@@ -198,22 +217,22 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
           ol: ({ children }) => (
             <ol className="mb-2 ml-5 list-decimal space-y-1 last:mb-0">{children}</ol>
           ),
-          li: ({ children }) => <li>{children}</li>,
+          li: ({ children }) => <li>{cmd(children)}</li>,
           h1: ({ children }) => (
-            <h1 className="mb-2 text-base font-semibold leading-snug text-balance">{children}</h1>
+            <h1 className="mb-2 text-base font-semibold leading-snug text-balance">{cmd(children)}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="mb-2 text-[14px] font-semibold leading-snug text-balance">{children}</h2>
+            <h2 className="mb-2 text-[14px] font-semibold leading-snug text-balance">{cmd(children)}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="mb-1.5 text-[13.5px] font-semibold leading-snug text-balance">{children}</h3>
+            <h3 className="mb-1.5 text-[13.5px] font-semibold leading-snug text-balance">{cmd(children)}</h3>
           ),
           strong: ({ children }) => (
-            <strong className="font-semibold text-current">{children}</strong>
+            <strong className="font-semibold text-current">{cmd(children)}</strong>
           ),
           blockquote: ({ children }) => (
             <blockquote className="my-2 rounded-xl border border-border/70 bg-background/45 px-3 py-2 text-muted-foreground">
-              {children}
+              {cmd(children)}
             </blockquote>
           ),
           a: ({ children, href }) => (
@@ -240,7 +259,7 @@ export function AiMessageContent({ content }: AiMessageContentProps) {
           ),
           td: ({ children }) => (
             <td className="border-b border-r border-border/60 px-2 py-1.5 align-top last:border-r-0">
-              {children}
+              {cmd(children)}
             </td>
           ),
         }}

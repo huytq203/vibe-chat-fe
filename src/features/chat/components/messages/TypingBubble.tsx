@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/features/chat/components/common/Avatar';
+import { TypingDots } from '@/features/chat/components/common/TypingDots';
 
 type TypingBubbleProps = {
   showAvatar: boolean;
@@ -23,19 +23,8 @@ export function TypingBubble({ showAvatar, senderName, senderAvatarUrl }: Typing
         )}
       </div>
       <div className="max-w-[65%]">
-        <div
-          className={cn(
-            'relative rounded-2xl rounded-bl-md border border-border bg-muted px-3.5 py-2.5',
-            'text-foreground',
-          )}
-          aria-label="Đang nhập"
-        >
-          <div className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 animate-typing-dot rounded-full bg-muted-foreground [animation-delay:0ms]" />
-            <span className="h-1.5 w-1.5 animate-typing-dot rounded-full bg-muted-foreground [animation-delay:150ms]" />
-            <span className="h-1.5 w-1.5 animate-typing-dot rounded-full bg-muted-foreground [animation-delay:300ms]" />
-            <span className="ml-1 text-[11px] text-muted-foreground">đang nhập…</span>
-          </div>
+        <div className="relative rounded-2xl rounded-bl-md border border-border bg-muted px-3.5 py-2.5 text-muted-foreground">
+          <TypingDots />
         </div>
       </div>
     </div>

@@ -77,7 +77,14 @@ export function BubbleContent({
     const textClass =
       "block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed";
     if (renderMarkdown || shouldRenderAssistantMarkdown(body, isMe)) {
-      return <AiMessageContent content={body} />;
+      // Nhánh Markdown chạy trước nhánh BotCommandText bên dưới, nên nếu không
+      // truyền id hội thoại thì mọi slash command trong tin bot sẽ mất khả năng bấm.
+      return (
+        <AiMessageContent
+          content={body}
+          commandConversationId={enableBotCommands ? message.conversationId : undefined}
+        />
+      );
     }
     const richText = getRichText(message.metadata);
     if (richText) {

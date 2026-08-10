@@ -28,9 +28,9 @@ export function ProjectSwitcher({ selectedProjectId, selectedName }: ProjectSwit
         <button
           type="button"
           aria-label="Chuyển dự án"
-          className="-mx-1 flex min-w-0 items-center gap-2 rounded-lg px-1 hover:bg-muted"
+          className="-mx-1 flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-0.5 hover:bg-muted"
         >
-          <h1 className="truncate text-2xl font-bold leading-tight text-foreground">{selectedName}</h1>
+          <h1 className="truncate text-xl font-bold leading-tight text-foreground sm:text-2xl">{selectedName}</h1>
           <ChevronDown
             className={cn('h-5 w-5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
           />

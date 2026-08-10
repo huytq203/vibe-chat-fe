@@ -1,2 +1,3 @@
 export { ReportsView } from './ReportsView';
-export { StatCard } from './StatCard';
+export { ReportsOverview } from './ReportsOverview';
+export { LeaderboardPanel } from './LeaderboardPanel';

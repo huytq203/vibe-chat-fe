@@ -15,8 +15,8 @@ export function ListView({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto bg-muted px-7 py-2 pb-7">
-      <div className="mx-auto max-w-[940px] pt-2">
+    <div className="min-h-0 flex-1 overflow-auto bg-muted/50 px-4 pb-5 pt-4 sm:px-5">
+      <div className="mx-auto max-w-[940px]">
         {board.columns.map((column) => (
           <ListColumn key={column.id} projectId={projectId} column={column} />
         ))}
