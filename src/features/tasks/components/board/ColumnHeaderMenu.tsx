@@ -65,7 +65,7 @@ export function ColumnHeaderMenu({
         <PopoverTrigger>
           <button
             type="button"
-            className="p-0.5 text-white opacity-80 hover:opacity-100"
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Tùy chọn cột"
           >
             <MoreHorizontal className="h-4 w-4" />

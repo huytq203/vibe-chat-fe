@@ -148,7 +148,7 @@ export function TaskDetailHeader({
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border py-0 pl-5 pr-12">
+      <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 overflow-y-auto border-b border-border py-2 pl-4 pr-12 sm:gap-3 sm:pl-5">
         {/* Workflow: hoàn thành / duyệt / lưu trữ — hook ghi thẳng status trả về nên UI phản hồi ngay */}
         {task.status === "OPEN" && isAssigned && (
           <button

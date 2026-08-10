@@ -1,10 +1,12 @@
 'use client';
 
-import { Archive, Bot, MessageSquare, SquareKanban } from 'lucide-react';
+import { useState } from 'react';
+import { Archive, Bot, MessageSquare, Settings, SquareKanban } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { NavSection } from '@/features/chat/stores/chat-ui.store';
 import { useNavUnread } from '@/features/chat/hooks/useNavUnread';
 import { useTaskActivityNotifications } from '@/features/tasks/hooks/useTaskActivityNotifications';
+import { SettingsModal } from '@/features/settings';
 
 type Props = {
   activeSection: NavSection;
@@ -38,34 +40,52 @@ function UnreadBadge({ count }: { count: number }) {
 export function NavSidebar({ activeSection, onSectionChange }: Props) {
   const { total: unreadTotal } = useNavUnread();
   const { unreadCount: taskUnreadCount } = useTaskActivityNotifications();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl bg-sidebar py-3 shadow-subtle border">
-      {/* Main navigation icons */}
-      <div className="flex flex-col items-center gap-1">
-        {NAV_ITEMS.map(({ section, icon, label }) => {
-          const isActive = activeSection === section;
-          return (
-          <button
-            key={section}
-            type="button"
-            title={label}
-            aria-label={label}
-            onClick={() => onSectionChange(section)}
-            className={cn(
-              ITEM_CLASS,
-              isActive
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
-            {icon}
-            {section === 'chat' && <UnreadBadge count={unreadTotal} />}
-            {section === 'tasks' && <UnreadBadge count={taskUnreadCount} />}
-          </button>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border bg-sidebar py-3 shadow-subtle">
+        {/* Main navigation icons */}
+        <div className="flex flex-col items-center gap-1">
+          {NAV_ITEMS.map(({ section, icon, label }) => {
+            const isActive = activeSection === section;
+            return (
+              <button
+                key={section}
+                type="button"
+                title={label}
+                aria-label={label}
+                onClick={() => onSectionChange(section)}
+                className={cn(
+                  ITEM_CLASS,
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {icon}
+                {section === 'chat' && <UnreadBadge count={unreadTotal} />}
+                {section === 'tasks' && <UnreadBadge count={taskUnreadCount} />}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          title="Cài đặt"
+          aria-label="Cài đặt"
+          onClick={() => setSettingsOpen(true)}
+          className={cn(
+            ITEM_CLASS,
+            'mt-auto text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </nav>
+
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 }

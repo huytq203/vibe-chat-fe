@@ -2,56 +2,59 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDown, Bot, FileText, FileJson, File } from 'lucide-react';
+import { AlertCircle, ArrowDown, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
-import type { AiMessage, AiAttachmentMeta } from '@/features/chat/hooks/useAiSessions';
-import { AiMessageContent } from './AiMessageContent';
+import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { AiMessageRow, type AiMessageVariant } from './AiMessageRow';
 
 interface AiMessageListProps {
   messages: AiMessage[];
   loading: boolean;
   error: string | null;
+  variant?: AiMessageVariant;
+  /** Trang /ai: chạy lại câu trả lời cuối. */
+  onRegenerate?: () => void;
 }
 
-function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
-  if (attachment.mimeType.startsWith('image/')) {
-    if (attachment.previewUrl) {
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={attachment.previewUrl}
-          alt={attachment.name}
-          className="max-w-[200px] rounded-lg"
-        />
-      );
-    }
-    return <span className="text-[11px] opacity-60">[🖼 {attachment.name}]</span>;
-  }
-
-  const Icon =
-    attachment.mimeType === 'application/json'
-      ? FileJson
-      : attachment.mimeType.startsWith('text/')
-        ? FileText
-        : File;
-
+function ThinkingIndicator({ variant }: { variant: AiMessageVariant }) {
+  const dot = 'h-1.5 w-1.5 rounded-full bg-current animate-pulse';
   return (
-    <div className="flex items-center gap-1.5 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-2 py-0.5 text-[11px]">
-      <Icon className="h-3 w-3" />
-      <span className="max-w-[140px] truncate">{attachment.name}</span>
+    <div className={cn('flex justify-start', variant === 'page' && 'pl-9')}>
+      <div
+        className={cn(
+          'flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-[12.5px]',
+          variant === 'page'
+            ? 'rounded-tl-md border bg-sidebar/85 text-muted-foreground shadow-subtle backdrop-blur-md'
+            : 'bg-muted text-muted-foreground',
+        )}
+      >
+        <span className="flex items-center gap-1">
+          <span className={dot} />
+          <span className={cn(dot, '[animation-delay:180ms]')} />
+          <span className={cn(dot, '[animation-delay:360ms]')} />
+        </span>
+        Halo AI đang soạn câu trả lời
+      </div>
     </div>
   );
 }
 
-export function AiMessageList({ messages, loading, error }: AiMessageListProps) {
+export function AiMessageList({
+  messages,
+  loading,
+  error,
+  variant = 'window',
+  onRegenerate,
+}: AiMessageListProps) {
+  const isPage = variant === 'page';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 72,
+    estimateSize: () => (isPage ? 96 : 72),
     overscan: 5,
     measureElement:
       typeof window !== 'undefined' && navigator.userAgent.indexOf('Firefox') === -1
@@ -67,8 +70,7 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
   function handleScroll() {
     const el = scrollRef.current;
     if (!el) return;
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowScrollBtn(distFromBottom > 120);
+    setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
   }
 
   function scrollToBottom() {
@@ -76,114 +78,83 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
     setShowScrollBtn(false);
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
+  const lastIndex = messages.length - 1;
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="relative min-h-0 flex-1 overflow-hidden">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-3"
+        className={cn('h-full overflow-y-auto', isPage ? 'px-1 py-2' : 'px-4 py-3')}
       >
-        {messages.length === 0 && !loading && (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <Bot className="h-10 w-10 text-muted-foreground/40" />
-            <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
-          </div>
-        )}
-
-        <div
-          style={{
-            height: virtualizer.getTotalSize(),
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualItems.map((virtualItem) => {
-            const msg = messages[virtualItem.index];
-            if (!msg) return null;
-
-            const prev = messages[virtualItem.index - 1];
-            const next = messages[virtualItem.index + 1];
-            const groupedWithPrev = prev?.role === msg.role;
-            const groupedWithNext = next?.role === msg.role;
-
-            const bubbleRadius = cn(
-              'rounded-2xl',
-              msg.role === 'user'
-                ? groupedWithPrev && groupedWithNext
-                  ? 'rounded-r-sm'
-                  : groupedWithPrev
-                    ? 'rounded-tr-sm'
-                    : groupedWithNext
-                      ? 'rounded-br-sm'
-                      : ''
-                : groupedWithPrev && groupedWithNext
-                  ? 'rounded-l-sm'
-                  : groupedWithPrev
-                    ? 'rounded-tl-sm'
-                    : groupedWithNext
-                      ? 'rounded-bl-sm'
-                      : '',
-            );
-
-            return (
-              <div
-                key={virtualItem.key}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualItem.start}px)`,
-                  paddingBottom: groupedWithNext ? '2px' : '10px',
-                }}
-              >
-                <div className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  <div
-                    className={cn(
-                      'max-w-[75%] px-3 py-2 text-[13px] leading-relaxed',
-                      bubbleRadius,
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                      : 'bg-accent text-foreground',
-                    )}
-                  >
-                    {msg.role === 'user' ? (
-                      <div className="flex flex-col gap-1.5">
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="flex flex-col gap-1">
-                            {msg.attachments.map((a, i) => (
-                              <AttachmentDisplay key={i} attachment={a} />
-                            ))}
-                          </div>
-                        )}
-                        {msg.content && (
-                          <span className="whitespace-pre-wrap break-words">{msg.content}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <AiMessageContent content={msg.content} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {loading && (
-          <div className="flex justify-start pt-1">
-            <div className="rounded-2xl bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-              <span className="animate-pulse">Đang trả lời...</span>
+        <div className={cn(isPage && 'mx-auto w-full max-w-[680px]')}>
+          {messages.length === 0 && !loading && !isPage && (
+            <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center">
+              <Bot className="h-10 w-10 text-muted-foreground/40" />
+              <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
             </div>
+          )}
+
+          <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const message = messages[virtualItem.index];
+              if (!message) return null;
+
+              const groupedWithPrev = messages[virtualItem.index - 1]?.role === message.role;
+              const groupedWithNext = messages[virtualItem.index + 1]?.role === message.role;
+              const isLastAssistant =
+                isPage && virtualItem.index === lastIndex && message.role === 'assistant';
+
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                    paddingBottom: groupedWithNext ? (isPage ? '8px' : '2px') : isPage ? '20px' : '10px',
+                  }}
+                >
+                  <AiMessageRow
+                    message={message}
+                    groupedWithPrev={groupedWithPrev}
+                    groupedWithNext={groupedWithNext}
+                    variant={variant}
+                    onRegenerate={isLastAssistant && !loading ? onRegenerate : undefined}
+                  />
+                </div>
+              );
+            })}
           </div>
-        )}
-        {error && (
-          <div className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>
-        )}
+
+          {loading && <ThinkingIndicator variant={variant} />}
+
+          {error && (
+            <div
+              className={cn(
+                'mt-2 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger',
+                isPage && 'ml-9 backdrop-blur-md',
+              )}
+              role="alert"
+            >
+              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 flex-1">{error}</span>
+              {isPage && onRegenerate && (
+                <button
+                  type="button"
+                  onClick={onRegenerate}
+                  className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
+                >
+                  Thử lại
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {showScrollBtn && (
@@ -191,7 +162,12 @@ export function AiMessageList({ messages, loading, error }: AiMessageListProps) 
           variant="ghost"
           size="sm"
           onClick={scrollToBottom}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-[12px] text-muted-foreground shadow-md"
+          className={cn(
+            'absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] shadow-subtle',
+            isPage
+              ? 'bg-sidebar/85 text-foreground backdrop-blur-md'
+              : 'bg-background text-muted-foreground',
+          )}
         >
           <ArrowDown className="h-3.5 w-3.5" />
           Xuống cuối

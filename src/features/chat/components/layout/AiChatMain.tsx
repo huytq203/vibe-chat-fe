@@ -1,77 +1,120 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Bot } from 'lucide-react';
-import { Button } from '@/components/ui/button/Button';
+import { useCallback, useEffect, useState } from 'react';
 import { AiChatHeader } from './AiChatHeader';
 import { AiMessageList } from './AiMessageList';
 import { AiChatInput } from './AiChatInput';
-import type { AiSession, AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { AiWelcome } from './AiWelcome';
+import type { AiMessage, AiSession } from '@/features/chat/hooks/useAiSessions';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
-import { callGemini } from '@/lib/gemini';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
+import { callGemini, type AiAttachment } from '@/lib/gemini';
 
-type Props = {
+interface AiChatMainProps {
   session: AiSession | null;
-  onPushMessage: (sessionId: string, msg: AiMessage) => void;
-  onBack: () => void;
-  onCreateSession: () => void;
-};
+  onPushMessage: (sessionId: string, message: AiMessage) => void;
+  onDropLastAssistant: (sessionId: string) => AiMessage[];
+  onCreateSession: () => string;
+  onDeleteSession: (id: string) => void;
+  /** Mobile: quay lại danh sách lịch sử. */
+  onBack?: () => void;
+  /** Desktop: mở lại cột lịch sử đang thu gọn. */
+  onExpandSidebar?: () => void;
+}
 
-export function AiChatMain({ session, onPushMessage, onBack, onCreateSession }: Props) {
+export function AiChatMain({
+  session,
+  onPushMessage,
+  onDropLastAssistant,
+  onCreateSession,
+  onDeleteSession,
+  onBack,
+  onExpandSidebar,
+}: AiChatMainProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
-    useAutoResizeTextarea();
-
+  const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
 
   useEffect(() => { resize(); }, [input, resize]);
   useEffect(() => { focusInput(); }, [session?.id, focusInput]);
 
-  async function handleSend() {
-    const trimmed = input.trim();
-    if ((!trimmed && attachments.length === 0) || loading || !session) return;
+  const runCompletion = useCallback(
+    async (sessionId: string, history: AiMessage[], files?: AiAttachment[]) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const content = await callGemini(history, files);
+        onPushMessage(sessionId, { role: 'assistant', content });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Halo AI chưa trả lời được, thử lại giúp bạn nhé');
+      } finally {
+        setLoading(false);
+        focusInput();
+      }
+    },
+    [onPushMessage, focusInput],
+  );
 
-    const capturedAttachments = attachments;
-    const userMsg: AiMessage = {
-      role: 'user',
-      content: trimmed,
-      attachments: capturedAttachments.map(({ name, mimeType, size, previewUrl }) => ({
-        name, mimeType, size, previewUrl,
-      })),
-    };
-    onPushMessage(session.id, userMsg);
-    setInput('');
-    clearAttachments();
-    setLoading(true);
-    setError(null);
-    try {
-      const content = await callGemini([...session.messages, userMsg], capturedAttachments);
-      onPushMessage(session.id, { role: 'assistant', content });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gửi tin nhắn thất bại');
-    } finally {
-      setLoading(false);
-      focusInput();
-    }
+  const sendPrompt = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if ((!trimmed && attachments.length === 0) || loading) return;
+
+      const sessionId = session?.id ?? onCreateSession();
+      const captured = attachments;
+      const userMessage: AiMessage = {
+        role: 'user',
+        content: trimmed,
+        attachments: captured.map(({ name, mimeType, size, previewUrl }) => ({
+          name,
+          mimeType,
+          size,
+          previewUrl,
+        })),
+      };
+
+      onPushMessage(sessionId, userMessage);
+      setInput('');
+      clearAttachments();
+      await runCompletion(sessionId, [...(session?.messages ?? []), userMessage], captured);
+    },
+    [attachments, loading, session, onCreateSession, onPushMessage, clearAttachments, runCompletion],
+  );
+
+  function handleRegenerate() {
+    if (!session || loading) return;
+    const history = onDropLastAssistant(session.id);
+    if (history.length === 0) return;
+    void runCompletion(session.id, history);
   }
 
-  return (
-    <main className="flex h-full min-w-0 flex-1 flex-col bg-background">
-      <AiChatHeader onBack={onBack} />
+  const messages = session?.messages ?? [];
+  const showWelcome = messages.length === 0 && !loading;
 
-      {!session ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <Bot className="h-12 w-12 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">Chọn hoặc tạo cuộc trò chuyện mới</p>
-          <Button variant="solid" size="sm" onClick={onCreateSession}>Tạo mới</Button>
-        </div>
+  return (
+    <main className="flex h-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+      <AiChatHeader
+        session={session}
+        onBack={onBack}
+        onExpandSidebar={onExpandSidebar}
+        onCreateSession={onCreateSession}
+        onDeleteSession={session ? () => onDeleteSession(session.id) : undefined}
+      />
+
+      {showWelcome ? (
+        <AiWelcome onPick={(prompt) => void sendPrompt(prompt)} />
       ) : (
-        <AiMessageList messages={session.messages} loading={loading} error={error} />
+        <AiMessageList
+          messages={messages}
+          loading={loading}
+          error={error}
+          variant="page"
+          onRegenerate={handleRegenerate}
+        />
       )}
 
       <AiChatInput
@@ -80,11 +123,11 @@ export function AiChatMain({ session, onPushMessage, onBack, onCreateSession }: 
         attachments={attachments}
         attachmentError={attachmentError}
         textareaRef={textareaRef}
-        disabled={!session}
+        variant="page"
         onInputChange={setInput}
         onResize={resize}
-        onKeyDown={handleTextareaKeyDown}
-        onSend={() => void handleSend()}
+        onKeyDown={handleKeyDown}
+        onSend={() => void sendPrompt(input)}
         onAddFiles={addFiles}
         onRemoveAttachment={removeAttachment}
       />

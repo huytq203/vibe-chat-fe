@@ -7,40 +7,10 @@ import { ScrollArea } from '@/components/ui/scroll-area/ScrollArea';
 import { Text } from '@/components/ui/typography/Typography';
 import { useTaskActivityNotifications } from '../../hooks/useTaskActivityNotifications';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
+import { formatRelativeTime, getActionLabel } from '../../lib/activity-format';
 import type { Activity } from '../../types';
 
-const ACTION_LABELS: Record<string, string> = {
-  'task.created': 'đã tạo task',
-  'task.updated': 'đã cập nhật task',
-  'task.moved': 'đã di chuyển task',
-  'task.deleted': 'đã xoá task',
-  'task.completed': 'đã hoàn thành task',
-  'task.reopened': 'đã mở lại task',
-  'comment.created': 'đã bình luận',
-  'column.created': 'đã tạo cột',
-  'column.updated': 'đã cập nhật cột',
-  'column.deleted': 'đã xoá cột',
-  'member.added': 'đã thêm thành viên',
-  'member.removed': 'đã gỡ thành viên',
-  'tag.created': 'đã tạo nhãn',
-  'tag.updated': 'đã cập nhật nhãn',
-  'tag.deleted': 'đã xoá nhãn',
-  'tag.attached': 'đã gắn nhãn vào task',
-  'tag.detached': 'đã gỡ nhãn khỏi task',
-  'project.updated': 'đã cập nhật dự án',
-  'project.deleted': 'đã xoá dự án',
-  'assignee.added': 'đã thêm người thực hiện',
-};
 
-function formatRelativeTime(iso: string): string {
-  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return 'vừa xong';
-  if (minutes < 60) return `${minutes} phút trước`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
-  return days < 30 ? `${days} ngày trước` : new Date(iso).toLocaleDateString('vi-VN');
-}
 
 function ActivityItem({
   activity,
@@ -81,7 +51,7 @@ function ActivityItem({
           <p className="text-sm leading-snug">
             <span className={unread ? 'font-semibold' : 'font-medium'}>{activity.actorName}</span>
             <span className="ml-1 text-muted-foreground">
-              {ACTION_LABELS[activity.action] ?? activity.action}
+              {getActionLabel(activity.action)}
             </span>
           </p>
           <Text size="xs" color="muted" className="mt-0.5">
@@ -129,7 +99,11 @@ export function ActivityNotifications() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" showArrow={false} className="w-[360px] p-0">
+      <PopoverContent
+        align="end"
+        showArrow={false}
+        className="w-[360px] max-w-[calc(100vw-1rem)] p-0"
+      >
         <div className="flex items-center gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="font-semibold">Hoạt động</p>

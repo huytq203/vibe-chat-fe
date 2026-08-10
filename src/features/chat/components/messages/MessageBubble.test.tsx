@@ -86,6 +86,39 @@ describe('MessageBubble', () => {
     expect(container).toHaveTextContent('**Xin chào**');
   });
 
+  it('keeps slash commands clickable inside a bot Markdown reply', () => {
+    // Regression: nhánh Markdown chạy trước BotCommandText nên command trong tin
+    // bot từng render thành chữ thường, không bấm được.
+    const { getByRole } = renderWithProviders(
+      <MessageBubble
+        message={buildMessage({
+          plaintext: '**Lệnh có sẵn**\n\n- /newbot — tạo bot mới\n- /mybots — danh sách bot',
+        })}
+        meId="me"
+        showAvatar={false}
+        renderMarkdown
+        enableBotCommands
+      />,
+    );
+
+    expect(getByRole('link', { name: /newbot/i })).toBeInTheDocument();
+    expect(getByRole('link', { name: /mybots/i })).toBeInTheDocument();
+  });
+
+  it('leaves slash-like text alone when the conversation has no bot', () => {
+    const { queryByRole, container } = renderWithProviders(
+      <MessageBubble
+        message={buildMessage({ plaintext: '**Ghi chú**\n\n- /newbot chỉ là chữ' })}
+        meId="me"
+        showAvatar={false}
+        renderMarkdown
+      />,
+    );
+
+    expect(queryByRole('link', { name: /newbot/i })).not.toBeInTheDocument();
+    expect(container).toHaveTextContent('/newbot');
+  });
+
   it('renders assistant-style Markdown fallback for incoming bot/log summaries', () => {
     const message = buildMessage({
       senderId: 'bot-runtime-id',

@@ -59,7 +59,7 @@ export const themes: Theme[] = [
       secondary: '#1a1d24',
       secondaryForeground: '#94a3b8',
       muted: '#161820',
-      mutedForeground: '#64748b',
+      mutedForeground: '#758398',
       accent: '#1d2a33',
       accentForeground: '#e2e8f0',
       success: '#10b981',
@@ -89,7 +89,7 @@ export const themes: Theme[] = [
       secondary: '#dbeafe',
       secondaryForeground: '#1d4ed8',
       muted: '#f8f9fc',
-      mutedForeground: '#9497a9',         
+      mutedForeground: '#6f717e',         
       accent: '#eff6ff',
       accentForeground: '#101114',
       success: '#149e61',
@@ -119,7 +119,7 @@ export const themes: Theme[] = [
       secondary: '#ede9fe',
       secondaryForeground: '#5b21b6',
       muted: '#f5f3ff',
-      mutedForeground: '#9491c4',         // violet-tinted, same relative lightness
+      mutedForeground: '#6d6b90',         // violet-tinted, same relative lightness
       accent: '#f5f3ff',
       accentForeground: '#101114',
       success: '#149e61',
@@ -149,7 +149,7 @@ export const themes: Theme[] = [
       secondary: '#ffe4e6',
       secondaryForeground: '#9f1239',
       muted: '#fff1f2',
-      mutedForeground: '#9e9099',         // rose-tinted silver
+      mutedForeground: '#766c72',         // rose-tinted silver
       accent: '#fff1f2',
       accentForeground: '#101114',
       success: '#149e61',
@@ -179,7 +179,7 @@ export const themes: Theme[] = [
       secondary: '#d1fae5',
       secondaryForeground: '#065f46',
       muted: '#ecfdf5',
-      mutedForeground: '#7a9e8d',         // emerald-tinted silver
+      mutedForeground: '#5c776b',         // emerald-tinted silver
       accent: '#ecfdf5',
       accentForeground: '#101114',
       success: '#149e61',
@@ -209,7 +209,7 @@ export const themes: Theme[] = [
       secondary: '#ffedd5',
       secondaryForeground: '#9a3412',
       muted: '#fff7ed',
-      mutedForeground: '#9e9087',         // warm-tinted silver
+      mutedForeground: '#7a6f68',         // warm-tinted silver
       accent: '#fff7ed',
       accentForeground: '#101114',
       success: '#149e61',
@@ -239,7 +239,7 @@ export const themes: Theme[] = [
       secondary: '#f1f5f9',
       secondaryForeground: '#334155',
       muted: '#f8f9fc',
-      mutedForeground: '#9497a9',
+      mutedForeground: '#6f717e',
       accent: '#f1f5f9',
       accentForeground: '#101114',
       success: '#149e61',

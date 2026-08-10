@@ -120,7 +120,7 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && closeTask()}>
-      <DialogContent className="flex h-[90vh] w-[calc(100vw-2rem)] max-w-[1180px] flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[1180px] flex-col gap-0 overflow-hidden p-0 sm:h-[90vh] sm:w-[calc(100vw-2rem)]">
         {isLoading && (
           <div className="grid flex-1 place-items-center text-sm text-muted-foreground">
             Đang tải nhiệm vụ…
@@ -151,9 +151,9 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
               task={task}
             />
 
-            <div className="flex min-h-0 flex-1">
+            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
               {/* Left: title, mô tả, subtask/checklist/attachment/comment/history */}
-              <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-6">
+              <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-6">
                 {editingTitle ? (
                   <input
                     autoFocus

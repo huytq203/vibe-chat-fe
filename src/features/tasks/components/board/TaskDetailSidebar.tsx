@@ -161,7 +161,7 @@ export function TaskDetailSidebar({
   };
 
   return (
-    <div className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-border bg-muted/30">
+    <div className="flex max-h-[45%] w-full shrink-0 flex-col overflow-y-auto border-t border-border bg-muted/30 md:max-h-none md:w-72 md:border-l md:border-t-0">
       {/* Due date */}
       <SidebarSection
         icon={<Calendar className="h-4 w-4" />}

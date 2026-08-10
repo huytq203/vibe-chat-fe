@@ -1,9 +1,6 @@
 'use client';
 
-import { ListTodo } from 'lucide-react';
 import { Progress } from '@/components/ui/progress/Progress';
-import { Badge } from '@/components/ui/badge/Badge';
-import { Text } from '@/components/ui/typography/Typography';
 import { useBoard } from '../../hooks/useBoard';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { computeBoardProgress } from '../../lib/board-progress';
@@ -18,25 +15,26 @@ export function DashboardProjectRow({ project }: { project: Project }) {
     <button
       type="button"
       onClick={() => setSelected(project.id)}
-      className="grid grid-cols-[1.6fr_1fr_90px] items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-accent"
+      aria-label={project.name}
+      className="flex w-full flex-col gap-1.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="flex min-w-0 items-center gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-          <ListTodo className="h-4 w-4" />
-        </span>
-        <Text size="sm" weight="medium" truncate>
-          {project.name}
-        </Text>
-      </span>
       <span className="flex items-center gap-2">
-        <Progress value={stats.pct} size="sm" variant="gradient" className="max-w-[140px]" />
-        <Text size="xs" color="muted" numeric>
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-primary/15 text-[11px] font-bold text-primary">
+          {project.name.charAt(0).toUpperCase()}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+          {project.name}
+        </span>
+        <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground">
           {isLoading ? '…' : `${stats.pct}%`}
-        </Text>
+        </span>
       </span>
-      <Badge variant="outline" size="sm" className="w-fit">
-        {isLoading ? '…' : `${stats.open} mở`}
-      </Badge>
+      <span className="flex items-center gap-2 pl-8">
+        <Progress value={stats.pct} size="sm" variant="gradient" className="flex-1" />
+        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+          {isLoading ? '…' : `${stats.open} mở`}
+        </span>
+      </span>
     </button>
   );
 }

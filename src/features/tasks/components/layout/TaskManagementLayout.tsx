@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { Dashboard } from '../dashboard';
 import { ReportsView } from '../reports';
@@ -14,7 +13,6 @@ import { getViewTitle } from '../../lib/view-title';
 
 export function TaskManagementLayout() {
   const activeView = useTasksUIStore((s) => s.activeView);
-  const setActiveView = useTasksUIStore((s) => s.setActiveView);
   const selectedId = useTasksUIStore((s) => s.selectedProjectId);
   const boardView = useTasksUIStore((s) => s.boardView);
   // Kết nối socket ngay khi vào /work — board mở lần đầu không tốn handshake
@@ -28,24 +26,26 @@ export function TaskManagementLayout() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-background">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
+    <div className="relative flex h-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+      <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
 
-        <main className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border bg-background">
           {activeView === 'home' && <Dashboard />}
           {activeView === 'projects' && <ProjectsPage />}
           {activeView === 'reports' && <ReportsView />}
           {activeView === 'board' &&
             (selectedId && selectedProject ? (
-              <div className="flex h-full flex-col">
-                <div className="mb-0 flex min-w-0 flex-col gap-1 px-6 pt-5">
-                  <ProjectSwitcher selectedProjectId={selectedId} selectedName={boardMeta.title} />
-                  {boardMeta.sub && (
-                    <p className="truncate text-sm text-muted-foreground">{boardMeta.sub}</p>
-                  )}
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="shrink-0 border-b bg-background">
+                  <div className="flex min-w-0 flex-col gap-0.5 px-4 pb-2 pt-3 sm:px-5 sm:pt-4">
+                    <ProjectSwitcher selectedProjectId={selectedId} selectedName={boardMeta.title} />
+                    {boardMeta.sub && (
+                      <p className="truncate text-xs text-muted-foreground sm:text-sm">{boardMeta.sub}</p>
+                    )}
+                  </div>
+                  <BoardHeader projectId={selectedId} />
                 </div>
-                <BoardHeader projectId={selectedId} />
                 {boardView === 'board' ? (
                   <KanbanBoard key={selectedId} projectId={selectedId} />
                 ) : (
@@ -61,8 +61,6 @@ export function TaskManagementLayout() {
             ))}
         </main>
       </div>
-
-      <AppSidebar activeView={activeView} onNavigate={setActiveView} />
 
       <NewProjectModal open={newProjectOpen} onOpenChange={setNewProjectOpen} />
     </div>

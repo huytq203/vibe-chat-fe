@@ -97,6 +97,25 @@ export function useAiSessions(options?: UseAiSessionsOptions) {
     });
   }, []);
 
+  /** Bỏ câu trả lời cuối của AI để chạy lại; trả về danh sách tin nhắn còn lại. */
+  const dropLastAssistant = useCallback(
+    (sessionId: string): AiMessage[] => {
+      const session = sessions.find((s) => s.id === sessionId);
+      if (!session) return [];
+      if (session.messages[session.messages.length - 1]?.role !== 'assistant') {
+        return session.messages;
+      }
+      const messages = session.messages.slice(0, -1);
+      setSessions((prev) => {
+        const next = prev.map((s) => (s.id === sessionId ? { ...s, messages } : s));
+        persist(next);
+        return next;
+      });
+      return messages;
+    },
+    [sessions],
+  );
+
   const deleteSession = useCallback(
     (id: string): void => {
       setSessions((prev) => {
@@ -111,5 +130,14 @@ export function useAiSessions(options?: UseAiSessionsOptions) {
     [activeId, setActiveId],
   );
 
-  return { sessions, activeSession, activeId, setActiveId, createSession, pushMessage, deleteSession };
+  return {
+    sessions,
+    activeSession,
+    activeId,
+    setActiveId,
+    createSession,
+    pushMessage,
+    dropLastAssistant,
+    deleteSession,
+  };
 }

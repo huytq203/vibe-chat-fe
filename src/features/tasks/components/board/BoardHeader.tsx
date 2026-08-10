@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings } from 'lucide-react';
+import { Columns3, List, Settings, Share2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { useMembers } from '../../hooks/useMembers';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -11,41 +11,42 @@ export function BoardHeader({ projectId }: { projectId: string }) {
   const setBoardView = useTasksUIStore((s) => s.setBoardView);
   const openSettings = useTasksUIStore((s) => s.openSettings);
 
-  const visible = members.slice(0, 5);
+  const visible = members.slice(0, 3);
+  const hiddenCount = Math.max(0, members.length - visible.length);
 
   return (
-    <div className="flex h-[54px] shrink-0 items-center justify-between px-6 border-b border-border bg-background">
+    <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-5">
       {/* Left: view toggle segment control */}
-      <div className="flex rounded-xl bg-muted p-1 gap-1">
+      <div className="flex gap-1 rounded-xl bg-muted p-1" role="group" aria-label="Kiểu hiển thị">
         <button
           type="button"
           onClick={() => setBoardView('board')}
-          className={
-            boardView === 'board'
-              ? 'bg-secondary text-primary rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
-              : 'text-muted-foreground px-3 py-1 text-sm cursor-pointer'
-          }
+          aria-pressed={boardView === 'board'}
+          className={boardView === 'board'
+            ? 'flex h-9 items-center gap-1.5 rounded-lg bg-background px-3 text-sm font-semibold text-primary shadow-micro'
+            : 'flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground'}
         >
+          <Columns3 className="h-4 w-4" />
           Board
         </button>
         <button
           type="button"
           onClick={() => setBoardView('list')}
-          className={
-            boardView === 'list'
-              ? 'bg-secondary text-primary rounded-lg px-3 py-1 text-sm font-semibold shadow-sm'
-              : 'text-muted-foreground px-3 py-1 text-sm cursor-pointer'
-          }
+          aria-pressed={boardView === 'list'}
+          className={boardView === 'list'
+            ? 'flex h-9 items-center gap-1.5 rounded-lg bg-background px-3 text-sm font-semibold text-primary shadow-micro'
+            : 'flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground'}
         >
+          <List className="h-4 w-4" />
           Danh sách
         </button>
       </div>
 
       {/* Right: members + settings + share */}
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2">
         {/* Member avatars */}
         {visible.length > 0 && (
-          <div className="flex -space-x-2">
+          <div className="hidden items-center -space-x-2 sm:flex" aria-label={`${members.length} thành viên`}>
             {visible.map((m) => (
               <Avatar
                 key={m.userId}
@@ -55,6 +56,11 @@ export function BoardHeader({ projectId }: { projectId: string }) {
                 className="border-2 border-background"
               />
             ))}
+            {hiddenCount > 0 && (
+              <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-background bg-muted text-[10px] font-semibold text-muted-foreground">
+                +{hiddenCount}
+              </span>
+            )}
           </div>
         )}
 
@@ -63,18 +69,20 @@ export function BoardHeader({ projectId }: { projectId: string }) {
           type="button"
           onClick={() => openSettings('info')}
           aria-label="Cài đặt project"
-          className="border border-border bg-secondary rounded-xl p-2 cursor-pointer hover:bg-accent"
+          className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Settings className="h-4 w-4 text-muted-foreground" />
+          <Settings className="h-4 w-4" />
         </button>
 
         {/* Share button */}
         <button
           type="button"
           onClick={() => openSettings('share')}
-          className="bg-primary text-primary-foreground rounded-xl px-4 py-1.5 text-sm font-semibold ml-3 hover:bg-primary/90"
+          aria-label="Chia sẻ dự án"
+          className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:px-3"
         >
-          Chia sẻ
+          <Share2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Chia sẻ</span>
         </button>
       </div>
     </div>
