@@ -9,6 +9,11 @@ export const authKeys = {
   me: () => [...authKeys.all, 'me'] as const,
 } as const;
 
+export const aiKeys = {
+  all: ['ai'] as const,
+  config: () => [...aiKeys.all, 'config'] as const,
+} as const;
+
 export const sessionKeys = {
   all: ['sessions'] as const,
   list: () => [...sessionKeys.all, 'list'] as const,

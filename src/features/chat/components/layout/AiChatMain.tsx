@@ -1,20 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AiChatHeader } from './AiChatHeader';
 import { AiMessageList } from './AiMessageList';
 import { AiChatInput } from './AiChatInput';
 import { AiWelcome } from './AiWelcome';
-import type { AiMessage, AiSession } from '@/features/chat/hooks/useAiSessions';
+import type { AiSession, AiSessionActions } from '@/features/chat/hooks/useAiSessions';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
+import { useAiConversation } from '@/features/chat/hooks/useAiConversation';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
-import { callGemini, type AiAttachment } from '@/lib/gemini';
 
 interface AiChatMainProps {
   session: AiSession | null;
-  onPushMessage: (sessionId: string, message: AiMessage) => void;
-  onDropLastAssistant: (sessionId: string) => AiMessage[];
-  onCreateSession: () => string;
+  actions: AiSessionActions;
   onDeleteSession: (id: string) => void;
   /** Mobile: quay lại danh sách lịch sử. */
   onBack?: () => void;
@@ -24,72 +22,36 @@ interface AiChatMainProps {
 
 export function AiChatMain({
   session,
-  onPushMessage,
-  onDropLastAssistant,
-  onCreateSession,
+  actions,
   onDeleteSession,
   onBack,
   onExpandSidebar,
 }: AiChatMainProps) {
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
+  const { loading, streaming, send, resend, regenerate, stop, recall, discard } =
+    useAiConversation({ session, actions, onSettled: focusInput });
 
   useEffect(() => { resize(); }, [input, resize]);
   useEffect(() => { focusInput(); }, [session?.id, focusInput]);
 
-  const runCompletion = useCallback(
-    async (sessionId: string, history: AiMessage[], files?: AiAttachment[]) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const content = await callGemini(history, files);
-        onPushMessage(sessionId, { role: 'assistant', content });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Halo AI chưa trả lời được, thử lại giúp bạn nhé');
-      } finally {
-        setLoading(false);
-        focusInput();
-      }
-    },
-    [onPushMessage, focusInput],
-  );
+  // Dọn ô nhập ngay khi lượt gửi chắc chắn chạy — tránh xoá nhầm chữ đang gõ dở
+  // nếu người dùng bấm Gửi lúc lượt trước còn chờ.
+  async function handleSend(text: string) {
+    const captured = attachments;
+    if (loading || (!text.trim() && captured.length === 0)) return;
+    setInput('');
+    clearAttachments();
+    await send(text, captured);
+  }
 
-  const sendPrompt = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if ((!trimmed && attachments.length === 0) || loading) return;
-
-      const sessionId = session?.id ?? onCreateSession();
-      const captured = attachments;
-      const userMessage: AiMessage = {
-        role: 'user',
-        content: trimmed,
-        attachments: captured.map(({ name, mimeType, size, previewUrl }) => ({
-          name,
-          mimeType,
-          size,
-          previewUrl,
-        })),
-      };
-
-      onPushMessage(sessionId, userMessage);
-      setInput('');
-      clearAttachments();
-      await runCompletion(sessionId, [...(session?.messages ?? []), userMessage], captured);
-    },
-    [attachments, loading, session, onCreateSession, onPushMessage, clearAttachments, runCompletion],
-  );
-
-  function handleRegenerate() {
-    if (!session || loading) return;
-    const history = onDropLastAssistant(session.id);
-    if (history.length === 0) return;
-    void runCompletion(session.id, history);
+  /** "Sửa": gỡ tin lỗi, đổ nguyên văn về ô nhập để chỉnh rồi gửi lại. */
+  function handleEdit(index: number) {
+    setInput(recall(index));
+    focusInput();
   }
 
   const messages = session?.messages ?? [];
@@ -101,19 +63,22 @@ export function AiChatMain({
         session={session}
         onBack={onBack}
         onExpandSidebar={onExpandSidebar}
-        onCreateSession={onCreateSession}
+        onCreateSession={actions.createSession}
         onDeleteSession={session ? () => onDeleteSession(session.id) : undefined}
       />
 
       {showWelcome ? (
-        <AiWelcome onPick={(prompt) => void sendPrompt(prompt)} />
+        <AiWelcome onPick={(prompt) => void handleSend(prompt)} />
       ) : (
         <AiMessageList
           messages={messages}
           loading={loading}
-          error={error}
+          streaming={streaming}
           variant="page"
-          onRegenerate={handleRegenerate}
+          onRegenerate={regenerate}
+          onResend={resend}
+          onEdit={handleEdit}
+          onDiscard={discard}
         />
       )}
 
@@ -127,7 +92,8 @@ export function AiChatMain({
         onInputChange={setInput}
         onResize={resize}
         onKeyDown={handleKeyDown}
-        onSend={() => void sendPrompt(input)}
+        onSend={() => void handleSend(input)}
+        onStop={stop}
         onAddFiles={addFiles}
         onRemoveAttachment={removeAttachment}
       />

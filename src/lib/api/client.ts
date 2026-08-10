@@ -98,6 +98,8 @@ function resolveBase(path: string): string {
   // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.
   if (env.NEXT_PUBLIC_USE_PROXY) return '';
   if (path.startsWith('/api/v1/auth/')) return env.NEXT_PUBLIC_AUTH_URL;
+  // AI chat: bot-service giữ DEEPSEEK_API_KEY, FE không giữ key AI nào.
+  if (path.startsWith('/api/v1/ai/')) return env.NEXT_PUBLIC_BOT_URL;
   // bot-service: cả /api/v1/bot/... (self, messages) lẫn /api/v1/bots/... (management).
   if (path.startsWith('/api/v1/bot')) return env.NEXT_PUBLIC_BOT_URL;
   return env.NEXT_PUBLIC_VIBE_URL;
@@ -236,9 +238,39 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   return json as T;
 }
 
+/**
+ * Trả về Response thô để caller tự đọc body dạng stream (SSE).
+ * Vẫn qua auth + tự refresh 401 như `request()`, chỉ khác là KHÔNG đụng vào body —
+ * đọc `res.json()` ở đây sẽ chặn tới khi stream đóng, đúng thứ cần tránh.
+ */
+async function streamRequest(
+  method: string,
+  path: string,
+  options: RequestOptions = {},
+): Promise<Response> {
+  let res = await rawRequest(method, path, options);
+
+  if (res.status === 401 && options.auth !== false && accessToken) {
+    res = await recoverFrom401(res, method, path, options);
+  }
+
+  if (!res.ok) {
+    const err = await parseError(res);
+    logger.warn('API stream error', { path, status: err.status, code: err.code });
+    throw err;
+  }
+
+  if (!res.body) {
+    throw new ApiError(res.status, 'STREAM_UNSUPPORTED', 'Trình duyệt không đọc được luồng dữ liệu');
+  }
+
+  return res;
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) => request<T>('GET', path, options),
   post: <T>(path: string, options?: RequestOptions) => request<T>('POST', path, options),
+  postStream: (path: string, options?: RequestOptions) => streamRequest('POST', path, options),
   put: <T>(path: string, options?: RequestOptions) => request<T>('PUT', path, options),
   patch: <T>(path: string, options?: RequestOptions) => request<T>('PATCH', path, options),
   delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),

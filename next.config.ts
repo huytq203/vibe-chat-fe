@@ -37,9 +37,11 @@ const nextConfig: NextConfig = {
       if (TASK_URL) {
         rules.unshift({ source: '/task-proxy/:path*', destination: `${TASK_URL}/:path*` });
       }
-      // bot-service: prefix riêng /api/v1/bot(s) — phải đứng trước catch-all /api/v1/:path*.
+      // bot-service: prefix riêng /api/v1/ai + /api/v1/bot(s) — phải đứng trước
+      // catch-all /api/v1/:path*. AI chat cũng do bot-service phục vụ (giữ DEEPSEEK_API_KEY).
       if (BOT_URL) {
         rules.unshift(
+          { source: '/api/v1/ai/:path*', destination: `${BOT_URL}/api/v1/ai/:path*` },
           { source: '/api/v1/bots/:path*', destination: `${BOT_URL}/api/v1/bots/:path*` },
           { source: '/api/v1/bot/:path*', destination: `${BOT_URL}/api/v1/bot/:path*` },
         );

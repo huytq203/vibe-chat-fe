@@ -2,18 +2,8 @@
 
 import { ArrowLeft, Bot, PanelLeftOpen, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import { DEFAULT_GEMINI_MODEL } from '@/lib/gemini/constants';
+import { useAiConfig } from '@/features/chat/hooks/useAiConfig';
 import type { AiSession } from '@/features/chat/hooks/useAiSessions';
-
-/** "gemini-2.5-flash" → "Gemini 2.5 Flash" để hiển thị cho người dùng. */
-function formatModelName(model: string): string {
-  return model
-    .split('-')
-    .map((part) => (/^[a-z]/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part))
-    .join(' ');
-}
-
-const MODEL_LABEL = formatModelName(DEFAULT_GEMINI_MODEL);
 
 interface AiChatHeaderProps {
   session: AiSession | null;
@@ -32,6 +22,8 @@ export function AiChatHeader({
   onCreateSession,
   onDeleteSession,
 }: AiChatHeaderProps) {
+  const { data: aiConfig } = useAiConfig();
+
   return (
     <header className="flex shrink-0 items-center gap-2.5 rounded-2xl border bg-sidebar/75 px-3 py-2.5 shadow-subtle backdrop-blur-md">
       {onBack && (
@@ -60,7 +52,7 @@ export function AiChatHeader({
           {session?.title ?? 'Halo AI'}
         </h1>
         <p className="truncate text-[11.5px] leading-tight text-muted-foreground">
-          Trợ lý AI · {MODEL_LABEL}
+          Trợ lý AI{aiConfig ? ` · ${aiConfig.model}` : ''}
         </p>
       </div>
 

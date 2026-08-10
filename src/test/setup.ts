@@ -16,6 +16,12 @@ for (const [key, value] of Object.entries(TEST_ENV)) {
   if (!process.env[key]) vi.stubEnv(key, value);
 }
 
+// jsdom không cài đặt Element.scrollTo — component nào tự cuộn (danh sách tin nhắn,
+// khung chat AI) sẽ ném uncaught exception trong rAF nếu không có stub này.
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => undefined;
+}
+
 afterEach(() => {
   cleanup();
 });

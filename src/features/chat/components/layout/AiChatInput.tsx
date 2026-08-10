@@ -1,11 +1,11 @@
 'use client';
 
 import { useRef } from 'react';
-import { Paperclip, Send } from 'lucide-react';
+import { Paperclip, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { cn } from '@/lib/utils/cn';
-import type { AiAttachment } from '@/lib/gemini';
+import type { AiAttachment } from '@/features/chat/types/ai-attachment';
 import type { AiMessageVariant } from './AiMessageRow';
 import { AiAttachmentTray } from './AiAttachmentTray';
 
@@ -25,6 +25,8 @@ interface AiChatInputProps {
     disabled: boolean,
   ) => void;
   onSend: () => void;
+  /** Dừng lượt AI đang chảy. Có handler → nút gửi đổi thành nút dừng khi loading. */
+  onStop?: () => void;
   onAddFiles: (files: FileList | File[]) => Promise<void>;
   onRemoveAttachment: (id: string) => void;
 }
@@ -44,12 +46,14 @@ export function AiChatInput({
   onResize,
   onKeyDown,
   onSend,
+  onStop,
   onAddFiles,
   onRemoveAttachment,
 }: AiChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPage = variant === 'page';
   const cannotSend = (!input.trim() && attachments.length === 0) || disabled;
+  const canStop = loading && Boolean(onStop);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files?.length) {
@@ -118,13 +122,13 @@ export function AiChatInput({
           size="icon"
           variant="solid"
           type="button"
-          onClick={onSend}
-          disabled={cannotSend || loading}
+          onClick={canStop ? onStop : onSend}
+          disabled={canStop ? false : cannotSend || loading}
           className="h-9 w-9 shrink-0"
-          aria-label="Gửi"
-          title="Gửi (Enter)"
+          aria-label={canStop ? 'Dừng trả lời' : 'Gửi'}
+          title={canStop ? 'Dừng trả lời' : 'Gửi (Enter)'}
         >
-          <Send className="h-4 w-4" />
+          {canStop ? <Square className="h-3.5 w-3.5 fill-current" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
 

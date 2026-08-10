@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Bot, Check, Copy, File, FileJson, FileText, RotateCcw } from 'lucide-react';
+import { Bot, File, FileJson, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { AiAttachmentMeta, AiMessage } from '@/features/chat/hooks/useAiSessions';
 import { AiMessageContent } from './AiMessageContent';
+import {
+  AiAssistantActions,
+  AiCopyButton,
+  AiFailedActions,
+  AiIncompleteActions,
+} from './AiMessageActions';
 
 /** `window` = cửa sổ AI nổi 360px (bubble 2 phía). `page` = trang /ai (cột đọc rộng). */
 export type AiMessageVariant = 'window' | 'page';
@@ -36,48 +41,6 @@ function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
   );
 }
 
-interface AiMessageActionsProps {
-  content: string;
-  onRegenerate?: () => void;
-}
-
-function AiMessageActions({ content, onRegenerate }: AiMessageActionsProps) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  const actionClass =
-    'flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-
-  return (
-    <div className="mt-2 flex items-center gap-0.5">
-      <button type="button" onClick={() => void handleCopy()} className={actionClass}>
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? 'Đã sao chép' : 'Sao chép'}
-      </button>
-      {onRegenerate && (
-        <button type="button" onClick={onRegenerate} className={actionClass}>
-          <RotateCcw className="h-3.5 w-3.5" />
-          Trả lời lại
-        </button>
-      )}
-    </div>
-  );
-}
-
 function UserContent({ message }: { message: AiMessage }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -93,71 +56,134 @@ function UserContent({ message }: { message: AiMessage }) {
   );
 }
 
+/** Avatar + tên AI đứng trên thẻ trả lời ở trang /ai. Dùng lại cho chỉ báo đang soạn. */
+export function AiAuthorLabel() {
+  return (
+    <div className="mb-1.5 flex items-center gap-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-subtle">
+        <Bot className="h-3.5 w-3.5" />
+      </span>
+      <p className="text-[11.5px] font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.55)]">
+        Halo AI
+      </p>
+    </div>
+  );
+}
+
 interface AiMessageRowProps {
   message: AiMessage;
+  index: number;
   groupedWithPrev: boolean;
   groupedWithNext: boolean;
   variant: AiMessageVariant;
+  /** Đang chờ AI trả lời — khoá nút "Gửi lại" để không bắn hai lượt chồng nhau. */
+  busy: boolean;
   onRegenerate?: () => void;
+  onResend: (index: number) => void;
+  onEdit: (index: number) => void;
+  onDiscard: (index: number) => void;
 }
 
-export function AiMessageRow({
+function UserRow({
   message,
+  index,
   groupedWithPrev,
   groupedWithNext,
   variant,
-  onRegenerate,
-}: AiMessageRowProps) {
-  const isUser = message.role === 'user';
+  busy,
+  onResend,
+  onEdit,
+  onDiscard,
+}: Omit<AiMessageRowProps, 'onRegenerate'>) {
+  const isPage = variant === 'page';
+  const isFailed = message.status === 'failed';
+
+  return (
+    <div className="group flex flex-col items-end">
+      <div className="flex w-full items-end justify-end gap-1">
+        <AiCopyButton content={message.content} />
+        <div
+          className={cn(
+            'rounded-2xl bg-primary text-primary-foreground',
+            isPage
+              ? 'max-w-[80%] rounded-br-md px-4 py-2.5 text-[13.5px] leading-relaxed shadow-subtle'
+              : 'max-w-[75%] px-3 py-2 text-[13px] leading-relaxed',
+            !isPage && groupedWithPrev && 'rounded-tr-sm',
+            !isPage && groupedWithNext && 'rounded-br-sm',
+            isFailed && 'ring-1 ring-danger/50',
+          )}
+        >
+          <UserContent message={message} />
+        </div>
+      </div>
+
+      {isFailed && (
+        <AiFailedActions
+          reason={message.errorMessage}
+          pending={busy}
+          canEdit={!message.attachments?.length}
+          onResend={() => onResend(index)}
+          onEdit={() => onEdit(index)}
+          onDiscard={() => onDiscard(index)}
+        />
+      )}
+    </div>
+  );
+}
+
+export function AiMessageRow(props: AiMessageRowProps) {
+  const { message, index, groupedWithPrev, groupedWithNext, variant, onRegenerate, onDiscard } =
+    props;
+
+  if (message.role === 'user') return <UserRow {...props} />;
+
+  const isIncomplete = message.status === 'incomplete';
+  const incompleteActions = (
+    <AiIncompleteActions
+      content={message.content}
+      reason={message.errorMessage}
+      onRegenerate={onRegenerate}
+      onDiscard={() => onDiscard(index)}
+    />
+  );
 
   if (variant === 'page') {
-    if (isUser) {
-      return (
-        <div className="flex justify-end">
-          <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[13.5px] leading-relaxed text-primary-foreground shadow-subtle">
-            <UserContent message={message} />
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div>
-        {!groupedWithPrev && (
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-subtle">
-              <Bot className="h-3.5 w-3.5" />
-            </span>
-            <p className="text-[11.5px] font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.55)]">
-              Halo AI
-            </p>
-          </div>
-        )}
+        {!groupedWithPrev && <AiAuthorLabel />}
         <div className="min-w-0 pl-9">
-          <div className="rounded-2xl rounded-tl-md border bg-sidebar/85 px-4 pb-2 pt-3 text-foreground shadow-subtle backdrop-blur-md">
+          <div
+            className={cn(
+              'rounded-2xl rounded-tl-md border bg-sidebar/85 px-4 pb-2 pt-3 text-foreground shadow-subtle backdrop-blur-md',
+              isIncomplete && 'border-danger/35',
+            )}
+          >
             <AiMessageContent content={message.content} className="text-[14.5px] leading-[1.65]" />
-            <AiMessageActions content={message.content} onRegenerate={onRegenerate} />
+            {isIncomplete ? (
+              incompleteActions
+            ) : (
+              <AiAssistantActions content={message.content} onRegenerate={onRegenerate} />
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  const groupedRadius = isUser
-    ? cn(groupedWithPrev && 'rounded-tr-sm', groupedWithNext && 'rounded-br-sm')
-    : cn(groupedWithPrev && 'rounded-tl-sm', groupedWithNext && 'rounded-bl-sm');
-
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className="group flex items-end justify-start gap-1">
       <div
         className={cn(
-          'max-w-[75%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
-          groupedRadius,
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-accent text-foreground',
+          'max-w-[75%] rounded-2xl bg-accent px-3 py-2 text-[13px] leading-relaxed text-foreground',
+          groupedWithPrev && 'rounded-tl-sm',
+          groupedWithNext && 'rounded-bl-sm',
+          isIncomplete && 'ring-1 ring-danger/40',
         )}
       >
-        {isUser ? <UserContent message={message} /> : <AiMessageContent content={message.content} />}
+        <AiMessageContent content={message.content} />
+        {isIncomplete && incompleteActions}
       </div>
+      {!isIncomplete && <AiCopyButton content={message.content} />}
     </div>
   );
 }

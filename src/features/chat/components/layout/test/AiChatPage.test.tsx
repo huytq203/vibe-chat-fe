@@ -1,7 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+// AiChatHeader dùng useAiConfig (TanStack Query) → cần QueryClientProvider.
+import { renderWithProviders as render } from '@/test/test-utils';
 import { AiChatPage } from '../AiChatPage';
+import { aiApi } from '@/services/ai.api';
 import type { AiSession } from '@/features/chat/hooks/useAiSessions';
 
 const routerReplace = vi.fn();
@@ -19,8 +22,12 @@ vi.mock('@/lib/hooks/useIsMobile', () => ({
   useIsMobile: () => isMobile,
 }));
 
-vi.mock('@/lib/gemini', () => ({
-  callGemini: vi.fn(),
+vi.mock('@/services/ai.api', () => ({
+  aiApi: {
+    chat: vi.fn(),
+    chatStream: vi.fn(),
+    getConfig: vi.fn().mockResolvedValue({ model: 'deepseek-v4-flash' }),
+  },
 }));
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -59,6 +66,7 @@ describe('AiChatPage', () => {
     routerPush.mockReset();
     routeParams = {};
     isMobile = false;
+    vi.mocked(aiApi.chatStream).mockReset();
     seedSessions();
   });
 
@@ -141,5 +149,37 @@ describe('AiChatPage', () => {
     expect(
       screen.getByRole('button', { name: 'Soạn giúp tôi tin nhắn xin nghỉ phép lịch sự' }),
     ).toBeInTheDocument();
+  });
+
+  it('hiện tên model lấy từ backend ở header', async () => {
+    routeParams = { id: RECENT_ID };
+    render(<AiChatPage />);
+
+    expect(await screen.findByText(/deepseek-v4-flash/i)).toBeInTheDocument();
+  });
+
+  it('tin gửi hỏng nêu lý do ngay dưới bong bóng và gửi lại được', async () => {
+    routeParams = { id: RECENT_ID };
+    const chat = vi.mocked(aiApi.chatStream);
+    chat.mockRejectedValueOnce(new Error('Hết hạn mức truy vấn'));
+    render(<AiChatPage />);
+
+    await userEvent.type(
+      screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...'),
+      'Tóm tắt giúp tôi',
+    );
+    await userEvent.click(screen.getByLabelText('Gửi'));
+
+    // Cột lịch sử cũng hiện tin cuối làm preview → chỉ tìm trong khung hội thoại.
+    const conversation = within(screen.getByRole('main'));
+
+    expect(await conversation.findByText('Hết hạn mức truy vấn')).toBeInTheDocument();
+    expect(conversation.getByText('Tóm tắt giúp tôi')).toBeInTheDocument();
+
+    chat.mockResolvedValueOnce('Đây là tóm tắt');
+    await userEvent.click(conversation.getByRole('button', { name: 'Gửi lại' }));
+
+    expect(await conversation.findByText('Đây là tóm tắt')).toBeInTheDocument();
+    expect(conversation.queryByText('Hết hạn mức truy vấn')).not.toBeInTheDocument();
   });
 });

@@ -11,16 +11,9 @@ export function AiChatPage() {
   const isMobile = useIsMobile();
   const { goToSection } = useSectionNav();
   const [historyOpen, setHistoryOpen] = useState(true);
-  const {
-    sessions,
-    activeSession,
-    activeId,
-    setActiveId,
-    createSession,
-    pushMessage,
-    dropLastAssistant,
-    deleteSession,
-  } = useAiSessions({ routed: true });
+  const { sessions, activeSession, activeId, setActiveId, deleteSession, actions } = useAiSessions({
+    routed: true,
+  });
 
   // Desktop: vào /ai trống mà đã có session → mở session gần nhất (giống auto-chọn hội thoại
   // ở chat). Mobile chỉ có một cột nên giữ nguyên màn danh sách để người dùng tự chọn.
@@ -40,7 +33,7 @@ export function AiChatPage() {
           sessions={sessions}
           activeId={activeId}
           onSelect={setActiveId}
-          onCreate={createSession}
+          onCreate={actions.createSession}
           onDelete={deleteSession}
           onCollapse={isMobile ? undefined : () => setHistoryOpen(false)}
           onBack={isMobile ? () => goToSection('chat') : undefined}
@@ -50,9 +43,7 @@ export function AiChatPage() {
       {showConversation && (
         <AiChatMain
           session={activeSession}
-          onPushMessage={pushMessage}
-          onDropLastAssistant={dropLastAssistant}
-          onCreateSession={createSession}
+          actions={actions}
           onDeleteSession={deleteSession}
           onBack={isMobile ? () => setActiveId(null) : undefined}
           onExpandSidebar={!isMobile && !historyOpen ? () => setHistoryOpen(true) : undefined}

@@ -1,40 +1,86 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { AlertCircle, ArrowDown, Bot } from 'lucide-react';
+import { ArrowDown, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
+import { TypingDots } from '@/features/chat/components/common/TypingDots';
 import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
-import { AiMessageRow, type AiMessageVariant } from './AiMessageRow';
+import { AiMessageContent } from './AiMessageContent';
+import { AiAuthorLabel, AiMessageRow, type AiMessageVariant } from './AiMessageRow';
 
 interface AiMessageListProps {
   messages: AiMessage[];
   loading: boolean;
-  error: string | null;
+  /** Chữ AI đang phát ra ở lượt hiện tại; `null` khi chưa có mẩu nào. */
+  streaming?: string | null;
   variant?: AiMessageVariant;
   /** Trang /ai: chạy lại câu trả lời cuối. */
   onRegenerate?: () => void;
+  /** Gửi lại tin ở vị trí `index` sau khi lượt trước hỏng. */
+  onResend: (index: number) => void;
+  /** Gỡ tin và đổ nội dung về ô nhập để sửa. */
+  onEdit: (index: number) => void;
+  onDiscard: (index: number) => void;
 }
 
+/** Cùng nhịp chấm với TypingBubble ở màn chat, hoà vào chất liệu của từng khung. */
 function ThinkingIndicator({ variant }: { variant: AiMessageVariant }) {
-  const dot = 'h-1.5 w-1.5 rounded-full bg-current animate-pulse';
+  if (variant === 'page') {
+    return (
+      <div>
+        <AiAuthorLabel />
+        <div className="pl-9">
+          <div className="w-fit rounded-2xl rounded-tl-md border bg-sidebar/85 px-3.5 py-2.5 text-muted-foreground shadow-subtle backdrop-blur-md">
+            <TypingDots />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn('flex justify-start', variant === 'page' && 'pl-9')}>
-      <div
-        className={cn(
-          'flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-[12.5px]',
-          variant === 'page'
-            ? 'rounded-tl-md border bg-sidebar/85 text-muted-foreground shadow-subtle backdrop-blur-md'
-            : 'bg-muted text-muted-foreground',
-        )}
-      >
-        <span className="flex items-center gap-1">
-          <span className={dot} />
-          <span className={cn(dot, '[animation-delay:180ms]')} />
-          <span className={cn(dot, '[animation-delay:360ms]')} />
-        </span>
-        Halo AI đang soạn câu trả lời
+    <div className="flex justify-start">
+      <div className="rounded-2xl rounded-bl-md border border-border bg-muted px-3.5 py-2.5 text-muted-foreground">
+        <TypingDots />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Con trỏ nhấp nháy bám cuối đoạn chữ cuối cùng — dấu hiệu "còn đang gõ".
+ * Dùng ::after của phần tử cuối để caret nằm ngay sau chữ, không rơi xuống dòng mới.
+ */
+const CARET =
+  "[&>*:last-child]:after:ml-1 [&>*:last-child]:after:inline-block [&>*:last-child]:after:h-[0.9em] " +
+  "[&>*:last-child]:after:w-[2px] [&>*:last-child]:after:translate-y-[0.12em] [&>*:last-child]:after:rounded-[1px] " +
+  "[&>*:last-child]:after:bg-primary [&>*:last-child]:after:align-baseline [&>*:last-child]:after:content-[''] " +
+  '[&>*:last-child]:after:animate-blink motion-reduce:[&>*:last-child]:after:animate-none';
+
+/** Câu trả lời đang chảy về: cùng khung với bong bóng AI đã hoàn tất, thêm caret. */
+function StreamingReply({ content, variant }: { content: string; variant: AiMessageVariant }) {
+  if (variant === 'page') {
+    return (
+      <div>
+        <AiAuthorLabel />
+        <div className="min-w-0 pl-9">
+          <div className="rounded-2xl rounded-tl-md border bg-sidebar/85 px-4 py-3 text-foreground shadow-subtle backdrop-blur-md">
+            <AiMessageContent
+              content={content}
+              className={cn('text-[14.5px] leading-[1.65]', CARET)}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[75%] rounded-2xl rounded-bl-md bg-accent px-3 py-2 text-[13px] leading-relaxed text-foreground">
+        <AiMessageContent content={content} className={CARET} />
       </div>
     </div>
   );
@@ -43,9 +89,12 @@ function ThinkingIndicator({ variant }: { variant: AiMessageVariant }) {
 export function AiMessageList({
   messages,
   loading,
-  error,
+  streaming = null,
   variant = 'window',
   onRegenerate,
+  onResend,
+  onEdit,
+  onDiscard,
 }: AiMessageListProps) {
   const isPage = variant === 'page';
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,16 +116,37 @@ export function AiMessageList({
     virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
   }, [messages.length, virtualizer]);
 
+  // Chỉ báo đang soạn nằm ngoài vùng ảo hoá nên scrollToIndex không với tới nó —
+  // đẩy hẳn xuống đáy container để nó luôn trong tầm nhìn như ở màn chat.
+  useEffect(() => {
+    if (!loading) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loading]);
+
+  // Bám đáy khi chữ chảy về, nhưng CHỈ khi người dùng đang ở cuối — họ cuộn lên
+  // đọc lại thì đừng giật màn hình xuống.
+  useEffect(() => {
+    if (streaming === null) return;
+    const el = scrollRef.current;
+    if (!el || el.scrollHeight - el.scrollTop - el.clientHeight > 160) return;
+    el.scrollTop = el.scrollHeight;
+  }, [streaming]);
+
   function handleScroll() {
     const el = scrollRef.current;
     if (!el) return;
     setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
   }
 
-  function scrollToBottom() {
-    virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     setShowScrollBtn(false);
-  }
+  }, []);
 
   const lastIndex = messages.length - 1;
 
@@ -102,8 +172,10 @@ export function AiMessageList({
 
               const groupedWithPrev = messages[virtualItem.index - 1]?.role === message.role;
               const groupedWithNext = messages[virtualItem.index + 1]?.role === message.role;
+              // Chạy lại chỉ có nghĩa ở câu trả lời cuối. Cửa sổ nổi không có hàng
+              // hành động cho tin bình thường, nhưng tin đứt dở thì vẫn cần "Gửi lại".
               const isLastAssistant =
-                isPage && virtualItem.index === lastIndex && message.role === 'assistant';
+                virtualItem.index === lastIndex && message.role === 'assistant';
 
               return (
                 <div
@@ -121,38 +193,25 @@ export function AiMessageList({
                 >
                   <AiMessageRow
                     message={message}
+                    index={virtualItem.index}
                     groupedWithPrev={groupedWithPrev}
                     groupedWithNext={groupedWithNext}
                     variant={variant}
+                    busy={loading}
                     onRegenerate={isLastAssistant && !loading ? onRegenerate : undefined}
+                    onResend={onResend}
+                    onEdit={onEdit}
+                    onDiscard={onDiscard}
                   />
                 </div>
               );
             })}
           </div>
 
-          {loading && <ThinkingIndicator variant={variant} />}
-
-          {error && (
-            <div
-              className={cn(
-                'mt-2 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger',
-                isPage && 'ml-9 backdrop-blur-md',
-              )}
-              role="alert"
-            >
-              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 flex-1">{error}</span>
-              {isPage && onRegenerate && (
-                <button
-                  type="button"
-                  onClick={onRegenerate}
-                  className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
-                >
-                  Thử lại
-                </button>
-              )}
-            </div>
+          {streaming !== null ? (
+            <StreamingReply content={streaming} variant={variant} />
+          ) : (
+            loading && <ThinkingIndicator variant={variant} />
           )}
         </div>
       </div>

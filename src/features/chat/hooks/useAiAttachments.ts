@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AiAttachment } from '@/lib/gemini';
+import type { AiAttachment } from '@/features/chat/types/ai-attachment';
 
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
