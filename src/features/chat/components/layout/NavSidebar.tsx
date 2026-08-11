@@ -7,6 +7,7 @@ import type { NavSection } from '@/features/chat/stores/chat-ui.store';
 import { useNavUnread } from '@/features/chat/hooks/useNavUnread';
 import { useTaskActivityNotifications } from '@/features/tasks/hooks/useTaskActivityNotifications';
 import { SettingsModal } from '@/features/settings';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
 type Props = {
   activeSection: NavSection;
@@ -26,7 +27,8 @@ const NAV_ITEMS: NavItem[] = [
   { section: 'store', icon: <Archive className="h-5 w-5" />, label: 'Kho của tôi' },
 ];
 
-const ITEM_CLASS = 'relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors';
+const ITEM_CLASS =
+  'relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors md:h-10 md:w-10';
 
 function UnreadBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -40,13 +42,17 @@ function UnreadBadge({ count }: { count: number }) {
 export function NavSidebar({ activeSection, onSectionChange }: Props) {
   const { total: unreadTotal } = useNavUnread();
   const { unreadCount: taskUnreadCount } = useTaskActivityNotifications();
+  const isMobile = useIsMobile();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
-      <nav className="flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border bg-sidebar py-3 shadow-subtle">
+      <nav
+        aria-label="Điều hướng chính"
+        className="flex h-14 w-full shrink-0 items-center border-t bg-sidebar px-2 md:h-full md:w-14 md:flex-col md:rounded-2xl md:border md:px-0 md:py-3 md:shadow-subtle"
+      >
         {/* Main navigation icons */}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-1 items-center justify-around md:flex-none md:flex-col md:justify-start md:gap-1">
           {NAV_ITEMS.map(({ section, icon, label }) => {
             const isActive = activeSection === section;
             return (
@@ -75,17 +81,22 @@ export function NavSidebar({ activeSection, onSectionChange }: Props) {
           type="button"
           title="Cài đặt"
           aria-label="Cài đặt"
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => {
+            if (isMobile) onSectionChange('settings');
+            else setSettingsOpen(true);
+          }}
           className={cn(
             ITEM_CLASS,
-            'mt-auto text-muted-foreground hover:bg-muted hover:text-foreground',
+            activeSection === 'settings'
+              ? 'ml-1 bg-primary/15 text-primary md:ml-0 md:mt-auto'
+              : 'ml-1 text-muted-foreground hover:bg-muted hover:text-foreground md:ml-0 md:mt-auto',
           )}
         >
           <Settings className="h-5 w-5" />
         </button>
       </nav>
 
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {!isMobile && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />}
     </>
   );
 }

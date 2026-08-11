@@ -6,6 +6,7 @@ export type MediaCategory =
   | 'THUMBNAIL'
   | 'VOICE'
   | 'VIDEO'
+  | 'STICKER'
   | 'ATTACHMENT';
 
 export type MediaStatus = 'PENDING' | 'READY' | 'DELETED';

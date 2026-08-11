@@ -30,6 +30,7 @@ import { NavSidebar } from './NavSidebar';
 import { AiChatWindow } from './AiChatWindow';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
+import { SettingsPage } from '@/features/settings';
 
 export function ChatLayout() {
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -78,7 +79,12 @@ export function ChatLayout() {
 
   useEffect(() => {
     // Chỉ auto-chọn hội thoại khi ở khu vực chat — tránh replace về /chat khi ở /ai, /work, /store.
-    if (activeSection === 'ai-full' || activeSection === 'tasks' || activeSection === 'store') return;
+    if (
+      activeSection === 'ai-full' ||
+      activeSection === 'tasks' ||
+      activeSection === 'store' ||
+      activeSection === 'settings'
+    ) return;
     if (selectedConversationId) return;
     if (searchParams.get('invite')) return;
     const first = conversations?.[0];
@@ -114,14 +120,16 @@ export function ChatLayout() {
     );
   }
 
-  // Mobile không có NavSidebar; khu vực AI tự xử lý điều hướng danh sách ↔ hội thoại.
   if (isMobile && activeSection === 'ai-full') {
     return (
       <div
         style={defaultBackgroundStyle}
-        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3"
+        className="flex h-full w-full flex-col overflow-hidden"
       >
-        <AiChatPage />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <AiChatPage />
+        </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -130,8 +138,41 @@ export function ChatLayout() {
 
   if (isMobile && activeSection === 'tasks') {
     return (
-      <div className="flex h-full w-full overflow-hidden bg-background p-2">
-        <TaskManagementLayout />
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <TaskManagementLayout />
+        </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (isMobile && activeSection === 'store') {
+    return (
+      <div
+        style={defaultBackgroundStyle}
+        className="flex h-full w-full flex-col overflow-hidden"
+      >
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <MyStoreLayout />
+        </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+        <CallContainer />
+        <AiChatWindow />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (isMobile && activeSection === 'settings') {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <SettingsPage onBack={() => goToSection('chat')} />
+        </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <CallContainer />
         <InviteProfileModal />
       </div>
@@ -142,13 +183,14 @@ export function ChatLayout() {
     return (
       <div
         style={backgroundStyle}
-        className="flex h-full w-full flex-col gap-3 overflow-hidden p-3"
+        className="flex h-full w-full flex-col overflow-hidden"
       >
         <div className="min-h-0 flex-1 overflow-hidden">
           {mobilePanel === 'list' && <ConversationList />}
           {mobilePanel === 'chat' && <ChatPanel />}
           {mobilePanel === 'contact' && selectedConversationId && <ContactInfo />}
         </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <CallContainer />
         <AiChatWindow />
         <InviteProfileModal />
@@ -186,6 +228,17 @@ export function ChatLayout() {
         <MyStoreLayout />
         <CallContainer />
         <AiChatWindow />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (activeSection === 'settings') {
+    return (
+      <div className="flex h-full w-full gap-3 overflow-hidden bg-background p-3">
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+        <SettingsPage onBack={() => goToSection('chat')} />
+        <CallContainer />
         <InviteProfileModal />
       </div>
     );

@@ -1,6 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { NavSidebar } from "../NavSidebar";
+
+let isMobile = false;
+
+vi.mock("@/lib/hooks/useIsMobile", () => ({
+  useIsMobile: () => isMobile,
+}));
 
 vi.mock("@/features/chat/hooks/useNavUnread", () => ({
   useNavUnread: () => ({ messageCount: 0, notifCount: 0, total: 0 }),
@@ -11,10 +17,14 @@ vi.mock("@/features/tasks/hooks/useTaskActivityNotifications", () => ({
 }));
 
 describe("NavSidebar", () => {
+  beforeEach(() => {
+    isMobile = false;
+  });
   it("renders as a rounded floating card without a border seam", () => {
     render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
-    const nav = screen.getByRole("navigation");
-    expect(nav).toHaveClass("rounded-2xl");
+    const nav = screen.getByRole("navigation", { name: "Điều hướng chính" });
+    expect(nav).toHaveClass("md:rounded-2xl");
+    expect(nav).toHaveClass("h-14", "w-full", "md:h-full", "md:w-14");
     expect(nav.className).not.toMatch(/\bborder-r\b/);
   });
 
@@ -37,5 +47,16 @@ describe("NavSidebar", () => {
     expect(screen.getByRole("button", { name: "Cài đặt chung" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Giao diện" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thông báo" })).toBeInTheDocument();
+  });
+
+  it("opens settings as a page section on mobile", () => {
+    isMobile = true;
+    const onSectionChange = vi.fn();
+    render(<NavSidebar activeSection="chat" onSectionChange={onSectionChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cài đặt" }));
+
+    expect(onSectionChange).toHaveBeenCalledWith("settings");
+    expect(screen.queryByRole("dialog", { name: "Cài đặt" })).not.toBeInTheDocument();
   });
 });

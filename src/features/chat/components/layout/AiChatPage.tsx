@@ -27,7 +27,7 @@ export function AiChatPage() {
   const showConversation = !isMobile || Boolean(activeId);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 gap-3 overflow-hidden">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 gap-3 overflow-hidden">
       {showHistory && (
         <AiSessionList
           sessions={sessions}

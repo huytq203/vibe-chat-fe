@@ -26,9 +26,20 @@ import type {
   Tag,
   TaskDetail,
   TaskPriority,
+  UserSnapshot,
 } from '../types';
 
 export const tasksApi = {
+  // --- Current user snapshot ---
+  syncCurrentUserSnapshot: (input: {
+    displayName: string;
+    avatarUrl?: string | null;
+  }) =>
+    taskClient.post<UserSnapshot>('/api/v1/users/snapshot', {
+      displayName: input.displayName,
+      avatarUrl: input.avatarUrl ?? undefined,
+    }),
+
   // --- Projects ---
   // Danh sách phẳng (switcher/dashboard) — lấy tối đa 100 project đầu.
   listProjects: () =>

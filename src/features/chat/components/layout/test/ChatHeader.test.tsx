@@ -31,7 +31,7 @@ function buildConversation(
 }
 
 describe("ChatHeader", () => {
-  it("renders as a rounded floating card without a bottom border seam", () => {
+  it("renders full-bleed on mobile and as a floating card on desktop", () => {
     const { container } = renderWithProviders(
       <ChatHeader
         conversation={buildConversation()}
@@ -42,7 +42,8 @@ describe("ChatHeader", () => {
       />,
     );
     const header = container.firstElementChild as HTMLElement;
-    expect(header).toHaveClass("rounded-2xl", "shadow-subtle");
-    expect(header.className).not.toMatch(/\bborder-b\b/);
+    expect(header).toHaveClass("border-b");
+    expect(header).toHaveClass("md:rounded-2xl", "md:border", "md:shadow-subtle");
+    expect(header).not.toHaveClass("rounded-2xl", "shadow-subtle");
   });
 });

@@ -40,7 +40,7 @@ export function AppHeader({ onCreateProject }: AppHeaderProps) {
   };
 
   return (
-    <header className="flex shrink-0 items-center gap-2 rounded-2xl border bg-background px-3 py-2 sm:gap-3 sm:px-4">
+    <header className="flex shrink-0 items-center gap-2 border-b bg-background px-3 py-2 sm:gap-3 sm:px-4 md:rounded-2xl md:border">
       <div className="hidden min-w-0 flex-1 lg:block">
         <h1 className="truncate text-[14.5px] font-bold leading-tight text-foreground">
           {meta.title}

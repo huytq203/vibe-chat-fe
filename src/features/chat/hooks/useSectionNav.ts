@@ -10,6 +10,7 @@ const SECTION_PATH = {
   'ai-full': '/ai',
   tasks: '/work',
   store: '/store',
+  settings: '/settings',
 } as const;
 
 type SectionNav = {
@@ -26,7 +27,16 @@ export function useSectionNav(): SectionNav {
   const isWork = pathname === '/work' || pathname.startsWith('/work/');
   const isAi = pathname === '/ai' || pathname.startsWith('/ai/');
   const isStore = pathname === '/store' || pathname.startsWith('/store/');
-  const activeSection: NavSection = isWork ? 'tasks' : isAi ? 'ai-full' : isStore ? 'store' : 'chat';
+  const isSettings = pathname === '/settings' || pathname.startsWith('/settings/');
+  const activeSection: NavSection = isWork
+    ? 'tasks'
+    : isAi
+      ? 'ai-full'
+      : isStore
+        ? 'store'
+        : isSettings
+          ? 'settings'
+          : 'chat';
 
   const goToSection = useCallback(
     (section: NavSection) => {

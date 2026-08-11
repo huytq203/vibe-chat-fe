@@ -9,12 +9,15 @@ import { BoardHeader, KanbanBoard, ListView, ProjectSwitcher, TaskDetailModal } 
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useProjects } from '../../hooks/useProjects';
 import { useTaskRealtime, useTaskSocketWarmup } from '../../hooks/useTaskRealtime';
+import { useCurrentUserSnapshotSync } from '../../hooks/useCurrentUserSnapshotSync';
 import { getViewTitle } from '../../lib/view-title';
 
 export function TaskManagementLayout() {
   const activeView = useTasksUIStore((s) => s.activeView);
   const selectedId = useTasksUIStore((s) => s.selectedProjectId);
   const boardView = useTasksUIStore((s) => s.boardView);
+  // Sửa/duy trì UserSnapshot chuẩn trước khi hiển thị tên trong task-service.
+  useCurrentUserSnapshotSync();
   // Kết nối socket ngay khi vào /work — board mở lần đầu không tốn handshake
   useTaskSocketWarmup();
   // Realtime: join room project đang mở, đồng bộ board/detail giữa các thành viên
@@ -26,11 +29,11 @@ export function TaskManagementLayout() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   return (
-    <div className="relative flex h-full min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+    <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden md:gap-3">
       <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <main className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border bg-background">
+        <main className="relative min-h-0 flex-1 overflow-hidden bg-background md:rounded-2xl md:border">
           {activeView === 'home' && <Dashboard />}
           {activeView === 'projects' && <ProjectsPage />}
           {activeView === 'reports' && <ReportsView />}

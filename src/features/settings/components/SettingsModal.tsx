@@ -1,94 +1,14 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
-import {
-  Bell,
-  Cloud,
-  MessageSquare,
-  MonitorSmartphone,
-  Palette,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sticker,
-  type LucideIcon,
-} from "lucide-react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog/Dialog";
 import { cn } from "@/lib/utils/cn";
-import { GeneralTab } from "./tabs/GeneralTab";
 import { AppearanceTab } from "./tabs/AppearanceTab";
-import { NotificationsTab } from "./tabs/NotificationsTab";
-import { MessagesTab } from "./tabs/MessagesTab";
-import { PrivacyTab } from "./tabs/PrivacyTab";
-import { DevicesTab } from "./tabs/DevicesTab";
-import { BackupTab } from "./tabs/BackupTab";
-import { StickersTab } from "./tabs/StickersTab";
-
-type TabId =
-  | "general"
-  | "appearance"
-  | "notifications"
-  | "messages"
-  | "privacy"
-  | "devices"
-  | "backup"
-  | "stickers";
-
-type TabDef = {
-  id: TabId;
-  label: string;
-  icon: LucideIcon;
-  Component: ComponentType<{ onClose?: () => void }>;
-};
-
-const TABS: readonly TabDef[] = [
-  {
-    id: "general",
-    label: "Cài đặt chung",
-    icon: SlidersHorizontal,
-    Component: GeneralTab,
-  },
-  {
-    id: "appearance",
-    label: "Giao diện",
-    icon: Palette,
-    Component: AppearanceTab,
-  },
-  {
-    id: "notifications",
-    label: "Thông báo",
-    icon: Bell,
-    Component: NotificationsTab,
-  },
-  {
-    id: "messages",
-    label: "Tin nhắn",
-    icon: MessageSquare,
-    Component: MessagesTab,
-  },
-  {
-    id: "stickers",
-    label: "Sticker",
-    icon: Sticker,
-    Component: StickersTab,
-  },
-  {
-    id: "privacy",
-    label: "Quyền riêng tư & bảo mật",
-    icon: ShieldCheck,
-    Component: PrivacyTab,
-  },
-  {
-    id: "devices",
-    label: "Thiết bị đăng nhập",
-    icon: MonitorSmartphone,
-    Component: DevicesTab,
-  },
-  { id: "backup", label: "Backup", icon: Cloud, Component: BackupTab },
-] as const;
+import { SETTINGS_TABS, type SettingsTabId } from "./settings-tabs";
 
 export function SettingsModal({
   open,
@@ -97,9 +17,9 @@ export function SettingsModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [active, setActive] = useState<TabId>("appearance");
+  const [active, setActive] = useState<SettingsTabId>("appearance");
   const ActiveTab =
-    TABS.find((t) => t.id === active)?.Component ?? AppearanceTab;
+    SETTINGS_TABS.find((t) => t.id === active)?.Component ?? AppearanceTab;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,7 +30,7 @@ export function SettingsModal({
             <div className="hidden px-2 pb-2 pt-1 text-sm font-bold text-foreground sm:block">
               Cài đặt
             </div>
-            {TABS.map((tab) => {
+            {SETTINGS_TABS.map((tab) => {
               const isActive = tab.id === active;
               const Icon = tab.icon;
               return (

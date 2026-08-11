@@ -100,6 +100,13 @@ export interface Member {
   joinedAt: string;
 }
 
+/** Profile cache của task-service, dùng để enrich assignee/comment/activity. */
+export interface UserSnapshot {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
 /** Link mời của project (FE tự ghép URL từ token + origin). */

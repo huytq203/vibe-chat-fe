@@ -40,9 +40,9 @@ export function AiSessionList({
     <aside
       aria-label="Lịch sử trò chuyện với AI"
       className={cn(
-        'flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-2xl border',
-        'bg-sidebar/75 text-sidebar-foreground shadow-subtle backdrop-blur-md',
-        'md:w-[280px] md:min-w-[280px]',
+        'flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden',
+        'bg-sidebar/75 text-sidebar-foreground backdrop-blur-md',
+        'md:w-[280px] md:min-w-[280px] md:rounded-2xl md:border md:shadow-subtle',
       )}
     >
       <header className="flex shrink-0 items-center gap-2 px-3 pt-3">

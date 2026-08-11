@@ -21,10 +21,14 @@ import { SettingsModal } from '@/features/settings';
 import { ShareLinkDialog } from '@/features/share-links';
 import { Avatar } from './Avatar';
 import { ProfileDialog } from '@/features/chat/components/contact/ProfileDialog';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useRouter } from 'next/navigation';
 
 export function UserMenu() {
   const me = useAuthStore((s) => s.user);
   const logout = useLogout();
+  const isMobile = useIsMobile();
+  const router = useRouter();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -41,6 +45,12 @@ export function UserMenu() {
   const handleRequestLogout = () => {
     setPopoverOpen(false);
     setConfirmOpen(true);
+  };
+
+  const handleOpenSettings = () => {
+    setPopoverOpen(false);
+    if (isMobile) router.push('/settings');
+    else setSettingsOpen(true);
   };
 
   const handleConfirmLogout = () => {
@@ -108,7 +118,7 @@ export function UserMenu() {
             </button>
             <button
               type="button"
-              onClick={() => { setPopoverOpen(false); setSettingsOpen(true); }}
+              onClick={handleOpenSettings}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -131,7 +141,7 @@ export function UserMenu() {
 
       <ShareLinkDialog open={shareOpen} onOpenChange={setShareOpen} />
 
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {!isMobile && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />}
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
