@@ -8,7 +8,12 @@ import type { Sticker } from '@/features/chat/types/sticker';
 export const STICKERS_QUERY_KEY = ['stickers', 'me'] as const;
 
 export function useMyStickers() {
-  return useQuery({ queryKey: STICKERS_QUERY_KEY, queryFn: stickerApi.getMyStickers, staleTime: 5 * 60_000 });
+  return useQuery({
+    queryKey: STICKERS_QUERY_KEY,
+    queryFn: stickerApi.getMyStickers,
+    staleTime: 5 * 60_000,
+    refetchOnMount: 'always',
+  });
 }
 
 export function useSendSticker(conversationId: string) {

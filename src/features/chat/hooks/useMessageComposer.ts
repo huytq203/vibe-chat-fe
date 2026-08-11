@@ -32,7 +32,11 @@ const KIND_TO_TYPE: Record<AttachmentKind, MessageType> = {
  * (RichMessageEditor) qua ref handle, typing indicator, emoji, paste ảnh,
  * submit/edit kèm richText. Tách khỏi MessageInput để component chỉ còn JSX.
  */
-export function useMessageComposer(conversationId: string, disabled?: boolean) {
+export function useMessageComposer(
+  conversationId: string,
+  disabled?: boolean,
+  stickerMode = false,
+) {
   const editorRef = useRef<EditorHandle>(null);
   const [hasContent, setHasContent] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -53,7 +57,7 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
       : null;
 
   const { attachments, addFiles, remove, removeAll, uploadAll, isUploading } =
-    useAttachments();
+    useAttachments({ stickerMode });
   const typingStateRef = useRef<'start' | 'stop'>('stop');
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefilledIdRef = useRef<string | null>(null);
@@ -201,8 +205,9 @@ export function useMessageComposer(conversationId: string, disabled?: boolean) {
 
       // Có file → text thành CAPTION gắn vào tin media ĐẦU TIÊN (xem 04-messages.md).
       const uploaded = await uploadAll();
-      if (uploaded.some((a) => a.status === 'error')) {
-        toast.error('Có tệp tải lên thất bại. Hãy xoá tệp lỗi rồi gửi lại.');
+      const failed = uploaded.find((a) => a.status === 'error');
+      if (failed) {
+        toast.error(failed.error ?? 'Có tệp tải lên thất bại. Hãy xoá tệp lỗi rồi gửi lại.');
         return;
       }
       // GỘP tất cả file đã upload vào MỘT tin (như Messenger/Zalo) — trước đây mỗi

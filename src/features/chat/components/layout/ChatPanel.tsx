@@ -114,6 +114,13 @@ export function ChatPanel() {
         (m) => m.isBot && m.username.toLowerCase() === "botfather",
       ),
     );
+  const isStickersBotConversation =
+    conversation?.type === "DIRECT" &&
+    Boolean(
+      conversation.members?.some(
+        (m) => m.isBot && m.username.toLowerCase() === "stickers",
+      ),
+    );
   const webappBotUsername =
     conversation?.members?.find((m) => m.isBot)?.username ?? null;
   // Nền wallpaper giờ áp ở ChatLayout (xuyên suốt cả khung, kể cả khe hở giữa các card) —
@@ -178,6 +185,7 @@ export function ChatPanel() {
                 conversation.type === "GROUP" || conversation.type === "CHANNEL"
               }
               botFatherCommands={isBotFatherConversation}
+              stickerBotConversation={isStickersBotConversation}
               wallpaperActive={wallpaperActive}
               onWebappMenuClick={
                 webappBotUsername

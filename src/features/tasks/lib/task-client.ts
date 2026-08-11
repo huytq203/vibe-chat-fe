@@ -1,5 +1,6 @@
 import { env } from '@/config/env';
 import { apiAuth } from '@/lib/api/client';
+import { normalizeTaskDisplayNames } from './normalize-display-name';
 
 /**
  * Client riêng cho task-service. KHÔNG đi qua `apiClient` của chat backend —
@@ -40,7 +41,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (!res.ok || (json !== null && !json.success)) {
     throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);
   }
-  return (json ? json.data : undefined) as T;
+  return normalizeTaskDisplayNames((json ? json.data : undefined) as T);
 }
 
 /** Như `request` nhưng giữ lại `meta` — dùng cho endpoint phân trang. */
@@ -61,7 +62,10 @@ async function requestPaged<T, M>(
   if (!res.ok || (json !== null && !json.success)) {
     throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);
   }
-  return { data: json?.data as T, meta: json?.meta as M };
+  return {
+    data: normalizeTaskDisplayNames(json?.data as T),
+    meta: json?.meta as M,
+  };
 }
 
 export const taskClient = {

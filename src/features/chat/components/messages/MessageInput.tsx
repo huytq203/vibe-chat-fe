@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { toast } from "sonner";
-import { Check, Mic, PanelTopOpen, Pencil, Reply, Send, X } from "lucide-react";
+import { Check, Mic, Pencil, Reply, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { useMessageComposer } from "@/features/chat/hooks/useMessageComposer";
 import { useInlineMode } from "@/features/chat/hooks/useInlineMode";
@@ -49,6 +49,7 @@ type MessageInputProps = {
   botFatherCommands?: boolean;
   wallpaperActive?: boolean;
   onWebappMenuClick?: () => void;
+  stickerBotConversation?: boolean;
 };
 
 export function MessageInput({
@@ -60,6 +61,7 @@ export function MessageInput({
   botFatherCommands,
   wallpaperActive,
   onWebappMenuClick,
+  stickerBotConversation,
 }: MessageInputProps) {
   const {
     editorRef,
@@ -85,7 +87,7 @@ export function MessageInput({
     exitEdit,
     handleEmojiButtonClick,
     handleEmojiSelect,
-  } = useMessageComposer(conversationId, disabled);
+  } = useMessageComposer(conversationId, disabled, stickerBotConversation);
 
   const [editor, setEditor] = useState<Editor | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -216,8 +218,10 @@ export function MessageInput({
       onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
       onToggleExpanded={() => setExpanded((v) => !v)}
+      onWebappClick={onWebappMenuClick}
       onAiClick={() => useAiWindowStore.getState().open()}
       onPollClick={isGroup ? () => setPollOpen(true) : undefined}
+      stickerBotConversation={stickerBotConversation}
     />
   );
 
@@ -272,25 +276,10 @@ export function MessageInput({
       </Button>
     ) : null;
 
-  const webappMenuEl = onWebappMenuClick ? (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      type="button"
-      onClick={onWebappMenuClick}
-      disabled={disabled || isEditing}
-      aria-label="Mở WebApp của bot"
-      title="Mở WebApp"
-      className="shrink-0 text-muted-foreground hover:text-primary"
-    >
-      <PanelTopOpen className="h-[18px] w-[18px]" />
-    </Button>
-  ) : null;
-
   return (
     <div
       className={cn(
-        "shrink-0 rounded-2xl px-4 py-2 shadow-subtle border",
+        "shrink-0 border-t px-4 py-2 md:rounded-2xl md:border md:shadow-subtle",
         wallpaperActive ? "bg-sidebar" : "bg-sidebar",
       )}
     >
@@ -373,7 +362,6 @@ export function MessageInput({
             <div className="mt-1.5 flex items-center justify-between gap-1.5">
               {actions}
               <div className="flex items-center gap-1.5">
-                {webappMenuEl}
                 {sendEl}
               </div>
             </div>
@@ -383,7 +371,6 @@ export function MessageInput({
             <div className="flex items-end gap-1.5">
               {actions}
               {editorEl}
-              {webappMenuEl}
               {sendEl}
             </div>
           </>

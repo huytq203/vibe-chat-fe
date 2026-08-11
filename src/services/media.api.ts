@@ -58,9 +58,15 @@ function xhrSend<T>(opts: XhrOptions): Promise<T> {
       let code = 'MEDIA_UPLOAD_FAILED';
       let message = xhr.statusText || 'Upload thất bại';
       try {
-        const body = JSON.parse(xhr.responseText) as { error?: { code?: string; message?: string } };
+        const body = JSON.parse(xhr.responseText) as {
+          error?: { code?: string; message?: string };
+          error_code?: string | number;
+          error_message?: string;
+        };
         if (body?.error?.code) code = body.error.code;
         if (body?.error?.message) message = body.error.message;
+        if (body?.error_code !== undefined) code = String(body.error_code);
+        if (body?.error_message) message = body.error_message;
       } catch {
         /* non-JSON (storage) */
       }
@@ -75,7 +81,11 @@ function xhrSend<T>(opts: XhrOptions): Promise<T> {
 
 export const mediaApi = {
   /** Cách A — upload trực tiếp (file nhỏ ≤ 10MB). */
-  uploadDirect: (file: File, category: MediaCategory, onProgress?: ProgressFn) => {
+  uploadDirect: (
+    file: File,
+    category: MediaCategory,
+    onProgress?: ProgressFn,
+  ) => {
     const form = new FormData();
     form.append('file', file);
     form.append('category', category);

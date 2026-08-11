@@ -108,7 +108,7 @@ export function StoreFileBrowser() {
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-2xl border bg-background/75 shadow-subtle backdrop-blur-md">
+      <ContextMenuTrigger className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background/75 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle">
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFilesSelected} />
 
         <StoreFileBrowserHeader

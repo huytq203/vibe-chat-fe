@@ -106,7 +106,7 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
           </button>
           <textarea
             className="flex-1 rounded-xl border border-border bg-accent/30 px-3 py-2 text-sm resize-none focus:border-primary focus:outline-none min-h-[40px] max-h-[120px]"
-            placeholder="Ghi chú... (Enter để gửi, Shift+Enter xuống dòng)"
+            placeholder="Nhập nội dung..."
             value={text}
             rows={1}
             onChange={(e) => {

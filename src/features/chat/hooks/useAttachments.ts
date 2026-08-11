@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { mediaApi } from '@/services/media.api';
 import type {
   Attachment as MessageAttachment,
@@ -29,6 +30,8 @@ export type Attachment = {
 
 // > 10MB hoặc video → bắt buộc dùng presigned URL (Cách B). Còn lại upload trực tiếp.
 const DIRECT_MAX = 10 * 1024 * 1024;
+// Server tự chuyển sang WebP và resize; client chỉ chặn sớm file quá lớn.
+const STICKER_INPUT_MAX = 10 * 1024 * 1024;
 
 // Fallback theo đuôi khi MIME rỗng/sai (file kéo từ máy có thể không có type).
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif', 'heic', 'heif']);
@@ -110,7 +113,17 @@ export function buildOptimisticAttachment(media: MediaResponse): MessageAttachme
   };
 }
 
-export function useAttachments() {
+type UseAttachmentsOptions = {
+  stickerMode?: boolean;
+};
+
+function stickerFileError(file: File): string | null {
+  if (detectKind(file) !== 'image') return 'Sticker phải là một file ảnh.';
+  if (file.size > STICKER_INPUT_MAX) return 'Ảnh sticker phải nhỏ hơn 10MB.';
+  return null;
+}
+
+export function useAttachments({ stickerMode = false }: UseAttachmentsOptions = {}) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const ref = useRef<Attachment[]>([]);
   // Promise upload đang chạy theo id — để submit chờ (không upload lại).
@@ -139,7 +152,11 @@ export function useAttachments() {
       const onProgress = (p: number) => patch(att.id, { progress: p });
       try {
         let media: MediaResponse;
-        if (att.kind !== 'video' && att.size <= DIRECT_MAX) {
+        if (stickerMode) {
+          const fileError = stickerFileError(att.file);
+          if (fileError) throw new Error(fileError);
+          media = await mediaApi.uploadDirect(att.file, 'STICKER', onProgress);
+        } else if (att.kind !== 'video' && att.size <= DIRECT_MAX) {
           // Cách A — upload trực tiếp.
           media = await mediaApi.uploadDirect(att.file, 'ATTACHMENT', onProgress);
         } else {
@@ -166,7 +183,7 @@ export function useAttachments() {
         return null;
       }
     },
-    [patch],
+    [patch, stickerMode],
   );
 
   // Bắt đầu upload ngầm 1 attachment (idempotent: bỏ qua nếu đang chạy).
@@ -185,8 +202,17 @@ export function useAttachments() {
 
   const addFiles = useCallback(
     (files: FileList | File[], forcedKind?: AttachmentKind) => {
-      const arr = Array.from(files);
+      let arr = Array.from(files);
       if (arr.length === 0) return;
+      if (stickerMode) {
+        if (arr.length > 1) toast.error('Mỗi lần chỉ gửi một sticker để bot ghép đúng emoji.');
+        arr = arr.slice(0, 1);
+        const error = stickerFileError(arr[0]);
+        if (error) {
+          toast.error(error);
+          return;
+        }
+      }
       const next: Attachment[] = arr.map((file) => {
         // Tự nhận diện ảnh/video theo MIME/đuôi; forcedKind chỉ dùng khi không xác định được.
         const detected = detectKind(file);
@@ -210,7 +236,7 @@ export function useAttachments() {
       // KHÔNG upload ngay (giữ file trong RAM trình duyệt). Chỉ upload S3 lúc bấm Gửi
       // (uploadAll) → ảnh chọn rồi huỷ KHÔNG bao giờ chạm S3, tránh rác/tràn dữ liệu.
     },
-    [sync],
+    [stickerMode, sync],
   );
 
   const remove = useCallback(

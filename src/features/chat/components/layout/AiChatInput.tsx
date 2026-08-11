@@ -66,7 +66,7 @@ export function AiChatInput({
     <div
       className={cn(
         isPage
-          ? 'rounded-2xl border bg-sidebar/90 px-2.5 py-2 shadow-subtle backdrop-blur-md'
+          ? 'border-t bg-sidebar/90 px-2.5 py-2 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle'
           : 'border-t border-border p-3',
       )}
     >
@@ -132,9 +132,18 @@ export function AiChatInput({
         </Button>
       </div>
 
+      {/* Bàn phím ảo không có Shift+Enter → hint chỉ có nghĩa khi gõ bằng bàn phím cứng. */}
       {isPage && (
-        <p className="px-1 pt-1 text-right text-[10.5px] text-muted-foreground">
-          Enter để gửi · Shift + Enter để xuống dòng
+        <p className="hidden items-center justify-end gap-1.5 px-1 pt-1.5 text-[11px] text-muted-foreground md:flex">
+          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground/70">
+            Enter
+          </kbd>
+          để gửi
+          <span aria-hidden="true">·</span>
+          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground/70">
+            Shift + Enter
+          </kbd>
+          để xuống dòng
         </p>
       )}
     </div>
@@ -142,9 +151,11 @@ export function AiChatInput({
 
   if (!isPage) return <div className="shrink-0">{composer}</div>;
 
+  // Mobile: full-bleed, viền chỉ ở cạnh trên (giống MessageInput bên chat). Khe hở 4px
+  // hai bên trước đây để lọt nền wallpaper thành một sọc mỏng, trông như lỗi render.
   return (
-    <div className="shrink-0 px-1">
-      <div className="mx-auto w-full max-w-[680px]">{composer}</div>
+    <div className="shrink-0 md:px-1">
+      <div className="mx-auto w-full max-w-170">{composer}</div>
     </div>
   );
 }
