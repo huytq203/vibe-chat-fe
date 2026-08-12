@@ -1,16 +1,6 @@
-import { Suspense } from 'react';
-import { AuthBootstrap } from '@/features/auth';
-import { ChatLayout } from '@/features/chat';
-
 export const metadata = { title: 'Halo AI' };
 
+/** Khung AI do `ai/layout.tsx` dựng — page chỉ giữ metadata để không remount khi đổi phiên. */
 export default function AiSessionPage() {
-  return (
-    <div className="h-full w-full">
-      <AuthBootstrap requireAuth redirectTo="/login" />
-      <Suspense fallback={null}>
-        <ChatLayout />
-      </Suspense>
-    </div>
-  );
+  return null;
 }
