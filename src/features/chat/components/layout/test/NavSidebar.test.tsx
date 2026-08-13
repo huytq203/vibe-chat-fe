@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { NavSidebar } from "../NavSidebar";
+import {
+  getMobileRadialOffset,
+  getNearestMobileDockEdge,
+  NavSidebar,
+} from "../NavSidebar";
 
 let isMobile = false;
 
@@ -75,5 +79,24 @@ describe("NavSidebar", () => {
     expect(screen.getByRole("button", { name: "Đóng menu điều hướng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "AI Chat" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kho của tôi" })).toBeInTheDocument();
+  });
+
+  it("snaps a dragged mobile hub to its nearest screen edge", () => {
+    expect(getNearestMobileDockEdge(4, 180, 320, 700)).toBe("left");
+    expect(getNearestMobileDockEdge(190, 3, 320, 700)).toBe("top");
+    expect(getNearestMobileDockEdge(316, 300, 320, 700)).toBe("right");
+    expect(getNearestMobileDockEdge(160, 698, 320, 700)).toBe("bottom");
+  });
+
+  it("opens each edge arc toward the inside of the screen", () => {
+    const leftMiddle = getMobileRadialOffset("left", 2, 5);
+    const topMiddle = getMobileRadialOffset("top", 2, 5);
+    const rightMiddle = getMobileRadialOffset("right", 2, 5);
+    const bottomMiddle = getMobileRadialOffset("bottom", 2, 5);
+
+    expect(leftMiddle.x).toBeGreaterThan(0);
+    expect(topMiddle.y).toBeGreaterThan(0);
+    expect(rightMiddle.x).toBeLessThan(0);
+    expect(bottomMiddle.y).toBeLessThan(0);
   });
 });

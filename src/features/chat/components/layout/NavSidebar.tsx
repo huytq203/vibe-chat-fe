@@ -21,6 +21,8 @@ type NavItem = {
   label: string;
 };
 
+export type MobileDockEdge = 'top' | 'right' | 'bottom' | 'left';
+
 const NAV_ITEMS: NavItem[] = [
   { section: 'chat', icon: <MessageSquare className="h-5 w-5" />, label: 'Chat' },
   { section: 'ai-full', icon: <Bot className="h-5 w-5" />, label: 'AI Chat' },
@@ -35,6 +37,40 @@ const MOBILE_HUB_SIZE = 58;
 const MOBILE_ITEM_SIZE = 48;
 const MOBILE_RING_RADIUS = 84;
 const MOBILE_RING_EXTENT = MOBILE_RING_RADIUS + MOBILE_ITEM_SIZE / 2 + 4;
+const EDGE_SPRING = { type: 'spring' as const, stiffness: 460, damping: 36, mass: 0.72 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function getNearestMobileDockEdge(
+  x: number,
+  y: number,
+  maxX: number,
+  maxY: number,
+): MobileDockEdge {
+  const distances: Array<[MobileDockEdge, number]> = [
+    ['left', Math.max(0, x)],
+    ['right', Math.max(0, maxX - x)],
+    ['top', Math.max(0, y)],
+    ['bottom', Math.max(0, maxY - y)],
+  ];
+  return distances.reduce((nearest, candidate) =>
+    candidate[1] < nearest[1] ? candidate : nearest,
+  )[0];
+}
+
+export function getMobileRadialOffset(
+  edge: MobileDockEdge,
+  index: number,
+  total: number,
+  radius = MOBILE_RING_RADIUS,
+) {
+  const startAngle = { left: -90, right: 90, top: 0, bottom: 180 }[edge];
+  const progress = total <= 1 ? 0.5 : index / (total - 1);
+  const angle = (startAngle + progress * 180) * (Math.PI / 180);
+  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+}
 
 function UnreadBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -60,54 +96,82 @@ function MobileFloatingNav({
   const boundsRef = useRef<HTMLElement>(null);
   const hubRef = useRef<HTMLDivElement>(null);
   const didDragRef = useRef(false);
+  const didPositionRef = useRef(false);
+  const dockEdgeRef = useRef<MobileDockEdge>('right');
   const dragControls = useDragControls();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isPositioned, setIsPositioned] = useState(false);
+  const [dockEdge, setDockEdge] = useState<MobileDockEdge>('right');
 
   useEffect(() => {
     const bounds = boundsRef.current;
     if (!bounds) return;
 
-    const placeAtDefault = () => {
-      x.set(Math.max(0, bounds.clientWidth - MOBILE_HUB_SIZE));
-      y.set(Math.max(0, bounds.clientHeight - MOBILE_HUB_SIZE));
+    const alignWithEdge = () => {
+      const maxX = Math.max(0, bounds.clientWidth - MOBILE_HUB_SIZE);
+      const maxY = Math.max(0, bounds.clientHeight - MOBILE_HUB_SIZE);
+
+      if (!didPositionRef.current) {
+        x.set(maxX);
+        y.set(clamp(bounds.clientHeight * 0.68 - MOBILE_HUB_SIZE / 2, 0, maxY));
+        didPositionRef.current = true;
+      } else {
+        const edge = dockEdgeRef.current;
+        x.set(edge === 'left' ? 0 : edge === 'right' ? maxX : clamp(x.get(), 0, maxX));
+        y.set(edge === 'top' ? 0 : edge === 'bottom' ? maxY : clamp(y.get(), 0, maxY));
+      }
       setIsPositioned(true);
     };
 
-    placeAtDefault();
+    alignWithEdge();
     if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(placeAtDefault);
+      const observer = new ResizeObserver(alignWithEdge);
       observer.observe(bounds);
       return () => observer.disconnect();
     }
 
-    window.addEventListener('resize', placeAtDefault);
-    return () => window.removeEventListener('resize', placeAtDefault);
+    window.addEventListener('resize', alignWithEdge);
+    return () => window.removeEventListener('resize', alignWithEdge);
   }, [x, y]);
 
-  const moveHubInsideRing = () => {
-    const bounds = boundsRef.current?.getBoundingClientRect();
-    const hub = hubRef.current?.getBoundingClientRect();
-    if (!bounds || !hub || bounds.width <= 0 || bounds.height <= 0) return;
+  const snapToEdge = (edge: MobileDockEdge, makeRoomForMenu = false) => {
+    const bounds = boundsRef.current;
+    if (!bounds) return;
 
-    const centerX = hub.left - bounds.left + hub.width / 2;
-    const centerY = hub.top - bounds.top + hub.height / 2;
-    const horizontalExtent = Math.min(MOBILE_RING_EXTENT, bounds.width / 2);
-    const verticalExtent = Math.min(MOBILE_RING_EXTENT, bounds.height / 2);
-    const targetCenterX = Math.min(
-      Math.max(centerX, horizontalExtent),
-      bounds.width - horizontalExtent,
-    );
-    const targetCenterY = Math.min(
-      Math.max(centerY, verticalExtent),
-      bounds.height - verticalExtent,
-    );
+    const maxX = Math.max(0, bounds.clientWidth - MOBILE_HUB_SIZE);
+    const maxY = Math.max(0, bounds.clientHeight - MOBILE_HUB_SIZE);
+    let targetX = clamp(x.get(), 0, maxX);
+    let targetY = clamp(y.get(), 0, maxY);
 
-    const spring = { type: 'spring' as const, stiffness: 430, damping: 34, mass: 0.7 };
-    animate(x, x.get() + targetCenterX - centerX, spring);
-    animate(y, y.get() + targetCenterY - centerY, spring);
+    if (edge === 'left') targetX = 0;
+    if (edge === 'right') targetX = maxX;
+    if (edge === 'top') targetY = 0;
+    if (edge === 'bottom') targetY = maxY;
+
+    if (makeRoomForMenu) {
+      if (edge === 'left' || edge === 'right') {
+        const centerY = clamp(
+          targetY + MOBILE_HUB_SIZE / 2,
+          MOBILE_RING_EXTENT,
+          bounds.clientHeight - MOBILE_RING_EXTENT,
+        );
+        targetY = centerY - MOBILE_HUB_SIZE / 2;
+      } else {
+        const centerX = clamp(
+          targetX + MOBILE_HUB_SIZE / 2,
+          MOBILE_RING_EXTENT,
+          bounds.clientWidth - MOBILE_RING_EXTENT,
+        );
+        targetX = centerX - MOBILE_HUB_SIZE / 2;
+      }
+    }
+
+    dockEdgeRef.current = edge;
+    setDockEdge(edge);
+    animate(x, targetX, EDGE_SPRING);
+    animate(y, targetY, EDGE_SPRING);
   };
 
   const toggleMenu = () => {
@@ -116,7 +180,7 @@ function MobileFloatingNav({
       setIsOpen(false);
       return;
     }
-    moveHubInsideRing();
+    snapToEdge(dockEdgeRef.current, true);
     setIsOpen(true);
   };
 
@@ -133,11 +197,12 @@ function MobileFloatingNav({
       aria-label="Điều hướng chính"
       className="pointer-events-none fixed z-[150]"
       style={{
-        top: 'max(12px, env(safe-area-inset-top))',
-        right: 'max(12px, env(safe-area-inset-right))',
-        bottom: 'max(16px, env(safe-area-inset-bottom))',
-        left: 'max(12px, env(safe-area-inset-left))',
+        top: 'env(safe-area-inset-top, 0px)',
+        right: 'env(safe-area-inset-right, 0px)',
+        bottom: 'max(4px, min(env(safe-area-inset-bottom, 0px), 12px))',
+        left: 'env(safe-area-inset-left, 0px)',
       }}
+      data-dock-edge={dockEdge}
     >
       <AnimatePresence>
         {isOpen && (
@@ -173,6 +238,12 @@ function MobileFloatingNav({
           setIsOpen(false);
         }}
         onDragEnd={() => {
+          const bounds = boundsRef.current;
+          if (bounds) {
+            const maxX = Math.max(0, bounds.clientWidth - MOBILE_HUB_SIZE);
+            const maxY = Math.max(0, bounds.clientHeight - MOBILE_HUB_SIZE);
+            snapToEdge(getNearestMobileDockEdge(x.get(), y.get(), maxX, maxY));
+          }
           window.setTimeout(() => {
             didDragRef.current = false;
           }, 0);
@@ -185,14 +256,17 @@ function MobileFloatingNav({
               role="group"
               aria-label="Các khu vực"
               className="absolute left-1/2 top-1/2 h-0 w-0"
+              data-radial-direction={dockEdge}
               initial="closed"
               animate="open"
               exit="closed"
             >
               {NAV_ITEMS.map(({ section, icon, label }, index) => {
-                const angle = (-90 + index * (360 / NAV_ITEMS.length)) * (Math.PI / 180);
-                const itemX = Math.cos(angle) * MOBILE_RING_RADIUS;
-                const itemY = Math.sin(angle) * MOBILE_RING_RADIUS;
+                const { x: itemX, y: itemY } = getMobileRadialOffset(
+                  dockEdge,
+                  index,
+                  NAV_ITEMS.length,
+                );
                 const isActive = activeSection === section;
 
                 return (

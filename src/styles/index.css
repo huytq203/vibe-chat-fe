@@ -299,7 +299,9 @@
         min-height: 100dvh;
         padding-top: env(safe-area-inset-top, 0px);
         padding-right: env(safe-area-inset-right, 0px);
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        /* Một số WebView/PWA báo inset đáy quá lớn; giữ một khoảng thở nhỏ thay vì
+           đẩy toàn bộ ứng dụng lên và tạo dải trống như một thanh navigation cũ. */
+        padding-bottom: min(env(safe-area-inset-bottom, 0px), 12px);
         padding-left: env(safe-area-inset-left, 0px);
     }
 
