@@ -23,8 +23,8 @@ describe("NavSidebar", () => {
   it("renders as a rounded floating card without a border seam", () => {
     render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
     const nav = screen.getByRole("navigation", { name: "Điều hướng chính" });
-    expect(nav).toHaveClass("md:rounded-2xl");
-    expect(nav).toHaveClass("h-14", "w-full", "md:h-full", "md:w-14");
+    expect(nav).toHaveClass("rounded-2xl");
+    expect(nav).toHaveClass("h-full", "w-14");
     expect(nav.className).not.toMatch(/\bborder-r\b/);
   });
 
@@ -54,9 +54,26 @@ describe("NavSidebar", () => {
     const onSectionChange = vi.fn();
     render(<NavSidebar activeSection="chat" onSectionChange={onSectionChange} />);
 
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mở menu điều hướng. Kéo để di chuyển" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Cài đặt" }));
 
     expect(onSectionChange).toHaveBeenCalledWith("settings");
     expect(screen.queryByRole("dialog", { name: "Cài đặt" })).not.toBeInTheDocument();
+  });
+
+  it("opens mobile navigation as a radial menu with a close hub", () => {
+    isMobile = true;
+    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mở menu điều hướng. Kéo để di chuyển" }),
+    );
+
+    expect(screen.getByRole("group", { name: "Các khu vực" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Đóng menu điều hướng" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI Chat" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kho của tôi" })).toBeInTheDocument();
   });
 });
