@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import { Button } from '@/components/ui/button/Button';
@@ -26,6 +26,15 @@ import { ALLOWED_ATTACHMENT_ACCEPT, MAX_ATTACHMENT_SIZE } from '../../constants'
 interface Props {
   projectId: string;
   taskId: string;
+}
+
+/** Lấy id các attachment đã được chèn làm ảnh trong mô tả (data-attachment-id) để loại khỏi list "Tệp đính kèm". */
+function extractDescriptionImageIds(html: string): Set<string> {
+  const ids = new Set<string>();
+  const regex = /data-attachment-id="([^"]+)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html))) ids.add(match[1]);
+  return ids;
 }
 
 /** Định dạng khoảng thời gian hoàn thành (ms) sang tiếng Việt: "2 ngày 3 giờ" / "5 giờ 12 phút" / "8 phút". */
@@ -69,6 +78,15 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
   const uploadAttachment = useUploadAttachment(projectId, taskId);
   const deleteAtt = useDeleteAttachment(projectId, taskId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Ảnh đã chèn vào mô tả không hiện lại ở đây — tránh double khi paste/chèn ảnh mô tả.
+  const descriptionImageIds = useMemo(
+    () => extractDescriptionImageIds(task?.description ?? ''),
+    [task?.description],
+  );
+  const visibleAttachments = useMemo(
+    () => attachments.filter((att) => !descriptionImageIds.has(att.id)),
+    [attachments, descriptionImageIds],
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -182,7 +200,7 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
           />
         </div>
         <div className="space-y-1">
-          {attachments.map((att) => (
+          {visibleAttachments.map((att) => (
             <div
               key={att.id}
               className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1.5 text-sm"
@@ -208,7 +226,7 @@ export function TaskDetailLeftPanel({ projectId, taskId }: Props) {
               </button>
             </div>
           ))}
-          {attachments.length === 0 && (
+          {visibleAttachments.length === 0 && (
             <p className="text-xs text-muted-foreground">Chưa có tệp đính kèm</p>
           )}
         </div>

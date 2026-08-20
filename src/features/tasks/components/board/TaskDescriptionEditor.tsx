@@ -7,6 +7,10 @@ import Image from "@tiptap/extension-image";
 import { baseEditorExtensions } from "@/lib/editor/extensions";
 import { cn } from "@/lib/utils/cn";
 import { ImageLightbox } from "@/components/common/ImageLightbox";
+import {
+  useDescriptionImageUpload,
+  type EmbeddedImage,
+} from "../../hooks/useDescriptionImageUpload";
 import { DescriptionToolbar } from "./DescriptionToolbar";
 
 const TaskImage = Image.extend({
@@ -24,12 +28,6 @@ const TaskImage = Image.extend({
     };
   },
 });
-
-interface EmbeddedImage {
-  attachmentId: string;
-  src: string;
-  alt: string;
-}
 
 interface TaskDescriptionEditorProps {
   value: string;
@@ -90,22 +88,7 @@ export function TaskDescriptionEditor({
         const file = image?.getAsFile();
         if (!file || !onPasteImage) return false;
         event.preventDefault();
-        void onPasteImage(file)
-          .then((uploaded) => {
-            editor
-              ?.chain()
-              .focus()
-              .insertContent({
-                type: "image",
-                attrs: {
-                  src: uploaded.src,
-                  alt: uploaded.alt,
-                  attachmentId: uploaded.attachmentId,
-                },
-              })
-              .run();
-          })
-          .catch(() => undefined);
+        insertImage(file);
         return true;
       },
       handleClick: (view, _pos, event) => {
@@ -121,6 +104,9 @@ export function TaskDescriptionEditor({
       },
     },
   });
+
+  const { fileInputRef, insertImage, handleFileInputChange, openFilePicker } =
+    useDescriptionImageUpload(editor, onPasteImage);
 
   useEffect(() => {
     if (!editor) return;
@@ -179,18 +165,32 @@ export function TaskDescriptionEditor({
           }
         }}
         className={cn(
-          "relative rounded-lg border transition-colors",
+          "relative rounded-lg  transition-colors",
           editing
             ? "border-primary"
             : "cursor-text border-border hover:bg-muted/30",
         )}
       >
-        {editing && <DescriptionToolbar editor={editor} />}
+        {editing && (
+          <DescriptionToolbar
+            editor={editor}
+            onUploadImage={onPasteImage ? openFilePicker : undefined}
+          />
+        )}
         <EditorContent editor={editor} />
         {!editing && isEmpty && (
           <p className="pointer-events-none absolute left-3 top-2 text-sm text-muted-foreground">
             {placeholder}
           </p>
+        )}
+        {onPasteImage && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
         )}
       </div>
       <ImageLightbox

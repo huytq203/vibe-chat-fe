@@ -7,6 +7,7 @@ import {
   AlignRight,
   Bold,
   Highlighter,
+  Image as ImageIcon,
   Italic,
   List,
   ListOrdered,
@@ -41,8 +42,13 @@ function ToolbarBtn({ icon, label, active, onRun }: ToolbarBtnProps) {
   );
 }
 
-/** Thanh định dạng cho editor mô tả: đậm/nghiêng/gạch/tô sáng/list/căn lề. */
-export function DescriptionToolbar({ editor }: { editor: Editor }) {
+interface DescriptionToolbarProps {
+  editor: Editor;
+  onUploadImage?: () => void;
+}
+
+/** Thanh định dạng cho editor mô tả: đậm/nghiêng/gạch/tô sáng/list/căn lề/chèn ảnh. */
+export function DescriptionToolbar({ editor, onUploadImage }: DescriptionToolbarProps) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -77,6 +83,13 @@ export function DescriptionToolbar({ editor }: { editor: Editor }) {
       <ToolbarBtn icon={<AlignLeft className={ic} />} label="Căn trái" active={state.left} onRun={() => editor.chain().focus().setTextAlign('left').run()} />
       <ToolbarBtn icon={<AlignCenter className={ic} />} label="Căn giữa" active={state.center} onRun={() => editor.chain().focus().setTextAlign('center').run()} />
       <ToolbarBtn icon={<AlignRight className={ic} />} label="Căn phải" active={state.right} onRun={() => editor.chain().focus().setTextAlign('right').run()} />
+
+      {onUploadImage && (
+        <>
+          <span className="mx-0.5 h-5 w-px bg-border" />
+          <ToolbarBtn icon={<ImageIcon className={ic} />} label="Chèn ảnh" onRun={onUploadImage} />
+        </>
+      )}
     </div>
   );
 }
