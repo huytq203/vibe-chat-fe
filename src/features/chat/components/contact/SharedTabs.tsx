@@ -68,7 +68,7 @@ export function SharedTabs({ conversationId }: { conversationId: string }) {
         )}
       </TabsContent>
 
-      <TabsContent value="files" className="pt-2">
+      <TabsContent value="files" className="pt-3">
         {files.items.length === 0 ? (
           <p className={EMPTY_CLS}>
             {files.isLoading ? 'Đang tải…' : 'Chưa có tệp được chia sẻ'}
@@ -85,7 +85,7 @@ export function SharedTabs({ conversationId }: { conversationId: string }) {
         )}
       </TabsContent>
 
-      <TabsContent value="links" className="pt-2">
+      <TabsContent value="links" className="pt-3">
         {links.items.length === 0 ? (
           <p className={EMPTY_CLS}>
             {links.isLoading ? 'Đang tải…' : 'Chưa có liên kết được chia sẻ'}

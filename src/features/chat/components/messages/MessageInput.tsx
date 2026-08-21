@@ -67,8 +67,6 @@ export function MessageInput({
     editorRef,
     mention,
     hasContent,
-    emojiOpen,
-    setEmojiOpen,
     isEditing,
     replying,
     cancelReply,
@@ -85,7 +83,6 @@ export function MessageInput({
     submit,
     sendInlineResult,
     exitEdit,
-    handleEmojiButtonClick,
     handleEmojiSelect,
   } = useMessageComposer(conversationId, disabled, stickerBotConversation);
 
@@ -208,14 +205,11 @@ export function MessageInput({
       disabled={disabled}
       isEditing={isEditing}
       expanded={expanded}
-      emojiOpen={emojiOpen}
       selfDestructTtl={selfDestructTtl}
       onFiles={addFiles}
       onSelfDestruct={setSelfDestructTtl}
       onScheduleClick={() => setScheduleOpen(true)}
       onContactClick={() => setContactOpen(true)}
-      onEmojiOpenChange={setEmojiOpen}
-      onEmojiButtonClick={handleEmojiButtonClick}
       onEmojiSelect={handleEmojiSelect}
       onToggleExpanded={() => setExpanded((v) => !v)}
       onWebappClick={onWebappMenuClick}

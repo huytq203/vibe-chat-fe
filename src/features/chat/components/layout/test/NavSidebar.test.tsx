@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NavPosition, useSettingsStore } from '@/features/settings/stores/settings.store';
+import { NavSidebar } from '../NavSidebar';
 import {
   getMobileRadialOffset,
   getNearestMobileDockEdge,
-  NavSidebar,
-} from "../NavSidebar";
+} from '../nav/MobileFloatingNav';
 
 let isMobile = false;
 
@@ -23,7 +24,13 @@ vi.mock("@/features/tasks/hooks/useTaskActivityNotifications", () => ({
 describe("NavSidebar", () => {
   beforeEach(() => {
     isMobile = false;
+    useSettingsStore.setState({ navPosition: NavPosition.LEFT });
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders as a rounded floating card without a border seam", () => {
     render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
     const nav = screen.getByRole("navigation", { name: "Điều hướng chính" });
@@ -98,5 +105,45 @@ describe("NavSidebar", () => {
     expect(topMiddle.y).toBeGreaterThan(0);
     expect(rightMiddle.x).toBeLessThan(0);
     expect(bottomMiddle.y).toBeLessThan(0);
+  });
+
+  it('moves the vertical nav to the end when positioned on the right', () => {
+    useSettingsStore.setState({ navPosition: NavPosition.RIGHT });
+    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+
+    expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toHaveClass(
+      'order-last',
+    );
+  });
+
+  it('renders the fixed dock instead of the vertical nav when positioned at the bottom', () => {
+    useSettingsStore.setState({ navPosition: NavPosition.BOTTOM });
+    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+
+    expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toHaveClass(
+      'fixed',
+      'inset-x-0',
+      'bottom-0',
+    );
+    expect(screen.getByRole('toolbar', { name: 'Các khu vực' })).toBeInTheDocument();
+  });
+
+  it('reveals the bottom dock from its handle and hides it 400ms after pointer leave', () => {
+    vi.useFakeTimers();
+    useSettingsStore.setState({ navPosition: NavPosition.BOTTOM });
+    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+
+    const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' });
+    const dock = screen.getByRole('toolbar', { name: 'Các khu vực' }).parentElement;
+    expect(dock).toHaveAttribute('data-visible', 'false');
+
+    fireEvent.pointerEnter(screen.getByTestId('desktop-dock-handle'));
+    expect(dock).toHaveAttribute('data-visible', 'true');
+
+    fireEvent.pointerLeave(nav);
+    act(() => vi.advanceTimersByTime(399));
+    expect(dock).toHaveAttribute('data-visible', 'true');
+    act(() => vi.advanceTimersByTime(1));
+    expect(dock).toHaveAttribute('data-visible', 'false');
   });
 });

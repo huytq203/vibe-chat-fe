@@ -144,3 +144,9 @@ export const botTokenKeys = {
   all: ['bot-tokens'] as const,
   list: (botId: string) => [...botTokenKeys.all, 'list', botId] as const,
 } as const;
+
+export const giphyKeys = {
+  all: ['giphy'] as const,
+  /** Query rỗng là trending; một key tránh tạo hai cache trùng nghĩa. */
+  list: (query: string) => [...giphyKeys.all, 'list', query] as const,
+} as const;
