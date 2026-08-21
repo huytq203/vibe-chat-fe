@@ -63,7 +63,7 @@ describe("NavSidebar", () => {
   it("opens settings as a page section on mobile", () => {
     isMobile = true;
     const onSectionChange = vi.fn();
-    render(<NavSidebar activeSection="chat" onSectionChange={onSectionChange} />);
+    render(<NavSidebar activeSection="tasks" onSectionChange={onSectionChange} />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Mở menu điều hướng. Kéo để di chuyển" }),
@@ -76,7 +76,7 @@ describe("NavSidebar", () => {
 
   it("opens mobile navigation as a radial menu with a close hub", () => {
     isMobile = true;
-    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+    render(<NavSidebar activeSection="tasks" onSectionChange={() => {}} />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Mở menu điều hướng. Kéo để di chuyển" }),
@@ -86,6 +86,16 @@ describe("NavSidebar", () => {
     expect(screen.getByRole("button", { name: "Đóng menu điều hướng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "AI Chat" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kho của tôi" })).toBeInTheDocument();
+  });
+
+  it('keeps the radial hub available in the mobile chat section', () => {
+    isMobile = true;
+    render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
+
+    expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Mở menu điều hướng. Kéo để di chuyển' }),
+    ).toBeInTheDocument();
   });
 
   it("snaps a dragged mobile hub to its nearest screen edge", () => {

@@ -33,7 +33,11 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-export function ConversationList() {
+interface ConversationListProps {
+  showDock?: boolean;
+}
+
+export function ConversationList({ showDock = true }: ConversationListProps) {
   const me = useAuthStore((s) => s.user);
   const activeTab = useChatUIStore((s) => s.activeTab);
   const setActiveTab = useChatUIStore((s) => s.setActiveTab);
@@ -144,7 +148,7 @@ export function ConversationList() {
   const currentLoading = archiveOpen ? archivedLoading : isLoading;
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col bg-sidebar/75 text-sidebar-foreground backdrop-blur-md md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:shadow-subtle">
+    <aside className="flex h-full w-full shrink-0 flex-col overflow-hidden bg-sidebar/75 text-sidebar-foreground backdrop-blur-md md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:shadow-subtle">
       <header className="hidden shrink-0 items-center justify-between px-4 pb-3 pt-[18px] md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
@@ -272,9 +276,11 @@ export function ConversationList() {
         )}
       </div>
 
-      <div className="shrink-0">
-        <ConversationDock />
-      </div>
+      {showDock && (
+        <div className="shrink-0">
+          <ConversationDock />
+        </div>
+      )}
     </aside>
   );
 }

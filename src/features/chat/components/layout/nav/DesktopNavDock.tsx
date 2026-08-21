@@ -96,7 +96,7 @@ export function DesktopNavDock({
                     aria-current={isActive ? 'page' : undefined}
                     onClick={() => onSectionChange(section)}
                     className={cn(
-                      'relative bg-sidebar-accent text-sidebar-foreground hover:bg-accent hover:text-accent-foreground',
+                      'relative bg-sidebar-accent text-sidebar-foreground hover:bg-primary/15 hover:text-accent-foreground',
                       isActive && 'bg-primary/25 text-foreground ring-1 ring-primary/50',
                     )}
                   >
@@ -112,7 +112,7 @@ export function DesktopNavDock({
               aria-current={activeSection === 'settings' ? 'page' : undefined}
               onClick={() => setSettingsOpen(true)}
               className={cn(
-                'relative bg-sidebar-accent text-sidebar-foreground hover:bg-accent hover:text-accent-foreground',
+                'relative bg-sidebar-accent text-sidebar-foreground hover:bg-primary/15 hover:text-foreground',
                 activeSection === 'settings' &&
                   'bg-primary/25 text-foreground ring-1 ring-primary/50',
               )}

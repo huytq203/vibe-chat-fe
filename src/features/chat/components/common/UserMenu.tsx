@@ -23,8 +23,13 @@ import { Avatar } from './Avatar';
 import { ProfileDialog } from '@/features/chat/components/contact/ProfileDialog';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils/cn';
 
-export function UserMenu() {
+interface UserMenuProps {
+  variant?: 'default' | 'dock';
+}
+
+export function UserMenu({ variant = 'default' }: UserMenuProps) {
   const me = useAuthStore((s) => s.user);
   const logout = useLogout();
   const isMobile = useIsMobile();
@@ -34,6 +39,7 @@ export function UserMenu() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const isDock = variant === 'dock';
 
   const displayName = me?.displayName ?? me?.username ?? 'Tài khoản';
 
@@ -60,27 +66,35 @@ export function UserMenu() {
 
   return (
     <>
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} >
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger>
           <button
             type="button"
             title={displayName}
             aria-label="Tài khoản"
-            className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={cn(
+              'outline-none transition-[color,background-color,transform] duration-200 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]',
+              isDock
+                ? 'flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                : 'rounded-lg focus-visible:ring-offset-2',
+              isDock && popoverOpen && 'bg-primary/15 text-primary',
+            )}
           >
             <Avatar
               name={me?.displayName ?? me?.username}
               src={me?.avatarUrl}
               size="sm"
               status="online"
+              className={isDock ? 'h-7 w-7' : undefined}
             />
+            {isDock && <span className="text-[10px] font-semibold leading-none">Tôi</span>}
           </button>
         </PopoverTrigger>
 
         <PopoverContent
-          side="right"
-          align="end"
-          sideOffset={12}
+          side={isDock ? 'top' : 'right'}
+          align={isDock ? 'center' : 'end'}
+          sideOffset={isDock ? 8 : 12}
           showArrow={false}
           className="w-64 p-0"
         >

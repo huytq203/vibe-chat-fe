@@ -22,6 +22,7 @@ import { useConversations } from '@/features/chat/hooks/use-query';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { useWallpaper } from '@/features/chat/hooks/useWallpaper';
 import { ConversationList } from '@/features/chat/components/conversations/ConversationList';
+import { DesktopConversationRail } from '@/features/chat/components/conversations/DesktopConversationRail';
 import { ChatPanel } from './ChatPanel';
 import { ContactInfo } from '@/features/chat/components/contact/ContactInfo';
 import { InviteProfileModal } from '@/features/share-links/components/InviteProfileModal';
@@ -124,7 +125,7 @@ export function ChatLayout() {
     return (
       <div
         style={defaultBackgroundStyle}
-        className="flex h-full w-full flex-col overflow-hidden"
+        className="mobile-app-shell flex h-full w-full flex-col overflow-hidden"
       >
         <div className="min-h-0 flex-1 overflow-hidden">
           <AiChatPage />
@@ -138,7 +139,7 @@ export function ChatLayout() {
 
   if (isMobile && activeSection === 'tasks') {
     return (
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <div className="mobile-app-shell flex h-full w-full flex-col overflow-hidden bg-background">
         <div className="min-h-0 flex-1 overflow-hidden">
           <TaskManagementLayout />
         </div>
@@ -153,7 +154,7 @@ export function ChatLayout() {
     return (
       <div
         style={defaultBackgroundStyle}
-        className="flex h-full w-full flex-col overflow-hidden"
+        className="mobile-app-shell flex h-full w-full flex-col overflow-hidden"
       >
         <div className="min-h-0 flex-1 overflow-hidden">
           <MyStoreLayout />
@@ -168,7 +169,7 @@ export function ChatLayout() {
 
   if (isMobile && activeSection === 'settings') {
     return (
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <div className="mobile-app-shell flex h-full w-full flex-col overflow-hidden bg-background">
         <div className="min-h-0 flex-1 overflow-hidden">
           <SettingsPage onBack={() => goToSection('chat')} />
         </div>
@@ -183,7 +184,8 @@ export function ChatLayout() {
     return (
       <div
         style={backgroundStyle}
-        className="flex h-full w-full flex-col overflow-hidden"
+        data-mobile-panel={mobilePanel}
+        className="mobile-app-shell flex h-full w-full flex-col overflow-hidden"
       >
         <div className="min-h-0 flex-1 overflow-hidden">
           {mobilePanel === 'list' && <ConversationList />}
@@ -250,7 +252,7 @@ export function ChatLayout() {
         {/* Desktop nav sidebar */}
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
 
-        <ConversationList />
+        <DesktopConversationRail />
 
         <ChatPanel />
         {rightPanelOpen && selectedConversationId && <ContactInfo />}
