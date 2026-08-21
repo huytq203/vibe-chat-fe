@@ -39,7 +39,6 @@ export function useMessageComposer(
 ) {
   const editorRef = useRef<EditorHandle>(null);
   const [hasContent, setHasContent] = useState(false);
-  const [emojiOpen, setEmojiOpen] = useState(false);
   const [selfDestructTtl, setSelfDestructTtl] = useState<number | null>(null);
 
   const mention = useTiptapMention(conversationId);
@@ -274,21 +273,14 @@ export function useMessageComposer(
     cancelReply();
   }
 
-  function handleEmojiButtonClick() {
-    setEmojiOpen((v) => !v);
-  }
-
   function handleEmojiSelect(emoji: string) {
     editorRef.current?.insertText(emoji);
-    setEmojiOpen(false);
   }
 
   return {
     editorRef,
     mention,
     hasContent,
-    emojiOpen,
-    setEmojiOpen,
     isEditing,
     replying,
     cancelReply,
@@ -305,7 +297,6 @@ export function useMessageComposer(
     submit,
     sendInlineResult,
     exitEdit,
-    handleEmojiButtonClick,
     handleEmojiSelect,
   };
 }

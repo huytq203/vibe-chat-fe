@@ -52,7 +52,7 @@ export function AiChatHeader({
           {session?.title ?? 'Halo AI'}
         </h1>
         <p className="truncate text-[11.5px] leading-tight text-muted-foreground">
-          Trợ lý AI{aiConfig ? ` · ${aiConfig.model}` : ''}
+          Trợ lý AI HALO
         </p>
       </div>
 

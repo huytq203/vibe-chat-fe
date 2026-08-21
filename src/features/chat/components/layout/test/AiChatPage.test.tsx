@@ -151,12 +151,7 @@ describe('AiChatPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('hiện tên model lấy từ backend ở header', async () => {
-    routeParams = { id: RECENT_ID };
-    render(<AiChatPage />);
-
-    expect(await screen.findByText(/deepseek-v4-flash/i)).toBeInTheDocument();
-  });
+;
 
   it('tin gửi hỏng nêu lý do ngay dưới bong bóng và gửi lại được', async () => {
     routeParams = { id: RECENT_ID };

@@ -9,31 +9,25 @@ vi.mock('@/lib/hooks/useIsMobile', () => ({
   useIsMobile: () => isMobile,
 }));
 
-vi.mock('@/features/chat/hooks/use-stickers', () => ({
-  useSendSticker: () => ({ isPending: false, mutate: vi.fn() }),
-}));
-
-vi.mock('@/components/common/EmojiPicker', () => ({
-  EmojiPicker: () => <div data-testid="emoji-picker" />,
-  prefetchEmojiPicker: vi.fn(),
-}));
-
-vi.mock('./StickerPicker', () => ({
-  StickerPicker: () => <div data-testid="sticker-picker" />,
+vi.mock('./media-picker', () => ({
+  MediaPickerTrigger: ({ emojiOnly }: { emojiOnly?: boolean }) => (
+    <button
+      type="button"
+      aria-label="Emoji, GIF và sticker"
+      data-emoji-only={String(Boolean(emojiOnly))}
+    />
+  ),
 }));
 
 const baseProps = {
   conversationId: 'conv-1',
   isEditing: false,
   expanded: false,
-  emojiOpen: false,
   selfDestructTtl: null,
   onFiles: vi.fn(),
   onSelfDestruct: vi.fn(),
   onScheduleClick: vi.fn(),
   onContactClick: vi.fn(),
-  onEmojiOpenChange: vi.fn(),
-  onEmojiButtonClick: vi.fn(),
   onEmojiSelect: vi.fn(),
   onToggleExpanded: vi.fn(),
 };
@@ -44,43 +38,37 @@ describe('ComposerActions', () => {
     vi.clearAllMocks();
   });
 
-  it('keeps quick actions visible on desktop', () => {
+  it('desktop: giữ shortcut ảnh/tệp và đúng một nút mở picker', () => {
     render(<ComposerActions {...baseProps} />);
 
     expect(screen.getByRole('button', { name: 'Gửi ảnh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Gửi tệp' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Emoji' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sticker' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Emoji, GIF và sticker' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Sticker' })).not.toBeInTheDocument();
   });
 
-  it('shows only the more trigger until mobile users open it', async () => {
+  it('mobile: nút picker vẫn hiện ngoài thanh, ảnh/tệp nằm trong menu', async () => {
     isMobile = true;
     render(<ComposerActions {...baseProps} />);
 
+    expect(screen.getByRole('button', { name: 'Emoji, GIF và sticker' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Gửi ảnh' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Emoji' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sticker' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm tuỳ chọn' }));
 
     expect(await screen.findByRole('button', { name: 'Gửi ảnh' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Gửi tệp' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Emoji' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sticker' })).toBeInTheDocument();
   });
 
-  it('opens the emoji picker inside the mobile more menu', async () => {
-    isMobile = true;
-    render(<ComposerActions {...baseProps} />);
+  it('khi sửa tin: picker chuyển sang chế độ chỉ emoji', () => {
+    render(<ComposerActions {...baseProps} isEditing />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm tuỳ chọn' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Emoji' }));
-
-    expect(await screen.findByTestId('emoji-picker')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Quay lại tuỳ chọn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Emoji, GIF và sticker' })).toHaveAttribute(
+      'data-emoji-only',
+      'true',
+    );
   });
 
-  it('keeps the bot WebApp action inside the more menu', async () => {
+  it('giữ action Mở WebApp trong menu thêm', async () => {
     const onWebappClick = vi.fn();
     render(<ComposerActions {...baseProps} onWebappClick={onWebappClick} />);
 
@@ -91,7 +79,7 @@ describe('ComposerActions', () => {
     expect(onWebappClick).toHaveBeenCalledOnce();
   });
 
-  it('only exposes the image sticker upload in the stickers bot conversation', () => {
+  it('chỉ hiện upload ảnh sticker trong hội thoại bot Stickers', () => {
     render(<ComposerActions {...baseProps} stickerBotConversation />);
 
     expect(screen.getByRole('button', { name: 'Gửi ảnh sticker' })).toBeInTheDocument();

@@ -3,6 +3,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export const NavPosition = {
+  LEFT: 'left',
+  RIGHT: 'right',
+  BOTTOM: 'bottom',
+} as const;
+
+export type NavPosition = (typeof NavPosition)[keyof typeof NavPosition];
+
 type SettingsState = {
   /**
    * Mã PIN mặc định để khoá nhanh hội thoại — lưu trên THIẾT BỊ NÀY (localStorage,
@@ -15,6 +23,9 @@ type SettingsState = {
   /** Bật/tắt nhận thông báo đẩy trên thiết bị này. */
   pushEnabled: boolean;
   setPushEnabled: (enabled: boolean) => void;
+  /** Vị trí thanh điều hướng trên desktop, lưu riêng trên thiết bị này. */
+  navPosition: NavPosition;
+  setNavPosition: (position: NavPosition) => void;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +36,8 @@ export const useSettingsStore = create<SettingsState>()(
       clearLockPin: () => set({ lockPin: null }),
       pushEnabled: true,
       setPushEnabled: (enabled) => set({ pushEnabled: enabled }),
+      navPosition: NavPosition.LEFT,
+      setNavPosition: (position) => set({ navPosition: position }),
     }),
     { name: 'halo-settings' },
   ),

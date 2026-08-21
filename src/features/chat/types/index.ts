@@ -30,6 +30,7 @@ export type {
 } from './message';
 
 export type { Sticker, StickerPack, MyStickers } from './sticker';
+export type { GiphyItem, GiphyPage } from './gif';
 
 export type {
   InlineBotSummary,

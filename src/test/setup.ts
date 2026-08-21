@@ -18,7 +18,7 @@ for (const [key, value] of Object.entries(TEST_ENV)) {
 
 // jsdom không cài đặt Element.scrollTo — component nào tự cuộn (danh sách tin nhắn,
 // khung chat AI) sẽ ném uncaught exception trong rAF nếu không có stub này.
-if (!Element.prototype.scrollTo) {
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
   Element.prototype.scrollTo = () => undefined;
 }
 

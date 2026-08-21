@@ -5,7 +5,7 @@ import { EmojiStyle, type EmojiClickData, type Theme } from 'emoji-picker-react'
 
 const Picker = dynamic(() => import('emoji-picker-react'), {
   ssr: false,
-  loading: () => <div className="h-[400px] w-[350px] animate-pulse rounded-lg bg-muted" />,
+  loading: () => <div className="h-full w-full animate-pulse rounded-lg bg-muted" />,
 });
 
 // Prefetch the picker chunk so the popup opens instantly (gọi khi hover/focus nút emoji).
@@ -17,9 +17,11 @@ export function prefetchEmojiPicker() {
 type EmojiPickerProps = {
   onSelect: (emoji: string) => void;
   theme?: Theme;
+  width?: number | string;
+  height?: number | string;
 };
 
-export function EmojiPicker({ onSelect, theme }: EmojiPickerProps) {
+export function EmojiPicker({ onSelect, theme, width = 350, height = 400 }: EmojiPickerProps) {
   return (
     <Picker
       onEmojiClick={(data: EmojiClickData) => onSelect(data.emoji)}
@@ -30,8 +32,8 @@ export function EmojiPicker({ onSelect, theme }: EmojiPickerProps) {
       lazyLoadEmojis
       skinTonesDisabled
       previewConfig={{ showPreview: false }}
-      height={400}
-      width={350}
+      height={height}
+      width={width}
     />
   );
 }

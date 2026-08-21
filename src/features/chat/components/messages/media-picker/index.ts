@@ -1,0 +1,1 @@
+export { MediaPickerTrigger } from './MediaPickerTrigger';

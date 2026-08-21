@@ -29,4 +29,12 @@ describe('StickerPicker — P4', () => {
     render(<StickerPicker onPick={vi.fn()} />);
     expect(screen.getByText(/Nhắn @Stickers/)).toBeInTheDocument();
   });
+
+  it('khóa lưới và hiện spinner trên sticker đang gửi', () => {
+    render(<StickerPicker onPick={vi.fn()} sendingId="sticker-1" />);
+
+    expect(screen.getByLabelText('Bảng chọn sticker')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: '😺' })).toBeDisabled();
+    expect(screen.getByTestId('sticker-sending')).toBeInTheDocument();
+  });
 });
