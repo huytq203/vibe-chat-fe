@@ -13,7 +13,7 @@ export function QuotaBar() {
   const isCritical = pct >= 95;
 
   return (
-    <div className="border-t border-border/50 px-3 py-2">
+    <div className="border-t border-border/50 px-3 py-2 max-md:bg-sidebar max-md:pb-[calc(var(--safe-bottom)+0.5rem)]">
       <div className="mb-1.5 flex items-center gap-1.5">
         <HardDrive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className="flex-1 truncate text-xs text-muted-foreground">
