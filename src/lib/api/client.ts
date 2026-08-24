@@ -23,6 +23,8 @@ export type ApiErrorBody = {
   requestId?: string | null;
 };
 
+export type ApiService = 'chat' | 'auth' | 'bot' | 'notion';
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -39,6 +41,8 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
   auth?: boolean;
+  /** Bỏ trống để định tuyến theo path như cũ, giữ nguyên hành vi hiện tại. */
+  service?: ApiService;
 };
 
 let accessToken: string | null = null;
@@ -94,7 +98,11 @@ export const apiAuth = {
   },
 };
 
-function resolveBase(path: string): string {
+function resolveBase(path: string, service?: ApiService): string {
+  // notion-service có prefix proxy riêng, phải xét trước nhánh USE_PROXY chung.
+  if (service === 'notion') {
+    return env.NEXT_PUBLIC_USE_PROXY ? '/notion-proxy' : env.NEXT_PUBLIC_NOTION_URL;
+  }
   // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.
   if (env.NEXT_PUBLIC_USE_PROXY) return '';
   if (path.startsWith('/api/v1/auth/')) return env.NEXT_PUBLIC_AUTH_URL;
@@ -105,8 +113,8 @@ function resolveBase(path: string): string {
   return env.NEXT_PUBLIC_VIBE_URL;
 }
 
-function buildUrl(path: string, query?: RequestOptions['query']): string {
-  const base = path.startsWith('http') ? path : `${resolveBase(path)}${path}`;
+function buildUrl(path: string, query?: RequestOptions['query'], service?: ApiService): string {
+  const base = path.startsWith('http') ? path : `${resolveBase(path, service)}${path}`;
   if (!query) return base;
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
@@ -120,13 +128,13 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
  * Resolve URL tuyệt đối cho 1 path API — dùng khi cần upload qua XMLHttpRequest
  * (tiến trình %), nơi không đi qua `request()`/`fetch` wrapper.
  */
-export function resolveApiUrl(path: string): string {
-  return buildUrl(path);
+export function resolveApiUrl(path: string, service?: ApiService): string {
+  return buildUrl(path, undefined, service);
 }
 
 async function rawRequest(method: string, path: string, options: RequestOptions): Promise<Response> {
-  const { body, query, headers, auth = true, ...rest } = options;
-  const url = buildUrl(path, query);
+  const { body, query, headers, auth = true, service, ...rest } = options;
+  const url = buildUrl(path, query, service);
   // FormData → để browser tự set Content-Type kèm boundary, không stringify.
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const finalHeaders: Record<string, string> = {

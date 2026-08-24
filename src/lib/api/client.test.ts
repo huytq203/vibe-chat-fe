@@ -5,6 +5,7 @@ vi.mock('@/config/env', () => ({
     NEXT_PUBLIC_AUTH_URL: 'http://auth.test',
     NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
     NEXT_PUBLIC_BOT_URL: 'http://bot.test',
+    NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
     NEXT_PUBLIC_WS_URL: 'http://vibe.test',
     NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',
     NEXT_PUBLIC_USE_PROXY: false,
@@ -45,5 +46,41 @@ describe('resolveApiUrl', () => {
     expect(resolveApiUrl('/api/v1/conversations')).toBe(
       'http://vibe.test/api/v1/conversations',
     );
+  });
+
+  it('nên route notion-service sang NEXT_PUBLIC_NOTION_URL', async () => {
+    const { resolveApiUrl } = await import('./client');
+    expect(resolveApiUrl('/api/v1/health', 'notion')).toBe(
+      'http://notion.test/api/v1/health',
+    );
+  });
+});
+
+describe('resolveApiUrl khi dùng proxy', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.doMock('@/config/env', () => ({
+      env: {
+        NEXT_PUBLIC_AUTH_URL: 'http://auth.test',
+        NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
+        NEXT_PUBLIC_BOT_URL: 'http://bot.test',
+        NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
+        NEXT_PUBLIC_WS_URL: 'http://vibe.test',
+        NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',
+        NEXT_PUBLIC_USE_PROXY: true,
+      },
+    }));
+  });
+
+  it('nên route notion-service qua prefix proxy riêng', async () => {
+    const { resolveApiUrl } = await import('./client');
+    expect(resolveApiUrl('/api/v1/health', 'notion')).toBe(
+      '/notion-proxy/api/v1/health',
+    );
+  });
+
+  it('nên giữ nguyên proxy chung khi không truyền service', async () => {
+    const { resolveApiUrl } = await import('./client');
+    expect(resolveApiUrl('/api/v1/conversations')).toBe('/api/v1/conversations');
   });
 });
