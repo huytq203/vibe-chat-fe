@@ -39,14 +39,16 @@ describe("NavSidebar", () => {
     expect(nav.className).not.toMatch(/\bborder-r\b/);
   });
 
-  it("still renders all four nav items", () => {
+  it("still renders all six nav items", () => {
     render(<NavSidebar activeSection="chat" onSectionChange={() => {}} />);
     expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "AI Chat" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tasks" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ghi chú" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Kho của tôi" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cài đặt" })).toBeInTheDocument();
   });
 
   it("opens the complete settings modal from the sidebar", () => {

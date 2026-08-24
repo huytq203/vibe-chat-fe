@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 
-export type NavSection = 'chat' | 'ai-full' | 'tasks' | 'store' | 'settings';
+export type NavSection = 'chat' | 'ai-full' | 'tasks' | 'notes' | 'store' | 'settings';
 
 type ChatUIState = {
   rightPanelOpen: boolean;

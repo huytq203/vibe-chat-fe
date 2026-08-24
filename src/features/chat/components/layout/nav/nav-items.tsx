@@ -1,4 +1,4 @@
-import { Archive, Bot, MessageSquare, Settings, SquareKanban } from 'lucide-react';
+import { Archive, Bot, FileText, MessageSquare, Settings, SquareKanban } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { NavSection } from '@/features/chat/stores/chat-ui.store';
 
@@ -12,6 +12,7 @@ export const NAV_ITEMS: NavItem[] = [
   { section: 'chat', icon: <MessageSquare className="h-5 w-5" />, label: 'Chat' },
   { section: 'ai-full', icon: <Bot className="h-5 w-5" />, label: 'AI Chat' },
   { section: 'tasks', icon: <SquareKanban className="h-5 w-5" />, label: 'Tasks' },
+  { section: 'notes', icon: <FileText className="h-5 w-5" />, label: 'Ghi chú' },
   { section: 'store', icon: <Archive className="h-5 w-5" />, label: 'Kho của tôi' },
   { section: 'settings', icon: <Settings className="h-5 w-5" />, label: 'Cài đặt' },
 ];
