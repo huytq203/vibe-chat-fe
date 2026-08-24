@@ -9,3 +9,5 @@ export type {
   CollabProvider,
   CreateCollabProviderOptions,
 } from './provider';
+export { createCollabSession } from './session';
+export type { CollabSession, CreateCollabSessionOptions } from './session';

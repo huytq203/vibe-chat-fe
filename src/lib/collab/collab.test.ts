@@ -1,7 +1,14 @@
 import type { HocuspocusProviderConfiguration } from '@hocuspocus/provider';
 import { describe, expect, it, vi } from 'vitest';
 
-const { providerConstructor, providerDestroy } = vi.hoisted(() => ({
+const {
+  persistenceConstructor,
+  persistenceDestroy,
+  providerConstructor,
+  providerDestroy,
+} = vi.hoisted(() => ({
+  persistenceConstructor: vi.fn<(name: string, doc: unknown) => void>(),
+  persistenceDestroy: vi.fn<() => Promise<void>>(() => Promise.resolve()),
   providerConstructor:
     vi.fn<(configuration: HocuspocusProviderConfiguration) => void>(),
   providerDestroy: vi.fn<() => void>(),
@@ -23,11 +30,26 @@ vi.mock('@/config/env', () => ({
   env: { NEXT_PUBLIC_NOTION_WS_URL: 'ws://collab.test:8081' },
 }));
 
+vi.mock('y-indexeddb', () => ({
+  IndexeddbPersistence: class {
+    readonly whenSynced = Promise.resolve();
+
+    constructor(name: string, doc: unknown) {
+      persistenceConstructor(name, doc);
+    }
+
+    destroy(): Promise<void> {
+      return persistenceDestroy();
+    }
+  },
+}));
+
 import {
   COLLAB_FRAGMENT_NAME,
   YDoc,
   collabDocumentName,
   createCollabProvider,
+  createCollabSession,
 } from '@/lib/collab';
 
 function latestProviderConfiguration(): HocuspocusProviderConfiguration {
@@ -77,5 +99,63 @@ describe('hạ tầng cộng tác thời gian thực', () => {
 
     await expect(token()).resolves.toBe('token-moi');
     expect(getToken).toHaveBeenCalledOnce();
+  });
+
+  it('chuyển nguyên văn lý do xác thực thất bại từ provider', () => {
+    const onAuthenticationFailed = vi.fn<(reason: string) => void>();
+    createCollabProvider({
+      pageId: 'abc',
+      doc: new YDoc(),
+      getToken: () => 'token-moi',
+      onStatus: vi.fn(),
+      onAuthenticationFailed,
+    });
+
+    const callback = latestProviderConfiguration().onAuthenticationFailed;
+    if (!callback) throw new Error('Callback lỗi xác thực chưa được gắn trong test');
+    callback({
+      reason: 'No permission for this page',
+    });
+
+    expect(onAuthenticationFailed).toHaveBeenCalledWith('No permission for this page');
+  });
+
+  it('nạp persistence trước provider và huỷ provider, persistence, doc đúng thứ tự', async () => {
+    const lifecycle: string[] = [];
+    persistenceConstructor.mockImplementationOnce(() => {
+      lifecycle.push('persistence:create');
+    });
+    providerConstructor.mockImplementationOnce(() => {
+      lifecycle.push('provider:create');
+    });
+    providerDestroy.mockImplementationOnce(() => {
+      lifecycle.push('provider:destroy');
+    });
+    persistenceDestroy.mockImplementationOnce(async () => {
+      lifecycle.push('persistence:destroy');
+    });
+    const session = createCollabSession({
+      pageId: 'abc',
+      getToken: async () => 'token-moi',
+      onProvider: vi.fn(),
+      onStatus: vi.fn(),
+      onSynced: vi.fn(),
+      onAuthenticationFailed: vi.fn(),
+      onError: vi.fn(),
+    });
+    vi.spyOn(session.doc, 'destroy').mockImplementationOnce(() => {
+      lifecycle.push('doc:destroy');
+    });
+
+    await vi.waitFor(() => expect(lifecycle).toContain('provider:create'));
+    expect(lifecycle.slice(0, 2)).toEqual(['persistence:create', 'provider:create']);
+
+    session.destroy();
+
+    expect(lifecycle.slice(2)).toEqual([
+      'provider:destroy',
+      'persistence:destroy',
+      'doc:destroy',
+    ]);
   });
 });

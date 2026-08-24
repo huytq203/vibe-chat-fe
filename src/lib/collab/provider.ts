@@ -1,6 +1,6 @@
 import {
   HocuspocusProvider,
-  type onStatusParameters,
+  type onAuthenticationFailedParameters,
 } from '@hocuspocus/provider';
 import type { Doc as YDoc } from 'yjs';
 
@@ -8,7 +8,7 @@ import { env } from '@/config/env';
 
 import { collabDocumentName } from './constants';
 
-export type CollabConnectionStatus = onStatusParameters['status'];
+export type CollabConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 export type CollabProvider = HocuspocusProvider;
 
 export interface CreateCollabProviderOptions {
@@ -16,6 +16,7 @@ export interface CreateCollabProviderOptions {
   doc: YDoc;
   getToken: () => string | null | Promise<string | null>;
   onStatus: (status: CollabConnectionStatus) => void;
+  onAuthenticationFailed?: (reason: string) => void;
 }
 
 /** Tạo kết nối trực tiếp tới collab server và lấy token mới ở mỗi lần nối lại. */
@@ -24,6 +25,7 @@ export function createCollabProvider({
   doc,
   getToken,
   onStatus,
+  onAuthenticationFailed,
 }: CreateCollabProviderOptions): CollabProvider {
   return new HocuspocusProvider({
     url: env.NEXT_PUBLIC_NOTION_WS_URL,
@@ -31,6 +33,8 @@ export function createCollabProvider({
     document: doc,
     token: async () => (await getToken()) ?? '',
     onStatus: ({ status }) => onStatus(status),
+    onAuthenticationFailed: ({ reason }: onAuthenticationFailedParameters) =>
+      onAuthenticationFailed?.(reason),
   });
 }
 
