@@ -117,6 +117,7 @@
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.19.1",
     "firebase": "^11.0.2",
+    "fractional-indexing": "2.1.0",
     "livekit-client": "^2.19.1",
     "lucide-react": "^1.16.0",
     "motion": "^12.42.0",

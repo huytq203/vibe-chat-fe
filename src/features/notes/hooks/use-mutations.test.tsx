@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { toast } from 'sonner';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { notionKeys } from '@/services/keys';
 import { useCreatePage, useMovePage, useRemovePage } from './use-mutations';
@@ -11,6 +12,8 @@ import { useCreatePage, useMovePage, useRemovePage } from './use-mutations';
 vi.hoisted(() => {
   vi.stubEnv('NEXT_PUBLIC_USE_PROXY', 'false');
 });
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 
 const NOTION_URL = 'http://localhost:3007';
 const server = setupServer();
@@ -57,7 +60,7 @@ function createWrapper() {
     return createElement(QueryClientProvider, { client: queryClient }, children);
   }
 
-  return { Wrapper, invalidateSpy };
+  return { Wrapper, invalidateSpy, queryClient };
 }
 
 function getInvalidatedKeys(
@@ -76,7 +79,10 @@ function expectedKeys(keys: readonly (readonly unknown[])[]) {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.clearAllMocks();
+});
 afterAll(() => server.close());
 
 describe('các hook mutation ghi chú', () => {
@@ -131,6 +137,82 @@ describe('các hook mutation ghi chú', () => {
         notionKeys.pageChildren('ws-1', 'cha-moi'),
       ]),
     );
+  });
+
+  it('di chuyển trang ngay trong cache trước khi BE phản hồi', async () => {
+    let finishRequest: () => void = () => undefined;
+    const requestGate = new Promise<void>((resolve) => {
+      finishRequest = resolve;
+    });
+    server.use(
+      http.post(`${NOTION_URL}/api/v1/pages/:id/move`, async () => {
+        await requestGate;
+        return envelope(buildPage({ id: 'page-1', parentId: 'cha-moi' }));
+      }),
+    );
+    const { Wrapper, queryClient } = createWrapper();
+    const fromKey = notionKeys.pageChildren('ws-1', 'cha-cu');
+    const toKey = notionKeys.pageChildren('ws-1', 'cha-moi');
+    const moved = { ...buildPage({ id: 'page-1', parentId: 'cha-cu' }), sortKey: 'a0' };
+    const target = { ...buildPage({ id: 'page-2', parentId: 'cha-moi' }), sortKey: 'a2' };
+    queryClient.setQueryData(fromKey, [moved]);
+    queryClient.setQueryData(toKey, [target]);
+    const { result } = renderHook(() => useMovePage(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({
+        id: moved.id,
+        workspaceId: 'ws-1',
+        parentId: 'cha-moi',
+        fromParentId: 'cha-cu',
+        sortKey: 'a1',
+      });
+    });
+
+    await waitFor(() => expect(queryClient.getQueryData(fromKey)).toEqual([]));
+    expect(queryClient.getQueryData(toKey)).toEqual([
+      { ...moved, parentId: 'cha-moi', sortKey: 'a1' },
+      target,
+    ]);
+    finishRequest();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('khôi phục hai cache và hiện đúng thông điệp BE khi di chuyển bị từ chối', async () => {
+    server.use(
+      http.post(`${NOTION_URL}/api/v1/pages/:id/move`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'DEPTH_EXCEEDED', message: 'Cây trang sẽ vượt quá 10 cấp' },
+            timestamp: '2026-08-24T00:00:00.000Z',
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { Wrapper, queryClient } = createWrapper();
+    const fromKey = notionKeys.pageChildren('ws-1', 'cha-cu');
+    const toKey = notionKeys.pageChildren('ws-1', 'cha-moi');
+    const fromPages = [buildPage({ id: 'page-1', parentId: 'cha-cu' })];
+    const toPages = [buildPage({ id: 'page-2', parentId: 'cha-moi' })];
+    queryClient.setQueryData(fromKey, fromPages);
+    queryClient.setQueryData(toKey, toPages);
+    const { result } = renderHook(() => useMovePage(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({
+        id: 'page-1',
+        workspaceId: 'ws-1',
+        parentId: 'cha-moi',
+        fromParentId: 'cha-cu',
+        sortKey: 'a1',
+      })).rejects.toThrow('Cây trang sẽ vượt quá 10 cấp');
+    });
+
+    expect(queryClient.getQueryData(fromKey)).toEqual(fromPages);
+    expect(queryClient.getQueryData(toKey)).toEqual(toPages);
+    expect(toast.error).toHaveBeenCalledWith('Cây trang sẽ vượt quá 10 cấp');
   });
 
   it('xoá trang làm mới cả danh sách yêu thích', async () => {

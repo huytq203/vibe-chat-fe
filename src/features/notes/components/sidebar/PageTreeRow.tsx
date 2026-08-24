@@ -2,9 +2,16 @@
 
 import { useSyncExternalStore, type KeyboardEvent } from 'react';
 import { AlertTriangle, ChevronRight, FileText, Plus } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button/Button';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { useCreatePage } from '@/features/notes/hooks/use-mutations';
+import {
+  isInvalidPageDrop,
+  readPageDragData,
+  type PageGapDropData,
+  usePageRowDrag,
+} from '@/features/notes/hooks/use-page-drag';
 import { usePageChildren } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import type { Page } from '@/features/notes/types';
@@ -28,6 +35,10 @@ interface PageTreeRowProps {
   onSelectPage: (id: string) => void;
   page: Page;
   depth: number;
+  siblings?: Page[];
+  siblingIndex?: number;
+  parentPath?: string | null;
+  isLastSibling?: boolean;
 }
 
 function focusVisibleTreeItem(current: HTMLElement, offset: number) {
@@ -56,12 +67,32 @@ function ChildSkeletons() {
   );
 }
 
-export function PageTreeRow({
-  workspaceId,
-  activePageId,
-  onSelectPage,
-  page,
-  depth,
+function PageDropGap({ id, data }: { id: string; data: PageGapDropData }) {
+  const { active, isOver, setNodeRef } = useDroppable({ id, data });
+  const dragged = readPageDragData(active?.data.current)?.page;
+  const isInvalid = Boolean(dragged && isInvalidPageDrop(dragged, data));
+
+  return (
+    <div
+      ref={setNodeRef}
+      role="none"
+      className={cn('relative h-px', isOver && isInvalid && 'cursor-not-allowed')}
+    >
+      {isOver && dragged && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute inset-x-0 top-1/2 z-20 h-0.5 -translate-y-1/2',
+            isInvalid ? 'bg-danger' : 'bg-primary',
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, depth,
+  siblings = [page], siblingIndex = 0, parentPath = null, isLastSibling = true,
 }: PageTreeRowProps) {
   const isMounted = useHasMounted();
   const persistedExpanded = useNotesUiStore((state) =>
@@ -78,7 +109,8 @@ export function PageTreeRow({
   const canHaveChildren = !isAtMaxDepth && (!children || children.length > 0);
   const isActive = activePageId === page.id;
   const pageTitle = page.title || 'Không có tiêu đề';
-
+  const rowDrag = usePageRowDrag(page);
+  const { draggable, droppable, rowStyle, setRowRef } = rowDrag;
   function handleToggle() {
     if (!isAtMaxDepth) toggleExpanded(workspaceId, page.id);
   }
@@ -91,8 +123,9 @@ export function PageTreeRow({
       { onSuccess: (createdPage) => onSelectPage(createdPage.id) },
     );
   }
-
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    draggable.listeners?.onKeyDown?.(event);
+    if (event.defaultPrevented || draggable.isDragging) return;
     if (event.target !== event.currentTarget) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -109,24 +142,44 @@ export function PageTreeRow({
       onSelectPage(page.id);
     }
   }
+  const gapData: PageGapDropData = {
+    kind: 'gap',
+    parentId: page.parentId,
+    parentPath,
+    parentDepth: Math.max(page.depth - 1, 0),
+    siblings,
+    insertIndex: siblingIndex,
+  };
 
   return (
-    <div role="none">
-      <div
-        role="treeitem"
-        aria-expanded={canHaveChildren ? isExpanded : undefined}
-        aria-level={depth + 1}
-        aria-selected={isActive}
-        tabIndex={0}
-        className={cn(
-          'group relative flex h-[30px] min-w-0 cursor-pointer items-center rounded-sm text-sm',
-          'text-secondary-foreground hover:bg-sidebar-accent',
-          focusRingClassName,
-          isActive && 'bg-sidebar-accent text-foreground',
-        )}
-        onClick={() => onSelectPage(page.id)}
-        onKeyDown={handleKeyDown}
-      >
+    <>
+      <PageDropGap id={`gap:${page.parentId ?? 'root'}:${siblingIndex}`} data={gapData} />
+      <div role="none">
+        <div
+          ref={setRowRef}
+          {...draggable.attributes}
+          {...draggable.listeners}
+          role="treeitem"
+          aria-expanded={canHaveChildren ? isExpanded : undefined}
+          aria-level={depth + 1}
+          aria-selected={isActive}
+          tabIndex={0}
+          style={rowStyle}
+          className={cn(
+            'group relative z-10 flex h-[30px] min-w-0 cursor-grab items-center rounded-sm border border-transparent text-sm',
+            'text-secondary-foreground hover:bg-sidebar-accent active:cursor-grabbing',
+            focusRingClassName,
+            isActive && 'bg-sidebar-accent text-foreground',
+            draggable.isDragging && 'opacity-50 motion-reduce:transition-none',
+            draggable.isDragging && rowDrag.isCurrentDropInvalid && 'cursor-not-allowed',
+            droppable.isOver && !rowDrag.isInsideInvalid && 'border-primary',
+            droppable.isOver && rowDrag.isInsideInvalid && 'cursor-not-allowed border-danger',
+          )}
+          onClick={() => {
+            if (!draggable.isDragging) onSelectPage(page.id);
+          }}
+          onKeyDown={handleKeyDown}
+        >
         {isActive && (
           <span aria-hidden="true" className="absolute left-0 h-4 w-0.5 bg-primary" />
         )}
@@ -138,6 +191,7 @@ export function PageTreeRow({
             className="h-6 w-3 shrink-0 rounded-sm p-0 text-danger"
             aria-label={`Thử tải lại trang con của ${pageTitle}`}
             title="Thử tải lại"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               void childrenQuery.refetch();
@@ -152,6 +206,7 @@ export function PageTreeRow({
             className="h-6 w-3 shrink-0 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
             aria-label={`${isExpanded ? 'Gập' : 'Mở'} trang ${pageTitle}`}
             title={isExpanded ? 'Gập trang' : 'Mở trang'}
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               handleToggle();
@@ -180,6 +235,7 @@ export function PageTreeRow({
 
         <div
           className="flex shrink-0 opacity-0 transition-opacity duration-[80ms] ease-linear group-hover:opacity-100 group-focus-within:opacity-100"
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
           <Button
@@ -202,9 +258,11 @@ export function PageTreeRow({
       {isExpanded && children && children.length > 0 && (
         <div
           role="group"
-          className="ml-3 space-y-px animate-in slide-in-from-top-1 duration-[160ms] ease-out motion-reduce:animate-none"
+          className="ml-3 animate-in slide-in-from-top-1 duration-[160ms] ease-out motion-reduce:animate-none"
         >
-          {children.map((child) => (
+          {[...children]
+            .sort((left, right) => left.sortKey === right.sortKey ? 0 : left.sortKey < right.sortKey ? -1 : 1)
+            .map((child, index, orderedChildren) => (
             <PageTreeRow
               key={child.id}
               workspaceId={workspaceId}
@@ -212,10 +270,21 @@ export function PageTreeRow({
               onSelectPage={onSelectPage}
               page={child}
               depth={depth + 1}
+              siblings={orderedChildren}
+              siblingIndex={index}
+              parentPath={page.path}
+              isLastSibling={index === orderedChildren.length - 1}
             />
           ))}
         </div>
       )}
-    </div>
+      </div>
+      {isLastSibling && (
+        <PageDropGap
+          id={`gap:${page.parentId ?? 'root'}:${siblings.length}`}
+          data={{ ...gapData, insertIndex: siblings.length }}
+        />
+      )}
+    </>
   );
 }

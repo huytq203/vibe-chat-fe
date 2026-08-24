@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { notionKeys } from '@/services/keys';
+import type { Page } from '@/features/notes/types';
 import {
   favoritesApi,
   invitesApi,
@@ -43,6 +44,36 @@ type UpsertFavoriteInput = {
   pageId: string;
   sortKey?: string;
 };
+
+type MovePageInput = {
+  id: string;
+  workspaceId: string;
+  parentId: string | null;
+  fromParentId: string | null;
+  sortKey?: string;
+};
+
+type PageChildrenKey = ReturnType<typeof notionKeys.pageChildren>;
+type MovePageContext = {
+  fromKey: PageChildrenKey;
+  toKey: PageChildrenKey;
+  fromPages: Page[] | undefined;
+  toPages: Page[] | undefined;
+};
+
+function movePageInList(pages: Page[], input: MovePageInput, moved: Page) {
+  const nextPage = {
+    ...moved,
+    parentId: input.parentId,
+    sortKey: input.sortKey ?? moved.sortKey,
+  };
+  const nextPages = [...pages.filter((page) => page.id !== input.id), nextPage];
+  if (!input.sortKey) return nextPages;
+  return nextPages.sort((left, right) => {
+    if (left.sortKey === right.sortKey) return 0;
+    return left.sortKey < right.sortKey ? -1 : 1;
+  });
+}
 
 export function useCreateWorkspace() {
   const qc = useQueryClient();
@@ -143,15 +174,34 @@ export function useRemovePage() {
 
 export function useMovePage() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, parentId, sortKey }: {
-      id: string;
-      workspaceId: string;
-      parentId: string | null;
-      fromParentId: string | null;
-      sortKey?: string;
-    }) => pagesApi.move(id, { parentId, sortKey }),
-    onSuccess: (_, { workspaceId, parentId, fromParentId }) => {
+  return useMutation<Page, Error, MovePageInput, MovePageContext>({
+    mutationFn: ({ id, parentId, sortKey }) => pagesApi.move(id, { parentId, sortKey }),
+    onMutate: async (input) => {
+      const fromKey = notionKeys.pageChildren(input.workspaceId, input.fromParentId);
+      const toKey = notionKeys.pageChildren(input.workspaceId, input.parentId);
+      await Promise.all([
+        qc.cancelQueries({ queryKey: fromKey }),
+        qc.cancelQueries({ queryKey: toKey }),
+      ]);
+      const fromPages = qc.getQueryData<Page[]>(fromKey);
+      const toPages = qc.getQueryData<Page[]>(toKey);
+      const moved = fromPages?.find((page) => page.id === input.id);
+      if (moved && input.fromParentId === input.parentId && fromPages) {
+        qc.setQueryData(fromKey, movePageInList(fromPages, input, moved));
+      } else if (moved) {
+        qc.setQueryData(fromKey, fromPages?.filter((page) => page.id !== input.id));
+        if (toPages) qc.setQueryData(toKey, movePageInList(toPages, input, moved));
+      }
+      return { fromKey, toKey, fromPages, toPages };
+    },
+    onError: (error, _input, context) => {
+      if (context) {
+        qc.setQueryData(context.fromKey, context.fromPages);
+        qc.setQueryData(context.toKey, context.toPages);
+      }
+      toast.error(getErrorMessage(error));
+    },
+    onSettled: (_, _error, { workspaceId, parentId, fromParentId }) => {
       qc.invalidateQueries({
         queryKey: notionKeys.pageChildren(workspaceId, parentId),
       });
@@ -159,7 +209,6 @@ export function useMovePage() {
         queryKey: notionKeys.pageChildren(workspaceId, fromParentId),
       });
     },
-    onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
 
