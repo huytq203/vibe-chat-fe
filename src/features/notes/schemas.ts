@@ -39,6 +39,8 @@ export const workspaceInviteSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 
+export const removeMemberResultSchema = z.object({ removed: z.literal(true) });
+
 export const pageSchema = z.object({
   id: z.string(),
   workspaceId: z.string(),
@@ -62,6 +64,11 @@ export const pageDetailSchema = pageSchema.extend({
   myRole: pageRoleSchema,
 });
 
+// Trả về của DELETE /pages/:id — soft delete, không phải Page.
+export const softDeletePageResultSchema = z.object({
+  deletedPageCount: z.number().int(),
+});
+
 export const favoriteItemSchema = z.object({
   userId: z.string(),
   pageId: z.string(),
@@ -69,6 +76,15 @@ export const favoriteItemSchema = z.object({
   title: z.string(),
   icon: z.string().nullable(),
 });
+
+// Favorite thô từ POST /favorites, không có title/icon như dữ liệu danh sách.
+export const favoriteSchema = z.object({
+  userId: z.string(),
+  pageId: z.string(),
+  sortKey: z.string(),
+});
+
+export const deleteFavoriteResultSchema = z.object({ deleted: z.boolean() });
 
 export const trashItemSchema = z.object({
   id: z.string(),
@@ -78,6 +94,16 @@ export const trashItemSchema = z.object({
   deletedBy: z.string().nullable(),
   // Số trang sẽ quay lại khi khôi phục mục này.
   pageCount: z.number().int(),
+});
+
+export const restoreTrashResultSchema = z.object({
+  restoredPageCount: z.number().int(),
+  reparentedToRoot: z.boolean(),
+});
+
+export const permanentDeleteResultSchema = z.object({
+  deletedPageCount: z.number().int(),
+  deletedObjectCount: z.number().int(),
 });
 
 export const breadcrumbSchema = z.array(
