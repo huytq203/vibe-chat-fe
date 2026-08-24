@@ -61,6 +61,9 @@ const VIBE_URL = process.env.VIBE_URL;
 // Task-service (modular monolith riêng). Proxy same-origin để tránh CORS.
 // Fallback sang NEXT_PUBLIC_TASK_URL để rewrite vẫn hoạt động nếu chỉ set biến public.
 const TASK_URL = process.env.TASK_URL || process.env.NEXT_PUBLIC_TASK_URL;
+// notion-service (dịch vụ ghi chú riêng). Proxy same-origin để tránh CORS.
+// Fallback sang NEXT_PUBLIC_NOTION_URL để rewrite vẫn hoạt động nếu chỉ set biến public.
+const NOTION_URL = process.env.NOTION_URL || process.env.NEXT_PUBLIC_NOTION_URL;
 // bot-service (Management API riêng, cùng envelope {success,data,error} với auth-service).
 const BOT_URL = process.env.BOT_URL || process.env.NEXT_PUBLIC_BOT_URL;
 
@@ -96,10 +99,13 @@ function buildContentSecurityPolicy(): string {
         process.env.NEXT_PUBLIC_CALL_WS_URL,
         process.env.NEXT_PUBLIC_TASK_URL,
         process.env.NEXT_PUBLIC_TASK_WS_URL,
+        process.env.NEXT_PUBLIC_NOTION_URL,
+        process.env.NEXT_PUBLIC_NOTION_WS_URL,
         process.env.NEXT_PUBLIC_BOT_URL,
         AUTH_URL,
         VIBE_URL,
         TASK_URL,
+        NOTION_URL,
         BOT_URL,
       ]
         .map(toOrigin)
@@ -149,6 +155,10 @@ const nextConfig: NextConfig = {
       // Proxy task-service qua prefix riêng (tránh đụng /api/v1 của chat). Same-origin → không CORS.
       if (TASK_URL) {
         rules.unshift({ source: '/task-proxy/:path*', destination: `${TASK_URL}/:path*` });
+      }
+      // Proxy notion-service qua prefix riêng (tránh đụng /api/v1 của chat). Same-origin → không CORS.
+      if (NOTION_URL) {
+        rules.unshift({ source: '/notion-proxy/:path*', destination: `${NOTION_URL}/:path*` });
       }
       // bot-service: prefix riêng /api/v1/ai + /api/v1/bot(s) — phải đứng trước
       // catch-all /api/v1/:path*. AI chat cũng do bot-service phục vụ (giữ DEEPSEEK_API_KEY).
