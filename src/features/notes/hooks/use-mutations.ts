@@ -35,9 +35,10 @@ type CreatePageInput = {
   title?: string;
 };
 
+/** `null` để xoá, `undefined` để giữ nguyên — xem chú thích ở `notion.api.ts`. */
 type UpdatePageInput = {
-  icon?: string;
-  coverUrl?: string;
+  icon?: string | null;
+  coverUrl?: string | null;
 };
 
 type UpsertFavoriteInput = {

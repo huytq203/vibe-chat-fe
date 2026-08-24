@@ -15,7 +15,9 @@ vi.hoisted(() => {
 
 const NOTION_URL = 'http://localhost:3007';
 const WORKSPACE_ID = 'workspace-1';
-const server = setupServer();
+const server = setupServer(
+  http.get(`${NOTION_URL}/api/v1/favorites`, () => envelope([])),
+);
 
 function envelope(data: unknown) {
   return HttpResponse.json({
@@ -200,7 +202,7 @@ describe('một hàng trong cây trang', () => {
     expect(onSelectPage).toHaveBeenCalledWith('page-created');
   });
 
-  it('menu chỉ có sao chép liên kết và xoá', async () => {
+  it('menu có ghim, sao chép liên kết và xoá đúng thứ tự', async () => {
     server.use(
       http.get(`${NOTION_URL}/api/v1/workspaces/${WORKSPACE_ID}/pages`, () => envelope([])),
     );
@@ -209,8 +211,37 @@ describe('một hàng trong cây trang', () => {
 
     await user.click(screen.getByRole('button', { name: 'Tuỳ chọn trang Trang cha' }));
 
-    expect(await screen.findAllByRole('menuitem')).toHaveLength(2);
+    const menuItems = await screen.findAllByRole('menuitem');
+    expect(menuItems).toHaveLength(3);
+    expect(menuItems[0]).toHaveTextContent('Ghim');
     expect(screen.getByRole('menuitem', { name: 'Sao chép liên kết' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Xoá' })).toBeInTheDocument();
+  });
+
+  it('đổi nhãn thành Bỏ ghim sau khi ghim trang', async () => {
+    let isFavorite = false;
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/workspaces/${WORKSPACE_ID}/pages`, () => envelope([])),
+      http.get(`${NOTION_URL}/api/v1/favorites`, () =>
+        envelope(
+          isFavorite
+            ? [{ userId: 'user-1', pageId: 'page-root', sortKey: 'a0', title: 'Trang cha', icon: null }]
+            : [],
+        ),
+      ),
+      http.post(`${NOTION_URL}/api/v1/favorites`, () => {
+        isFavorite = true;
+        return envelope({ userId: 'user-1', pageId: 'page-root', sortKey: 'a0' });
+      }),
+    );
+    renderRow();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Tuỳ chọn trang Trang cha' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Ghim' }));
+    await waitFor(() => expect(isFavorite).toBe(true));
+    await user.click(screen.getByRole('button', { name: 'Tuỳ chọn trang Trang cha' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Bỏ ghim' })).toBeInTheDocument();
   });
 });

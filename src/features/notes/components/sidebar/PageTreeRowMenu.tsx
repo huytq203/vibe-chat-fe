@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Copy, MoreHorizontal, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -19,98 +19,159 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu/DropdownMenu';
-import { useRemovePage } from '@/features/notes/hooks/use-mutations';
+import {
+  useAddFavorite,
+  useRemoveFavorite,
+  useRemovePage,
+} from '@/features/notes/hooks/use-mutations';
+import { useFavorites } from '@/features/notes/hooks/use-query';
 import type { Page } from '@/features/notes/types';
 
 interface PageTreeRowMenuProps {
   page: Page;
 }
 
-export function PageTreeRowMenu({ page }: PageTreeRowMenuProps) {
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const removePage = useRemovePage();
-  const pageTitle = page.title || 'Không có tiêu đề';
+function useFavoriteAction(pageId: string) {
+  const favoritesQuery = useFavorites();
+  const addFavorite = useAddFavorite();
+  const removeFavorite = useRemoveFavorite();
+  const isFavorite = favoritesQuery.data?.some((favorite) => favorite.pageId === pageId) ?? false;
+  const isPending =
+    favoritesQuery.isLoading ||
+    favoritesQuery.isError ||
+    addFavorite.isPending ||
+    removeFavorite.isPending;
 
-  function handleCopyLink() {
-    if (!navigator.clipboard) {
-      toast.error('Trình duyệt không hỗ trợ sao chép liên kết');
+  function toggleFavorite() {
+    if (isFavorite) {
+      removeFavorite.mutate(pageId);
       return;
     }
-
-    const link = new URL(`/notes/${page.workspaceId}/${page.id}`, window.location.origin);
-    void navigator.clipboard.writeText(link.toString()).then(
-      () => toast.success('Đã sao chép liên kết trang'),
-      () => toast.error('Không sao chép được liên kết'),
-    );
+    addFavorite.mutate({ pageId });
   }
+
+  return { isFavorite, isPending, toggleFavorite };
+}
+
+function copyPageLink(page: Page) {
+  if (!navigator.clipboard) {
+    toast.error('Trình duyệt không hỗ trợ sao chép liên kết');
+    return;
+  }
+  const link = new URL(`/notes/${page.workspaceId}/${page.id}`, window.location.origin);
+  void navigator.clipboard.writeText(link.toString()).then(
+    () => toast.success('Đã sao chép liên kết trang'),
+    () => toast.error('Không sao chép được liên kết'),
+  );
+}
+
+interface PageActionsMenuProps {
+  pageTitle: string;
+  isFavorite: boolean;
+  isFavoritePending: boolean;
+  onToggleFavorite: () => void;
+  onCopyLink: () => void;
+  onOpenDelete: () => void;
+}
+
+function PageActionsMenu({ pageTitle, isFavorite, isFavoritePending,
+  onToggleFavorite, onCopyLink, onOpenDelete,
+}: PageActionsMenuProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost" size="icon-sm" aria-label={`Tuỳ chọn trang ${pageTitle}`}
+            title="Tuỳ chọn"
+            className="h-6 w-6 shrink-0 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+          >
+            <MoreHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" className="border-border bg-sidebar">
+        <DropdownMenuItem
+          className="text-secondary-foreground focus:bg-sidebar-accent focus:text-foreground"
+          disabled={isFavoritePending} onClick={onToggleFavorite}
+        >
+          <Star aria-hidden="true" />
+          {isFavorite ? 'Bỏ ghim' : 'Ghim'}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-secondary-foreground focus:bg-sidebar-accent focus:text-foreground" onClick={onCopyLink}>
+          <Copy aria-hidden="true" />
+          Sao chép liên kết
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-danger focus:bg-sidebar-accent focus:text-danger" onClick={onOpenDelete}>
+          <Trash2 aria-hidden="true" />
+          Xoá
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+interface DeletePageDialogProps {
+  open: boolean;
+  pageTitle: string;
+  isPending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDelete: () => void;
+}
+
+function DeletePageDialog({ open, pageTitle, isPending, onOpenChange,
+  onDelete,
+}: DeletePageDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xoá trang “{pageTitle}”?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Trang sẽ được chuyển vào thùng rác, không mất hẳn và có thể khôi phục sau.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="ghost" size="sm">Huỷ</Button>} />
+          <Button variant="danger" size="sm" isLoading={isPending} onClick={onDelete}>
+            Xoá
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+export function PageTreeRowMenu({ page }: PageTreeRowMenuProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const favoriteAction = useFavoriteAction(page.id);
+  const removePage = useRemovePage();
+  const pageTitle = page.title || 'Không có tiêu đề';
 
   function handleDelete() {
     removePage.mutate(
       { id: page.id, workspaceId: page.workspaceId, parentId: page.parentId },
-      {
-        onSuccess: () => {
-          toast.success('Đã chuyển trang vào thùng rác');
-          setIsDeleteOpen(false);
-        },
-      },
+      { onSuccess: () => {
+        toast.success('Đã chuyển trang vào thùng rác');
+        setIsDeleteOpen(false);
+      } },
     );
   }
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Tuỳ chọn trang ${pageTitle}`}
-              title="Tuỳ chọn"
-              className="h-6 w-6 shrink-0 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
-            >
-              <MoreHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="end" className="border-border bg-sidebar">
-          <DropdownMenuItem
-            className="text-secondary-foreground focus:bg-sidebar-accent focus:text-foreground"
-            onClick={handleCopyLink}
-          >
-            <Copy aria-hidden="true" />
-            Sao chép liên kết
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-danger focus:bg-sidebar-accent focus:text-danger"
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            <Trash2 aria-hidden="true" />
-            Xoá
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xoá trang “{pageTitle}”?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Trang sẽ được chuyển vào thùng rác, không mất hẳn và có thể khôi phục sau.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="ghost" size="sm">Huỷ</Button>} />
-            <Button
-              variant="danger"
-              size="sm"
-              isLoading={removePage.isPending}
-              onClick={handleDelete}
-            >
-              Xoá
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PageActionsMenu
+        pageTitle={pageTitle}
+        isFavorite={favoriteAction.isFavorite}
+        isFavoritePending={favoriteAction.isPending}
+        onToggleFavorite={favoriteAction.toggleFavorite}
+        onCopyLink={() => copyPageLink(page)}
+        onOpenDelete={() => setIsDeleteOpen(true)}
+      />
+      <DeletePageDialog
+        open={isDeleteOpen} pageTitle={pageTitle} isPending={removePage.isPending}
+        onOpenChange={setIsDeleteOpen} onDelete={handleDelete}
+      />
     </>
   );
 }

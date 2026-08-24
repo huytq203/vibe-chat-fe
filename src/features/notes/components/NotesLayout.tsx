@@ -8,19 +8,24 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { usePage, useWorkspaces } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+import { Breadcrumb } from './page/Breadcrumb';
+import { PageIcon } from './page/PageIcon';
+import { FavoriteList } from './sidebar/FavoriteList';
 import { PageTree } from './sidebar/PageTree';
 import { WorkspaceSwitcher } from './sidebar/WorkspaceSwitcher';
 
 interface NotesFrameProps {
   sidebar: ReactNode;
   canvas: ReactNode;
+  topbar?: ReactNode;
 }
 
-function NotesFrame({ sidebar, canvas }: NotesFrameProps) {
+function NotesFrame({ sidebar, canvas, topbar }: NotesFrameProps) {
   return (
     <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-background">
       <aside className="w-[260px] shrink-0 overflow-y-auto bg-sidebar py-2">{sidebar}</aside>
       <main className="min-w-0 flex-1 overflow-y-auto bg-background">
+        {topbar ?? <div aria-hidden="true" className="h-[44px]" />}
         <div className="mx-auto w-full max-w-[45rem] px-6 pt-24">{canvas}</div>
       </main>
     </div>
@@ -74,16 +79,13 @@ function SelectedPageCanvas({ pageId }: SelectedPageCanvasProps) {
     );
   }
 
+  // Ảnh bìa: chờ luồng tải tệp ở M6-T3
   return (
-    <article>
-      <div className="flex items-start gap-3 text-foreground">
-        <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center" aria-hidden="true">
-          {data.icon ? <span className="text-3xl leading-none">{data.icon}</span> : <FileText />}
-        </span>
-        <h1 className="font-display text-[36px] font-bold leading-[44px] tracking-[-0.5px]">
-          {data.title || 'Không có tiêu đề'}
-        </h1>
-      </div>
+    <article className="relative text-foreground">
+      <PageIcon pageId={pageId} icon={data.icon} />
+      <h1 className="font-display text-[36px] font-bold leading-[44px] tracking-[-0.5px]">
+        {data.title || 'Không có tiêu đề'}
+      </h1>
       <div className="mt-10 rounded-lg bg-sidebar px-4 py-3 text-sm text-muted-foreground">
         Trình soạn thảo sẽ có ở mốc M3.
       </div>
@@ -140,6 +142,39 @@ function useNotesNavigation() {
   };
 }
 
+interface ActiveNotesFrameProps {
+  workspaceId: string;
+  pageId: string | null;
+  workspaceSwitcher: ReactNode;
+  onSelectPage: (id: string) => void;
+}
+
+function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
+  onSelectPage,
+}: ActiveNotesFrameProps) {
+  const topbar = pageId ? (
+    <Breadcrumb pageId={pageId} onSelectPage={onSelectPage} />
+  ) : undefined;
+  return (
+    <NotesFrame
+      sidebar={
+        <div className="space-y-4">
+          {workspaceSwitcher}
+          <div>
+            <FavoriteList onSelectPage={onSelectPage} />
+            <PageTree
+              workspaceId={workspaceId} activePageId={pageId}
+              onSelectPage={onSelectPage}
+            />
+          </div>
+        </div>
+      }
+      canvas={<PageCanvas pageId={pageId} />}
+      topbar={topbar}
+    />
+  );
+}
+
 export function NotesLayout() {
   const navigation = useNotesNavigation();
   const { data: workspaces, isLoading, isError, refetch } = navigation.workspacesQuery;
@@ -174,18 +209,11 @@ export function NotesLayout() {
   }
 
   return (
-    <NotesFrame
-      sidebar={
-        <div className="space-y-4">
-          {workspaceSwitcher}
-          <PageTree
-            workspaceId={navigation.activeWorkspaceId}
-            activePageId={navigation.pageId}
-            onSelectPage={navigation.handleSelectPage}
-          />
-        </div>
-      }
-      canvas={<PageCanvas pageId={navigation.pageId} />}
+    <ActiveNotesFrame
+      workspaceId={navigation.activeWorkspaceId}
+      pageId={navigation.pageId}
+      workspaceSwitcher={workspaceSwitcher}
+      onSelectPage={navigation.handleSelectPage}
     />
   );
 }

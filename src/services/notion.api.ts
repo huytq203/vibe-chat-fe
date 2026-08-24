@@ -45,9 +45,14 @@ type CreatePageInput = {
   title?: string;
 };
 
+/**
+ * `null` để xoá, `undefined` để giữ nguyên — đúng ngữ nghĩa Prisma mà BE dùng
+ * (`pages.service.ts` truyền thẳng `icon: dto.icon` vào `prisma.page.update`).
+ * Chuỗi rỗng KHÔNG xoá được: BE chặn bằng `@Length(1, 16)`.
+ */
 type UpdatePageInput = {
-  icon?: string;
-  coverUrl?: string;
+  icon?: string | null;
+  coverUrl?: string | null;
 };
 
 /**
