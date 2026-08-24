@@ -32,7 +32,16 @@ export function ImageLightbox({ open, slides, index = 0, onClose }: ImageLightbo
       // 1 ảnh → ẩn nút chuyển slide; nhiều ảnh → giữ mặc định để vuốt/prev-next.
       render={single ? { buttonPrev: () => null, buttonNext: () => null } : undefined}
       zoom={{ maxZoomPixelRatio: 4, doubleTapDelay: 250 }}
-      styles={{ root: { '--yarl__color_backdrop': 'rgba(0,0,0,0.85)' } }}
+      styles={{
+        root: { '--yarl__color_backdrop': 'rgba(0,0,0,0.85)' },
+        // App tràn viền trên iOS → thanh công cụ (nút đóng, zoom) phải lùi khỏi
+        // Dynamic Island/notch, nếu không nút X nằm ngay dưới thanh trạng thái.
+        toolbar: {
+          paddingTop: 'calc(var(--safe-top) + 8px)',
+          paddingRight: 'calc(var(--safe-right) + 8px)',
+          paddingLeft: 'calc(var(--safe-left) + 8px)',
+        },
+      }}
     />
   );
 }

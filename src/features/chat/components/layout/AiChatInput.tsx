@@ -66,7 +66,7 @@ export function AiChatInput({
     <div
       className={cn(
         isPage
-          ? 'border-t bg-sidebar/90 px-2.5 py-2 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle'
+          ? 'border-t bg-sidebar/90 px-2.5 py-2 backdrop-blur-md max-md:pb-[calc(var(--safe-bottom)+0.5rem)] md:rounded-2xl md:border md:shadow-subtle'
           : 'border-t border-border p-3',
       )}
     >

@@ -41,11 +41,11 @@ export function AiSessionList({
       aria-label="Lịch sử trò chuyện với AI"
       className={cn(
         'flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden',
-        'bg-sidebar/75 text-sidebar-foreground backdrop-blur-md',
+        'bg-sidebar text-sidebar-foreground md:bg-sidebar/75 md:backdrop-blur-md',
         'md:w-[280px] md:min-w-[280px] md:rounded-2xl md:border md:shadow-subtle',
       )}
     >
-      <header className="flex shrink-0 items-center gap-2 px-3 pt-3">
+      <header className="flex shrink-0 items-center gap-2 px-3 pt-3 max-md:pt-[calc(var(--safe-top)+0.75rem)]">
         {onBack && (
           <Button
             variant="ghost"
@@ -98,7 +98,7 @@ export function AiSessionList({
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 max-md:pb-[calc(var(--safe-bottom)+0.75rem)]">
         {isEmpty && (
           <div className="flex flex-col items-center gap-3 px-4 pt-12 text-center">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">

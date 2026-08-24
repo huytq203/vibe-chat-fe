@@ -41,7 +41,9 @@ describe('LoginPageShell', () => {
     );
 
     expect(container.firstElementChild).toHaveClass('bg-background');
-    expect(container.querySelector('.rounded-2xl.border-border.bg-background')).toBeInTheDocument();
+    const surface = container.querySelector('[data-auth-surface]');
+    expect(surface).toHaveClass('bg-background', 'md:rounded-2xl', 'md:border-border', 'md:shadow-2xl');
+    expect(surface).not.toHaveClass('rounded-2xl', 'border', 'shadow-2xl');
     expect(container.querySelector('.bg-sidebar')).toBeInTheDocument();
     expect(container.querySelector('.bg-gradient-to-r')).not.toBeInTheDocument();
   });

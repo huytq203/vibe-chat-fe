@@ -196,9 +196,9 @@ export function ChatPanel() {
           ) : (
             <div
               className={cn(
-                "shrink-0 rounded-2xl px-4 py-3 text-center text-[12.5px] text-muted-foreground shadow-subtle",
+                "shrink-0 rounded-2xl px-4 py-3 text-center text-[12.5px] text-muted-foreground shadow-subtle max-md:rounded-none max-md:pb-[calc(var(--safe-bottom)+0.75rem)]",
                 wallpaperActive
-                  ? "bg-sidebar/75 backdrop-blur-md"
+                  ? "bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md"
                   : "bg-sidebar",
               )}
             >

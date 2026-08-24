@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Smile } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button/Button';
@@ -34,9 +34,15 @@ export function MediaPickerTrigger({
   const sendSticker = useSendSticker(conversationId);
   const sendGif = useSendGif(conversationId);
 
+  // Mobile không có hover để kích hoạt prefetch. Nạp chunk sau khi composer ổn định để
+  // lần chạm đầu tiên không phải vừa mở drawer vừa tải/parse toàn bộ emoji picker.
+  useEffect(() => {
+    const timer = window.setTimeout(prefetchEmojiPicker, 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   function handleEmojiSelect(emoji: string): void {
     onEmojiSelect(emoji);
-    setOpen(false);
   }
 
   function handlePickSticker(sticker: Sticker): void {
@@ -77,6 +83,7 @@ export function MediaPickerTrigger({
       aria-label="Emoji, GIF và sticker"
       className="h-11 w-11 text-muted-foreground hover:text-primary md:h-8 md:w-8"
       onMouseEnter={prefetchEmojiPicker}
+      onPointerDown={prefetchEmojiPicker}
       onFocus={prefetchEmojiPicker}
     >
       <Smile className="h-[18px] w-[18px]" />

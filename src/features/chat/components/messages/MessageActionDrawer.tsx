@@ -64,7 +64,7 @@ export function MessageActionDrawer({
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent
           direction="bottom"
-          className="h-auto max-h-[85vh] rounded-t-2xl pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+          className="h-auto max-h-[85vh] rounded-t-2xl pb-[max(var(--safe-bottom),0.5rem)]"
         >
           <div className="flex justify-center px-4 pt-3 pb-1">
             <ReactionPickerRow myReaction={myReaction} onPick={pickReaction} size="lg" />

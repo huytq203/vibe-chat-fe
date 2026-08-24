@@ -11,6 +11,9 @@ import { logger } from '@/lib/logger';
 let appPromise: Promise<FirebaseApp | null> | null = null;
 let messagingPromise: Promise<Messaging | null> | null = null;
 
+const FCM_SERVICE_WORKER_PATH = '/firebase-messaging-sw.js';
+const FCM_SERVICE_WORKER_SCOPE = '/firebase-cloud-messaging-push-scope';
+
 function browserSupportsPush(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -72,10 +75,21 @@ async function ensureServiceWorker(): Promise<ServiceWorkerRegistration | null> 
     messagingSenderId: env.NEXT_PUBLIC_FIREBASE_SENDER_ID ?? '',
     appId: env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
   });
-  const url = `/firebase-messaging-sw.js?${params.toString()}`;
-  const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+  const url = `${FCM_SERVICE_WORKER_PATH}?${params.toString()}`;
+  const expectedScope = new URL(FCM_SERVICE_WORKER_SCOPE, window.location.origin).href;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  const existing = registrations.find((registration) => {
+    const worker = registration.active ?? registration.waiting ?? registration.installing;
+    if (!worker || registration.scope !== expectedScope) return false;
+
+    return new URL(worker.scriptURL).pathname === FCM_SERVICE_WORKER_PATH;
+  });
+
   if (existing) return existing;
-  return navigator.serviceWorker.register(url, { scope: '/' });
+
+  // File nằm ở root nên nếu bỏ `scope`, browser vẫn mặc định dùng `/` và tiếp tục
+  // tranh registration với PWA worker. FCM cần một scope riêng, không cần control trang.
+  return navigator.serviceWorker.register(url, { scope: FCM_SERVICE_WORKER_SCOPE });
 }
 
 export async function getFcmToken(): Promise<string | null> {

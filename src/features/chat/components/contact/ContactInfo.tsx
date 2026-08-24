@@ -72,7 +72,7 @@ export function ContactInfo() {
   if (isContentLocked) {
     return (
       <aside className="flex h-full w-full shrink-0 flex-col bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px] md:rounded-2xl md:shadow-subtle">
-        <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
+        <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px] max-md:pt-[calc(var(--safe-top)+18px)]">
           <span className="text-sm font-bold">Thông tin</span>
           <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
             <X className="h-4 w-4" />
@@ -148,15 +148,15 @@ export function ContactInfo() {
     !isDirect && canManageSettings && conversation.settings?.joinByLink !== false;
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col bg-sidebar/75 text-sidebar-foreground backdrop-blur-md md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:shadow-subtle">
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px]">
+    <aside className="flex h-full w-full shrink-0 flex-col bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:bg-sidebar/75 md:shadow-subtle md:backdrop-blur-md">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[18px] max-md:pt-[calc(var(--safe-top)+18px)]">
         <span className="text-sm font-bold">Thông tin</span>
         <Button variant="ghost" size="icon-sm" onClick={handleClose} title="Đóng" aria-label="Đóng">
           <X className="h-4 w-4" />
         </Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto mt-3">
+      <div className="flex-1 overflow-y-auto mt-3 max-md:pb-[var(--safe-bottom)]">
         <ContactProfileSection
           data={data}
           avatarUrl={avatarUrl}

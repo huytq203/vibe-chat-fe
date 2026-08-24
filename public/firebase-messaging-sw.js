@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // Firebase messaging service worker — chạy ở browser background, không có
 // access tới NEXT_PUBLIC_* env, nên config được truyền qua query string khi
 // register (xem src/lib/firebase/messaging.ts).

@@ -243,14 +243,14 @@ export function MessageInput({
   const sendEl =
     hasContent || attachments.length > 0 ? (
       <Button
-        variant="solid"
+        variant="outline"
         size="icon-sm"
         onClick={() => void submit()}
         isLoading={isEditing ? isSavingEdit : isUploading}
         disabled={disabled}
         aria-label={isEditing ? "Lưu chỉnh sửa" : "Gửi"}
         title={isEditing ? "Lưu (Enter)" : "Gửi"}
-        className="shrink-0"
+        className="shrink-0 border-none "
       >
         {isEditing
           ? !isSavingEdit && <Check className="h-[18px] w-[18px]" />
@@ -273,7 +273,7 @@ export function MessageInput({
   return (
     <div
       className={cn(
-        "shrink-0 border-t px-4 py-2 md:rounded-2xl md:border md:shadow-subtle",
+        "shrink-0 border-t px-4 py-2 max-md:pb-[calc(var(--safe-bottom)+0.5rem)] md:rounded-2xl md:border md:shadow-subtle",
         wallpaperActive ? "bg-sidebar" : "bg-sidebar",
       )}
     >

@@ -64,7 +64,7 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
 
   return (
     <>
-      <div className="border-t border-border p-3 flex flex-col gap-2">
+      <div className="border-t border-border p-3 flex flex-col gap-2 max-md:pb-[calc(var(--safe-bottom)+0.75rem)]">
         {replying && (
           <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
             <Reply className="h-3.5 w-3.5 shrink-0 text-primary" />

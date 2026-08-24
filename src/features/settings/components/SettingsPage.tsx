@@ -17,7 +17,7 @@ export function SettingsPage({ onBack }: Props) {
 
   return (
     <main className="flex h-full min-h-0 w-full flex-col bg-background">
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2 max-md:h-auto max-md:min-h-14 max-md:pt-[var(--safe-top)]">
         <button
           type="button"
           onClick={onBack}
@@ -60,7 +60,7 @@ export function SettingsPage({ onBack }: Props) {
         })}
       </nav>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 max-md:pb-[calc(var(--safe-bottom)+1.25rem)]">
         <div className="mx-auto w-full max-w-3xl">
           <ActiveTab onClose={onBack} />
         </div>

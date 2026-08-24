@@ -47,7 +47,7 @@ function ConversationItemImpl({
   const unread = conversation.unreadCount;
 
   return (
-    <div className="group/ci relative">
+    <div className="group/ci relative mt-3">
       <button
       type="button"
       onClick={() => onSelect(conversation.id)}

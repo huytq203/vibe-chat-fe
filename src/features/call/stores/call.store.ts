@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isMobileViewport } from '@/lib/viewport/media';
 import type {
   CallChatMessage,
   CallDirectory,
@@ -96,7 +97,12 @@ type CallState = {
   reset: () => void;
 };
 
-const INITIAL_WINDOW: CallWindow = { mode: 'normal', x: 0, y: 0 };
+/** Mobile mở thẳng toàn màn hình (chỉ có fullscreen ↔ mini); desktop giữ cửa sổ vừa. */
+const createInitialWindow = (): CallWindow => ({
+  mode: isMobileViewport() ? 'fullscreen' : 'normal',
+  x: 0,
+  y: 0,
+});
 
 /** State pro reset về mặc định mỗi khi bắt đầu/ kết thúc cuộc gọi (tránh sót từ call trước). */
 const PRO_RESET = {
@@ -117,7 +123,7 @@ export const useCallStore = create<CallState>((set) => ({
   micOn: true,
   camOn: true,
   startedAt: null,
-  window: INITIAL_WINDOW,
+  window: createInitialWindow(),
   windowOpen: true,
   pendingJoin: null,
   ...PRO_RESET,
@@ -129,7 +135,7 @@ export const useCallStore = create<CallState>((set) => ({
       micOn: true,
       camOn: type === 'VIDEO',
       startedAt: null,
-      window: INITIAL_WINDOW,
+      window: createInitialWindow(),
       windowOpen: true,
       pendingJoin: null,
       ...PRO_RESET,
@@ -142,7 +148,7 @@ export const useCallStore = create<CallState>((set) => ({
       micOn: true,
       camOn: type === 'VIDEO',
       startedAt: null,
-      window: INITIAL_WINDOW,
+      window: createInitialWindow(),
       windowOpen: true,
       pendingJoin: null,
       ...PRO_RESET,
@@ -203,7 +209,7 @@ export const useCallStore = create<CallState>((set) => ({
       call: null,
       participants: [],
       startedAt: null,
-      window: INITIAL_WINDOW,
+      window: createInitialWindow(),
       windowOpen: true,
       pendingJoin: null,
       ...PRO_RESET,

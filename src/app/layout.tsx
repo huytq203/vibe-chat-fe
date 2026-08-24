@@ -4,7 +4,9 @@ import "@/styles/index.css";
 import { ThemeProvider } from '@/lib/theme/ThemeProvider';
 import { Toaster } from '@/components/ui/toast/Toaster';
 import { Providers } from './providers';
+import { appleSplashScreens } from '@/lib/pwa/apple-splash';
 import { ServiceWorkerRegister } from '@/lib/pwa/ServiceWorkerRegister';
+import { ViewportSync } from '@/lib/viewport';
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam-pro",
@@ -21,21 +23,24 @@ export const metadata: Metadata = {
     capable: true,
     title: "Halo",
     statusBarStyle: "black-translucent",
+    startupImage: appleSplashScreens,
   },
   icons: {
-    apple: "/icon-192.png",
+    // iOS không hỗ trợ alpha cho icon home screen: dùng bản 180x180 đã flatten nền.
+    apple: "/apple-touch-icon.png",
   },
 };
 
-// Khóa zoom trên mobile: chặn pinch-zoom, double-tap zoom và auto-zoom khi
-// focus input (iOS). viewportFit=cover để tận dụng vùng safe-area (notch).
+// Khóa page zoom theo yêu cầu của trải nghiệm app-like; viewportFit=cover để tận dụng
+// vùng safe-area (notch) trên thiết bị mobile.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0e0c14",
+  // Khớp --sidebar của theme mặc định; ThemeProvider cập nhật lại khi đổi theme.
+  themeColor: "#161820",
 };
 
 export default function RootLayout({
@@ -45,15 +50,19 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${beVietnamPro.variable} h-full antialiased`}
+      lang="vi"
+      className={`${beVietnamPro.variable} antialiased`}
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      {/* Chiều cao html/body do globals.css đặt theo --app-height (visualViewport):
+          h-full/min-h-full ở đây sẽ đo theo large viewport của iOS và thừa ra một
+          dải nền dưới đáy app. */}
+      <body className="flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>
         <Toaster position="top-center" expand richColors />
         <ServiceWorkerRegister />
+        <ViewportSync />
       </body>
     </html>
   );

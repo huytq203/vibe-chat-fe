@@ -35,7 +35,7 @@ export function ConvLockScreen({ conversationId, name }: ConvLockScreenProps) {
   const errorMsg = localError || (verifyMut.isError ? 'Sai mật khẩu, thử lại' : '');
 
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-5 bg-background px-6">
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-5 bg-background px-6 max-md:pb-[var(--safe-bottom)]">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
         <Lock className="h-7 w-7 text-primary" />
       </div>

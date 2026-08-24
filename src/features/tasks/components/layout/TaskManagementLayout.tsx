@@ -29,7 +29,7 @@ export function TaskManagementLayout() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   return (
-    <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden md:gap-3">
+    <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden max-md:pb-[var(--safe-bottom)] md:gap-3">
       <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

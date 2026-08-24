@@ -25,7 +25,7 @@ export function AiChatHeader({
   const { data: aiConfig } = useAiConfig();
 
   return (
-    <header className="flex shrink-0 items-center gap-2.5 border-b bg-sidebar/75 px-3 py-2.5 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle">
+    <header className="flex shrink-0 items-center gap-2.5 border-b bg-sidebar px-3 py-2.5 max-md:pt-[calc(var(--safe-top)+0.625rem)] md:rounded-2xl md:border md:bg-sidebar/75 md:shadow-subtle md:backdrop-blur-md">
       {onBack && (
         <Button variant="ghost" size="icon-sm" aria-label="Quay lại" title="Quay lại" onClick={onBack}>
           <ArrowLeft className="h-[18px] w-[18px]" />

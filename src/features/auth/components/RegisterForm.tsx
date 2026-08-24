@@ -149,11 +149,11 @@ export const RegisterForm = () => {
 
   return (
     <div className="w-full max-w-md">
-      <CardHeader className="pb-2 pt-8 text-center">
+      <CardHeader className="border-b-0 px-0 pb-2 pt-0 text-center md:px-6 md:pt-8">
         <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
         <CardDescription>Tham gia Halo ngay hôm nay</CardDescription>
       </CardHeader>
-      <CardContent className="px-6 pb-8 pt-2">
+      <CardContent className="px-0 pb-0 pt-2 md:px-6 md:pb-8">
         <StepProgress labels={STEPS.map((s) => s.label)} current={step} />
         <Form {...form}>
           <form onSubmit={handleFormSubmit}>

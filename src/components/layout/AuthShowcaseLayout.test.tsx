@@ -49,15 +49,15 @@ describe('AuthShowcaseLayout', () => {
       </AuthShowcaseLayout>
     );
 
-    // Thẻ bo góc dùng chung — đúng 1 phần tử, không phải 2 cột full-bleed tách rời.
-    const cards = container.querySelectorAll('.rounded-2xl.border.shadow-2xl');
-    expect(cards).toHaveLength(1);
-    const card = cards[0];
+    // Mobile là surface phẳng; từ md mới trở lại thẻ nổi dùng chung cho hai cột.
+    const card = container.querySelector('[data-auth-surface]');
+    expect(card).toHaveClass('md:rounded-2xl', 'md:border', 'md:shadow-2xl');
+    expect(card).not.toHaveClass('rounded-2xl', 'border', 'shadow-2xl');
 
     const formContent = screen.getByText('form-content');
     const illustration = container.querySelector('img[src*="avatar-2.png"]');
 
-    expect(card.contains(formContent)).toBe(true);
-    expect(card.contains(illustration)).toBe(true);
+    expect(card?.contains(formContent)).toBe(true);
+    expect(card?.contains(illustration)).toBe(true);
   });
 });

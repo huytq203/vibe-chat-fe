@@ -319,6 +319,16 @@ export function applyTheme(theme: Theme) {
     document.head.appendChild(styleEl);
   }
   styleEl.textContent = css;
+
+  // iOS/Android tô vùng browser chrome (thanh trạng thái) theo theme-color. Dùng đúng
+  // màu nền header → chrome liền một khối với bar trên cùng, không thành dải lạ màu.
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.appendChild(meta);
+  }
+  meta.content = c.muted;
 }
 
 // ─── CSS Variable Generator ───────────────────────────────────────────────────

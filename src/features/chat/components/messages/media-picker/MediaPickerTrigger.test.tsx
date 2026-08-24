@@ -34,19 +34,24 @@ vi.mock('@/components/ui/popover/Popover', () => ({
 }));
 vi.mock('./MediaPickerPanel', () => ({
   MediaPickerPanel: ({
+    onEmojiSelect,
     onPickSticker,
     sendingStickerId,
   }: {
+    onEmojiSelect: (value: string) => void;
     onPickSticker: (value: Sticker) => void;
     sendingStickerId?: string | null;
   }) => (
-    <button
-      type="button"
-      disabled={Boolean(sendingStickerId)}
-      onClick={() => onPickSticker(sticker)}
-    >
-      Gửi sticker
-    </button>
+    <>
+      <button type="button" onClick={() => onEmojiSelect('😀')}>Chọn emoji</button>
+      <button
+        type="button"
+        disabled={Boolean(sendingStickerId)}
+        onClick={() => onPickSticker(sticker)}
+      >
+        Gửi sticker
+      </button>
+    </>
   ),
 }));
 
@@ -56,6 +61,24 @@ interface MutationCallbacks {
 }
 
 describe('MediaPickerTrigger', () => {
+  it('cho phép chọn liên tiếp nhiều emoji', async () => {
+    const user = userEvent.setup();
+    const onEmojiSelect = vi.fn();
+    render(
+      <MediaPickerTrigger
+        conversationId="conv-1"
+        onEmojiSelect={onEmojiSelect}
+      />,
+    );
+
+    const emoji = screen.getByRole('button', { name: 'Chọn emoji' });
+    await user.click(emoji);
+    await user.click(emoji);
+
+    expect(onEmojiSelect).toHaveBeenNthCalledWith(1, '😀');
+    expect(onEmojiSelect).toHaveBeenNthCalledWith(2, '😀');
+  });
+
   it('khóa sticker khi đang gửi, báo lỗi rồi mở khóa lại', async () => {
     const user = userEvent.setup();
     render(

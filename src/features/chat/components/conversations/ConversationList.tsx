@@ -148,7 +148,7 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
   const currentLoading = archiveOpen ? archivedLoading : isLoading;
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col overflow-hidden bg-sidebar/75 text-sidebar-foreground backdrop-blur-md md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:shadow-subtle">
+    <aside className="flex h-full w-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:bg-sidebar/75 md:shadow-subtle md:backdrop-blur-md">
       <header className="hidden shrink-0 items-center justify-between px-4 pb-3 pt-[18px] md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
@@ -166,7 +166,7 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
         
       </header>
 
-      <div className="flex flex-1 flex-col overflow-hidden pt-5 md:pt-0">
+      <div className="flex flex-1 flex-col overflow-hidden pt-[calc(var(--safe-top)+1.25rem)] md:pt-0">
         {searchFocused ? (
           <SearchOverlay
             query={search}

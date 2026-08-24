@@ -23,7 +23,7 @@ export function IncomingCallDialog({
   const kind = type === 'VIDEO' ? 'Cuộc gọi video' : 'Cuộc gọi thoại';
   const subtitle = isGroup ? `${kind} nhóm đến…` : `${kind} đến…`;
   return (
-    <div className="pointer-events-auto fixed bottom-6 right-6 z-[60] w-[320px] rounded-2xl border border-border bg-card p-5 shadow-2xl bg-accent">
+    <div className="pointer-events-auto fixed bottom-6 right-6 z-[200] w-[320px] rounded-2xl border border-border bg-card p-5 shadow-2xl bg-accent max-md:inset-x-4 max-md:bottom-[calc(var(--safe-bottom)+1rem)] max-md:w-auto">
       <div className="flex flex-col items-center gap-3">
         <Avatar name={peer.name} src={peer.avatarUrl} size="lg" />
         <div className="text-center">

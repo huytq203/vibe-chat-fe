@@ -4,46 +4,17 @@ import { useRef, type RefObject } from 'react';
 import Draggable, { type DraggableData } from 'react-draggable';
 import { Maximize2, Minimize2, Minus, PhoneOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useCallStore } from '@/features/call/stores/call.store';
 import { CallChatPanel } from './CallChatPanel';
 import { UpgradePrompt } from './UpgradePrompt';
-import type {
-  CallDirectory,
-  CallPeer,
-  CallPhase,
-  CallType,
-  WindowMode,
-} from '@/features/call/types';
+import type { WindowMode } from '@/features/call/types';
+import type { CallWindowProps } from './call-window.types';
 import { CallStage } from './CallStage';
 import { CallControls } from './CallControls';
-
-type CallWindowProps = {
-  type: CallType;
-  peer: CallPeer;
-  isGroup: boolean;
-  directory: CallDirectory;
-  remoteIds: string[];
-  /** Số người trong cuộc gọi (roster báo hiệu) — hiển thị cho group. */
-  participantCount: number;
-  phase: CallPhase;
-  mode: WindowMode;
-  micOn: boolean;
-  camOn: boolean;
-  position: { x: number; y: number };
-  statusText: string;
-  getRemoteRef: (id: string) => (node: HTMLDivElement | null) => void;
-  setLocalEl: (node: HTMLDivElement | null) => void;
-  onToggleMic: () => void;
-  onToggleCam: () => void;
-  onHangup: () => void;
-  onRequestUpgrade: () => void;
-  onAcceptUpgrade: () => void;
-  onDeclineUpgrade: () => void;
-  onSetMode: (mode: WindowMode) => void;
-  onClose: () => void;
-  onDrag: (x: number, y: number) => void;
-};
+import { CallMobileFullscreen } from './CallMobileFullscreen';
+import { CallMiniPill } from './CallMiniPill';
 
 const SIZE_CLASS: Record<WindowMode, string> = {
   mini: 'h-[112px] w-[230px]',
@@ -68,9 +39,17 @@ export function CallWindow(props: CallWindowProps) {
     position,
   } = props;
   const nodeRef = useRef<HTMLDivElement | null>(null);
+  const chatOpen = useCallStore((s) => s.chatOpen);
+  const isMobile = useIsMobile();
   const draggable = mode !== 'fullscreen';
   const countLabel = isGroup ? `${participantCount} người` : '';
-  const chatOpen = useCallStore((s) => s.chatOpen);
+
+  // Mobile chỉ có hai mode: toàn màn hình (mặc định) và pill mini. Cửa sổ "vừa" là
+  // khái niệm của desktop — gặp mode đó trên mobile thì hiểu là toàn màn hình.
+  if (isMobile) {
+    const mobileMode: WindowMode = mode === 'mini' ? 'mini' : 'fullscreen';
+    return mobileMode === 'mini' ? <CallMiniPill {...props} /> : <CallMobileFullscreen {...props} />;
+  }
 
   // Điều khiển cửa sổ — LUÔN hiển thị ở mọi mode (đặt ngoài vùng kéo nhờ class no-drag).
   const windowControls = (

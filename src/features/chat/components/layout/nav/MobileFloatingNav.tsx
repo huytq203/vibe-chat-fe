@@ -147,10 +147,10 @@ export function MobileFloatingNav({
       aria-label="Điều hướng chính"
       className="pointer-events-none fixed z-[150]"
       style={{
-        top: 'env(safe-area-inset-top, 0px)',
-        right: 'env(safe-area-inset-right, 0px)',
-        bottom: 'max(4px, min(env(safe-area-inset-bottom, 0px), 12px))',
-        left: 'env(safe-area-inset-left, 0px)',
+        top: 'var(--safe-top)',
+        right: 'var(--safe-right)',
+        bottom: 'max(4px, min(var(--safe-bottom), 12px))',
+        left: 'var(--safe-left)',
       }}
       data-dock-edge={dockEdge}
     >

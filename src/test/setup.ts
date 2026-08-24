@@ -16,6 +16,22 @@ for (const [key, value] of Object.entries(TEST_ENV)) {
   if (!process.env[key]) vi.stubEnv(key, value);
 }
 
+// jsdom không có window.matchMedia — mọi component dùng useIsMobile sẽ ném khi render.
+// Mặc định khớp desktop (matches=false); test cần mobile thì stub lại trong chính test đó.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}
+
 // jsdom không cài đặt Element.scrollTo — component nào tự cuộn (danh sách tin nhắn,
 // khung chat AI) sẽ ném uncaught exception trong rAF nếu không có stub này.
 if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {

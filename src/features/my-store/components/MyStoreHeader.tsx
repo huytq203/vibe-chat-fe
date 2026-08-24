@@ -18,7 +18,7 @@ export function MyStoreHeader({ activeTab, onTabChange, onOpenInfo }: MyStoreHea
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b bg-sidebar/75 px-4 py-3 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle">
+    <div className="flex shrink-0 items-center gap-2 border-b bg-sidebar/75 px-4 py-3 backdrop-blur-md max-md:pt-[calc(var(--safe-top)+0.75rem)] md:rounded-2xl md:border md:shadow-subtle">
       {isMobile && onOpenInfo ? (
         // Vùng chạm phủ gần trọn chiều cao header (40px) nhờ margin âm bù padding —
         // mở rộng đích chạm mà không làm header cao thêm.

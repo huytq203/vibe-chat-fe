@@ -17,6 +17,8 @@ import { useCallPro } from '@/features/call/hooks/useCallPro';
 import { DevicePicker } from './DevicePicker';
 
 type CallControlsProps = {
+  /** Ghi đè khung ngoài — mobile dùng để chừa safe-area đáy máy. */
+  className?: string;
   micOn: boolean;
   camOn: boolean;
   onToggleMic: () => void;
@@ -64,6 +66,7 @@ function CtrlButton({
 }
 
 export function CallControls({
+  className,
   micOn,
   camOn,
   onToggleMic,
@@ -85,7 +88,7 @@ export function CallControls({
   const needsConsent = isOngoing && callType === 'AUDIO' && !isGroup;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 bg-accent p-3">
+    <div className={cn('flex flex-wrap items-center justify-center gap-2 bg-accent p-3', className)}>
       <CtrlButton
         label={micOn ? 'Tắt micro' : 'Bật micro'}
         icon={micOn ? Mic : MicOff}

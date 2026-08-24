@@ -37,7 +37,7 @@ export function StoreFileBrowserList({
   onDeleteFolder,
 }: StoreFileBrowserListProps) {
   return (
-    <div className="flex-1 overflow-y-auto px-2 py-2">
+    <div className="flex-1 overflow-y-auto px-2 py-2 max-md:pb-[calc(var(--safe-bottom)+0.5rem)]">
       {uploads.map((u) => (
         <div key={u.id} className="flex items-center gap-3 rounded-lg px-3 py-2">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />

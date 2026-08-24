@@ -3,7 +3,18 @@
 import dynamic from 'next/dynamic';
 import { EmojiStyle, type EmojiClickData, type Theme } from 'emoji-picker-react';
 
-const Picker = dynamic(() => import('emoji-picker-react'), {
+let pickerModulePromise: ReturnType<typeof importEmojiPicker> | null = null;
+
+function importEmojiPicker() {
+  return import('emoji-picker-react');
+}
+
+function loadEmojiPicker() {
+  pickerModulePromise ??= importEmojiPicker();
+  return pickerModulePromise;
+}
+
+const Picker = dynamic(loadEmojiPicker, {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse rounded-lg bg-muted" />,
 });
@@ -11,7 +22,7 @@ const Picker = dynamic(() => import('emoji-picker-react'), {
 // Prefetch the picker chunk so the popup opens instantly (gọi khi hover/focus nút emoji).
 // import() được dedupe nên gọi nhiều lần không tải lại.
 export function prefetchEmojiPicker() {
-  void import('emoji-picker-react');
+  void loadEmojiPicker();
 }
 
 type EmojiPickerProps = {
