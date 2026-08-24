@@ -150,3 +150,21 @@ export const giphyKeys = {
   /** Query rỗng là trending; một key tránh tạo hai cache trùng nghĩa. */
   list: (query: string) => [...giphyKeys.all, 'list', query] as const,
 } as const;
+
+export const notionKeys = {
+  all: ['notion'] as const,
+  workspaces: () => [...notionKeys.all, 'workspaces'] as const,
+  workspace: (id: string) => [...notionKeys.all, 'workspace', id] as const,
+  members: (workspaceId: string) => [...notionKeys.all, 'members', workspaceId] as const,
+  /**
+   * `parentId` null là cấp gốc của workspace. Giữ null trong key thay vì bỏ trống:
+   * cây nạp theo từng cấp nên mỗi node là một cache riêng, và gốc phải tách bạch
+   * khỏi con của một trang tình cờ có id rỗng.
+   */
+  pageChildren: (workspaceId: string, parentId: string | null) =>
+    [...notionKeys.all, 'page-children', workspaceId, parentId] as const,
+  page: (id: string) => [...notionKeys.all, 'page', id] as const,
+  breadcrumb: (id: string) => [...notionKeys.all, 'breadcrumb', id] as const,
+  favorites: () => [...notionKeys.all, 'favorites'] as const,
+  trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
+} as const;
