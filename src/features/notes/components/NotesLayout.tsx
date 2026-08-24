@@ -7,8 +7,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import { useAwareness, type CollabPerson } from '@/features/notes/hooks/useAwareness';
+import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { usePage, useWorkspaces } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+import { ConnectionIndicator } from './editor/ConnectionIndicator';
+import { PresenceBar } from './editor/PresenceBar';
 import { Breadcrumb } from './page/Breadcrumb';
 import { PageIcon } from './page/PageIcon';
 import { FavoriteList } from './sidebar/FavoriteList';
@@ -74,11 +78,19 @@ function EditorLoadingSkeleton() {
 }
 
 interface SelectedPageCanvasProps {
+  collab: UseCollabDocResult;
   pageId: string;
+  pageQuery: ReturnType<typeof usePage>;
+  people: CollabPerson[];
 }
 
-function SelectedPageCanvas({ pageId }: SelectedPageCanvasProps) {
-  const { data, isLoading, isError, refetch } = usePage(pageId);
+function SelectedPageCanvas({
+  collab,
+  pageId,
+  pageQuery,
+  people,
+}: SelectedPageCanvasProps) {
+  const { data, isLoading, isError, refetch } = pageQuery;
 
   if (isLoading) {
     return <EditorLoadingSkeleton />;
@@ -98,13 +110,29 @@ function SelectedPageCanvas({ pageId }: SelectedPageCanvasProps) {
   return (
     <article className="relative text-foreground">
       <PageIcon pageId={pageId} icon={data.icon} />
-      <LazyNoteEditor pageId={pageId} />
+      <LazyNoteEditor pageId={pageId} collab={collab} people={people} />
     </article>
   );
 }
 
-function PageCanvas({ pageId }: { pageId: string | null }) {
-  if (pageId) return <SelectedPageCanvas pageId={pageId} />;
+interface PageCanvasProps {
+  collab: UseCollabDocResult;
+  pageId: string | null;
+  pageQuery: ReturnType<typeof usePage>;
+  people: CollabPerson[];
+}
+
+function PageCanvas({ collab, pageId, pageQuery, people }: PageCanvasProps) {
+  if (pageId) {
+    return (
+      <SelectedPageCanvas
+        collab={collab}
+        pageId={pageId}
+        pageQuery={pageQuery}
+        people={people}
+      />
+    );
+  }
 
   return (
     <EmptyState
@@ -112,6 +140,31 @@ function PageCanvas({ pageId }: { pageId: string | null }) {
       title="Chọn một trang ở bên trái"
       hint="Nội dung trang sẽ xuất hiện tại đây."
     />
+  );
+}
+
+interface PageTopbarProps {
+  collab: UseCollabDocResult;
+  onSelectPage: (id: string) => void;
+  pageId: string;
+  people: CollabPerson[];
+}
+
+function PageTopbar({ collab, onSelectPage, pageId, people }: PageTopbarProps) {
+  return (
+    <div className="flex h-[44px] min-w-0 items-center">
+      <div className="min-w-0 flex-1">
+        <Breadcrumb pageId={pageId} onSelectPage={onSelectPage} />
+      </div>
+      <div className="flex shrink-0 items-center gap-3 pe-6">
+        <PresenceBar people={people} />
+        <ConnectionIndicator
+          error={collab.error}
+          isSynced={collab.isSynced}
+          status={collab.status}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -162,8 +215,18 @@ interface ActiveNotesFrameProps {
 function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
   onSelectPage,
 }: ActiveNotesFrameProps) {
+  const pageQuery = usePage(pageId ?? '');
+  const collab = useCollabDoc(pageId ?? '', {
+    enabled: Boolean(pageId && pageQuery.data),
+  });
+  const people = useAwareness(collab.provider);
   const topbar = pageId ? (
-    <Breadcrumb pageId={pageId} onSelectPage={onSelectPage} />
+    <PageTopbar
+      collab={collab}
+      onSelectPage={onSelectPage}
+      pageId={pageId}
+      people={people}
+    />
   ) : undefined;
   return (
     <NotesFrame
@@ -179,7 +242,14 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
           </div>
         </div>
       }
-      canvas={<PageCanvas pageId={pageId} />}
+      canvas={(
+        <PageCanvas
+          collab={collab}
+          pageId={pageId}
+          pageQuery={pageQuery}
+          people={people}
+        />
+      )}
       topbar={topbar}
     />
   );

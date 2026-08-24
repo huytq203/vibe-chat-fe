@@ -18,9 +18,33 @@ const navigation = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
+const collabMocks = vi.hoisted(() => ({
+  awareness: vi.fn(() => [{
+    userId: 'user-1',
+    name: 'Người viết',
+    color: 'var(--primary)',
+    isSelf: true,
+  }]),
+  collabDoc: vi.fn(() => ({
+    doc: null,
+    provider: null,
+    status: 'connecting' as 'connecting' | 'connected' | 'disconnected' | 'offline',
+    isSynced: false,
+    error: null as string | null,
+  })),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
   useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
+}));
+
+vi.mock('@/features/notes/hooks/useAwareness', () => ({
+  useAwareness: collabMocks.awareness,
+}));
+
+vi.mock('@/features/notes/hooks/useCollabDoc', () => ({
+  useCollabDoc: collabMocks.collabDoc,
 }));
 
 const NOTION_URL = 'http://localhost:3007';
@@ -86,6 +110,13 @@ function useDefaultHandlers(pages = [buildPage()]) {
   server.use(
     http.get(`${NOTION_URL}/api/v1/workspaces`, () => envelope([buildWorkspace()])),
     http.get(`${NOTION_URL}/api/v1/workspaces/${WORKSPACE_ID}/pages`, () => envelope(pages)),
+    http.get(`${NOTION_URL}/api/v1/pages/page-1`, () => envelope({
+      ...buildPage(),
+      myRole: 'EDIT',
+    })),
+    http.get(`${NOTION_URL}/api/v1/pages/page-1/breadcrumb`, () => envelope([
+      { id: 'page-1', title: 'Tài liệu dự án' },
+    ])),
   );
 }
 
@@ -97,6 +128,13 @@ afterEach(() => {
   navigation.replace.mockReset();
   useNotesUiStore.setState({ activeWorkspaceId: null, expandedByWorkspace: {} });
   useNotesUiStore.persist.clearStorage();
+  collabMocks.collabDoc.mockReturnValue({
+    doc: null,
+    provider: null,
+    status: 'connecting',
+    isSynced: false,
+    error: null,
+  });
 });
 afterAll(() => server.close());
 
@@ -127,5 +165,22 @@ describe('bố cục ghi chú', () => {
     renderLayout();
 
     expect(await screen.findByText('Chọn một trang ở bên trái')).toBeInTheDocument();
+  });
+
+  it('đặt hiện diện và nguyên văn lỗi server trên dải breadcrumb', async () => {
+    const serverMessage = 'This page already has 50 people connected, please try again later';
+    navigation.params = { workspaceId: WORKSPACE_ID, pageId: 'page-1' };
+    collabMocks.collabDoc.mockReturnValue({
+      doc: null,
+      provider: null,
+      status: 'disconnected',
+      isSynced: false,
+      error: serverMessage,
+    });
+    useDefaultHandlers();
+    renderLayout();
+
+    expect(await screen.findByRole('status')).toHaveTextContent(serverMessage);
+    expect(screen.getByLabelText('Người viết (Bạn)')).toBeInTheDocument();
   });
 });
