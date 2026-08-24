@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, type ReactNode } from 'react';
 import { FileText, PanelLeft } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -13,6 +14,14 @@ import { PageIcon } from './page/PageIcon';
 import { FavoriteList } from './sidebar/FavoriteList';
 import { PageTree } from './sidebar/PageTree';
 import { WorkspaceSwitcher } from './sidebar/WorkspaceSwitcher';
+
+const LazyNoteEditor = dynamic(
+  () => import('./editor/NoteEditor').then((module) => module.NoteEditor),
+  {
+    loading: () => <EditorLoadingSkeleton />,
+    ssr: false,
+  },
+);
 
 interface NotesFrameProps {
   sidebar: ReactNode;
@@ -53,6 +62,17 @@ function NotesLayoutSkeleton() {
   );
 }
 
+function EditorLoadingSkeleton() {
+  return (
+    <div className="space-y-4" data-testid="note-editor-chunk-loading">
+      <Skeleton rounded="sm" className="h-9 w-full" />
+      {Array.from({ length: 3 }, (_, index) => (
+        <Skeleton key={index} rounded="sm" className="h-6 w-full" />
+      ))}
+    </div>
+  );
+}
+
 interface SelectedPageCanvasProps {
   pageId: string;
 }
@@ -61,12 +81,7 @@ function SelectedPageCanvas({ pageId }: SelectedPageCanvasProps) {
   const { data, isLoading, isError, refetch } = usePage(pageId);
 
   if (isLoading) {
-    return (
-      <div className="space-y-6" data-testid="page-canvas-loading">
-        <Skeleton rounded="sm" className="h-11 w-2/3" />
-        <Skeleton rounded="sm" className="h-20 w-full" />
-      </div>
-    );
+    return <EditorLoadingSkeleton />;
   }
   if (isError) return <ErrorState message="Không tải được trang" onRetry={refetch} />;
   if (!data) {
@@ -83,12 +98,7 @@ function SelectedPageCanvas({ pageId }: SelectedPageCanvasProps) {
   return (
     <article className="relative text-foreground">
       <PageIcon pageId={pageId} icon={data.icon} />
-      <h1 className="font-display text-[36px] font-bold leading-[44px] tracking-[-0.5px]">
-        {data.title || 'Không có tiêu đề'}
-      </h1>
-      <div className="mt-10 rounded-lg bg-sidebar px-4 py-3 text-sm text-muted-foreground">
-        Trình soạn thảo sẽ có ở mốc M3.
-      </div>
+      <LazyNoteEditor pageId={pageId} />
     </article>
   );
 }
