@@ -13,6 +13,9 @@ const schema = z.object({
   // Task-service (modular monolith riêng, không qua cipher của chat backend).
   NEXT_PUBLIC_TASK_URL: z.string().url(),
   NEXT_PUBLIC_TASK_WS_URL: z.string().url(),
+  // Notion-service (REST và WebSocket collab cho ghi chú).
+  NEXT_PUBLIC_NOTION_URL: z.string().url(),
+  NEXT_PUBLIC_NOTION_WS_URL: z.string().url(),
   // bot-service (Management API "BotFather" — tạo/sửa/xoá bot, issue/rotate/revoke token).
   NEXT_PUBLIC_BOT_URL: z.string().url(),
   // true → client gọi same-origin (Next rewrites proxy). false → gọi thẳng BE.
@@ -38,6 +41,8 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_CALL_WS_URL: process.env.NEXT_PUBLIC_CALL_WS_URL,
   NEXT_PUBLIC_TASK_URL: process.env.NEXT_PUBLIC_TASK_URL,
   NEXT_PUBLIC_TASK_WS_URL: process.env.NEXT_PUBLIC_TASK_WS_URL,
+  NEXT_PUBLIC_NOTION_URL: process.env.NEXT_PUBLIC_NOTION_URL,
+  NEXT_PUBLIC_NOTION_WS_URL: process.env.NEXT_PUBLIC_NOTION_WS_URL,
   NEXT_PUBLIC_BOT_URL: process.env.NEXT_PUBLIC_BOT_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
