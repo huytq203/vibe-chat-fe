@@ -3,9 +3,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type SidePanelTab = 'comments' | 'versions' | 'share';
+
 type NotesUiState = {
   activeWorkspaceId: string | null;
   setActiveWorkspace: (id: string | null) => void;
+  isSidePanelOpen: boolean;
+  setSidePanelOpen: (isOpen: boolean) => void;
+  toggleSidePanel: () => void;
+  sidePanelTab: SidePanelTab;
+  setSidePanelTab: (tab: SidePanelTab) => void;
   /** ID các node đang mở, tách theo workspace để đổi workspace không lẫn trạng thái. */
   expandedByWorkspace: Record<string, string[]>;
   toggleExpanded: (workspaceId: string, pageId: string) => void;
@@ -16,6 +23,11 @@ export const useNotesUiStore = create<NotesUiState>()(
     (set) => ({
       activeWorkspaceId: null,
       setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
+      isSidePanelOpen: false,
+      setSidePanelOpen: (isSidePanelOpen) => set({ isSidePanelOpen }),
+      toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
+      sidePanelTab: 'comments',
+      setSidePanelTab: (sidePanelTab) => set({ sidePanelTab }),
       expandedByWorkspace: {},
       toggleExpanded: (workspaceId, pageId) =>
         set((state) => {

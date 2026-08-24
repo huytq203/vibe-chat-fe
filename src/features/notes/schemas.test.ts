@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { pageRoleSchema, pageSchema } from './schemas';
+import {
+  commentBodySchema,
+  pageRoleSchema,
+  pageSchema,
+  pageVersionSchema,
+} from './schemas';
 
 const validPage = {
   id: 'page-1',
@@ -54,5 +59,30 @@ describe('pageRoleSchema', () => {
   it('nhận FULL và từ chối ADMIN', () => {
     expect(pageRoleSchema.safeParse('FULL').success).toBe(true);
     expect(pageRoleSchema.safeParse('ADMIN').success).toBe(false);
+  });
+});
+
+describe('schema bình luận và phiên bản', () => {
+  it('nhận đúng đoạn chữ và đoạn nhắc người dùng', () => {
+    const body = {
+      segments: [
+        { type: 'text', text: 'Chào ' },
+        { type: 'mention', userId: 'user-2' },
+      ],
+    };
+
+    expect(commentBodySchema.safeParse(body).success).toBe(true);
+    expect(commentBodySchema.safeParse({ segments: [{ type: 'mention' }] }).success).toBe(false);
+  });
+
+  it('từ chối thời gian phiên bản chưa serialize', () => {
+    const version = {
+      id: 'version-1', pageId: 'page-1', kind: 'MANUAL', label: null,
+      sizeBytes: 128, preview: 'Bản xem trước', createdBy: 'user-1',
+      createdAt: '2026-08-24T00:00:00.000Z',
+    };
+
+    expect(pageVersionSchema.safeParse(version).success).toBe(true);
+    expect(pageVersionSchema.safeParse({ ...version, createdAt: new Date() }).success).toBe(false);
   });
 });

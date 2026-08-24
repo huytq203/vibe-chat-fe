@@ -2,9 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
+  commentsApi,
   favoritesApi,
   pagesApi,
   trashApi,
+  versionsApi,
   workspacesApi,
 } from '@/services/notion.api';
 import { notionKeys } from '@/services/keys';
@@ -53,6 +55,30 @@ export function useBreadcrumb(id: string) {
     queryKey: notionKeys.breadcrumb(id),
     queryFn: () => pagesApi.breadcrumb(id),
     enabled: Boolean(id),
+  });
+}
+
+export function useComments(pageId: string, blockId?: string) {
+  return useQuery({
+    queryKey: notionKeys.comments(pageId, blockId),
+    queryFn: () => commentsApi.list(pageId, { blockId }),
+    enabled: Boolean(pageId),
+  });
+}
+
+export function useVersions(pageId: string) {
+  return useQuery({
+    queryKey: notionKeys.versions(pageId),
+    queryFn: () => versionsApi.list(pageId),
+    enabled: Boolean(pageId),
+  });
+}
+
+export function useVersion(versionId: string) {
+  return useQuery({
+    queryKey: notionKeys.version(versionId),
+    queryFn: () => versionsApi.detail(versionId),
+    enabled: Boolean(versionId),
   });
 }
 

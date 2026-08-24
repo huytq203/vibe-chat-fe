@@ -1,65 +1,36 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { notionKeys } from '@/services/keys';
-import type { Page } from '@/features/notes/types';
+import type { CommentBody, Page } from '@/features/notes/types';
 import {
-  favoritesApi,
-  invitesApi,
-  pagesApi,
-  trashApi,
-  workspacesApi,
+  commentsApi, favoritesApi, invitesApi, pagesApi,
+  trashApi, versionsApi, workspacesApi,
 } from '@/services/notion.api';
 
-type CreateWorkspaceInput = {
-  name: string;
-  icon?: string;
-};
-
-type UpdateWorkspaceInput = {
-  name?: string;
-  icon?: string;
-};
-
-type CreateInviteInput = {
-  invitedUserId?: string;
-  email?: string;
-  role: 'ADMIN' | 'MEMBER' | 'GUEST';
-};
-
-type CreatePageInput = {
-  workspaceId: string;
-  parentId?: string;
-  title?: string;
-};
-
-/** `null` để xoá, `undefined` để giữ nguyên — xem chú thích ở `notion.api.ts`. */
-type UpdatePageInput = {
-  icon?: string | null;
-  coverUrl?: string | null;
-};
-
-type UpsertFavoriteInput = {
-  pageId: string;
-  sortKey?: string;
-};
-
+type CreateWorkspaceInput = { name: string; icon?: string };
+type UpdateWorkspaceInput = { name?: string; icon?: string };
+type CreateInviteInput = { invitedUserId?: string; email?: string; role: 'ADMIN' | 'MEMBER' | 'GUEST' };
+type CreatePageInput = { workspaceId: string; parentId?: string; title?: string };
+type UpdatePageInput = { icon?: string | null; coverUrl?: string | null };
+type UpsertFavoriteInput = { pageId: string; sortKey?: string };
 type MovePageInput = {
-  id: string;
-  workspaceId: string;
-  parentId: string | null;
-  fromParentId: string | null;
+  id: string; workspaceId: string;
+  parentId: string | null; fromParentId: string | null;
   sortKey?: string;
 };
 
 type PageChildrenKey = ReturnType<typeof notionKeys.pageChildren>;
 type MovePageContext = {
-  fromKey: PageChildrenKey;
-  toKey: PageChildrenKey;
-  fromPages: Page[] | undefined;
-  toPages: Page[] | undefined;
+  fromKey: PageChildrenKey; toKey: PageChildrenKey;
+  fromPages: Page[] | undefined; toPages: Page[] | undefined;
+};
+type CommentScope = { pageId: string; blockId?: string };
+type CreateCommentInput = CommentScope & { body: CommentBody; parentId?: string };
+type UpdateCommentInput = CommentScope & {
+  commentId: string; body?: CommentBody; resolved?: boolean;
 };
 
 function movePageInList(pages: Page[], input: MovePageInput, moved: Page) {
@@ -74,6 +45,18 @@ function movePageInList(pages: Page[], input: MovePageInput, moved: Page) {
     if (left.sortKey === right.sortKey) return 0;
     return left.sortKey < right.sortKey ? -1 : 1;
   });
+}
+
+function invalidateComments(qc: QueryClient, pageId: string, blockId?: string) {
+  const requests = [
+    qc.invalidateQueries({ queryKey: notionKeys.comments(pageId), exact: true }),
+  ];
+  if (blockId) {
+    requests.push(
+      qc.invalidateQueries({ queryKey: notionKeys.comments(pageId, blockId), exact: true }),
+    );
+  }
+  return Promise.all(requests);
 }
 
 export function useCreateWorkspace() {
@@ -259,6 +242,58 @@ export function usePurgeTrash() {
       qc.invalidateQueries({ queryKey: notionKeys.trash(workspaceId) });
       qc.invalidateQueries({ queryKey: notionKeys.favorites() });
     },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useCreateComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ pageId, ...input }: CreateCommentInput) => commentsApi.create(pageId, input),
+    onSuccess: (_, { pageId, blockId }) => invalidateComments(qc, pageId, blockId),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useUpdateComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ commentId, body, resolved }: UpdateCommentInput) =>
+      commentsApi.update(commentId, { body, resolved }),
+    onSuccess: (_, { pageId, blockId }) => invalidateComments(qc, pageId, blockId),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useRemoveComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ commentId }: CommentScope & { commentId: string }) =>
+      commentsApi.remove(commentId),
+    onSuccess: (_, { pageId, blockId }) => invalidateComments(qc, pageId, blockId),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useCreateVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ pageId, label }: { pageId: string; label?: string }) =>
+      versionsApi.create(pageId, { label }),
+    onSuccess: (_, { pageId }) =>
+      qc.invalidateQueries({ queryKey: notionKeys.versions(pageId) }),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useRestoreVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionId: string) => versionsApi.restore(versionId),
+    onSuccess: ({ pageId }) => Promise.all([
+      qc.invalidateQueries({ queryKey: notionKeys.versions(pageId) }),
+      qc.invalidateQueries({ queryKey: notionKeys.page(pageId) }),
+    ]),
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }

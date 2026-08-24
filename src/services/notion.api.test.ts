@@ -30,6 +30,21 @@ const workspace = {
   deletedAt: null,
 };
 
+const comment = {
+  id: 'comment-1',
+  pageId: 'page-1',
+  blockId: 'block-1',
+  parentId: null,
+  authorId: 'user-1',
+  body: { segments: [{ type: 'text', text: 'Một bình luận' }] },
+  resolvedAt: null,
+  resolvedBy: null,
+  createdAt: '2026-08-24T00:00:00.000Z',
+  updatedAt: '2026-08-24T00:00:00.000Z',
+  deletedAt: null,
+  author: { displayName: 'Người viết', avatarUrl: null },
+};
+
 beforeAll(async () => {
   vi.stubEnv('NEXT_PUBLIC_USE_PROXY', 'false');
   vi.resetModules();
@@ -82,5 +97,31 @@ describe('lớp vận chuyển API ghi chú', () => {
     );
 
     await expect(notionApi.workspacesApi.list()).rejects.toThrow();
+  });
+
+  it('định tuyến GET bình luận qua base notion và gửi blockId', async () => {
+    let receivedUrl: URL | undefined;
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/pages/page-1/comments`, ({ request }) => {
+        receivedUrl = new URL(request.url);
+        return envelope([comment]);
+      }),
+    );
+
+    const result = await notionApi.commentsApi.list('page-1', { blockId: 'block-1' });
+
+    expect(result).toEqual([comment]);
+    expect(receivedUrl?.origin).toBe(NOTION_URL);
+    expect(receivedUrl?.searchParams.get('blockId')).toBe('block-1');
+  });
+
+  it('ném lỗi khi response bình luận sai kiểu thời gian', async () => {
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/pages/page-1/comments`, () =>
+        envelope([{ ...comment, createdAt: 123 }]),
+      ),
+    );
+
+    await expect(notionApi.commentsApi.list('page-1')).rejects.toThrow();
   });
 });

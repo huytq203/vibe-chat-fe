@@ -113,3 +113,56 @@ export const breadcrumbSchema = z.array(
     icon: z.string().nullable(),
   }),
 );
+
+export const commentSegmentSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({ type: z.literal('mention'), userId: z.string() }),
+]);
+
+export const commentBodySchema = z.object({
+  segments: z.array(commentSegmentSchema).min(1),
+});
+
+// Create/update trả bản ghi thô; list mới enrich thêm tác giả.
+export const commentRecordSchema = z.object({
+  id: z.string(),
+  pageId: z.string(),
+  blockId: z.string().nullable(),
+  parentId: z.string().nullable(),
+  authorId: z.string(),
+  body: commentBodySchema,
+  resolvedAt: z.iso.datetime().nullable(),
+  resolvedBy: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  deletedAt: z.iso.datetime().nullable(),
+});
+
+export const commentSchema = commentRecordSchema.extend({
+  author: z.object({
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+  }).nullable(),
+});
+
+export const removeCommentResultSchema = z.object({ id: z.string() });
+
+export const pageVersionSchema = z.object({
+  id: z.string(),
+  pageId: z.string(),
+  kind: z.enum(['AUTO', 'MANUAL', 'BEFORE_RESTORE']),
+  label: z.string().nullable(),
+  sizeBytes: z.number().int(),
+  preview: z.string(),
+  createdBy: z.string(),
+  createdAt: z.iso.datetime(),
+});
+
+export const pageVersionDetailSchema = pageVersionSchema.extend({
+  html: z.string(),
+});
+
+export const restoreVersionResultSchema = z.object({
+  pageId: z.string(),
+  previousVersionId: z.string().nullable(),
+});

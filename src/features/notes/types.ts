@@ -1,10 +1,15 @@
 import { z } from 'zod';
 import {
   breadcrumbSchema,
+  commentBodySchema,
+  commentSchema,
+  commentSegmentSchema,
   favoriteItemSchema,
   pageDetailSchema,
   pageRoleSchema,
   pageSchema,
+  pageVersionDetailSchema,
+  pageVersionSchema,
   trashItemSchema,
   workspaceInviteSchema,
   workspaceMemberSchema,
@@ -22,3 +27,8 @@ export type PageDetail = z.infer<typeof pageDetailSchema>;
 export type FavoriteItem = z.infer<typeof favoriteItemSchema>;
 export type TrashItem = z.infer<typeof trashItemSchema>;
 export type Breadcrumb = z.infer<typeof breadcrumbSchema>;
+export type CommentSegment = z.infer<typeof commentSegmentSchema>;
+export type CommentBody = z.infer<typeof commentBodySchema>;
+export type Comment = z.infer<typeof commentSchema>;
+export type PageVersion = z.infer<typeof pageVersionSchema>;
+export type PageVersionDetail = z.infer<typeof pageVersionDetailSchema>;

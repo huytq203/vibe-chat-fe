@@ -165,6 +165,12 @@ export const notionKeys = {
     [...notionKeys.all, 'page-children', workspaceId, parentId] as const,
   page: (id: string) => [...notionKeys.all, 'page', id] as const,
   breadcrumb: (id: string) => [...notionKeys.all, 'breadcrumb', id] as const,
+  comments: (pageId: string, blockId?: string) =>
+    blockId
+      ? ([...notionKeys.all, 'comments', pageId, blockId] as const)
+      : ([...notionKeys.all, 'comments', pageId] as const),
+  versions: (pageId: string) => [...notionKeys.all, 'versions', pageId] as const,
+  version: (versionId: string) => [...notionKeys.all, 'version', versionId] as const,
   favorites: () => [...notionKeys.all, 'favorites'] as const,
   trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
 } as const;
