@@ -24,11 +24,19 @@ export function useWorkspaceMembers(workspaceId: string) {
   });
 }
 
-export function usePageChildren(workspaceId: string, parentId: string | null) {
+/**
+ * `enabled` để cây trang nạp lười theo từng cấp: node chưa mở thì không gọi API con.
+ * Mặc định bật, nên người gọi không quan tâm lazy thì dùng như cũ.
+ */
+export function usePageChildren(
+  workspaceId: string,
+  parentId: string | null,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: notionKeys.pageChildren(workspaceId, parentId),
     queryFn: () => pagesApi.listChildren(workspaceId, parentId ?? undefined),
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId) && (options?.enabled ?? true),
   });
 }
 

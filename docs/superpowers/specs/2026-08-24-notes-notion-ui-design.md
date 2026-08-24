@@ -148,11 +148,27 @@ Thứ tự dọc, trên xuống — **đúng thứ tự Notion**, nhãn tiếng 
 | Node không có con | Tam giác biến mất sau lần mở đầu, thụt cấp giữ nguyên |
 | Hover hàng | Nền `--sidebar-accent`; `+` và `⋯` hiện ở mép phải, `opacity 0→1` trong 80ms |
 | Bấm `+` trên hàng | Tạo trang con, tự mở node cha, điều hướng sang trang mới, con trỏ nhảy vào ô tiêu đề |
-| Bấm `⋯` | Menu: Đổi tên · Nhân bản · Sao chép liên kết · Chuyển vào… · Xoá |
+| Bấm `⋯` | Menu: **Sao chép liên kết · Xoá**. Xem ghi chú bên dưới trước khi thêm mục nào khác |
 | Kéo-thả | Ghost là chính hàng đó ở `opacity .5`; chỉ báo thả là **đường 2px cyan** giữa hai hàng, hoặc viền cyan quanh hàng khi thả *vào trong* |
 | Thả không hợp lệ | Đường chỉ báo chuyển `--danger`, con trỏ `not-allowed`. Chặn: thả vào con cháu của chính nó, vượt 10 cấp |
 | Cây rỗng | CTA giữa vùng: icon 32px mờ, "Chưa có trang nào", nút "Tạo trang đầu tiên" |
 | Lỗi tải cây | `ErrorState` gọn trong sidebar, nút "Thử lại", **không** đổ stack |
+
+> **Vì sao menu `⋯` không có "Đổi tên"** *(xác minh 2026-08-24)*
+>
+> `UpdatePageDto` của BE **cố ý loại `title`**, có comment giải thích ngay trong file:
+> từ M2 trở đi `Y.Text` trong `Y.Doc` là nguồn sự thật, còn `Page.title` chỉ là bản sao
+> phi chuẩn hoá do `DocumentStore` ghi mỗi lần `onStoreDocument` chạy. Mở lại đường ghi
+> thẳng sẽ tạo hai nguồn cạnh tranh mà không có cách nào biết bản nào mới hơn.
+>
+> Nên **đổi tên trang chỉ làm được từ trong editor** (ô tiêu đề nối `Y.Text`, M3-T5).
+> Từ M3 trở đi, mục "Đổi tên" ở đây nên **mở trang rồi đặt con trỏ vào ô tiêu đề**, chứ
+> không gọi `PATCH /pages/:id`. Trước M3 thì không có mục này.
+>
+> "Nhân bản" cũng không có — Phase 1 không có endpoint tương ứng. "Chuyển vào…" là
+> kéo-thả, thuộc M2-T7.
+>
+> Nguyên tắc chung: **không dựng mục menu xám vô hiệu.** Không làm được thì không hiện.
 
 **Trạng thái gập** lưu trong `notes-ui.store`, khoá theo `workspaceId`, sống qua F5.
 
