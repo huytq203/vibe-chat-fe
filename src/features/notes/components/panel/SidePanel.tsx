@@ -17,6 +17,7 @@ import {
 } from '@/features/notes/stores/notes-ui.store';
 import { cn } from '@/lib/utils/cn';
 import { CommentThread } from './CommentThread';
+import { VersionList } from './VersionList';
 
 const tabs: { value: SidePanelTab; label: string }[] = [
   { value: 'comments', label: 'Bình luận' },
@@ -28,17 +29,7 @@ function isSidePanelTab(value: unknown): value is SidePanelTab {
   return value === 'comments' || value === 'versions' || value === 'share';
 }
 
-function Placeholder({ tab }: { tab: Exclude<SidePanelTab, 'comments'> }) {
-  if (tab === 'versions') {
-    return (
-      <EmptyState
-        icon={<History aria-hidden="true" />}
-        title="Chưa có danh sách phiên bản"
-        hint="Lịch sử phiên bản sẽ có ở M4-T5."
-        size="sm"
-      />
-    );
-  }
+function SharePlaceholder() {
   return (
     <EmptyState
       icon={<Share2 aria-hidden="true" />}
@@ -47,6 +38,18 @@ function Placeholder({ tab }: { tab: Exclude<SidePanelTab, 'comments'> }) {
       size="sm"
     />
   );
+}
+
+function PanelContent({ pageId, tab }: { pageId?: string; tab: SidePanelTab }) {
+  if (tab === 'share') return <SharePlaceholder />;
+  if (!pageId) {
+    const title = tab === 'comments'
+      ? 'Chọn một trang để xem bình luận'
+      : 'Chọn một trang để xem lịch sử';
+    return <EmptyState icon={tab === 'comments' ? <MessageSquareText aria-hidden="true" /> : <History aria-hidden="true" />} title={title} size="sm" />;
+  }
+  if (tab === 'comments') return <CommentThread pageId={pageId} />;
+  return <VersionList key={pageId} pageId={pageId} />;
 }
 
 export function SidePanel() {
@@ -119,15 +122,7 @@ export function SidePanel() {
           </div>
           {tabs.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="mt-0 h-[calc(100%_-_44px)] overflow-hidden">
-              {tab.value === 'comments' ? (
-                params.pageId ? <CommentThread pageId={params.pageId} /> : (
-                  <EmptyState
-                    icon={<MessageSquareText aria-hidden="true" />}
-                    title="Chọn một trang để xem bình luận"
-                    size="sm"
-                  />
-                )
-              ) : <Placeholder tab={tab.value} />}
+              <PanelContent pageId={params.pageId} tab={tab.value} />
             </TabsContent>
           ))}
         </Tabs>
