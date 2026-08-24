@@ -13,6 +13,8 @@ type NotesUiState = {
   toggleSidePanel: () => void;
   sidePanelTab: SidePanelTab;
   setSidePanelTab: (tab: SidePanelTab) => void;
+  activeCommentBlockId: string | null;
+  openCommentThread: (blockId: string) => void;
   /** ID các node đang mở, tách theo workspace để đổi workspace không lẫn trạng thái. */
   expandedByWorkspace: Record<string, string[]>;
   toggleExpanded: (workspaceId: string, pageId: string) => void;
@@ -28,6 +30,12 @@ export const useNotesUiStore = create<NotesUiState>()(
       toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
       sidePanelTab: 'comments',
       setSidePanelTab: (sidePanelTab) => set({ sidePanelTab }),
+      activeCommentBlockId: null,
+      openCommentThread: (activeCommentBlockId) => set({
+        activeCommentBlockId,
+        isSidePanelOpen: true,
+        sidePanelTab: 'comments',
+      }),
       expandedByWorkspace: {},
       toggleExpanded: (workspaceId, pageId) =>
         set((state) => {

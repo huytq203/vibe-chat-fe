@@ -8,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type KeyboardEvent,
 } from 'react';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ import {
 import { useCollabDoc } from '@/features/notes/hooks/useCollabDoc';
 import type { UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { usePage } from '@/features/notes/hooks/use-query';
+import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import {
   COLLAB_FRAGMENT_NAME,
   collabDocumentStateVectorBytes,
@@ -33,7 +35,6 @@ import {
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
 import { NoteTitle } from './NoteTitle';
-
 const EMPTY_PLACEHOLDER = "Nhấn `/` để chèn khối";
 const DOCUMENT_WARNING_BYTES = 3 * 1024 * 1024;
 const DOCUMENT_LIMIT_BYTES = 5 * 1024 * 1024;
@@ -78,6 +79,7 @@ interface NoteEditorProps {
   pageId: string;
   collab?: UseCollabDocResult;
   people?: CollabPerson[];
+  commentedBlockIds?: string[];
 }
 
 interface ConnectedEditorProps {
@@ -85,10 +87,10 @@ interface ConnectedEditorProps {
   editable: boolean;
   person: CollabPerson;
   provider: CollabProvider;
+  commentedBlockIds: string[];
 }
 
 type NoteBlockEditor = ReturnType<typeof useCreateBlockNote>;
-
 function useDocumentLimit(doc: YDoc, editor: NoteBlockEditor): void {
   useEffect(() => {
     let currentBytes = 0;
@@ -135,6 +137,78 @@ function useCursorActivity(provider: CollabProvider) {
   return { handleCursorKey, markCursorMoved };
 }
 
+function removeCommentAnchor(outer: HTMLElement) {
+  const block = outer.querySelector<HTMLElement>(':scope > [data-comment-highlight]');
+  if (block) {
+    block.classList.remove('bg-primary/5', 'transition-colors');
+    delete block.dataset.commentHighlight;
+  }
+  const button = outer.querySelector<HTMLButtonElement>(':scope > [data-comment-anchor]');
+  if (button) {
+    button.remove();
+    if (outer.dataset.commentPositioned) {
+      outer.classList.remove('relative');
+      delete outer.dataset.commentPositioned;
+    }
+  }
+}
+
+function clearCommentAnchors(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-node-type="blockOuter"]').forEach(
+    removeCommentAnchor,
+  );
+}
+
+function addCommentAnchor(outer: HTMLElement, blockId: string, onOpen: (id: string) => void) {
+  if (outer.querySelector(':scope > [data-comment-anchor]')) return;
+  if (!outer.classList.contains('relative')) {
+    outer.classList.add('relative');
+    outer.dataset.commentPositioned = 'true';
+  }
+  const button = document.createElement('button');
+  const dot = document.createElement('span');
+  button.type = 'button';
+  button.dataset.commentAnchor = blockId;
+  button.ariaLabel = 'Mở bình luận của khối';
+  button.title = 'Mở bình luận của khối';
+  button.className = 'absolute -end-6 top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  dot.className = 'size-1.5 rounded-full bg-primary';
+  dot.ariaHidden = 'true';
+  button.append(dot);
+  button.addEventListener('click', () => onOpen(blockId));
+  outer.append(button);
+}
+
+function syncCommentAnchors(root: HTMLElement, ids: Set<string>, onOpen: (id: string) => void) {
+  root.querySelectorAll<HTMLElement>('[data-node-type="blockOuter"][data-id]').forEach(
+    (outer) => {
+      const blockId = outer.dataset.id;
+      if (!blockId || !ids.has(blockId)) { removeCommentAnchor(outer); return; }
+      const block = outer.querySelector<HTMLElement>(':scope > [data-node-type="blockContainer"]');
+      if (!block) return;
+      block.dataset.commentHighlight = 'true';
+      block.classList.add('bg-primary/5', 'transition-colors');
+      addCommentAnchor(outer, blockId, onOpen);
+    },
+  );
+}
+
+function useCommentAnchors(commentedBlockIds: string[]) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const openThread = useNotesUiStore((state) => state.openCommentThread);
+  const ids = useMemo(() => new Set(commentedBlockIds), [commentedBlockIds]);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const sync = () => syncCommentAnchors(root, ids, openThread);
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => { observer.disconnect(); clearCommentAnchors(root); };
+  }, [ids, openThread]);
+  return rootRef;
+}
+
 export function NoteEditorSkeleton() {
   return (
     <div className="space-y-4" data-testid="note-editor-loading">
@@ -146,7 +220,7 @@ export function NoteEditorSkeleton() {
   );
 }
 
-function ConnectedEditor({ doc, editable, person, provider }: ConnectedEditorProps) {
+function ConnectedEditor({ commentedBlockIds, doc, editable, person, provider }: ConnectedEditorProps) {
   const { currentTheme } = useTheme();
   const user = useMemo(() => ({
     color: person.color,
@@ -172,23 +246,28 @@ function ConnectedEditor({ doc, editable, person, provider }: ConnectedEditorPro
   }, [editor]);
   useDocumentLimit(doc, editor);
   const { handleCursorKey, markCursorMoved } = useCursorActivity(provider);
+  const anchorRootRef = useCommentAnchors(commentedBlockIds);
 
   return (
     <>
       <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} />
-      <BlockNoteView
-        className={`mt-4 ${editorThemeClasses}`}
-        editable={editable}
-        editor={editor}
-        theme={currentTheme.isDark ? 'dark' : 'light'}
-        onKeyUp={handleCursorKey}
-        onPointerUp={markCursorMoved}
-      />
+      <div ref={anchorRootRef}>
+        <BlockNoteView
+          className={`mt-4 ${editorThemeClasses}`}
+          editable={editable}
+          editor={editor}
+          theme={currentTheme.isDark ? 'dark' : 'light'}
+          onKeyUp={handleCursorKey}
+          onPointerUp={markCursorMoved}
+        />
+      </div>
     </>
   );
 }
 
-export function NoteEditor({ pageId, collab: sharedCollab, people }: NoteEditorProps) {
+export function NoteEditor({ pageId, collab: sharedCollab, people,
+  commentedBlockIds = [],
+}: NoteEditorProps) {
   const pageQuery = usePage(pageId);
   const localCollab = useCollabDoc(pageId, {
     enabled: !sharedCollab && Boolean(pageQuery.data),
@@ -210,6 +289,7 @@ export function NoteEditor({ pageId, collab: sharedCollab, people }: NoteEditorP
   const editable = pageQuery.data.myRole !== 'VIEW' && pageQuery.data.myRole !== 'COMMENT';
   return (
     <ConnectedEditor
+      commentedBlockIds={commentedBlockIds}
       doc={collab.doc}
       editable={editable}
       person={self}

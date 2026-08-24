@@ -16,6 +16,7 @@ vi.mock('@/features/notes/hooks/use-query', () => ({
 vi.mock('../NoteCanvas', () => ({
   NoteCanvas: () => <main data-testid="notes-canvas" className="flex-1" />,
 }));
+vi.mock('./CommentThread', () => ({ CommentThread: () => null }));
 vi.mock('../sidebar/FavoriteList', () => ({ FavoriteList: () => null }));
 vi.mock('../sidebar/PageTree', () => ({ PageTree: () => null }));
 vi.mock('../sidebar/WorkspaceSwitcher', () => ({ WorkspaceSwitcher: () => null }));

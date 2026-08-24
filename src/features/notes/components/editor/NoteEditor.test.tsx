@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { COLLAB_FRAGMENT_NAME, type CollabProvider, type YDoc } from '@/lib/collab';
 import { cursorColorFor } from '@/features/notes/lib/cursor-colors';
+import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 
 import { NoteEditor } from './NoteEditor';
 
@@ -27,7 +28,14 @@ const mocks = vi.hoisted(() => ({
       data-testid="blocknote-view"
       onKeyUp={onKeyUp}
       onPointerUp={onPointerUp}
-    />
+    >
+      <div data-node-type="blockOuter" data-id="block-1">
+        <div data-node-type="blockContainer">Khối một</div>
+      </div>
+      <div data-node-type="blockOuter" data-id="block-2">
+        <div data-node-type="blockContainer">Khối hai</div>
+      </div>
+    </div>
   )),
   beforeChange: null as BeforeChangeCallback | null,
   documentBytes: vi.fn(() => 0),
@@ -136,7 +144,14 @@ beforeEach(() => {
   mocks.useCreateBlockNote.mockReturnValue(editor);
 });
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  useNotesUiStore.setState({
+    activeCommentBlockId: null,
+    isSidePanelOpen: false,
+    sidePanelTab: 'comments',
+  });
+});
 
 describe('trình soạn thảo ghi chú', () => {
   it("lấy fragment bằng hằng số có đúng giá trị 'prosemirror'", () => {
@@ -244,5 +259,22 @@ describe('trình soạn thảo ghi chú', () => {
     fireEvent.keyUp(view, { key: 'ArrowLeft' });
     fireEvent.pointerUp(view);
     expect(mocks.markCursorMoved).toHaveBeenCalledTimes(2);
+  });
+
+  it('tô khối có bình luận và mở đúng luồng khi bấm chấm ở máng phải', () => {
+    render(<NoteEditor pageId="page-1" commentedBlockIds={['block-1']} />);
+
+    const anchor = screen.getByRole('button', { name: 'Mở bình luận của khối' });
+    const highlighted = screen.getByText('Khối một');
+    expect(highlighted).toHaveClass('bg-primary/5');
+    expect(screen.getByText('Khối hai')).not.toHaveClass('bg-primary/5');
+
+    fireEvent.click(anchor);
+
+    expect(useNotesUiStore.getState()).toMatchObject({
+      activeCommentBlockId: 'block-1',
+      isSidePanelOpen: true,
+      sidePanelTab: 'comments',
+    });
   });
 });

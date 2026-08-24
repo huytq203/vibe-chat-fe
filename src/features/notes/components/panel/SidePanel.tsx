@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { History, MessageSquareText, PanelRightClose, Share2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -15,6 +16,7 @@ import {
   type SidePanelTab,
 } from '@/features/notes/stores/notes-ui.store';
 import { cn } from '@/lib/utils/cn';
+import { CommentThread } from './CommentThread';
 
 const tabs: { value: SidePanelTab; label: string }[] = [
   { value: 'comments', label: 'Bình luận' },
@@ -26,17 +28,7 @@ function isSidePanelTab(value: unknown): value is SidePanelTab {
   return value === 'comments' || value === 'versions' || value === 'share';
 }
 
-function Placeholder({ tab }: { tab: SidePanelTab }) {
-  if (tab === 'comments') {
-    return (
-      <EmptyState
-        icon={<MessageSquareText aria-hidden="true" />}
-        title="Chưa có luồng bình luận"
-        hint="Nội dung bình luận sẽ có ở M4-T3."
-        size="sm"
-      />
-    );
-  }
+function Placeholder({ tab }: { tab: Exclude<SidePanelTab, 'comments'> }) {
   if (tab === 'versions') {
     return (
       <EmptyState
@@ -58,6 +50,7 @@ function Placeholder({ tab }: { tab: SidePanelTab }) {
 }
 
 export function SidePanel() {
+  const params = useParams<{ pageId?: string }>();
   const isOpen = useNotesUiStore((state) => state.isSidePanelOpen);
   const setOpen = useNotesUiStore((state) => state.setSidePanelOpen);
   const activeTab = useNotesUiStore((state) => state.sidePanelTab);
@@ -125,8 +118,16 @@ export function SidePanel() {
             </Button>
           </div>
           {tabs.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value} className="mt-0">
-              <Placeholder tab={tab.value} />
+            <TabsContent key={tab.value} value={tab.value} className="mt-0 h-[calc(100%_-_44px)] overflow-hidden">
+              {tab.value === 'comments' ? (
+                params.pageId ? <CommentThread pageId={params.pageId} /> : (
+                  <EmptyState
+                    icon={<MessageSquareText aria-hidden="true" />}
+                    title="Chọn một trang để xem bình luận"
+                    size="sm"
+                  />
+                )
+              ) : <Placeholder tab={tab.value} />}
             </TabsContent>
           ))}
         </Tabs>

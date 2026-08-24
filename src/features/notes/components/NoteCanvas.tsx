@@ -2,13 +2,14 @@
 
 import { FileText, PanelRightClose, PanelRightOpen, PanelLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useMemo } from 'react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { useAwareness, type CollabPerson } from '@/features/notes/hooks/useAwareness';
 import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
-import { usePage } from '@/features/notes/hooks/use-query';
+import { useComments, usePage } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { ConnectionIndicator } from './editor/ConnectionIndicator';
 import { PresenceBar } from './editor/PresenceBar';
@@ -36,9 +37,10 @@ interface SelectedPageProps {
   pageId: string;
   pageQuery: ReturnType<typeof usePage>;
   people: CollabPerson[];
+  commentedBlockIds: string[];
 }
 
-function SelectedPage({ collab, pageId, pageQuery, people }: SelectedPageProps) {
+function SelectedPage({ collab, commentedBlockIds, pageId, pageQuery, people }: SelectedPageProps) {
   const { data, isLoading, isError, refetch } = pageQuery;
 
   if (isLoading) return <EditorLoadingSkeleton />;
@@ -57,7 +59,12 @@ function SelectedPage({ collab, pageId, pageQuery, people }: SelectedPageProps) 
   return (
     <article className="relative text-foreground">
       <PageIcon pageId={pageId} icon={data.icon} />
-      <LazyNoteEditor pageId={pageId} collab={collab} people={people} />
+      <LazyNoteEditor
+        pageId={pageId}
+        collab={collab}
+        people={people}
+        commentedBlockIds={commentedBlockIds}
+      />
     </article>
   );
 }
@@ -112,10 +119,14 @@ interface NoteCanvasProps {
 
 export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
   const pageQuery = usePage(pageId ?? '');
+  const commentsQuery = useComments(pageId ?? '');
   const collab = useCollabDoc(pageId ?? '', {
     enabled: Boolean(pageId && pageQuery.data),
   });
   const people = useAwareness(collab.provider);
+  const commentedBlockIds = useMemo(() => Array.from(new Set(
+    (commentsQuery.data ?? []).flatMap((comment) => comment.blockId ? [comment.blockId] : []),
+  )), [commentsQuery.data]);
 
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-background">
@@ -133,6 +144,7 @@ export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
         {pageId ? (
           <SelectedPage
             collab={collab}
+            commentedBlockIds={commentedBlockIds}
             pageId={pageId}
             pageQuery={pageQuery}
             people={people}
