@@ -84,7 +84,7 @@ function PageActionsMenu({ pageTitle, isFavorite, isFavoritePending,
           <Button
             variant="ghost" size="icon-sm" aria-label={`Tuỳ chọn trang ${pageTitle}`}
             title="Tuỳ chọn"
-            className="h-6 w-6 shrink-0 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+            className="h-6 w-6 shrink-0 rounded-sm p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
           >
             <MoreHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
           </Button>
@@ -92,13 +92,13 @@ function PageActionsMenu({ pageTitle, isFavorite, isFavoritePending,
       />
       <DropdownMenuContent align="end" className="border-border bg-sidebar">
         <DropdownMenuItem
-          className="text-secondary-foreground focus:bg-sidebar-accent focus:text-foreground"
+          className="text-muted-foreground focus:bg-sidebar-accent focus:text-foreground"
           disabled={isFavoritePending} onClick={onToggleFavorite}
         >
           <Star aria-hidden="true" />
           {isFavorite ? 'Bỏ ghim' : 'Ghim'}
         </DropdownMenuItem>
-        <DropdownMenuItem className="text-secondary-foreground focus:bg-sidebar-accent focus:text-foreground" onClick={onCopyLink}>
+        <DropdownMenuItem className="text-muted-foreground focus:bg-sidebar-accent focus:text-foreground" onClick={onCopyLink}>
           <Copy aria-hidden="true" />
           Sao chép liên kết
         </DropdownMenuItem>

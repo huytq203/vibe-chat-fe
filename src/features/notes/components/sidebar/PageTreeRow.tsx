@@ -167,7 +167,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           style={rowStyle}
           className={cn(
             'group relative z-10 flex h-[30px] min-w-0 cursor-grab items-center rounded-sm border border-transparent text-sm',
-            'text-secondary-foreground hover:bg-sidebar-accent active:cursor-grabbing',
+            'text-muted-foreground hover:bg-sidebar-accent active:cursor-grabbing',
             focusRingClassName,
             isActive && 'bg-sidebar-accent text-foreground',
             draggable.isDragging && 'opacity-50 motion-reduce:transition-none',
@@ -203,7 +203,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-3 shrink-0 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+            className="h-6 w-3 shrink-0 rounded-sm p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
             aria-label={`${isExpanded ? 'Gập' : 'Mở'} trang ${pageTitle}`}
             title={isExpanded ? 'Gập trang' : 'Mở trang'}
             onPointerDown={(event) => event.stopPropagation()}
@@ -241,7 +241,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-6 rounded-sm p-0 text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+            className="h-6 w-6 rounded-sm p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
             aria-label={`Tạo trang con trong ${pageTitle}`}
             title={isAtMaxDepth ? 'Đã đạt độ sâu tối đa' : 'Tạo trang con'}
             disabled={isAtMaxDepth}

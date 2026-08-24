@@ -9,6 +9,33 @@
 
 ## 0. Hợp đồng thiết kế — đọc trước khi gõ dòng đầu tiên
 
+### 0.1. App có CẢ chế độ sáng lẫn tối — đừng giả định dark-only
+
+`src/lib/theme/themes.ts` có 7 theme, mỗi cái một cờ `isDark`. **Năm theme là nền sáng**
+(`blue`, `violet`, `rose`, `emerald`, `orange` — `background: #ffffff`), hai theme nền tối
+(`indigo` = Vibe Charcoal mặc định, và `slate`). Người dùng đổi được bất cứ lúc nào.
+
+Hệ quả: **mọi màu phải đi qua CSS var**, không được chọn token dựa trên "nó trông thế nào
+ở theme tối".
+
+**Cái bẫy cụ thể đã cắn một lần:** `--secondary-foreground` **không phải** màu chữ mờ. Nó
+là màu chữ đặt **trên nền `--secondary` có sắc thái**, nên ở 5/7 theme nó là màu accent bão
+hoà:
+
+| Theme | `--secondary-foreground` | | Theme | `--secondary-foreground` |
+|---|---|---|---|---|
+| indigo | `#94a3b8` xám | | rose | `#9f1239` đỏ thẫm |
+| slate | `#334155` xám | | emerald | `#065f46` lục thẫm |
+| blue | `#1d4ed8` xanh đậm | | orange | `#9a3412` cam cháy |
+| violet | `#5b21b6` tím | | | |
+
+Dùng nó cho chữ hàng cây trang thì ở theme `blue` mọi trang hiện màu xanh link, ở `rose`
+thì đỏ. **Chữ mờ luôn dùng `--muted-foreground`** — xám khử bão hoà ở cả bảy theme.
+
+Kiểm nhanh trước khi chốt một token: mở `themes.ts`, xem giá trị của nó ở `blue` và `rose`.
+Nếu ra màu bão hoà thì đó là token accent, không phải token chữ.
+
+
 **Notion cho ta *bố cục, tỉ lệ và hành vi*. DESIGN.md cho ta *màu, chữ và bo góc*.**
 Không trộn ngược lại.
 
@@ -56,7 +83,7 @@ Số cột giữa là **đo thật**, không phải ước lượng. Số cột 
 | Bo góc hàng | 6px | **6px** = `--radius-sm` ✅ trùng khít |
 | Icon trang | 12×12, mép trái 21px | **14×14**, mép trái 20px |
 | Chữ | 14px, bắt đầu ở 46px | **14px**, bắt đầu ở **44px** |
-| Chữ — hàng thường | `#bcbab6` | `var(--secondary-foreground)` `#94a3b8` |
+| Chữ — hàng thường | `#bcbab6` | `var(--muted-foreground)` — **không** dùng `--secondary-foreground`, xem §0.1 |
 | Chữ — hàng đang mở | `#f0efed` | `var(--foreground)` `#e2e8f0` |
 | Nền hover | `rgba(255,255,255,.055)` | `var(--sidebar-accent)` `#1a1d24` |
 | Nền hàng đang mở | nền đặc | `var(--sidebar-accent)` + **thanh 2px cyan** sát mép trái, cao 16px, canh giữa dọc |
@@ -96,7 +123,7 @@ và nền `#1a1d24` một mình không đủ tách khỏi hover trên nền `#0d
 
 | Thứ | Notion đo được | Halo dùng |
 |---|---|---|
-| Breadcrumb | 14px / 400 / `#f0efed` | **14px / 400** / `var(--foreground)`, cấp cha `var(--secondary-foreground)` |
+| Breadcrumb | 14px / 400 / `#f0efed` | **14px / 400** / `var(--foreground)`, cấp cha `var(--muted-foreground)` (xem §0.1) |
 | Dải phải | `Share` · `☆` · `⋯` | `Chia sẻ` · `☆` · `⋯` · avatar người đang xem |
 | Nền | trong suốt | trong suốt, **không** viền dưới |
 
@@ -321,7 +348,8 @@ Mọi component đọc data API phải khai đủ. Đây là bảng để review
 
 ## 7. Phản-mục tiêu — không làm, kể cả khi Notion có
 
-- ❌ Nền sáng, viền xám nhạt, bo góc > 12px.
+- ❌ **Bê palette trắng-xám của Notion vào dưới dạng hex cứng.** (Khác với "app không có chế độ sáng" — app có, xem §0.1. Điều cấm là hardcode màu Notion, không phải là nền sáng.)
+- ❌ Viền xám nhạt, bo góc > 12px.
 - ❌ Tím / indigo ở bất kỳ đâu, kể cả con trỏ cộng tác.
 - ❌ Database view, kanban, calendar, formula — **không thuộc Phase 1**. Không dựng vỏ rỗng
   cho chúng.

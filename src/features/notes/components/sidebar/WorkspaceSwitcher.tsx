@@ -69,7 +69,7 @@ function WorkspaceMenu({
               <DropdownMenuItem
                 key={workspace.id}
                 aria-current={isActive ? 'true' : undefined}
-                className={`${isActive ? 'text-foreground' : 'text-secondary-foreground'} focus:bg-sidebar-accent focus:text-foreground ${focusRingClassName}`}
+                className={`${isActive ? 'text-foreground' : 'text-muted-foreground'} focus:bg-sidebar-accent focus:text-foreground ${focusRingClassName}`}
                 onClick={() => onSelectWorkspace(workspace.id)}
               >
                 {isActive ? (

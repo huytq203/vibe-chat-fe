@@ -38,7 +38,7 @@ function BreadcrumbItems({ items, onSelectPage }: BreadcrumbItemsProps) {
             ) : (
               <Button
                 variant="ghost" size="xs"
-                className="h-auto min-w-0 rounded-sm px-1 py-1 font-normal text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+                className="h-auto min-w-0 rounded-sm px-1 py-1 font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                 onClick={() => onSelectPage(item.id)}
               >
                 <span className="truncate">{title}</span>
@@ -69,7 +69,7 @@ export function Breadcrumb({ pageId, onSelectPage }: BreadcrumbProps) {
         <div className="flex h-full items-center gap-2 text-sm text-muted-foreground" role="alert">
           <AlertCircle aria-hidden="true" className="h-4 w-4 shrink-0" />
           <span className="truncate">Không tải được đường dẫn trang</span>
-          <Button variant="ghost" size="xs" className="ml-auto text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground" onClick={() => void refetch()}>
+          <Button variant="ghost" size="xs" className="ml-auto text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" onClick={() => void refetch()}>
             Thử lại
           </Button>
         </div>

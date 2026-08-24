@@ -63,7 +63,7 @@ export function FavoriteList({ onSelectPage }: FavoriteListProps) {
             <li key={favorite.pageId}>
               <Button
                 variant="ghost"
-                className={`h-[30px] w-full justify-start rounded-sm px-3 text-sm font-normal text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground [&>div]:w-full [&>div]:min-w-0 [&>div]:gap-2.5 ${focusRingClassName}`}
+                className={`h-[30px] w-full justify-start rounded-sm px-3 text-sm font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground [&>div]:w-full [&>div]:min-w-0 [&>div]:gap-2.5 ${focusRingClassName}`}
                 onClick={() => onSelectPage(favorite.pageId)}
               >
                 <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden="true">

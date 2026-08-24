@@ -51,7 +51,7 @@ function PageIconPicker({ icon, onUpdateIcon }: PageIconPickerProps) {
       {icon && (
         <Button
           variant="ghost" size="sm"
-          className="w-full justify-start rounded-none border-t border-border text-secondary-foreground hover:bg-sidebar-accent hover:text-foreground"
+          className="w-full justify-start rounded-none border-t border-border text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
           onClick={() => onUpdateIcon(null)}
         >
           <Trash2 aria-hidden="true" className="h-4 w-4" />
