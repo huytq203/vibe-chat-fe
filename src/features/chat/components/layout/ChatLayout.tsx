@@ -31,6 +31,7 @@ import { NavSidebar } from './NavSidebar';
 import { AiChatWindow } from './AiChatWindow';
 import { AiChatPage } from './AiChatPage';
 import { TaskManagementLayout } from '@/features/tasks';
+import { NotesLayout } from '@/features/notes';
 import { SettingsPage } from '@/features/settings';
 
 export function ChatLayout() {
@@ -79,10 +80,11 @@ export function ChatLayout() {
   useElectronBadge();
 
   useEffect(() => {
-    // Chỉ auto-chọn hội thoại khi ở khu vực chat — tránh replace về /chat khi ở /ai, /work, /store.
+    // Chỉ auto-chọn hội thoại ở khu vực chat — tránh replace về /chat từ section khác.
     if (
       activeSection === 'ai-full' ||
       activeSection === 'tasks' ||
+      activeSection === 'notes' ||
       activeSection === 'store' ||
       activeSection === 'settings'
     ) return;
@@ -142,6 +144,19 @@ export function ChatLayout() {
       <div className="mobile-app-shell flex h-full w-full flex-col overflow-hidden bg-background">
         <div className="min-h-0 flex-1 overflow-hidden">
           <TaskManagementLayout />
+        </div>
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+        <CallContainer />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (isMobile && activeSection === 'notes') {
+    return (
+      <div className="mobile-app-shell flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <NotesLayout />
         </div>
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <CallContainer />
@@ -216,6 +231,18 @@ export function ChatLayout() {
       <div className="flex h-full w-full gap-3 overflow-hidden bg-background p-3">
         <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
         <TaskManagementLayout />
+        <CallContainer />
+        <AiChatWindow />
+        <InviteProfileModal />
+      </div>
+    );
+  }
+
+  if (activeSection === 'notes') {
+    return (
+      <div className="flex h-full w-full gap-3 overflow-hidden bg-background p-3">
+        <NavSidebar activeSection={activeSection} onSectionChange={goToSection} />
+        <NotesLayout />
         <CallContainer />
         <AiChatWindow />
         <InviteProfileModal />
