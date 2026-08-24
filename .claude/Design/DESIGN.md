@@ -119,7 +119,64 @@ Vibe Chat sử dụng palette **Charcoal + Cyan** — nền tối trung tính (k
 ## 8. Responsive Behavior
 Breakpoints: 375px, 425px, 640px, 768px, 1024px, 1280px, 1536px
 
-## 9. Agent Prompt Guide
+## 9. Notes — bề mặt đọc dài
+
+Module `/notes` là văn bản đọc liên tục nhiều phút, không phải UI chat. Ba mở rộng **có
+chủ đích** dưới đây lệch khỏi các mục trên; lệch ở chỗ khác là lỗi.
+
+Chi tiết đầy đủ (bảng đo Notion→Halo, hành vi từng bề mặt, bảng 4 trạng thái):
+`docs/superpowers/specs/2026-08-24-notes-notion-ui-design.md`.
+
+### 9.1. Typography thân trang
+
+| Vai trò | Font | Size | Weight | Line height | Vì sao lệch |
+|---------|------|------|--------|-------------|-------------|
+| Thân trang note | Kraken-Product | 16px | 400 | **24px (1.5)** | §3 đặt Body ở `1.38` — đó là nhịp bong bóng chat. Văn bản dài cần thoáng hơn, và `24px` nằm sẵn trên scale spacing §5 |
+| Tiêu đề trang note | Kraken-Brand | 36px | 700 | 44px, `-0.5px` | Dùng hàng *Section Heading* của §3. **Không** dùng Display Hero 48px — 48px là nhịp trang marketing, đặt vào editor sẽ ồn |
+
+### 9.2. Hình học cột nội dung
+
+| Thứ | Giá trị | Nguồn |
+|---|---|---|
+| Bề rộng cột nội dung | `720px` (`45rem`), canh giữa | Đo thật trên `app.notion.com` 2026-08-24 |
+| Đệm trên khi không có ảnh bìa | `96px` | Trên scale spacing §5 |
+| Máng nút chèn `+` | `−52px` so mép trái cột | Đo thật |
+| Máng nút kéo `⠿` | `−28px` so mép trái cột | Đo thật |
+| Hàng cây trang | cao `30px`, bước `31px`, bo `6px` | Đo thật; `6px` trùng `--radius-sm` sẵn có |
+
+### 9.3. Bảng 8 màu con trỏ cộng tác
+
+Màu suy ra từ hash `userId` → cùng một người ra **cùng màu ở mọi máy**. Dùng cho con trỏ
+trong editor, viền avatar 24px trên thanh hiện diện, và nhãn tên.
+
+| # | Hex | Tên | Hue |
+|---|---|---|-----|
+| 1 | `#f87171` | Đỏ san hô | 0° |
+| 2 | `#fb923c` | Cam | 27° |
+| 3 | `#facc15` | Vàng | 48° |
+| 4 | `#a3e635` | Chanh | 82° |
+| 5 | `#4ade80` | Lục | 142° |
+| 6 | `#34d399` | Ngọc lục bảo | 160° |
+| 7 | `#60a5fa` | Lam | 213° |
+| 8 | `#f472b6` | Hồng | 330° |
+
+**Cyan `#06b6d4` bị loại khỏi bảng này.** Cyan là màu con trỏ của *chính mình* và là màu
+focus ring toàn app — trùng màu với con trỏ người khác là lỗi nhận thức, không phải lỗi
+thẩm mỹ.
+
+Tím / indigo cũng bị loại theo §7. Đó là lý do khoảng `250°–290°` bỏ trống, và vì sao 8
+màu phải nén vào phần còn lại của vòng màu.
+
+**Cặp yếu nhất là #5 và #6** — cách nhau 18°. Nếu thực tế 8 con trỏ cùng lúc gây nhầm, bỏ
+`#34d399` và `#a3e635` để còn 6 màu. **Đừng** thêm màu mới ngoài bảng.
+
+Cả 8 đều ở mức 400 của thang Tailwind: độ sáng đồng đều, đọc được trên cả `#111318` lẫn
+`#0d1017`. Không dùng đúng hex của token semantic (`--success`, `--warning`, `--danger`,
+`--info`) để màu con trỏ không bị đọc nhầm thành trạng thái.
+
+---
+
+## 10. Agent Prompt Guide
 
 ### Quick Color Reference
 - Brand: Cyan (`#06b6d4`)
