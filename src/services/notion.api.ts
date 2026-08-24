@@ -13,6 +13,8 @@ import {
   pageVersionDetailSchema,
   pageVersionSchema,
   permanentDeleteResultSchema,
+  publicPageSchema,
+  publicUnlockResultSchema,
   removeCommentResultSchema,
   removeMemberResultSchema,
   restoreTrashResultSchema,
@@ -48,6 +50,14 @@ type CreateCommentInput = {
 };
 type UpdateCommentInput = { body?: CommentBody; resolved?: boolean };
 type CreateVersionInput = { label?: string };
+
+interface PublicPageOptions {
+  pageId?: string;
+  sessionToken?: string;
+}
+
+export const PUBLIC_PAGE_SESSION_COOKIE = 'halo_public_share_session';
+const PUBLIC_SHARE_SESSION_HEADER = 'x-share-session';
 
 export const workspacesApi = {
   list: async () => {
@@ -232,5 +242,31 @@ export const versionsApi = {
       service: 'notion',
     });
     return restoreVersionResultSchema.parse(raw);
+  },
+} as const;
+
+function publicPagePath(token: string, pageId?: string): string {
+  const base = `/api/v1/public/${encodeURIComponent(token)}`;
+  return pageId ? `${base}/pages/${encodeURIComponent(pageId)}` : base;
+}
+
+export const publicPagesApi = {
+  detail: async (token: string, options: PublicPageOptions = {}) => {
+    const raw = await apiClient.get<unknown>(publicPagePath(token, options.pageId), {
+      auth: false,
+      cache: 'no-store',
+      headers: options.sessionToken
+        ? { [PUBLIC_SHARE_SESSION_HEADER]: options.sessionToken }
+        : undefined,
+      service: 'notion',
+    });
+    return publicPageSchema.parse(raw);
+  },
+  unlock: async (token: string, password: string) => {
+    const raw = await apiClient.post<unknown>(
+      `/api/v1/public/${encodeURIComponent(token)}/unlock`,
+      { auth: false, body: { password }, cache: 'no-store', service: 'notion' },
+    );
+    return publicUnlockResultSchema.parse(raw);
   },
 } as const;

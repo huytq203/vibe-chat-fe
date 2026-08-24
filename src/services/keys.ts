@@ -174,3 +174,9 @@ export const notionKeys = {
   favorites: () => [...notionKeys.all, 'favorites'] as const,
   trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
 } as const;
+
+export const publicPageKeys = {
+  all: ['public-pages'] as const,
+  detail: (token: string, pageId?: string) =>
+    [...publicPageKeys.all, token, pageId ?? 'root'] as const,
+} as const;

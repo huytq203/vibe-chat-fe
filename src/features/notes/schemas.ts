@@ -166,3 +166,31 @@ export const restoreVersionResultSchema = z.object({
   pageId: z.string(),
   previousVersionId: z.string().nullable(),
 });
+
+export const publicPageChildSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  icon: z.string().nullable(),
+});
+
+export const publicPageSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  icon: z.string().nullable(),
+  coverUrl: z.string().nullable(),
+  html: z.string(),
+  includeSubpages: z.boolean(),
+  children: z.array(publicPageChildSchema),
+  allowIndexing: z.boolean(),
+  createdBy: z.string().optional(),
+  lastEditedBy: z.string().nullable().optional(),
+});
+
+export const publicUnlockInputSchema = z.object({
+  // Không trim: khoảng trắng có thể là một phần có chủ đích của mật khẩu.
+  password: z.string().min(1).max(1024),
+});
+
+export const publicUnlockResultSchema = z.object({
+  sessionToken: z.string().min(1),
+});
