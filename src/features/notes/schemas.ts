@@ -294,3 +294,6 @@ export const presignedUploadResultSchema = z.object({
 export const attachmentDownloadUrlSchema = z.object({
   url: z.string(),
 });
+
+export const pageHtmlExportSchema = z.object({ html: z.string() });
+export const pageMarkdownExportSchema = z.object({ markdown: z.string() });

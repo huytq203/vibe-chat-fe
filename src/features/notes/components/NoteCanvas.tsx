@@ -16,6 +16,7 @@ import { ConnectionIndicator } from './editor/ConnectionIndicator';
 import { PresenceBar } from './editor/PresenceBar';
 import { Breadcrumb } from './page/Breadcrumb';
 import { PageIcon } from './page/PageIcon';
+import { PageMenu } from './page/PageMenu';
 
 const LazyNoteEditor = dynamic(
   () => import('./editor/NoteEditor').then((module) => module.NoteEditor),
@@ -81,10 +82,11 @@ interface PageTopbarProps {
   collab: UseCollabDocResult;
   onSelectPage: (id: string) => void;
   pageId: string;
+  pageTitle?: string;
   people: CollabPerson[];
 }
 
-function PageTopbar({ collab, onSelectPage, pageId, people }: PageTopbarProps) {
+function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people }: PageTopbarProps) {
   const isPanelOpen = useNotesUiStore((state) => state.isSidePanelOpen);
   const toggleSidePanel = useNotesUiStore((state) => state.toggleSidePanel);
 
@@ -100,6 +102,7 @@ function PageTopbar({ collab, onSelectPage, pageId, people }: PageTopbarProps) {
           isSynced={collab.isSynced}
           status={collab.status}
         />
+        {pageTitle !== undefined && <PageMenu pageId={pageId} pageTitle={pageTitle} />}
         <Button
           variant="ghost"
           size="icon-sm"
@@ -143,6 +146,7 @@ export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
           collab={collab}
           onSelectPage={onSelectPage}
           pageId={pageId}
+          pageTitle={pageQuery.data?.title}
           people={people}
         />
       ) : (
