@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-q
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { notionKeys } from '@/services/keys';
-import type { CommentBody, CreateShareLinkInput, Page, SetPermissionInput,
+import type { CommentBody, CreateShareLinkInput, Page, PageRole, SetPermissionInput,
   UpdateShareLinkInput } from '@/features/notes/types';
 import {
   commentsApi, favoritesApi, invitesApi, pagesApi,
@@ -27,6 +27,10 @@ type PageChildrenKey = ReturnType<typeof notionKeys.pageChildren>;
 type MovePageContext = {
   fromKey: PageChildrenKey; toKey: PageChildrenKey;
   fromPages: Page[] | undefined; toPages: Page[] | undefined;
+};
+type GrantPermissionsInput = {
+  pageId: string;
+  grants: { role: PageRole; subjectId: string }[];
 };
 type CommentScope = { pageId: string; blockId?: string };
 type CreateCommentInput = CommentScope & { body: CommentBody; parentId?: string };
@@ -264,6 +268,22 @@ export function useSetPermission() {
     ({ pageId, input }: { pageId: string; input: SetPermissionInput }) =>
       permissionsApi.set(pageId, input),
     ({ pageId }) => notionKeys.permissions(pageId), true);
+}
+/** Cấp quyền cho nhiều người một lượt; trả về id những người thất bại để thử lại. */
+export function useGrantPermissions() {
+  return useInvalidatingMutation(async ({ pageId, grants }: GrantPermissionsInput) => {
+    const results = await Promise.allSettled(grants.map((grant) =>
+      permissionsApi.set(pageId, { ...grant, subjectType: 'USER' })));
+    const failedIds = results.flatMap((result, index) =>
+      (result.status === 'rejected' ? [grants[index].subjectId] : []));
+    // Hỏng toàn bộ → ném lỗi để onError của wrapper hiện toast chung, không tự nuốt.
+    if (failedIds.length === grants.length) {
+      const rejected = results.find((result) => result.status === 'rejected');
+      const reason: unknown = rejected?.reason;
+      throw reason instanceof Error ? reason : new Error('Cấp quyền thất bại');
+    }
+    return { failedIds, granted: grants.length - failedIds.length };
+  }, ({ pageId }) => notionKeys.permissions(pageId), true);
 }
 export function useRemovePermission() {
   return useInvalidatingMutation(

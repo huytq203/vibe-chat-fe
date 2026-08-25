@@ -43,6 +43,8 @@ export interface ComboBoxProps {
   defaultValue?: string | string[];
   /** Callback fired when the selected value changes */
   onValueChange?: (value: string | string[]) => void;
+  /** Callback fired when the input text changes */
+  onInputValueChange?: (value: string) => void;
   /** Alias for onValueChange — compatible with React Hook Form field.onChange */
   onChange?: (value: string | string[]) => void;
   /** Enable multi-select mode with chip display */
@@ -52,6 +54,8 @@ export interface ComboBoxProps {
   className?: string;
   /** Enable type-ahead filtering of options (default: true) */
   autocomplete?: boolean;
+  /** Disable client-side option filtering (default: false) */
+  disableClientFilter?: boolean;
   /** Text shown when no options match the filter */
   emptyText?: string;
   /** Label for the "select all" action in multi-select mode */
@@ -69,7 +73,7 @@ export interface ComboBoxProps {
 }
 
 const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
-  ({ options, label, placeholder, value, defaultValue, onValueChange, onChange, multiple, isLoading, className, autocomplete = true, emptyText = 'No results found.', selectAllText = 'Select all', clearAllText = 'Clear all', leftIcon, required, error, clearValue, clearIcon=true }, ref) => {
+  ({ options, label, placeholder, value, defaultValue, onValueChange, onInputValueChange, onChange, multiple, isLoading, className, autocomplete = true, disableClientFilter = false, emptyText = 'No results found.', selectAllText = 'Select all', clearAllText = 'Clear all', leftIcon, required, error, clearValue, clearIcon=true }, ref) => {
     const [inputValue, setInputValue] = React.useState('');
     const [internalValue, setInternalValue] = React.useState<string | string[] | null>(defaultValue || (multiple ? [] : null));
     const isSelectingRef = React.useRef(false);
@@ -109,6 +113,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
         return;
       }
       setInputValue(val);
+      onInputValueChange?.(val);
     };
 
     const handleClear = (e: React.SyntheticEvent) => {
@@ -134,7 +139,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
 
     // Lọc options theo text người dùng đang gõ
     const filteredOptions = React.useMemo(() => {
-      if (!inputValue || !autocomplete) return options;
+      if (disableClientFilter || !inputValue || !autocomplete) return options;
       // Khi đã có value được chọn, input hiển thị label → không filter theo label đó
       if (!multiple && activeValue) {
         const selectedOption = options.find((o) => o.value === activeValue);
@@ -143,7 +148,7 @@ const ComboBox = React.forwardRef<HTMLInputElement, ComboBoxProps>(
       return options.filter(opt =>
         opt.label.toLowerCase().includes(inputValue.toLowerCase())
       );
-    }, [options, inputValue, autocomplete, multiple, activeValue]);
+    }, [options, inputValue, autocomplete, disableClientFilter, multiple, activeValue]);
 
     const { root, inputContainer, input, popup, item, indicator, chip, chipRemove, actionsHeader, actionButton } = comboboxVariants();
     const inputGroupRef = React.useRef<HTMLDivElement>(null);

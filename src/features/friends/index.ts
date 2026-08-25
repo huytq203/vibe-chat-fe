@@ -17,6 +17,7 @@ export { useFriendRealtime } from './hooks/useFriendRealtime';
 export { isBotUser } from './utils';
 export type {
   FriendshipStatus,
+  UserProfile,
   UserSearchItem,
   UserSearchPage,
   FriendRequest,
