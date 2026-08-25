@@ -12,7 +12,9 @@ import {
   pageSchema,
   pageVersionDetailSchema,
   pageVersionSchema,
+  attachmentDownloadUrlSchema,
   permissionFormSchema,
+  presignedUploadResultSchema,
   searchResultSchema,
   setPermissionInputSchema,
   shareLinkFormSchema,
@@ -48,3 +50,5 @@ export type CreateShareLinkInput = z.infer<typeof createShareLinkInputSchema>;
 export type UpdateShareLinkInput = z.infer<typeof updateShareLinkInputSchema>;
 export type ShareLinkFormValues = z.infer<typeof shareLinkFormSchema>;
 export type SearchResult = z.infer<typeof searchResultSchema>;
+export type PresignedUploadResult = z.infer<typeof presignedUploadResultSchema>;
+export type AttachmentDownloadUrl = z.infer<typeof attachmentDownloadUrlSchema>;

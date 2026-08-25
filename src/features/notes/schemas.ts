@@ -285,3 +285,12 @@ export const searchResultSchema = z.object({
   snippet: z.string(),
   role: pageRoleSchema,
 });
+
+export const presignedUploadResultSchema = z.object({
+  url: z.string(),
+  attachmentId: z.string(),
+});
+
+export const attachmentDownloadUrlSchema = z.object({
+  url: z.string(),
+});

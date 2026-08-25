@@ -22,6 +22,8 @@ import {
 import { useCollabDoc } from '@/features/notes/hooks/useCollabDoc';
 import type { UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { usePage } from '@/features/notes/hooks/use-query';
+import { useFileUpload } from '@/features/notes/hooks/useFileUpload';
+import { resolveAttachmentFileUrl } from '@/features/notes/lib/resolve-file-url';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import {
   COLLAB_FRAGMENT_NAME,
@@ -85,6 +87,7 @@ interface NoteEditorProps {
 interface ConnectedEditorProps {
   doc: YDoc;
   editable: boolean;
+  pageId: string;
   person: CollabPerson;
   provider: CollabProvider;
   commentedBlockIds: string[];
@@ -220,8 +223,9 @@ export function NoteEditorSkeleton() {
   );
 }
 
-function ConnectedEditor({ commentedBlockIds, doc, editable, person, provider }: ConnectedEditorProps) {
+function ConnectedEditor({ commentedBlockIds, doc, editable, pageId, person, provider }: ConnectedEditorProps) {
   const { currentTheme } = useTheme();
+  const uploadFile = useFileUpload(pageId);
   const user = useMemo(() => ({
     color: person.color,
     id: person.userId,
@@ -236,7 +240,9 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, person, provider }:
       user,
     },
     dictionary: vietnameseEditorDictionary,
-  }, [doc, provider, user]);
+    resolveFileUrl: resolveAttachmentFileUrl,
+    uploadFile,
+  }, [doc, provider, user, uploadFile]);
   const moveToBody = useCallback(() => {
     const firstBlock = editor.document[0] ?? editor.insertBlocks(
       [{ type: 'paragraph' }], editor.getTextCursorPosition().block, 'before',
@@ -292,6 +298,7 @@ export function NoteEditor({ pageId, collab: sharedCollab, people,
       commentedBlockIds={commentedBlockIds}
       doc={collab.doc}
       editable={editable}
+      pageId={pageId}
       person={self}
       provider={collab.provider}
     />
