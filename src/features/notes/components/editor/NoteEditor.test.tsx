@@ -52,6 +52,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@blocknote/react', () => ({
+  SideMenuController: () => null,
   useCreateBlockNote: mocks.useCreateBlockNote,
 }));
 

@@ -9,7 +9,7 @@ import type { BlocksChanged } from '@blocknote/core';
 // không lỗi nào hiện ra. withCollaboration() (chỉ có ở subpath /yjs) mới thực sự thêm
 // CollaborationExtension (ySync/yCursor/yUndo) vào extensions.
 import { withCollaboration } from '@blocknote/core/yjs';
-import { useCreateBlockNote } from '@blocknote/react';
+import { SideMenuController, useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/shadcn';
 // Bắt buộc: định nghĩa toàn bộ layout/vị trí của BlockNote (cỡ chữ heading, slash
 // menu, formatting toolbar, side menu kéo-thả…) — thiếu import này thì heading trông
@@ -49,6 +49,7 @@ import {
 } from '@/lib/collab';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
+import { BlockSideMenu } from './BlockSideMenu';
 import { NoteTitle } from './NoteTitle';
 const EMPTY_PLACEHOLDER = "Nhấn `/` để chèn khối";
 const DOCUMENT_WARNING_BYTES = 3 * 1024 * 1024;
@@ -87,9 +88,14 @@ const editorThemeClasses = [
   '[&_.bn-editor]:px-0 [&_.bn-editor]:py-0 [&_.bn-editor]:font-sans',
   '[&_.bn-editor]:text-base [&_.bn-editor]:leading-6',
   '[&_.bn-block-content]:min-h-10 [&_.bn-block-content]:py-2',
-  '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:top-[5px]',
-  '[&_.bn-side-menu_.bn-button]:!bg-transparent [&_.bn-side-menu_.bn-button]:opacity-40 [&_.bn-side-menu_.bn-button:hover]:opacity-100 [&_.bn-side-menu_.bn-button[aria-expanded="true"]]:opacity-100 [&_.bn-side-menu_.bn-button]:cursor-pointer',
-  '[&_.bn-side-menu_.bn-button_svg]:!w-4 [&_.bn-side-menu_.bn-button_svg]:!h-4',
+  '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:!h-6',
+  '[&_.bn-toggle-button]:!text-muted-foreground [&_.bn-toggle-button_svg]:!w-4 [&_.bn-toggle-button_svg]:!h-4',
+  '[&_[data-content-type="heading"]]:![--level:1.75rem]',
+  '[&_[data-content-type="heading"][data-level="2"]]:![--level:1.5rem]',
+  '[&_[data-content-type="heading"][data-level="3"]]:![--level:1.25rem]',
+  '[&_[data-content-type="heading"][data-level="4"]]:![--level:1.2rem]',
+  '[&_[data-content-type="heading"][data-level="5"]]:![--level:1.15rem]',
+  '[&_[data-content-type="heading"][data-level="6"]]:![--level:1.1rem]',
 ].join(' ');
 
 interface NoteEditorProps {
@@ -280,10 +286,13 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, page, pageId, perso
           className={`mt-4 ${editorThemeClasses}`}
           editable={editable}
           editor={editor}
+          sideMenu={false}
           theme={currentTheme.isDark ? 'dark' : 'light'}
           onKeyUp={handleCursorKey}
           onPointerUp={markCursorMoved}
-        />
+        >
+          <SideMenuController sideMenu={BlockSideMenu} />
+        </BlockNoteView>
       </div>
     </>
   );

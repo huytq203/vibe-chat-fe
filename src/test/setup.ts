@@ -43,3 +43,14 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
 afterEach(() => {
   cleanup();
 });
+
+// jsdom không có ResizeObserver — component dùng nó sẽ ném.
+if (typeof window !== 'undefined' && typeof ResizeObserver === 'undefined') {
+  // Mock ResizeObserver for jsdom environment
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).ResizeObserver = class ResizeObserver {
+    observe() {}
+    disconnect() {}
+    unobserve() {}
+  };
+}

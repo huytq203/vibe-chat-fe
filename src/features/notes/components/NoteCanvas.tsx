@@ -152,7 +152,7 @@ export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
       ) : (
         <div aria-hidden="true" className="h-[44px]" />
       )}
-      <div className="mx-auto w-full max-w-[45rem] px-6 pt-24">
+      <div className="mx-auto w-full max-w-[45rem] px-6 pt-24 pb-40">
         {pageId ? (
           <SelectedPage
             collab={collab}
