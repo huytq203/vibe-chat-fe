@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { usePathname } from 'next/navigation';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { NotesLayout } from './NotesLayout';
@@ -36,7 +37,7 @@ const collabMocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
-  usePathname: () => '/notes',
+  usePathname: vi.fn(() => '/notes'),
   useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
 }));
 
@@ -127,6 +128,7 @@ afterEach(() => {
   navigation.params = {};
   navigation.push.mockReset();
   navigation.replace.mockReset();
+  vi.mocked(usePathname).mockReturnValue('/notes');
   useNotesUiStore.setState({ activeWorkspaceId: null, expandedByWorkspace: {} });
   useNotesUiStore.persist.clearStorage();
   collabMocks.collabDoc.mockReturnValue({
@@ -155,6 +157,23 @@ describe('bố cục ghi chú', () => {
     renderLayout();
     const user = userEvent.setup();
 
+    await user.click(await screen.findByRole('treeitem', { name: /Tài liệu dự án/ }));
+
+    expect(navigation.push).toHaveBeenCalledWith(`/notes/${WORKSPACE_ID}/page-1`);
+  });
+
+  it('vẫn điều hướng đúng URL khi chọn trang từ sidebar lúc đang ở /notes/trash', async () => {
+    // /notes/trash không có [workspaceId] trong path nên routeWorkspaceId luôn null —
+    // trước fix, handleSelectPage dùng routeWorkspaceId nên bấm chọn trang không làm gì.
+    vi.mocked(usePathname).mockReturnValue('/notes/trash');
+    navigation.params = {};
+    useDefaultHandlers();
+    renderLayout();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(useNotesUiStore.getState().activeWorkspaceId).toBe(WORKSPACE_ID);
+    });
     await user.click(await screen.findByRole('treeitem', { name: /Tài liệu dự án/ }));
 
     expect(navigation.push).toHaveBeenCalledWith(`/notes/${WORKSPACE_ID}/page-1`);

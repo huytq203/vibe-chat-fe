@@ -108,12 +108,16 @@ function useNotesNavigation() {
     setActiveWorkspace(id);
     router.push(`/notes/${id}`);
   }, [router, setActiveWorkspace]);
+  const activeWorkspaceId = routeWorkspaceId ?? storedWorkspaceId;
+  // Dùng activeWorkspaceId (có fallback từ store), không phải routeWorkspaceId:
+  // trên /notes/trash không có [workspaceId] trong path nên routeWorkspaceId luôn
+  // null, làm click chọn trang trong sidebar khi đang ở thùng rác thành vô tác dụng.
   const handleSelectPage = useCallback((id: string) => {
-    if (routeWorkspaceId) router.push(`/notes/${routeWorkspaceId}/${id}`);
-  }, [routeWorkspaceId, router]);
+    if (activeWorkspaceId) router.push(`/notes/${activeWorkspaceId}/${id}`);
+  }, [activeWorkspaceId, router]);
 
   return {
-    activeWorkspaceId: routeWorkspaceId ?? storedWorkspaceId,
+    activeWorkspaceId,
     handleSelectPage,
     handleSelectWorkspace,
     isTrashRoute,
