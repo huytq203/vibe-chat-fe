@@ -56,7 +56,7 @@ vi.mock('@blocknote/react', () => ({
   useCreateBlockNote: mocks.useCreateBlockNote,
 }));
 
-vi.mock('@blocknote/shadcn', () => ({
+vi.mock('@blocknote/mantine', () => ({
   BlockNoteView: mocks.blockNoteView,
 }));
 
