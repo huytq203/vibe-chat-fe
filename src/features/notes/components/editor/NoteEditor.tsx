@@ -37,6 +37,7 @@ import { usePage } from '@/features/notes/hooks/use-query';
 import { useFileUpload } from '@/features/notes/hooks/useFileUpload';
 import { resolveAttachmentFileUrl } from '@/features/notes/lib/resolve-file-url';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+import type { Page } from '@/features/notes/types';
 import {
   COLLAB_FRAGMENT_NAME,
   collabDocumentStateVectorBytes,
@@ -85,7 +86,7 @@ const editorThemeClasses = [
   '[&_.bn-editor]:rounded-none [&_.bn-editor]:bg-transparent',
   '[&_.bn-editor]:px-0 [&_.bn-editor]:py-0 [&_.bn-editor]:font-sans',
   '[&_.bn-editor]:text-base [&_.bn-editor]:leading-6',
-  '[&_.bn-block-content]:min-h-10 [&_.bn-block-content]:py-2',
+  '[&_.bn-block-content]:min-h-10 [&_.bn-block-content]:py-3',
   '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:top-2',
 ].join(' ');
 
@@ -99,6 +100,7 @@ interface NoteEditorProps {
 interface ConnectedEditorProps {
   doc: YDoc;
   editable: boolean;
+  page: Pick<Page, 'id' | 'workspaceId' | 'parentId'>;
   pageId: string;
   person: CollabPerson;
   provider: CollabProvider;
@@ -235,7 +237,7 @@ export function NoteEditorSkeleton() {
   );
 }
 
-function ConnectedEditor({ commentedBlockIds, doc, editable, pageId, person, provider }: ConnectedEditorProps) {
+function ConnectedEditor({ commentedBlockIds, doc, editable, page, pageId, person, provider }: ConnectedEditorProps) {
   const { currentTheme } = useTheme();
   const uploadFile = useFileUpload(pageId);
   const user = useMemo(() => ({
@@ -270,7 +272,7 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, pageId, person, pro
 
   return (
     <>
-      <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} />
+      <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} page={page} />
       <div ref={anchorRootRef}>
         <BlockNoteView
           className={`mt-4 ${editorThemeClasses}`}
@@ -312,6 +314,7 @@ export function NoteEditor({ pageId, collab: sharedCollab, people,
       commentedBlockIds={commentedBlockIds}
       doc={collab.doc}
       editable={editable}
+      page={pageQuery.data}
       pageId={pageId}
       person={self}
       provider={collab.provider}

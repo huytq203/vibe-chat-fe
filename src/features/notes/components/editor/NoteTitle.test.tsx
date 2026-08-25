@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +8,13 @@ import { useUpdatePage } from '@/features/notes/hooks/use-mutations';
 import { YDoc } from '@/lib/collab';
 
 import { NoteTitle } from './NoteTitle';
+
+const page = { id: 'page-1', workspaceId: 'workspace-1', parentId: null };
+
+function renderTitle(ui: ReactNode) {
+  const queryClient = new QueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mocks = vi.hoisted(() => ({
   useUpdatePage: vi.fn(),
@@ -23,7 +32,7 @@ describe('tiêu đề ghi chú cộng tác', () => {
   it('ghi trực tiếp vào Y.Text và không gọi mutation cập nhật trang', async () => {
     const doc = new YDoc();
     const user = userEvent.setup();
-    render(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} />);
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />);
 
     await user.type(screen.getByRole('textbox', { name: 'Tiêu đề trang' }), 'Kế hoạch mới');
 
@@ -34,10 +43,10 @@ describe('tiêu đề ghi chú cộng tác', () => {
   it('đồng bộ thay đổi tiêu đề sang hai vùng đang mở cùng Y.Doc', async () => {
     const doc = new YDoc();
     const user = userEvent.setup();
-    render(
+    renderTitle(
       <>
-        <NoteTitle doc={doc} editable onMoveToBody={vi.fn()} />
-        <NoteTitle doc={doc} editable onMoveToBody={vi.fn()} />
+        <NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />
+        <NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />
       </>,
     );
 
@@ -51,7 +60,7 @@ describe('tiêu đề ghi chú cộng tác', () => {
 
   it('nhận thay đổi từ Y.Text và hiện placeholder khi rỗng', () => {
     const doc = new YDoc();
-    render(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} />);
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />);
     const title = screen.getByPlaceholderText('Không có tiêu đề');
 
     act(() => doc.getText('title').insert(0, 'Tiêu đề từ tab khác'));
@@ -63,7 +72,7 @@ describe('tiêu đề ghi chú cộng tác', () => {
     const doc = new YDoc();
     const onMoveToBody = vi.fn();
     const user = userEvent.setup();
-    render(<NoteTitle doc={doc} editable onMoveToBody={onMoveToBody} />);
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={onMoveToBody} page={page} />);
     const title = screen.getByRole('textbox', { name: 'Tiêu đề trang' });
 
     await user.click(title);
@@ -74,7 +83,9 @@ describe('tiêu đề ghi chú cộng tác', () => {
 
   it('không cho sửa tiêu đề ở chế độ chỉ đọc', () => {
     const doc = new YDoc();
-    render(<NoteTitle doc={doc} editable={false} onMoveToBody={vi.fn()} />);
+    renderTitle(
+      <NoteTitle doc={doc} editable={false} onMoveToBody={vi.fn()} page={page} />,
+    );
 
     expect(screen.getByRole('textbox', { name: 'Tiêu đề trang' })).toHaveAttribute('readonly');
   });

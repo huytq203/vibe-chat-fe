@@ -3,28 +3,19 @@
 import {
   type ChangeEvent,
   type KeyboardEvent,
-  useCallback,
-  useSyncExternalStore,
 } from 'react';
 
+import { type TitlePage, useYTitleValue } from '@/features/notes/hooks/use-title';
 import type { YDoc } from '@/lib/collab';
 
 interface NoteTitleProps {
   doc: YDoc;
   editable: boolean;
   onMoveToBody: () => void;
+  page: TitlePage;
 }
 
 type YTitle = ReturnType<YDoc['getText']>;
-
-function useYTitleValue(title: YTitle): string {
-  const subscribe = useCallback((onChange: () => void) => {
-    title.observe(onChange);
-    return () => title.unobserve(onChange);
-  }, [title]);
-  const getSnapshot = useCallback(() => title.toString(), [title]);
-  return useSyncExternalStore(subscribe, getSnapshot, () => '');
-}
 
 function replaceTitle(title: YTitle, value: string): void {
   title.doc?.transact(() => {
@@ -33,9 +24,9 @@ function replaceTitle(title: YTitle, value: string): void {
   });
 }
 
-export function NoteTitle({ doc, editable, onMoveToBody }: NoteTitleProps) {
+export function NoteTitle({ doc, editable, onMoveToBody, page }: NoteTitleProps) {
   const title = doc.getText('title');
-  const value = useYTitleValue(title);
+  const value = useYTitleValue(title, page);
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (editable) replaceTitle(title, event.currentTarget.value);
   };
