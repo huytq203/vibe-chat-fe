@@ -15,7 +15,6 @@ import { BlockNoteView } from '@blocknote/shadcn';
 // menu, formatting toolbar, side menu kéo-thả…) — thiếu import này thì heading trông
 // giống văn bản thường và các menu nổi định vị/hiển thị sai. editorThemeClasses bên
 // dưới chỉ GHI ĐÈ màu lên nền CSS này, không thay thế được nó.
-import '@blocknote/shadcn/style.css';
 import {
   useCallback,
   useEffect,

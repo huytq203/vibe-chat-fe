@@ -1,4 +1,6 @@
+@layer theme, base, blocknote, components, utilities;
 @import "tailwindcss";
+@import "@blocknote/shadcn/style.css" layer(blocknote);
 @import "highlight.js/styles/atom-one-dark.css";
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:where(.dark, .dark *));
