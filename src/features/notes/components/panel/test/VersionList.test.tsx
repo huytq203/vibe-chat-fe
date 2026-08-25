@@ -5,12 +5,14 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   it,
   vi,
 } from "vitest";
 import type { PageVersion } from "@/features/notes/types";
+import type { UserProfile } from "@/features/friends";
 import {
   renderWithProviders,
   screen,
@@ -25,8 +27,30 @@ vi.hoisted(() => {
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const NOTION_URL = "http://localhost:3007";
+const CHAT_URL = "http://localhost:3005";
 const PAGE_ID = "page-1";
 const server = setupServer();
+
+function buildProfile(id: string, displayName: string): UserProfile {
+  return {
+    id,
+    username: `user-${id}`,
+    email: null,
+    phone: null,
+    displayName,
+    avatarUrl: null,
+    coverUrl: null,
+    bio: null,
+    gender: null,
+    dateOfBirth: null,
+    status: "ACTIVE",
+    isMe: false,
+    isBot: false,
+    friendship: "NONE",
+    mutualFriendsCount: 0,
+    hiddenFields: [],
+  };
+}
 
 function envelope(data: unknown) {
   return HttpResponse.json({
@@ -73,6 +97,14 @@ function useVersionDetail(
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeEach(() => {
+  server.use(
+    http.get(`${CHAT_URL}/api/v1/users/:userId`, ({ params }) => {
+      const userId = String(params.userId);
+      return envelope(buildProfile(userId, `Hồ sơ ${userId}`));
+    }),
+  );
+});
 afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
@@ -157,6 +189,23 @@ describe("lịch sử phiên bản của trang", () => {
         "button",
       ),
     ).toHaveLength(2);
+  });
+
+  it("tra hồ sơ để hiện tên người tạo thay cho userId", async () => {
+    const creatorId = "7449babd-9a66-460c-8144-2f6508000000";
+    useVersionList([
+      buildVersion({ id: "version-with-creator", createdBy: creatorId }),
+    ]);
+    server.use(
+      http.get(`${CHAT_URL}/api/v1/users/${creatorId}`, () =>
+        envelope(buildProfile(creatorId, "Minh Anh")),
+      ),
+    );
+
+    renderWithProviders(<VersionList pageId={PAGE_ID} />);
+
+    expect(await screen.findByText("Người tạo: Minh Anh")).toBeInTheDocument();
+    expect(screen.queryByText(`Người tạo: ${creatorId}`)).not.toBeInTheDocument();
   });
 
   it("gửi nhãn người dùng khi tạo mốc thủ công", async () => {

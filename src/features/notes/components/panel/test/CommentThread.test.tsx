@@ -12,6 +12,7 @@ import {
   vi,
 } from "vitest";
 import { useAuthStore, type AuthUser } from "@/features/auth";
+import type { UserProfile } from "@/features/friends";
 import { useNotesUiStore } from "@/features/notes/stores/notes-ui.store";
 import type { Comment, PageRole } from "@/features/notes/types";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
@@ -26,6 +27,27 @@ const NOTION_URL = "http://localhost:3007";
 const CHAT_URL = "http://localhost:3005";
 const PAGE_ID = "page-1";
 const server = setupServer();
+
+function buildProfile(id: string, displayName: string): UserProfile {
+  return {
+    id,
+    username: `user-${id}`,
+    email: null,
+    phone: null,
+    displayName,
+    avatarUrl: null,
+    coverUrl: null,
+    bio: null,
+    gender: null,
+    dateOfBirth: null,
+    status: "ACTIVE",
+    isMe: false,
+    isBot: false,
+    friendship: "NONE",
+    mutualFriendsCount: 0,
+    hiddenFields: [],
+  };
+}
 
 function envelope(data: unknown) {
   return HttpResponse.json({
@@ -103,7 +125,15 @@ function useResponses(comments: Comment[], myRole: PageRole = "COMMENT") {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-beforeEach(() => useAuthStore.getState().setUser(authUser));
+beforeEach(() => {
+  useAuthStore.getState().setUser(authUser);
+  server.use(
+    http.get(`${CHAT_URL}/api/v1/users/:userId`, ({ params }) => {
+      const userId = String(params.userId);
+      return envelope(buildProfile(userId, `Hồ sơ ${userId}`));
+    }),
+  );
+});
 afterEach(() => {
   server.resetHandlers();
   useAuthStore.getState().clear();
@@ -175,6 +205,14 @@ describe("luồng bình luận của trang", () => {
   });
 
   it("hiện dữ liệu và không cho sửa hoặc xoá bình luận của người khác", async () => {
+    server.use(
+      http.get(`${CHAT_URL}/api/v1/users/user-1`, () =>
+        envelope(buildProfile("user-1", "Người viết")),
+      ),
+      http.get(`${CHAT_URL}/api/v1/users/user-2`, () =>
+        envelope(buildProfile("user-2", "Người khác")),
+      ),
+    );
     useResponses([
       buildComment({
         id: "comment-other",
@@ -191,16 +229,64 @@ describe("luồng bình luận của trang", () => {
     renderWithProviders(<CommentThread pageId={PAGE_ID} />);
 
     expect(await screen.findByText("Người khác")).toBeInTheDocument();
-    expect(screen.getByText("@user-1")).toHaveClass(
+    expect(screen.getByText("@Người viết")).toHaveClass(
       "bg-primary/10",
       "text-primary",
     );
+    expect(screen.queryByText("@user-1")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Sửa bình luận" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Xoá bình luận" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("tra hồ sơ để hiện tên tác giả khi backend trả author null", async () => {
+    const authorId = "7449babd-9a66-460c-8144-2f6508000000";
+    server.use(
+      http.get(`${CHAT_URL}/api/v1/users/${authorId}`, () =>
+        envelope(buildProfile(authorId, "Lan Phương")),
+      ),
+    );
+    useResponses([
+      buildComment({ id: "comment-no-author", authorId, author: null }),
+    ]);
+
+    renderWithProviders(<CommentThread pageId={PAGE_ID} />);
+
+    expect(await screen.findByText("Lan Phương")).toBeInTheDocument();
+    expect(screen.queryByText("Người dùng Halo")).not.toBeInTheDocument();
+    expect(screen.queryByText(authorId)).not.toBeInTheDocument();
+  });
+
+  it("dùng tên trung tính và không lộ UUID khi không tra được hồ sơ", async () => {
+    const hiddenUserId = "af9b155e-0ba1-4fa2-a4bf-490340000000";
+    let profileRequests = 0;
+    server.use(
+      http.get(`${CHAT_URL}/api/v1/users/${hiddenUserId}`, () => {
+        profileRequests += 1;
+        return HttpResponse.json(
+          { success: false, error: { code: "USER_NOT_FOUND", message: "Không tìm thấy" } },
+          { status: 404 },
+        );
+      }),
+    );
+    useResponses([
+      buildComment({
+        id: "comment-hidden-user",
+        authorId: hiddenUserId,
+        author: null,
+        body: { segments: [{ type: "mention", userId: hiddenUserId }] },
+      }),
+    ]);
+
+    renderWithProviders(<CommentThread pageId={PAGE_ID} />);
+
+    expect(await screen.findByText("Người dùng Halo")).toBeInTheDocument();
+    expect(screen.getByText("@người dùng")).toBeInTheDocument();
+    await waitFor(() => expect(profileRequests).toBe(1));
+    expect(document.body).not.toHaveTextContent(hiddenUserId);
   });
 
   it("dồn trả lời của trả lời về đúng một cấp hiển thị", async () => {

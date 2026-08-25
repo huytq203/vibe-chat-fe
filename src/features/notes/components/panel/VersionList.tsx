@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { ScrollArea } from '@/components/ui/scroll-area/ScrollArea';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import type { UserProfile } from '@/features/friends';
 import { useCreateVersion } from '@/features/notes/hooks/use-mutations';
 import { useVersions } from '@/features/notes/hooks/use-query';
+import { useUserProfiles } from '@/features/notes/hooks/useUserProfiles';
 import type { PageVersion } from '@/features/notes/types';
 import { VersionViewer } from './VersionViewer';
 
@@ -100,11 +102,16 @@ function CreateVersionForm({ pageId }: { pageId: string }) {
   );
 }
 
-function VersionRow({ version, onSelect }: {
+function VersionRow({ version, onSelect, profiles }: {
   version: PageVersion;
   onSelect: (versionId: string) => void;
+  profiles: ReadonlyMap<string, UserProfile>;
 }) {
   const createdAt = new Date(version.createdAt);
+  const profile = profiles.get(version.createdBy);
+  const creatorName = profile?.displayName?.trim()
+    || profile?.username.trim()
+    || 'Người dùng Halo';
   return (
     <li>
       <button
@@ -123,16 +130,17 @@ function VersionRow({ version, onSelect }: {
         </span>
         {version.label && <span className="mt-1 block truncate text-sm text-foreground">{version.label}</span>}
         <span className="mt-1 block truncate text-xs text-muted-foreground">
-          Người tạo: {version.createdBy}
+          Người tạo: {creatorName}
         </span>
       </button>
     </li>
   );
 }
 
-function VersionGroups({ versions, onSelect }: {
+function VersionGroups({ versions, onSelect, profiles }: {
   versions: PageVersion[];
   onSelect: (versionId: string) => void;
+  profiles: ReadonlyMap<string, UserProfile>;
 }) {
   const groups = useMemo(() => groupVersions(versions), [versions]);
   return (
@@ -143,7 +151,7 @@ function VersionGroups({ versions, onSelect }: {
             {formatDayLabel(group.date)}
           </h2>
           <ul className="space-y-1">
-            {group.versions.map((version) => <VersionRow key={version.id} version={version} onSelect={onSelect} />)}
+            {group.versions.map((version) => <VersionRow key={version.id} version={version} onSelect={onSelect} profiles={profiles} />)}
           </ul>
         </section>
       ))}
@@ -158,6 +166,11 @@ interface VersionListProps {
 export function VersionList({ pageId }: VersionListProps) {
   const versionsQuery = useVersions(pageId);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const profileIds = useMemo(
+    () => [...new Set((versionsQuery.data ?? []).map((version) => version.createdBy))].sort(),
+    [versionsQuery.data],
+  );
+  const profiles = useUserProfiles(profileIds);
 
   if (selectedVersionId) {
     return <VersionViewer versionId={selectedVersionId} onBack={() => setSelectedVersionId(null)} />;
@@ -170,7 +183,7 @@ export function VersionList({ pageId }: VersionListProps) {
   } else if (!versionsQuery.data?.length) {
     content = <EmptyState icon={<History aria-hidden="true" />} title="Chưa có phiên bản nào" hint="Tạo một mốc để lưu trạng thái hiện tại." size="sm" />;
   } else {
-    content = <VersionGroups versions={versionsQuery.data} onSelect={setSelectedVersionId} />;
+    content = <VersionGroups versions={versionsQuery.data} onSelect={setSelectedVersionId} profiles={profiles} />;
   }
 
   return (

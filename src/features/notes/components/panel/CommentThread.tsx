@@ -7,12 +7,14 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { useAuthStore } from '@/features/auth';
+import type { UserProfile } from '@/features/friends';
 import {
   useCreateComment,
   useRemoveComment,
   useUpdateComment,
 } from '@/features/notes/hooks/use-mutations';
 import { useComments, usePage } from '@/features/notes/hooks/use-query';
+import { useUserProfiles } from '@/features/notes/hooks/useUserProfiles';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import type { Comment, CommentBody, PageRole } from '@/features/notes/types';
 import { cn } from '@/lib/utils/cn';
@@ -77,15 +79,18 @@ interface ThreadGroupProps {
   onReply: (rootId: string) => void;
   onResolve: (comment: Comment) => Promise<unknown>;
   onUpdate: (comment: Comment, body: CommentBody) => Promise<unknown>;
+  profiles: ReadonlyMap<string, UserProfile>;
   replyingTo: string | null;
   submitReply: (root: Comment, body: CommentBody) => Promise<unknown>;
 }
 
 function ThreadGroup({ canPost, currentUserId, group, myRole, onRemove, onReply,
-  onResolve, onUpdate, replyingTo, submitReply,
+  onResolve, onUpdate, profiles, replyingTo, submitReply,
 }: ThreadGroupProps) {
   const resolved = Boolean(group.root.resolvedAt);
-  const itemProps = { canReply: canPost && !resolved, currentUserId, onRemove, onUpdate };
+  const itemProps = {
+    canReply: canPost && !resolved, currentUserId, onRemove, onUpdate, profiles,
+  };
   return (
     <section data-comment-block-id={group.root.blockId ?? 'page'} className={cn('space-y-3 border-b border-border px-4 py-4', resolved && 'opacity-70')}>
       <CommentItem {...itemProps} comment={group.root} depth={0} onReply={() => onReply(group.root.id)} />
@@ -141,6 +146,17 @@ export function CommentThread({ pageId }: CommentThreadProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const groups = useMemo(() => groupComments(commentsQuery.data ?? []), [commentsQuery.data]);
+  const profileIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const comment of commentsQuery.data ?? []) {
+      ids.add(comment.authorId);
+      for (const segment of comment.body.segments) {
+        if (segment.type === 'mention') ids.add(segment.userId);
+      }
+    }
+    return [...ids].sort();
+  }, [commentsQuery.data]);
+  const profiles = useUserProfiles(profileIds);
   const myRole = pageQuery.data?.myRole;
   const canPost = canComment(myRole);
 
@@ -167,7 +183,7 @@ export function CommentThread({ pageId }: CommentThreadProps) {
   return (
     <div ref={containerRef} className="h-full overflow-y-auto">
       {groups.map((group) => (
-        <ThreadGroup key={group.root.id} canPost={canPost} currentUserId={currentUserId} group={group} myRole={myRole} onRemove={actions.remove} onReply={(rootId) => setReplyingTo(rootId || null)} onResolve={actions.resolve} onUpdate={actions.update} replyingTo={replyingTo} submitReply={(root, body) => actions.submitReply(root, body).then((result) => { setReplyingTo(null); return result; })} />
+        <ThreadGroup key={group.root.id} canPost={canPost} currentUserId={currentUserId} group={group} myRole={myRole} onRemove={actions.remove} onReply={(rootId) => setReplyingTo(rootId || null)} onResolve={actions.resolve} onUpdate={actions.update} profiles={profiles} replyingTo={replyingTo} submitReply={(root, body) => actions.submitReply(root, body).then((result) => { setReplyingTo(null); return result; })} />
       ))}
       {canPost && (
         <div className="p-4">

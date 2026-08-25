@@ -1,7 +1,7 @@
 'use client';
 
 import { UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { UserProfile } from '@/features/friends';
 import { Button } from '@/components/ui/button/Button';
@@ -27,7 +27,7 @@ function resolveSubject(entry: EffectivePagePermission, members: MemberMap, prof
   return {
     avatarUrl: member?.user?.avatarUrl ?? profile?.avatarUrl ?? null,
     name: member?.user?.displayName ?? profile?.displayName ?? profile?.username
-      ?? `Người dùng ${subjectId}`,
+      ?? 'Người dùng Halo',
     username: profile?.username,
   };
 }
@@ -45,15 +45,18 @@ export function InternalPermissionSection({
   const setPermission = useSetPermission();
   const remove = useRemovePermission();
 
-  const membersById: MemberMap = new Map(members.map((member) => [member.userId, member]));
-  const userGrants = permissions.filter(isUserGrant);
-  const unknownIds = [...new Set(userGrants
+  const membersById: MemberMap = useMemo(
+    () => new Map(members.map((member) => [member.userId, member])),
+    [members],
+  );
+  const userGrants = useMemo(() => permissions.filter(isUserGrant), [permissions]);
+  const unknownIds = useMemo(() => [...new Set(userGrants
     .map((entry) => entry.permission.subjectId)
-    .filter((subjectId) => !membersById.has(subjectId)))];
+    .filter((subjectId) => !membersById.has(subjectId)))].sort(), [membersById, userGrants]);
   const profiles = useUserProfiles(unknownIds);
-  const grantedIds = userGrants
+  const grantedIds = useMemo(() => userGrants
     .filter((entry) => !entry.inherited)
-    .map((entry) => entry.permission.subjectId);
+    .map((entry) => entry.permission.subjectId), [userGrants]);
 
   return (
     <section aria-labelledby="internal-sharing-title" className="space-y-3 p-4">
