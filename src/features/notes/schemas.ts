@@ -275,3 +275,13 @@ export const shareLinkFormSchema = z.object({
 });
 
 export const revokePermissionResultSchema = z.object({ revoked: z.literal(true) });
+
+export const searchResultSchema = z.object({
+  pageId: z.string(),
+  title: z.string(),
+  icon: z.string().nullable(),
+  // ts_headline (BE) nhúng sẵn <b>…</b> quanh từ khớp — không phải HTML tuỳ ý,
+  // xem searchResultSegments() ở lib để render an toàn, không dangerouslySetInnerHTML.
+  snippet: z.string(),
+  role: pageRoleSchema,
+});

@@ -2,7 +2,7 @@
 
 import { FileText, PanelRightClose, PanelRightOpen, PanelLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { useAwareness, type CollabPerson } from '@/features/notes/hooks/useAwareness';
 import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { useComments, usePage } from '@/features/notes/hooks/use-query';
+import { recordRecentPage } from '@/features/notes/lib/recent-pages';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { ConnectionIndicator } from './editor/ConnectionIndicator';
 import { PresenceBar } from './editor/PresenceBar';
@@ -42,6 +43,13 @@ interface SelectedPageProps {
 
 function SelectedPage({ collab, commentedBlockIds, pageId, pageQuery, people }: SelectedPageProps) {
   const { data, isLoading, isError, refetch } = pageQuery;
+
+  useEffect(() => {
+    if (!data) return;
+    recordRecentPage({
+      id: data.id, workspaceId: data.workspaceId, title: data.title, icon: data.icon,
+    });
+  }, [data]);
 
   if (isLoading) return <EditorLoadingSkeleton />;
   if (isError) return <ErrorState message="Không tải được trang" onRetry={refetch} />;

@@ -7,8 +7,8 @@ import {
   pagePermissionSchema, pageSchema, pageVersionDetailSchema, pageVersionSchema,
   permanentDeleteResultSchema, publicPageSchema, publicUnlockResultSchema,
   removeCommentResultSchema, removeMemberResultSchema, restoreTrashResultSchema,
-  restoreVersionResultSchema, revokePermissionResultSchema, shareLinkSchema,
-  softDeletePageResultSchema, trashItemSchema, workspaceInviteSchema,
+  restoreVersionResultSchema, revokePermissionResultSchema, searchResultSchema,
+  shareLinkSchema, softDeletePageResultSchema, trashItemSchema, workspaceInviteSchema,
   workspaceMemberRecordSchema, workspaceMemberSchema, workspaceSchema,
 } from '@/features/notes/schemas';
 import type { CreateShareLinkInput, SetPermissionInput,
@@ -147,6 +147,16 @@ export const trashApi = {
       service: 'notion',
     });
     return permanentDeleteResultSchema.parse(raw);
+  },
+} as const;
+
+export const searchApi = {
+  search: async (workspaceId: string, q: string, limit?: number) => {
+    const raw = await apiClient.get<unknown>('/api/v1/search', {
+      query: { q, workspaceId, limit },
+      service: 'notion',
+    });
+    return searchResultSchema.array().parse(raw);
   },
 } as const;
 

@@ -29,6 +29,7 @@ vi.mock('../sidebar/WorkspaceSwitcher', () => ({ WorkspaceSwitcher: () => null }
 vi.mock('../trash/TrashView', () => ({
   TrashView: () => <div data-testid="notes-trash-view" />,
 }));
+vi.mock('../search/QuickSearchDialog', () => ({ QuickSearchDialog: () => null }));
 
 function resetStore(isOpen = false) {
   useNotesUiStore.setState({

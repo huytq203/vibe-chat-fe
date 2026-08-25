@@ -13,6 +13,7 @@ import {
   pageVersionDetailSchema,
   pageVersionSchema,
   permissionFormSchema,
+  searchResultSchema,
   setPermissionInputSchema,
   shareLinkFormSchema,
   shareLinkSchema,
@@ -46,3 +47,4 @@ export type ShareLink = z.infer<typeof shareLinkSchema>;
 export type CreateShareLinkInput = z.infer<typeof createShareLinkInputSchema>;
 export type UpdateShareLinkInput = z.infer<typeof updateShareLinkInputSchema>;
 export type ShareLinkFormValues = z.infer<typeof shareLinkFormSchema>;
+export type SearchResult = z.infer<typeof searchResultSchema>;

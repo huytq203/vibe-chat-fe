@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { PanelLeft } from 'lucide-react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -10,11 +10,29 @@ import { useWorkspaces } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { NoteCanvas } from './NoteCanvas';
 import { SidePanel } from './panel/SidePanel';
+import { QuickSearchDialog } from './search/QuickSearchDialog';
 import { FavoriteList } from './sidebar/FavoriteList';
 import { PageTree } from './sidebar/PageTree';
 import { TrashLink } from './sidebar/TrashLink';
 import { WorkspaceSwitcher } from './sidebar/WorkspaceSwitcher';
 import { TrashView } from './trash/TrashView';
+
+/** `Cmd/Ctrl+K` mở tìm nhanh — global trong khi đứng ở `/notes/*`, chặn cả
+ * shortcut mặc định của trình duyệt (focus thanh địa chỉ). */
+function useQuickSearchShortcut() {
+  const [isOpen, setOpen] = useState(false);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setOpen((open) => !open);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+  return { isOpen, setOpen };
+}
 
 interface NotesFrameProps {
   sidebar: ReactNode;
@@ -116,6 +134,7 @@ interface ActiveNotesFrameProps {
 function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
   onSelectPage, isTrashRoute,
 }: ActiveNotesFrameProps) {
+  const quickSearch = useQuickSearchShortcut();
   return (
     <NotesFrame
       sidebar={(
@@ -139,6 +158,12 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
           <SidePanel />
         </div>
       )}
+      <QuickSearchDialog
+        workspaceId={workspaceId}
+        open={quickSearch.isOpen}
+        onOpenChange={quickSearch.setOpen}
+        onSelectPage={onSelectPage}
+      />
     </NotesFrame>
   );
 }

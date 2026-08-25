@@ -175,6 +175,8 @@ export const notionKeys = {
   shareLink: (pageId: string) => [...notionKeys.all, 'share-link', pageId] as const,
   favorites: () => [...notionKeys.all, 'favorites'] as const,
   trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
+  search: (workspaceId: string, q: string) =>
+    [...notionKeys.all, 'search', workspaceId, q] as const,
 } as const;
 
 export const publicPageKeys = {

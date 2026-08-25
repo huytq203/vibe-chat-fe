@@ -6,6 +6,7 @@ import {
   favoritesApi,
   pagesApi,
   permissionsApi,
+  searchApi,
   shareLinksApi,
   trashApi,
   versionsApi,
@@ -116,5 +117,14 @@ export function useTrash(workspaceId: string) {
     queryKey: notionKeys.trash(workspaceId),
     queryFn: () => trashApi.list(workspaceId),
     enabled: Boolean(workspaceId),
+  });
+}
+
+export function useSearch(workspaceId: string, q: string) {
+  return useQuery({
+    queryKey: notionKeys.search(workspaceId, q),
+    queryFn: () => searchApi.search(workspaceId, q),
+    enabled: Boolean(workspaceId) && q.trim().length > 0,
+    staleTime: 10_000,
   });
 }

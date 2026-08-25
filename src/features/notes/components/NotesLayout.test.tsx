@@ -184,4 +184,15 @@ describe('bố cục ghi chú', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(serverMessage);
     expect(screen.getByLabelText('Người viết (Bạn)')).toBeInTheDocument();
   });
+
+  it('Ctrl+K mở dialog tìm nhanh', async () => {
+    navigation.params = { workspaceId: WORKSPACE_ID };
+    useDefaultHandlers();
+    renderLayout();
+    await screen.findByRole('treeitem', { name: /Tài liệu dự án/ });
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+
+    expect(await screen.findByRole('textbox', { name: 'Tìm trang' })).toBeInTheDocument();
+  });
 });
