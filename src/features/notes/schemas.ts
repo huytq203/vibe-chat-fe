@@ -16,13 +16,20 @@ export const workspaceSchema = z.object({
   deletedAt: z.iso.datetime().nullable(),
 });
 
-export const workspaceMemberSchema = z.object({
+export const workspaceMemberRecordSchema = z.object({
   id: z.string(),
   workspaceId: z.string(),
   userId: z.string(),
   role: workspaceRoleSchema,
   invitedBy: z.string().nullable(),
   joinedAt: z.iso.datetime(),
+});
+
+export const workspaceMemberSchema = workspaceMemberRecordSchema.extend({
+  user: z.object({
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+  }).nullable(),
 });
 
 export const workspaceInviteSchema = z.object({
@@ -194,3 +201,75 @@ export const publicUnlockInputSchema = z.object({
 export const publicUnlockResultSchema = z.object({
   sessionToken: z.string().min(1),
 });
+
+export const permissionSubjectTypeSchema = z.enum(['USER', 'WORKSPACE']);
+
+export const pagePermissionSchema = z.object({
+  id: z.string(),
+  pageId: z.string(),
+  subjectType: permissionSubjectTypeSchema,
+  subjectId: z.string(),
+  role: pageRoleSchema,
+  grantedBy: z.string(),
+  createdAt: z.iso.datetime(),
+});
+
+export const effectivePagePermissionSchema = z.object({
+  permission: pagePermissionSchema,
+  inherited: z.boolean(),
+  sourcePageId: z.string(),
+  sourcePageTitle: z.string(),
+});
+
+export const setPermissionInputSchema = z.object({
+  subjectType: permissionSubjectTypeSchema,
+  subjectId: z.string().min(1, 'Hãy chọn một người').max(64),
+  role: pageRoleSchema,
+});
+
+export const permissionFormSchema = setPermissionInputSchema.pick({
+  subjectId: true,
+  role: true,
+});
+
+export const shareLinkSchema = z.object({
+  id: z.string(),
+  pageId: z.string(),
+  token: z.string(),
+  includeSubpages: z.boolean(),
+  expiresAt: z.iso.datetime().nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  allowIndexing: z.boolean(),
+  showAuthors: z.boolean(),
+  viewCount: z.number().int(),
+  lastViewedAt: z.iso.datetime().nullable(),
+  createdBy: z.string(),
+  createdAt: z.iso.datetime(),
+});
+
+const shareLinkOptionsSchema = z.object({
+  includeSubpages: z.boolean().optional(),
+  password: z.string().min(1).max(256).optional(),
+  expiresAt: z.iso.datetime().optional(),
+  allowIndexing: z.boolean().optional(),
+  showAuthors: z.boolean().optional(),
+});
+
+export const createShareLinkInputSchema = shareLinkOptionsSchema;
+export const updateShareLinkInputSchema = shareLinkOptionsSchema.extend({
+  password: z.string().min(1).max(256).nullable().optional(),
+  expiresAt: z.iso.datetime().nullable().optional(),
+});
+
+export const shareLinkFormSchema = z.object({
+  password: z.string().max(256, 'Mật khẩu tối đa 256 ký tự'),
+  expiresAt: z.string().refine(
+    (value) => value === '' || !Number.isNaN(Date.parse(value)),
+    'Hạn dùng không hợp lệ',
+  ),
+  includeSubpages: z.boolean(),
+  allowIndexing: z.boolean(),
+  showAuthors: z.boolean(),
+});
+
+export const revokePermissionResultSchema = z.object({ revoked: z.literal(true) });

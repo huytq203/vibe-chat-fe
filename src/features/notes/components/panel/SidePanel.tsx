@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { History, MessageSquareText, PanelRightClose, Share2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -17,6 +17,7 @@ import {
 } from '@/features/notes/stores/notes-ui.store';
 import { cn } from '@/lib/utils/cn';
 import { CommentThread } from './CommentThread';
+import { ShareTab } from './ShareTab';
 import { VersionList } from './VersionList';
 
 const tabs: { value: SidePanelTab; label: string }[] = [
@@ -29,31 +30,32 @@ function isSidePanelTab(value: unknown): value is SidePanelTab {
   return value === 'comments' || value === 'versions' || value === 'share';
 }
 
-function SharePlaceholder() {
-  return (
-    <EmptyState
-      icon={<Share2 aria-hidden="true" />}
-      title="Chia sẻ"
-      hint="Tính năng chia sẻ sẽ có ở M5."
-      size="sm"
-    />
-  );
-}
+const emptyTitleByTab: Record<SidePanelTab, string> = {
+  comments: 'Chọn một trang để xem bình luận',
+  versions: 'Chọn một trang để xem lịch sử',
+  share: 'Chọn một trang để chia sẻ',
+};
 
-function PanelContent({ pageId, tab }: { pageId?: string; tab: SidePanelTab }) {
-  if (tab === 'share') return <SharePlaceholder />;
-  if (!pageId) {
-    const title = tab === 'comments'
-      ? 'Chọn một trang để xem bình luận'
-      : 'Chọn một trang để xem lịch sử';
-    return <EmptyState icon={tab === 'comments' ? <MessageSquareText aria-hidden="true" /> : <History aria-hidden="true" />} title={title} size="sm" />;
-  }
+const emptyIconByTab: Record<SidePanelTab, ReactNode> = {
+  comments: <MessageSquareText aria-hidden="true" />,
+  versions: <History aria-hidden="true" />,
+  share: <Share2 aria-hidden="true" />,
+};
+
+function PanelContent({ pageId, tab, workspaceId }: {
+  pageId?: string;
+  tab: SidePanelTab;
+  workspaceId?: string;
+}) {
+  if (!pageId) return <EmptyState icon={emptyIconByTab[tab]} title={emptyTitleByTab[tab]} size="sm" />;
   if (tab === 'comments') return <CommentThread pageId={pageId} />;
-  return <VersionList key={pageId} pageId={pageId} />;
+  if (tab === 'versions') return <VersionList key={pageId} pageId={pageId} />;
+  if (!workspaceId) return <EmptyState icon={emptyIconByTab.share} title={emptyTitleByTab.share} size="sm" />;
+  return <ShareTab key={pageId} pageId={pageId} workspaceId={workspaceId} />;
 }
 
 export function SidePanel() {
-  const params = useParams<{ pageId?: string }>();
+  const params = useParams<{ workspaceId?: string; pageId?: string }>();
   const isOpen = useNotesUiStore((state) => state.isSidePanelOpen);
   const setOpen = useNotesUiStore((state) => state.setSidePanelOpen);
   const activeTab = useNotesUiStore((state) => state.sidePanelTab);
@@ -122,7 +124,7 @@ export function SidePanel() {
           </div>
           {tabs.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="mt-0 h-[calc(100%_-_44px)] overflow-hidden">
-              <PanelContent pageId={params.pageId} tab={tab.value} />
+              <PanelContent pageId={params.pageId} workspaceId={params.workspaceId} tab={tab.value} />
             </TabsContent>
           ))}
         </Tabs>

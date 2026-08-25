@@ -4,13 +4,20 @@ import {
   commentBodySchema,
   commentSchema,
   commentSegmentSchema,
+  createShareLinkInputSchema,
+  effectivePagePermissionSchema,
   favoriteItemSchema,
   pageDetailSchema,
   pageRoleSchema,
   pageSchema,
   pageVersionDetailSchema,
   pageVersionSchema,
+  permissionFormSchema,
+  setPermissionInputSchema,
+  shareLinkFormSchema,
+  shareLinkSchema,
   trashItemSchema,
+  updateShareLinkInputSchema,
   workspaceInviteSchema,
   workspaceMemberSchema,
   workspaceRoleSchema,
@@ -32,3 +39,10 @@ export type CommentBody = z.infer<typeof commentBodySchema>;
 export type Comment = z.infer<typeof commentSchema>;
 export type PageVersion = z.infer<typeof pageVersionSchema>;
 export type PageVersionDetail = z.infer<typeof pageVersionDetailSchema>;
+export type EffectivePagePermission = z.infer<typeof effectivePagePermissionSchema>;
+export type SetPermissionInput = z.infer<typeof setPermissionInputSchema>;
+export type PermissionFormValues = z.infer<typeof permissionFormSchema>;
+export type ShareLink = z.infer<typeof shareLinkSchema>;
+export type CreateShareLinkInput = z.infer<typeof createShareLinkInputSchema>;
+export type UpdateShareLinkInput = z.infer<typeof updateShareLinkInputSchema>;
+export type ShareLinkFormValues = z.infer<typeof shareLinkFormSchema>;

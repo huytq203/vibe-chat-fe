@@ -18,6 +18,7 @@ vi.mock('../NoteCanvas', () => ({
 }));
 vi.mock('./CommentThread', () => ({ CommentThread: () => null }));
 vi.mock('./VersionList', () => ({ VersionList: () => null }));
+vi.mock('./ShareTab', () => ({ ShareTab: () => null }));
 vi.mock('../sidebar/FavoriteList', () => ({ FavoriteList: () => null }));
 vi.mock('../sidebar/PageTree', () => ({ PageTree: () => null }));
 vi.mock('../sidebar/WorkspaceSwitcher', () => ({ WorkspaceSwitcher: () => null }));

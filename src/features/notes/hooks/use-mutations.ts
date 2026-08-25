@@ -4,10 +4,11 @@ import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-q
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { notionKeys } from '@/services/keys';
-import type { CommentBody, Page } from '@/features/notes/types';
+import type { CommentBody, CreateShareLinkInput, Page, SetPermissionInput,
+  UpdateShareLinkInput } from '@/features/notes/types';
 import {
   commentsApi, favoritesApi, invitesApi, pagesApi,
-  trashApi, versionsApi, workspacesApi,
+  permissionsApi, shareLinksApi, trashApi, versionsApi, workspacesApi,
 } from '@/services/notion.api';
 
 type CreateWorkspaceInput = { name: string; icon?: string };
@@ -59,15 +60,23 @@ function invalidateComments(qc: QueryClient, pageId: string, blockId?: string) {
   return Promise.all(requests);
 }
 
-export function useCreateWorkspace() {
+function useInvalidatingMutation<TData, TVariables>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  queryKey: (variables: TVariables) => readonly unknown[],
+  exact = false,
+) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: CreateWorkspaceInput) => workspacesApi.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: notionKeys.workspaces() }),
+  return useMutation({ mutationFn,
+    onSuccess: (_, variables) => qc.invalidateQueries({
+      queryKey: queryKey(variables), exact,
+    }),
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
+export function useCreateWorkspace() {
+  return useInvalidatingMutation((input: CreateWorkspaceInput) =>
+    workspacesApi.create(input), () => notionKeys.workspaces());
+}
 export function useUpdateWorkspace() {
   const qc = useQueryClient();
   return useMutation({
@@ -80,50 +89,26 @@ export function useUpdateWorkspace() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useCreateInvite() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ workspaceId, input }: { workspaceId: string; input: CreateInviteInput }) =>
+  return useInvalidatingMutation(
+    ({ workspaceId, input }: { workspaceId: string; input: CreateInviteInput }) =>
       workspacesApi.createInvite(workspaceId, input),
-    onSuccess: (_, { workspaceId }) =>
-      qc.invalidateQueries({ queryKey: notionKeys.members(workspaceId) }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+    ({ workspaceId }) => notionKeys.members(workspaceId));
 }
-
 export function useAcceptInvite() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (token: string) => invitesApi.accept(token),
-    onSuccess: () => qc.invalidateQueries({ queryKey: notionKeys.workspaces() }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+  return useInvalidatingMutation((token: string) => invitesApi.accept(token),
+    () => notionKeys.workspaces());
 }
-
 export function useRemoveMember() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ workspaceId, userId }: { workspaceId: string; userId: string }) =>
+  return useInvalidatingMutation(
+    ({ workspaceId, userId }: { workspaceId: string; userId: string }) =>
       workspacesApi.removeMember(workspaceId, userId),
-    onSuccess: (_, { workspaceId }) =>
-      qc.invalidateQueries({ queryKey: notionKeys.members(workspaceId) }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+    ({ workspaceId }) => notionKeys.members(workspaceId));
 }
-
 export function useCreatePage() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: CreatePageInput) => pagesApi.create(input),
-    onSuccess: (_, input) =>
-      qc.invalidateQueries({
-        queryKey: notionKeys.pageChildren(input.workspaceId, input.parentId ?? null),
-      }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+  return useInvalidatingMutation((input: CreatePageInput) => pagesApi.create(input),
+    (input) => notionKeys.pageChildren(input.workspaceId, input.parentId ?? null));
 }
-
 export function useUpdatePage() {
   const qc = useQueryClient();
   return useMutation({
@@ -139,7 +124,6 @@ export function useUpdatePage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useRemovePage() {
   const qc = useQueryClient();
   return useMutation({
@@ -155,7 +139,6 @@ export function useRemovePage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useMovePage() {
   const qc = useQueryClient();
   return useMutation<Page, Error, MovePageInput, MovePageContext>({
@@ -195,25 +178,14 @@ export function useMovePage() {
     },
   });
 }
-
 export function useAddFavorite() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: UpsertFavoriteInput) => favoritesApi.upsert(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: notionKeys.favorites() }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+  return useInvalidatingMutation((input: UpsertFavoriteInput) =>
+    favoritesApi.upsert(input), () => notionKeys.favorites());
 }
-
 export function useRemoveFavorite() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (pageId: string) => favoritesApi.remove(pageId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: notionKeys.favorites() }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+  return useInvalidatingMutation((pageId: string) => favoritesApi.remove(pageId),
+    () => notionKeys.favorites());
 }
-
 export function useRestoreTrash() {
   const qc = useQueryClient();
   return useMutation({
@@ -232,7 +204,6 @@ export function useRestoreTrash() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function usePurgeTrash() {
   const qc = useQueryClient();
   return useMutation({
@@ -245,7 +216,6 @@ export function usePurgeTrash() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useCreateComment() {
   const qc = useQueryClient();
   return useMutation({
@@ -254,7 +224,6 @@ export function useCreateComment() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useUpdateComment() {
   const qc = useQueryClient();
   return useMutation({
@@ -264,7 +233,6 @@ export function useUpdateComment() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useRemoveComment() {
   const qc = useQueryClient();
   return useMutation({
@@ -274,18 +242,12 @@ export function useRemoveComment() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 }
-
 export function useCreateVersion() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ pageId, label }: { pageId: string; label?: string }) =>
+  return useInvalidatingMutation(
+    ({ pageId, label }: { pageId: string; label?: string }) =>
       versionsApi.create(pageId, { label }),
-    onSuccess: (_, { pageId }) =>
-      qc.invalidateQueries({ queryKey: notionKeys.versions(pageId) }),
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
+    ({ pageId }) => notionKeys.versions(pageId));
 }
-
 export function useRestoreVersion() {
   const qc = useQueryClient();
   return useMutation({
@@ -296,4 +258,33 @@ export function useRestoreVersion() {
     ]),
     onError: (e) => toast.error(getErrorMessage(e)),
   });
+}
+export function useSetPermission() {
+  return useInvalidatingMutation(
+    ({ pageId, input }: { pageId: string; input: SetPermissionInput }) =>
+      permissionsApi.set(pageId, input),
+    ({ pageId }) => notionKeys.permissions(pageId), true);
+}
+export function useRemovePermission() {
+  return useInvalidatingMutation(
+    ({ pageId, permissionId }: { pageId: string; permissionId: string }) =>
+      permissionsApi.remove(pageId, permissionId),
+    ({ pageId }) => notionKeys.permissions(pageId), true);
+}
+export function useCreateShareLink() {
+  return useInvalidatingMutation(
+    ({ pageId, input }: { pageId: string; input: CreateShareLinkInput }) =>
+      shareLinksApi.create(pageId, input),
+    ({ pageId }) => notionKeys.shareLink(pageId), true);
+}
+export function useUpdateShareLink() {
+  return useInvalidatingMutation(
+    ({ linkId, input }: { pageId: string; linkId: string;
+      input: UpdateShareLinkInput }) => shareLinksApi.update(linkId, input),
+    ({ pageId }) => notionKeys.shareLink(pageId), true);
+}
+export function useRemoveShareLink() {
+  return useInvalidatingMutation(
+    ({ linkId }: { pageId: string; linkId: string }) => shareLinksApi.remove(linkId),
+    ({ pageId }) => notionKeys.shareLink(pageId), true);
 }

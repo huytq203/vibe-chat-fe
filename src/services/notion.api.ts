@@ -2,42 +2,23 @@ import type { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
 import type { CommentBody } from '@/features/notes/types';
 import {
-  breadcrumbSchema,
-  commentRecordSchema,
-  commentSchema,
-  deleteFavoriteResultSchema,
-  favoriteItemSchema,
-  favoriteSchema,
-  pageDetailSchema,
-  pageSchema,
-  pageVersionDetailSchema,
-  pageVersionSchema,
-  permanentDeleteResultSchema,
-  publicPageSchema,
-  publicUnlockResultSchema,
-  removeCommentResultSchema,
-  removeMemberResultSchema,
-  restoreTrashResultSchema,
-  restoreVersionResultSchema,
-  softDeletePageResultSchema,
-  trashItemSchema,
-  workspaceInviteSchema,
-  workspaceMemberSchema,
-  workspaceSchema,
+  breadcrumbSchema, commentRecordSchema, commentSchema, deleteFavoriteResultSchema,
+  effectivePagePermissionSchema, favoriteItemSchema, favoriteSchema, pageDetailSchema,
+  pagePermissionSchema, pageSchema, pageVersionDetailSchema, pageVersionSchema,
+  permanentDeleteResultSchema, publicPageSchema, publicUnlockResultSchema,
+  removeCommentResultSchema, removeMemberResultSchema, restoreTrashResultSchema,
+  restoreVersionResultSchema, revokePermissionResultSchema, shareLinkSchema,
+  softDeletePageResultSchema, trashItemSchema, workspaceInviteSchema,
+  workspaceMemberRecordSchema, workspaceMemberSchema, workspaceSchema,
 } from '@/features/notes/schemas';
+import type { CreateShareLinkInput, SetPermissionInput,
+  UpdateShareLinkInput } from '@/features/notes/types';
 
 type CreateWorkspaceInput = { name: string; icon?: string };
 type UpdateWorkspaceInput = { name?: string; icon?: string };
-type CreateInviteInput = {
-  invitedUserId?: string;
-  email?: string;
-  role: 'ADMIN' | 'MEMBER' | 'GUEST';
-};
-type CreatePageInput = {
-  workspaceId: string;
-  parentId?: string;
-  title?: string;
-};
+type CreateInviteInput = { invitedUserId?: string; email?: string;
+  role: 'ADMIN' | 'MEMBER' | 'GUEST' };
+type CreatePageInput = { workspaceId: string; parentId?: string; title?: string };
 type UpdatePageInput = { icon?: string | null; coverUrl?: string | null };
 
 /** `parentId` bắt buộc để đổi thứ tự không vô tình nhấc trang lên gốc. */
@@ -51,10 +32,7 @@ type CreateCommentInput = {
 type UpdateCommentInput = { body?: CommentBody; resolved?: boolean };
 type CreateVersionInput = { label?: string };
 
-interface PublicPageOptions {
-  pageId?: string;
-  sessionToken?: string;
-}
+interface PublicPageOptions { pageId?: string; sessionToken?: string }
 
 export const PUBLIC_PAGE_SESSION_COOKIE = 'halo_public_share_session';
 const PUBLIC_SHARE_SESSION_HEADER = 'x-share-session';
@@ -104,7 +82,7 @@ export const invitesApi = {
     const raw = await apiClient.post<unknown>(`/api/v1/invites/${token}/accept`, {
       service: 'notion',
     });
-    return workspaceMemberSchema.parse(raw);
+    return workspaceMemberRecordSchema.parse(raw);
   },
 } as const;
 
@@ -242,6 +220,52 @@ export const versionsApi = {
       service: 'notion',
     });
     return restoreVersionResultSchema.parse(raw);
+  },
+} as const;
+
+export const permissionsApi = {
+  list: async (pageId: string) => {
+    const raw = await apiClient.get<unknown>(`/api/v1/pages/${pageId}/permissions`, {
+      service: 'notion',
+    });
+    return effectivePagePermissionSchema.array().parse(raw);
+  },
+  set: async (pageId: string, input: SetPermissionInput) => {
+    const raw = await apiClient.put<unknown>(`/api/v1/pages/${pageId}/permissions`, {
+      body: input, service: 'notion',
+    });
+    return pagePermissionSchema.parse(raw);
+  },
+  remove: async (pageId: string, permissionId: string) => {
+    const path = `/api/v1/pages/${pageId}/permissions/${permissionId}`;
+    const raw = await apiClient.delete<unknown>(path, { service: 'notion' });
+    return revokePermissionResultSchema.parse(raw);
+  },
+} as const;
+
+export const shareLinksApi = {
+  get: async (pageId: string) => {
+    const raw = await apiClient.get<unknown>(`/api/v1/pages/${pageId}/share-link`, {
+      service: 'notion',
+    });
+    return shareLinkSchema.nullable().parse(raw);
+  },
+  create: async (pageId: string, input: CreateShareLinkInput) => {
+    const raw = await apiClient.post<unknown>(`/api/v1/pages/${pageId}/share-link`, {
+      body: input, service: 'notion',
+    });
+    return shareLinkSchema.parse(raw);
+  },
+  update: async (linkId: string, input: UpdateShareLinkInput) => {
+    const raw = await apiClient.patch<unknown>(`/api/v1/share-links/${linkId}`, {
+      body: input, service: 'notion',
+    });
+    return shareLinkSchema.parse(raw);
+  },
+  remove: async (linkId: string) => {
+    const raw = await apiClient.delete<unknown>(`/api/v1/share-links/${linkId}`,
+      { service: 'notion' });
+    return shareLinkSchema.parse(raw);
   },
 } as const;
 

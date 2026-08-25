@@ -171,6 +171,8 @@ export const notionKeys = {
       : ([...notionKeys.all, 'comments', pageId] as const),
   versions: (pageId: string) => [...notionKeys.all, 'versions', pageId] as const,
   version: (versionId: string) => [...notionKeys.all, 'version', versionId] as const,
+  permissions: (pageId: string) => [...notionKeys.all, 'permissions', pageId] as const,
+  shareLink: (pageId: string) => [...notionKeys.all, 'share-link', pageId] as const,
   favorites: () => [...notionKeys.all, 'favorites'] as const,
   trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
 } as const;

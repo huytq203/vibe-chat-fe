@@ -5,6 +5,8 @@ import {
   commentsApi,
   favoritesApi,
   pagesApi,
+  permissionsApi,
+  shareLinksApi,
   trashApi,
   versionsApi,
   workspacesApi,
@@ -79,6 +81,26 @@ export function useVersion(versionId: string) {
     queryKey: notionKeys.version(versionId),
     queryFn: () => versionsApi.detail(versionId),
     enabled: Boolean(versionId),
+  });
+}
+
+/**
+ * `options.enabled` để ShareTab tắt query này với người không có quyền `FULL`
+ * trên trang — tránh gọi API chắc chắn nhận `403`.
+ */
+export function usePermissions(pageId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: notionKeys.permissions(pageId),
+    queryFn: () => permissionsApi.list(pageId),
+    enabled: Boolean(pageId) && (options?.enabled ?? true),
+  });
+}
+
+export function useShareLink(pageId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: notionKeys.shareLink(pageId),
+    queryFn: () => shareLinksApi.get(pageId),
+    enabled: Boolean(pageId) && (options?.enabled ?? true),
   });
 }
 
