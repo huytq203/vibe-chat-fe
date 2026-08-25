@@ -2,8 +2,20 @@
 
 import { vi as vietnameseDictionary } from '@blocknote/core/locales';
 import type { BlocksChanged } from '@blocknote/core';
+// `collaboration` không phải field của BlockNoteEditorOptions — tự đặt nó vào object
+// options (như code cũ làm) là no-op âm thầm: TypeScript không báo lỗi (đối tượng chứ
+// không phải literal ngay chỗ gọi), plugin ySync không bao giờ được cài, ProseMirror
+// gõ được bình thường nhưng Y.Doc không bao giờ nhận update — mất nội dung hoàn toàn,
+// không lỗi nào hiện ra. withCollaboration() (chỉ có ở subpath /yjs) mới thực sự thêm
+// CollaborationExtension (ySync/yCursor/yUndo) vào extensions.
+import { withCollaboration } from '@blocknote/core/yjs';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/shadcn';
+// Bắt buộc: định nghĩa toàn bộ layout/vị trí của BlockNote (cỡ chữ heading, slash
+// menu, formatting toolbar, side menu kéo-thả…) — thiếu import này thì heading trông
+// giống văn bản thường và các menu nổi định vị/hiển thị sai. editorThemeClasses bên
+// dưới chỉ GHI ĐÈ màu lên nền CSS này, không thay thế được nó.
+import '@blocknote/shadcn/style.css';
 import {
   useCallback,
   useEffect,
@@ -12,6 +24,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { toast } from 'sonner';
+import type { Awareness } from 'y-protocols/awareness';
 
 import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
@@ -231,10 +244,12 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, pageId, person, pro
     id: person.userId,
     name: person.name,
   }), [person]);
-  const editor = useCreateBlockNote({
+  const editor = useCreateBlockNote(withCollaboration({
     collaboration: {
       fragment: doc.getXmlFragment(COLLAB_FRAGMENT_NAME),
-      provider,
+      // HocuspocusProvider.awareness kiểu Awareness | null (thư viện), BlockNote đòi
+      // Awareness | undefined — provider luôn có awareness khi tới đây, ép kiểu an toàn.
+      provider: provider as unknown as { awareness?: Awareness },
       renderCursor: createCollabCursorElement,
       showCursorLabels: 'always',
       user,
@@ -242,7 +257,7 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, pageId, person, pro
     dictionary: vietnameseEditorDictionary,
     resolveFileUrl: resolveAttachmentFileUrl,
     uploadFile,
-  }, [doc, provider, user, uploadFile]);
+  }), [doc, provider, user, uploadFile]);
   const moveToBody = useCallback(() => {
     const firstBlock = editor.document[0] ?? editor.insertBlocks(
       [{ type: 'paragraph' }], editor.getTextCursorPosition().block, 'before',
