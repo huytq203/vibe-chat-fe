@@ -3,7 +3,7 @@ import { setupServer } from 'msw/node';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TrashItem } from '@/features/notes/types';
-import { renderWithProviders, screen, waitFor } from '@/test/test-utils';
+import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils';
 import { TrashList } from './TrashList';
 
 vi.hoisted(() => {
@@ -142,5 +142,21 @@ describe('danh sách thùng rác', () => {
     await user.click(screen.getByRole('button', { name: 'Xác nhận xoá vĩnh viễn' }));
 
     await waitFor(() => expect(purgeCount).toBe(1));
+  });
+
+  it('xoá vĩnh viễn: hiện tên trang ngoài ô nhập và cho phép copy', async () => {
+    const title = 'Kế hoạch ra mắt 2026';
+    useTrashResponse([buildItem({ id: 'item-5', title })]);
+    renderWithProviders(<TrashList workspaceId={WORKSPACE_ID} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xoá vĩnh viễn' }));
+
+    const dialog = screen.getByRole('alertdialog');
+    const displayedTitle = within(dialog).getByText(title);
+
+    expect(displayedTitle).toBeVisible();
+    expect(displayedTitle).not.toHaveAttribute('placeholder');
+    expect(displayedTitle).not.toHaveClass('select-none');
+    expect(getComputedStyle(displayedTitle).userSelect).not.toBe('none');
   });
 });

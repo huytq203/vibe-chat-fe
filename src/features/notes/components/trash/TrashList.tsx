@@ -64,12 +64,18 @@ function PurgeDialog({ isPending, onConfirm, onOpenChange, open, title }: PurgeD
             tên trang để xác nhận.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <Input
-          value={typedTitle}
-          onChange={(event) => setTypedTitle(event.target.value)}
-          placeholder={title}
-          aria-label="Nhập tên trang để xác nhận"
-        />
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Tên trang cần nhập:{' '}
+            <span className="break-words font-medium text-foreground">{title}</span>
+          </p>
+          <Input
+            value={typedTitle}
+            onChange={(event) => setTypedTitle(event.target.value)}
+            placeholder={title}
+            aria-label="Nhập tên trang để xác nhận"
+          />
+        </div>
         <AlertDialogFooter>
           <Button type="button" variant="ghost" size="sm" disabled={isPending}
             onClick={() => onOpenChange(false)}>
