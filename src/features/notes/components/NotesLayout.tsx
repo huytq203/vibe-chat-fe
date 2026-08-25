@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, type ReactNode } from 'react';
 import { PanelLeft } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
@@ -12,7 +12,9 @@ import { NoteCanvas } from './NoteCanvas';
 import { SidePanel } from './panel/SidePanel';
 import { FavoriteList } from './sidebar/FavoriteList';
 import { PageTree } from './sidebar/PageTree';
+import { TrashLink } from './sidebar/TrashLink';
 import { WorkspaceSwitcher } from './sidebar/WorkspaceSwitcher';
+import { TrashView } from './trash/TrashView';
 
 interface NotesFrameProps {
   sidebar: ReactNode;
@@ -60,8 +62,13 @@ function NotesLayoutSkeleton() {
 }
 
 function useNotesNavigation() {
+  const pathname = usePathname();
   const params = useParams<{ workspaceId?: string; pageId?: string }>();
   const router = useRouter();
+  // `/notes/trash` không có [workspaceId] trong path (thùng rác dùng workspace
+  // đang hoạt động, không phải một route con của workspace) — phải phân biệt
+  // với "chưa chọn workspace" để không bị effect dưới điều hướng nhầm đi.
+  const isTrashRoute = pathname === '/notes/trash';
   const routeWorkspaceId = params.workspaceId ?? null;
   const storedWorkspaceId = useNotesUiStore((state) => state.activeWorkspaceId);
   const setActiveWorkspace = useNotesUiStore((state) => state.setActiveWorkspace);
@@ -72,11 +79,12 @@ function useNotesNavigation() {
       if (storedWorkspaceId !== routeWorkspaceId) setActiveWorkspace(routeWorkspaceId);
       return;
     }
+    if (isTrashRoute && storedWorkspaceId) return;
     const firstWorkspace = workspacesQuery.data?.[0];
     if (!firstWorkspace) return;
     setActiveWorkspace(firstWorkspace.id);
-    router.replace(`/notes/${firstWorkspace.id}`);
-  }, [routeWorkspaceId, router, setActiveWorkspace, storedWorkspaceId, workspacesQuery.data]);
+    if (!isTrashRoute) router.replace(`/notes/${firstWorkspace.id}`);
+  }, [isTrashRoute, routeWorkspaceId, router, setActiveWorkspace, storedWorkspaceId, workspacesQuery.data]);
 
   const handleSelectWorkspace = useCallback((id: string) => {
     setActiveWorkspace(id);
@@ -90,6 +98,7 @@ function useNotesNavigation() {
     activeWorkspaceId: routeWorkspaceId ?? storedWorkspaceId,
     handleSelectPage,
     handleSelectWorkspace,
+    isTrashRoute,
     pageId: params.pageId ?? null,
     routeWorkspaceId,
     workspacesQuery,
@@ -101,10 +110,11 @@ interface ActiveNotesFrameProps {
   pageId: string | null;
   workspaceSwitcher: ReactNode;
   onSelectPage: (id: string) => void;
+  isTrashRoute: boolean;
 }
 
 function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
-  onSelectPage,
+  onSelectPage, isTrashRoute,
 }: ActiveNotesFrameProps) {
   return (
     <NotesFrame
@@ -119,13 +129,16 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
               onSelectPage={onSelectPage}
             />
           </div>
+          <div className="px-2"><TrashLink /></div>
         </div>
       )}
     >
-      <div data-testid="notes-content-flow" className="flex min-w-0 flex-1">
-        <NoteCanvas pageId={pageId} onSelectPage={onSelectPage} />
-        <SidePanel />
-      </div>
+      {isTrashRoute ? <TrashView workspaceId={workspaceId} /> : (
+        <div data-testid="notes-content-flow" className="flex min-w-0 flex-1">
+          <NoteCanvas pageId={pageId} onSelectPage={onSelectPage} />
+          <SidePanel />
+        </div>
+      )}
     </NotesFrame>
   );
 }
@@ -134,7 +147,9 @@ export function NotesLayout() {
   const navigation = useNotesNavigation();
   const { data: workspaces, isLoading, isError, refetch } = navigation.workspacesQuery;
 
-  if (isLoading || (!navigation.routeWorkspaceId && workspaces && workspaces.length > 0)) {
+  const waitingForWorkspaceRedirect = !navigation.routeWorkspaceId && !navigation.isTrashRoute
+    && workspaces && workspaces.length > 0;
+  if (isLoading || waitingForWorkspaceRedirect) {
     return <NotesLayoutSkeleton />;
   }
 
@@ -172,6 +187,7 @@ export function NotesLayout() {
       pageId={navigation.pageId}
       workspaceSwitcher={workspaceSwitcher}
       onSelectPage={navigation.handleSelectPage}
+      isTrashRoute={navigation.isTrashRoute}
     />
   );
 }

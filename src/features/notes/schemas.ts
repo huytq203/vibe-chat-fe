@@ -101,6 +101,8 @@ export const trashItemSchema = z.object({
   deletedBy: z.string().nullable(),
   // Số trang sẽ quay lại khi khôi phục mục này.
   pageCount: z.number().int(),
+  parentId: z.string().nullable(),
+  parentTitle: z.string().nullable(),
 });
 
 export const restoreTrashResultSchema = z.object({

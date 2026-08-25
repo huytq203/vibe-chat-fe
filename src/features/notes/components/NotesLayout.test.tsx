@@ -36,6 +36,7 @@ const collabMocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
+  usePathname: () => '/notes',
   useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
 }));
 

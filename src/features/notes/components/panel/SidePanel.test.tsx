@@ -1,11 +1,15 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { usePathname } from 'next/navigation';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { NotesLayout } from '../NotesLayout';
 
+const DEFAULT_PATHNAME = '/notes/workspace-1/page-1';
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ workspaceId: 'workspace-1', pageId: 'page-1' }),
+  usePathname: vi.fn(() => DEFAULT_PATHNAME),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock('@/features/notes/hooks/use-query', () => ({
@@ -22,6 +26,9 @@ vi.mock('./ShareTab', () => ({ ShareTab: () => null }));
 vi.mock('../sidebar/FavoriteList', () => ({ FavoriteList: () => null }));
 vi.mock('../sidebar/PageTree', () => ({ PageTree: () => null }));
 vi.mock('../sidebar/WorkspaceSwitcher', () => ({ WorkspaceSwitcher: () => null }));
+vi.mock('../trash/TrashView', () => ({
+  TrashView: () => <div data-testid="notes-trash-view" />,
+}));
 
 function resetStore(isOpen = false) {
   useNotesUiStore.setState({
@@ -35,6 +42,7 @@ function resetStore(isOpen = false) {
 afterEach(() => {
   resetStore();
   useNotesUiStore.persist.clearStorage();
+  vi.mocked(usePathname).mockReturnValue(DEFAULT_PATHNAME);
 });
 
 describe('bảng bên ghi chú', () => {
@@ -67,5 +75,15 @@ describe('bảng bên ghi chú', () => {
 
     act(() => useNotesUiStore.getState().setSidePanelOpen(false));
     expect(screen.getByTestId('notes-side-panel')).toHaveClass('w-0');
+  });
+
+  it('/notes/trash hiện TrashView, ẩn NoteCanvas và SidePanel', () => {
+    vi.mocked(usePathname).mockReturnValue('/notes/trash');
+    resetStore(true);
+    render(<NotesLayout />);
+
+    expect(screen.getByTestId('notes-trash-view')).toBeInTheDocument();
+    expect(screen.queryByTestId('notes-canvas')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('notes-side-panel')).not.toBeInTheDocument();
   });
 });
