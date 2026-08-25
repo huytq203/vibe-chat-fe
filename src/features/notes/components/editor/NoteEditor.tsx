@@ -87,7 +87,7 @@ const editorThemeClasses = [
   '[&_.bn-editor]:px-0 [&_.bn-editor]:py-0 [&_.bn-editor]:font-sans',
   '[&_.bn-editor]:text-base [&_.bn-editor]:leading-6',
   '[&_.bn-block-content]:min-h-10 [&_.bn-block-content]:py-2',
-  '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:top-2',
+  '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:top-[5px]',
   '[&_.bn-side-menu_.bn-button]:!bg-transparent [&_.bn-side-menu_.bn-button]:opacity-40 [&_.bn-side-menu_.bn-button:hover]:opacity-100 [&_.bn-side-menu_.bn-button[aria-expanded="true"]]:opacity-100 [&_.bn-side-menu_.bn-button]:cursor-pointer',
   '[&_.bn-side-menu_.bn-button_svg]:!w-4 [&_.bn-side-menu_.bn-button_svg]:!h-4',
 ].join(' ');
