@@ -101,6 +101,12 @@ export const apiAuth = {
 function resolveBase(path: string, service?: ApiService): string {
   // notion-service có prefix proxy riêng, phải xét trước nhánh USE_PROXY chung.
   if (service === 'notion') {
+    // Không có `window` nghĩa là đang chạy server-side (Next.js Server Component,
+    // vd. trang public /p/[token]) — fetch() ở đó không có origin trình duyệt để
+    // suy ra từ path tương đối, `/notion-proxy/...` sẽ ném "Failed to parse URL".
+    // Gọi thẳng notion-service bằng URL tuyệt đối; CORS chỉ chặn browser nên gọi
+    // thẳng ở server không có vấn đề gì.
+    if (typeof window === 'undefined') return env.NEXT_PUBLIC_NOTION_URL;
     return env.NEXT_PUBLIC_USE_PROXY ? '/notion-proxy' : env.NEXT_PUBLIC_NOTION_URL;
   }
   // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.

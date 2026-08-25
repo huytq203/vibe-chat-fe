@@ -83,4 +83,16 @@ describe('resolveApiUrl khi dùng proxy', () => {
     const { resolveApiUrl } = await import('./client');
     expect(resolveApiUrl('/api/v1/conversations')).toBe('/api/v1/conversations');
   });
+
+  it('nên gọi thẳng NEXT_PUBLIC_NOTION_URL cho notion-service khi chạy server (không có window) — fetch() không tự suy ra origin từ path tương đối như trình duyệt', async () => {
+    vi.stubGlobal('window', undefined);
+    try {
+      const { resolveApiUrl } = await import('./client');
+      expect(resolveApiUrl('/api/v1/public/some-token', 'notion')).toBe(
+        'http://notion.test/api/v1/public/some-token',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
