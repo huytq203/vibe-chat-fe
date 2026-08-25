@@ -30,6 +30,9 @@ interface UserPickerProps {
 
 function UserPicker({ error, onSelect, selectedId }: UserPickerProps) {
   const [query, setQuery] = useState('');
+  // Không có cờ này thì danh sách vẫn mở sau khi chọn (query vẫn còn >= 2 ký tự) và
+  // che mất hàng vai trò + nút Thêm ngay bên dưới (z-30) — bấm Thêm trúng danh sách.
+  const [isOpen, setIsOpen] = useState(false);
   const normalized = query.trim();
   const search = useQuery({ queryKey: userKeys.search(normalized, SEARCH_LIMIT),
     queryFn: () => usersApi.search({ q: normalized, limit: SEARCH_LIMIT }),
@@ -40,9 +43,9 @@ function UserPicker({ error, onSelect, selectedId }: UserPickerProps) {
       <Input aria-label="Tìm người để cấp quyền" value={query} error={error}
         icon={<Search aria-hidden="true" className="size-4" />}
         placeholder="Tìm theo tên hoặc @username" autoComplete="off"
-        onChange={(event) => { setQuery(event.target.value); onSelect(''); }} />
+        onChange={(event) => { setQuery(event.target.value); setIsOpen(true); onSelect(''); }} />
       {selectedId && <p className="mt-1 text-xs text-muted-foreground">Đã chọn người dùng</p>}
-      {normalized.length >= 2 && (
+      {isOpen && normalized.length >= 2 && (
         <ul role="listbox" aria-label="Kết quả tìm người"
           className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-md">
           {search.isLoading && <li className="px-2 py-2 text-xs text-muted-foreground">Đang tìm…</li>}
@@ -54,7 +57,11 @@ function UserPicker({ error, onSelect, selectedId }: UserPickerProps) {
             <li key={item.id}>
               <button type="button" role="option" aria-selected={selectedId === item.id}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-start hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => { onSelect(item.id); setQuery(item.displayName ?? `@${item.username}`); }}>
+                onClick={() => {
+                  onSelect(item.id);
+                  setQuery(item.displayName ?? `@${item.username}`);
+                  setIsOpen(false);
+                }}>
                 <Avatar size="sm" src={item.avatarUrl ?? undefined}
                   alt={item.displayName ?? item.username} />
                 <span className="min-w-0"><span className="block truncate text-sm text-foreground">{item.displayName ?? item.username}</span>
