@@ -9,8 +9,8 @@ import type { BlocksChanged } from '@blocknote/core';
 // không lỗi nào hiện ra. withCollaboration() (chỉ có ở subpath /yjs) mới thực sự thêm
 // CollaborationExtension (ySync/yCursor/yUndo) vào extensions.
 import { withCollaboration } from '@blocknote/core/yjs';
-import { SideMenuController, useCreateBlockNote } from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/shadcn';
+import { useCreateBlockNote } from '@blocknote/react';
+import { BlockNoteView } from '@blocknote/mantine';
 // Bắt buộc: định nghĩa toàn bộ layout/vị trí của BlockNote (cỡ chữ heading, slash
 // menu, formatting toolbar, side menu kéo-thả…) — thiếu import này thì heading trông
 // giống văn bản thường và các menu nổi định vị/hiển thị sai. editorThemeClasses bên
@@ -49,7 +49,6 @@ import {
 } from '@/lib/collab';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
-import { BlockSideMenu } from './BlockSideMenu';
 import { NoteTitle } from './NoteTitle';
 const EMPTY_PLACEHOLDER = "Nhấn `/` để chèn khối";
 const DOCUMENT_WARNING_BYTES = 3 * 1024 * 1024;
@@ -86,16 +85,16 @@ const editorThemeClasses = [
   '[&.bn-root.bn-root]:[--bn-font-family:var(--font-sans)]',
   '[&_.bn-editor]:rounded-none [&_.bn-editor]:bg-transparent',
   '[&_.bn-editor]:px-0 [&_.bn-editor]:py-0 [&_.bn-editor]:font-sans',
-  '[&_.bn-editor]:text-base [&_.bn-editor]:leading-6',
-  '[&_.bn-block-content]:min-h-10 [&_.bn-block-content]:py-2',
-  '[&_.bn-side-menu]:relative [&_.bn-side-menu]:-left-1 [&_.bn-side-menu]:!h-6',
-  '[&_.bn-toggle-button]:!text-muted-foreground [&_.bn-toggle-button_svg]:!w-4 [&_.bn-toggle-button_svg]:!h-4',
-  '[&_[data-content-type="heading"]]:![--level:1.75rem]',
-  '[&_[data-content-type="heading"][data-level="2"]]:![--level:1.5rem]',
-  '[&_[data-content-type="heading"][data-level="3"]]:![--level:1.25rem]',
-  '[&_[data-content-type="heading"][data-level="4"]]:![--level:1.2rem]',
-  '[&_[data-content-type="heading"][data-level="5"]]:![--level:1.15rem]',
-  '[&_[data-content-type="heading"][data-level="6"]]:![--level:1.1rem]',
+  '[&_.bn-editor]:text-base',
+  // CỐ Ý KHÔNG ghi đè hình học của BlockNote (padding/min-height của
+  // .bn-block-content, vị trí .bn-side-menu, cỡ chữ heading qua --level).
+  // Đã đo và chứng minh: chính những override đó gây lệch side menu, không phải
+  // thư viện — biến thể Mantine gốc và bản side menu tự viết cho ra CÙNG một số
+  // lệch (đoạn văn −8px, heading +8px), và gỡ override đưa đoạn văn về −2.6px.
+  // BlockNote tự canh side menu theo dòng đầu của từng loại khối; ép padding cố
+  // định hoặc thu nhỏ --level sẽ phá phần bù hình học nội bộ của nó
+  // ([data-content-type=heading] có padding-top:18px tính theo cỡ chữ mặc định).
+  // Ở đây chỉ ghi đè MÀU và FONT — những thứ BlockNote mở ra qua biến --bn-*.
 ].join(' ');
 
 interface NoteEditorProps {
@@ -286,13 +285,10 @@ function ConnectedEditor({ commentedBlockIds, doc, editable, page, pageId, perso
           className={`mt-4 ${editorThemeClasses}`}
           editable={editable}
           editor={editor}
-          sideMenu={false}
           theme={currentTheme.isDark ? 'dark' : 'light'}
           onKeyUp={handleCursorKey}
           onPointerUp={markCursorMoved}
-        >
-          <SideMenuController sideMenu={BlockSideMenu} />
-        </BlockNoteView>
+        />
       </div>
     </>
   );
