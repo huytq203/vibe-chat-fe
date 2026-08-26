@@ -20,6 +20,29 @@ export interface CollabPerson {
 }
 
 type AwarenessSnapshot = { owner: CollabProvider | null; entries: CollabAwarenessEntry[] };
+/**
+ * Chữ ký của danh sách người đang xem — CHỈ gồm thứ quyết định `CollabPerson`.
+ *
+ * Awareness bắn 'change' cho MỌI field, kể cả `cursorMovedAt` mà chính ta ghi ở mỗi
+ * `pointerup`. Nếu cứ thế `setSnapshot` object mới thì React re-render cả cây editor
+ * ngay giữa `pointerup` và `mouseup`, menu nổi của BlockNote bị dựng lại, `mouseup`
+ * rơi sang node khác nên trình duyệt KHÔNG sinh `click` — bảng màu bấm chuột không ăn
+ * còn bàn phím vẫn chạy. Đã đo trên trình duyệt: mousedown vào `.mantine-Menu-itemLabel`
+ * nhưng mouseup vào `.mantine-Menu-dropdown`, cách nhau 45ms và 45 mutation.
+ * Nhãn con trỏ KHÔNG bị ảnh hưởng: `startCollabCursorLabels` nghe awareness trực tiếp,
+ * không đi qua React.
+ */
+function peopleSignature(entries: CollabAwarenessEntry[]): string {
+  return entries
+    .map((entry) => {
+      const value = entry.state.user;
+      if (!value || typeof value !== 'object') return `${entry.clientId}:-`;
+      return `${entry.clientId}:${Reflect.get(value, 'id')}:${Reflect.get(value, 'name')}`;
+    })
+    .sort()
+    .join('|');
+}
+
 function personFromEntry(entry: CollabAwarenessEntry): CollabPerson | null {
   const value = entry.state.user;
   if (!value || typeof value !== 'object') return null;
@@ -65,7 +88,13 @@ export function useAwareness(provider: CollabProvider | null): CollabPerson[] {
     if (!provider) return;
     let active = true;
     const update = (nextEntries: CollabAwarenessEntry[]) => {
-      if (active) setSnapshot({ owner: provider, entries: nextEntries });
+      if (!active) return;
+      setSnapshot((prev) => (
+        prev.owner === provider
+          && peopleSignature(prev.entries) === peopleSignature(nextEntries)
+          ? prev
+          : { owner: provider, entries: nextEntries }
+      ));
     };
     setLocalCollabUser(provider, { id: self.userId, name: self.name, color: self.color });
     queueMicrotask(() => update(readCollabAwareness(provider)));

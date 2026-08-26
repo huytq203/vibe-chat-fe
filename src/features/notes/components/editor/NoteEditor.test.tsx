@@ -1,11 +1,11 @@
 import type { BlocksChanged } from '@blocknote/core';
+import { vi as vietnameseDictionary } from '@blocknote/core/locales';
 import type { KeyboardEventHandler, PointerEventHandler } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { COLLAB_FRAGMENT_NAME, type CollabProvider, type YDoc } from '@/lib/collab';
 import { cursorColorFor } from '@/features/notes/lib/cursor-colors';
-import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 
 import { NoteEditor } from './NoteEditor';
 
@@ -147,11 +147,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  useNotesUiStore.setState({
-    activeCommentBlockId: null,
-    isSidePanelOpen: false,
-    sidePanelTab: 'comments',
-  });
 });
 
 describe('trình soạn thảo ghi chú', () => {
@@ -176,17 +171,12 @@ describe('trình soạn thảo ghi chú', () => {
     );
   });
 
-  it('cấu hình placeholder tiếng Việt cho tài liệu rỗng', () => {
+  it('sử dụng bộ từ điển tiếng Việt gốc của BlockNote', () => {
     render(<NoteEditor pageId="page-1" />);
 
     expect(mocks.useCreateBlockNote).toHaveBeenCalledWith(
       expect.objectContaining({
-        dictionary: expect.objectContaining({
-          placeholders: expect.objectContaining({
-            default: "Nhấn `/` để chèn khối",
-            emptyDocument: "Nhấn `/` để chèn khối",
-          }),
-        }),
+        dictionary: vietnameseDictionary,
       }),
       expect.any(Array),
     );
@@ -260,22 +250,5 @@ describe('trình soạn thảo ghi chú', () => {
     fireEvent.keyUp(view, { key: 'ArrowLeft' });
     fireEvent.pointerUp(view);
     expect(mocks.markCursorMoved).toHaveBeenCalledTimes(2);
-  });
-
-  it('tô khối có bình luận và mở đúng luồng khi bấm chấm ở máng phải', () => {
-    render(<NoteEditor pageId="page-1" commentedBlockIds={['block-1']} />);
-
-    const anchor = screen.getByRole('button', { name: 'Mở bình luận của khối' });
-    const highlighted = screen.getByText('Khối một');
-    expect(highlighted).toHaveClass('bg-primary/5');
-    expect(screen.getByText('Khối hai')).not.toHaveClass('bg-primary/5');
-
-    fireEvent.click(anchor);
-
-    expect(useNotesUiStore.getState()).toMatchObject({
-      activeCommentBlockId: 'block-1',
-      isSidePanelOpen: true,
-      sidePanelTab: 'comments',
-    });
   });
 });

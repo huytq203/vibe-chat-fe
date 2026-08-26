@@ -64,4 +64,33 @@ describe('awareness của trang ghi chú', () => {
       expect.objectContaining({ userId: 'user-remote', name: 'Bạn cộng tác', isSelf: false }),
     ]));
   });
+
+  it('không render lại khi awareness chỉ đổi tín hiệu di chuyển con trỏ', async () => {
+    const { result } = renderHook(() => useAwareness(provider));
+    const remoteEntry: CollabAwarenessEntry = {
+      clientId: 2,
+      isSelf: false,
+      state: { user: { id: 'user-remote', name: 'Bạn cộng tác' } },
+    };
+
+    await waitFor(() => expect(mocks.listener).not.toBeNull());
+    act(() => mocks.listener?.([remoteEntry]));
+    await waitFor(() => expect(result.current).toHaveLength(2));
+
+    const peopleAfterJoin = result.current;
+
+    // `cursorMovedAt` là thứ `onPointerUp` của editor ghi vào awareness mỗi lần nhả chuột.
+    // Nếu nó kéo theo re-render thì cây editor dựng lại NGAY GIỮA mousedown và mouseup,
+    // menu nổi của BlockNote đổi node nên trình duyệt không sinh `click` — bảng màu bấm
+    // chuột không ăn còn bàn phím vẫn chạy. Đã đo thật trên trình duyệt trước khi sửa.
+    act(() => mocks.listener?.([
+      { ...remoteEntry, state: { ...remoteEntry.state, cursorMovedAt: Date.now() } },
+    ]));
+
+    // Giữ nguyên danh tính mảng ⇒ `setSnapshot` đã trả về đúng state cũ nên React
+    // bail-out, không commit: DOM và cây con không dựng lại. (React vẫn có thể render
+    // lại riêng hook này một lần để tính state mới — đó là hành vi bình thường, đếm số
+    // lần render không phải phép đo đúng ở đây.)
+    expect(result.current).toBe(peopleAfterJoin);
+  });
 });
