@@ -1,6 +1,7 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { workspaceSchema } from '@/features/notes/schemas';
 
 const NOTION_URL = 'http://localhost:3007';
 const CHAT_URL = 'http://localhost:3005';
@@ -25,9 +26,30 @@ const workspace = {
   icon: null,
   type: 'PERSONAL',
   ownerId: 'user-1',
+  myRole: 'OWNER',
   createdAt: '2026-08-24T00:00:00.000Z',
   updatedAt: '2026-08-24T00:00:00.000Z',
   deletedAt: null,
+};
+
+const sharedPage = {
+  id: 'page-1',
+  workspaceId: 'workspace-1',
+  parentId: null,
+  path: '/page-1',
+  depth: 0,
+  sortKey: 'a0',
+  title: 'Trang được chia sẻ',
+  icon: null,
+  coverUrl: null,
+  createdBy: 'user-1',
+  lastEditedBy: null,
+  createdAt: '2026-08-24T00:00:00.000Z',
+  updatedAt: '2026-08-24T00:00:00.000Z',
+  deletedAt: null,
+  deletedBy: null,
+  deletedRootId: null,
+  myRole: 'VIEW',
 };
 
 const comment = {
@@ -87,6 +109,26 @@ describe('lớp vận chuyển API ghi chú', () => {
     expect(result).toEqual([]);
     expect(receivedUrl?.searchParams.has('parentId')).toBe(false);
     expect(receivedUrl?.search).toBe('');
+  });
+
+  it('gọi đúng endpoint trang được chia sẻ và phân giải theo schema', async () => {
+    let receivedUrl: URL | undefined;
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/workspaces/:workspaceId/pages/shared`, ({ request }) => {
+        receivedUrl = new URL(request.url);
+        return envelope([sharedPage]);
+      }),
+    );
+
+    const result = await notionApi.pagesApi.listShared('workspace-1');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].myRole).toBe('VIEW');
+    expect(receivedUrl?.pathname).toBe('/api/v1/workspaces/workspace-1/pages/shared');
+  });
+
+  it('phân giải được workspace có myRole', () => {
+    expect(() => workspaceSchema.parse({ ...workspace, myRole: 'GUEST' })).not.toThrow();
   });
 
   it('ném lỗi khi response workspace sai schema', async () => {

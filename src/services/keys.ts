@@ -174,6 +174,8 @@ export const notionKeys = {
   permissions: (pageId: string) => [...notionKeys.all, 'permissions', pageId] as const,
   shareLink: (pageId: string) => [...notionKeys.all, 'share-link', pageId] as const,
   favorites: () => [...notionKeys.all, 'favorites'] as const,
+  sharedPages: (workspaceId: string) =>
+    [...notionKeys.all, 'shared-pages', workspaceId] as const,
   trash: (workspaceId: string) => [...notionKeys.all, 'trash', workspaceId] as const,
   search: (workspaceId: string, q: string) =>
     [...notionKeys.all, 'search', workspaceId, q] as const,

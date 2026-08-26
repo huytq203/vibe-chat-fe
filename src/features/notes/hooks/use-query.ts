@@ -112,6 +112,14 @@ export function useFavorites() {
   });
 }
 
+export function useSharedPages(workspaceId: string) {
+  return useQuery({
+    queryKey: notionKeys.sharedPages(workspaceId),
+    queryFn: () => pagesApi.listShared(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+}
+
 export function useTrash(workspaceId: string) {
   return useQuery({
     queryKey: notionKeys.trash(workspaceId),

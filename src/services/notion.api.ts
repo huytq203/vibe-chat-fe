@@ -93,6 +93,13 @@ export const pagesApi = {
     });
     return pageSchema.array().parse(raw);
   },
+  listShared: async (workspaceId: string) => {
+    const raw = await apiClient.get<unknown>(
+      `/api/v1/workspaces/${workspaceId}/pages/shared`,
+      { service: 'notion' },
+    );
+    return pageDetailSchema.array().parse(raw);
+  },
   create: async (input: CreatePageInput) => {
     const raw = await apiClient.post<unknown>('/api/v1/pages', {
       body: input, service: 'notion',

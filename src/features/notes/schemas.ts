@@ -11,6 +11,9 @@ export const workspaceSchema = z.object({
   icon: z.string().nullable(),
   type: z.enum(['PERSONAL', 'TEAM']),
   ownerId: z.string(),
+  // BE trả kèm vai trò của chính người gọi. Sidebar cần nó để phân biệt guest
+  // (cây trang rỗng là đúng thiết kế) với member (cây rỗng là bất thường).
+  myRole: workspaceRoleSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   deletedAt: z.iso.datetime().nullable(),

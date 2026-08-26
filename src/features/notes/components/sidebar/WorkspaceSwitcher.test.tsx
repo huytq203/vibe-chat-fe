@@ -30,6 +30,7 @@ function buildWorkspace(id: string, name: string, icon: string | null = null) {
     icon,
     type: 'TEAM',
     ownerId: 'user-1',
+    myRole: 'OWNER',
     createdAt: '2026-08-24T00:00:00.000Z',
     updatedAt: '2026-08-24T00:00:00.000Z',
     deletedAt: null,
