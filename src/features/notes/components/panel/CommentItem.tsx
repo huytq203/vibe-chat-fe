@@ -104,7 +104,7 @@ export function CommentItem({ canReply, comment, currentUserId, depth, onRemove,
           </time>
         </div>
         {isEditing ? (
-          <CommentComposer initialBody={comment.body} placeholder="Sửa bình luận" onCancel={() => setEditing(false)} onSubmit={async (body) => {
+          <CommentComposer initialBody={comment.body} placeholder="Sửa bình luận" profiles={profiles} onCancel={() => setEditing(false)} onSubmit={async (body) => {
             await onUpdate(comment, body);
             setEditing(false);
           }} />

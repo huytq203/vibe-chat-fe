@@ -30,12 +30,17 @@ function mentionContextAt(value: string, caret: number): MentionContext | null {
   return { start: beforeCaret.lastIndexOf('@'), query: match[1] ?? '' };
 }
 
-function bodyToDraft(body?: CommentBody): { value: string; tokens: MentionToken[] } {
+function bodyToDraft(
+  body?: CommentBody,
+  profiles?: ReadonlyMap<string, { displayName?: string | null; username: string }>,
+): { value: string; tokens: MentionToken[] } {
   let value = '';
   const tokens: MentionToken[] = [];
   for (const segment of body?.segments ?? []) {
     if (segment.type === 'text') { value += segment.text; continue; }
-    const label = `@${segment.userId}`;
+    const profile = profiles?.get(segment.userId);
+    const name = profile?.displayName?.trim() || profile?.username || segment.userId;
+    const label = `@${name}`;
     tokens.push({ start: value.length, end: value.length + label.length, label,
       userId: segment.userId });
     value += label;
@@ -81,8 +86,11 @@ function draftToBody(value: string, tokens: MentionToken[]): CommentBody {
   return { segments };
 }
 
-function useMentionDraft(initialBody?: CommentBody) {
-  const initial = useMemo(() => bodyToDraft(initialBody), [initialBody]);
+function useMentionDraft(
+  initialBody?: CommentBody,
+  profiles?: ReadonlyMap<string, { displayName?: string | null; username: string }>,
+) {
+  const initial = useMemo(() => bodyToDraft(initialBody, profiles), [initialBody, profiles]);
   const [value, setValue] = useState(initial.value);
   const [tokens, setTokens] = useState(initial.tokens);
   const [caret, setCaret] = useState(initial.value.length);
@@ -181,12 +189,13 @@ interface CommentComposerProps {
   onCancel?: () => void;
   onSubmit: (body: CommentBody) => Promise<unknown> | unknown;
   placeholder?: string;
+  profiles?: ReadonlyMap<string, { displayName?: string | null; username: string }>;
 }
 
 export function CommentComposer({ initialBody, isPending = false, onCancel, onSubmit,
-  placeholder = 'Viết bình luận…',
+  placeholder = 'Viết bình luận…', profiles,
 }: CommentComposerProps) {
-  const draft = useMentionDraft(initialBody);
+  const draft = useMentionDraft(initialBody, profiles);
   const queryText = draft.context?.query.trim() ?? '';
   const search = useQuery({ queryKey: userKeys.search(queryText, SEARCH_LIMIT),
     queryFn: () => usersApi.search({ q: queryText, limit: SEARCH_LIMIT }),
