@@ -10,6 +10,58 @@ interface PublicPageViewProps {
   token: string;
 }
 
+const PUBLIC_CONTENT_STYLES = `
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .bn-block-outer {
+    margin-block: 0.5rem;
+  }
+
+  [data-content-type="bulletListItem"],
+  [data-content-type="numberedListItem"] {
+    position: relative;
+    padding-inline-start: 1.5rem;
+  }
+
+  [data-content-type="bulletListItem"]::before,
+  [data-content-type="numberedListItem"]::before {
+    position: absolute;
+    inset-inline-start: 0.25rem;
+  }
+
+  [data-content-type="bulletListItem"]::before {
+    content: "•";
+  }
+
+  [data-content-type="numberedListItem"]::before {
+    content: attr(data-index) ".";
+  }
+
+  [data-content-type="checkListItem"] {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  [data-content-type="checkListItem"] input[type="checkbox"] {
+    flex: none;
+    margin-block-start: 0.35rem;
+  }
+
+  [data-content-type="codeBlock"] pre {
+    margin: 0;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    background: #f4f4f5;
+    padding: 1rem;
+  }
+`;
+
 function PageIcon({ icon, className }: { icon: string | null; className?: string }) {
   if (icon) return <span className={className}>{icon}</span>;
   return <FileText aria-hidden="true" className={className} />;
@@ -70,7 +122,7 @@ function PublicPageBody({ page }: { page: PublicPage }) {
         title={`Nội dung trang ${page.title || 'không có tiêu đề'}`}
         sandbox=""
         referrerPolicy="no-referrer"
-        srcDoc={page.html}
+        srcDoc={`<style>${PUBLIC_CONTENT_STYLES}</style>${page.html}`}
         className="block h-[70vh] min-h-[480px] w-full border-0 bg-background"
       />
     </div>

@@ -58,8 +58,24 @@ describe('trang ghi chú công khai', () => {
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
     expect(frame).toHaveAttribute('sandbox', '');
     expect(frame.getAttribute('sandbox')).not.toContain('allow-scripts');
-    expect(frame).toHaveAttribute('srcdoc', html);
+    expect(frame.getAttribute('srcdoc')).toContain(html);
     expect(screen.queryByText('Nội dung lạ')).not.toBeInTheDocument();
+  });
+
+  it('nhúng CSS định dạng list/checklist/code vào iframe công khai', () => {
+    const html =
+      '<div class="bn-block-content" data-content-type="bulletListItem"><p class="bn-inline-content">muc mot</p></div>';
+    render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);
+
+    const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
+    const srcdoc = frame.getAttribute('srcdoc') ?? '';
+
+    expect(srcdoc).toContain('<style');
+    expect(srcdoc).toContain('bulletListItem');
+    expect(srcdoc).toContain('numberedListItem');
+    expect(srcdoc).toContain('checkListItem');
+    expect(srcdoc).toContain('codeBlock');
+    expect(srcdoc).toContain(html);
   });
 
   it('ẩn hẳn menu trang con khi includeSubpages tắt', () => {
