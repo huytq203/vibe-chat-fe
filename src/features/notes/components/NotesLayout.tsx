@@ -13,6 +13,7 @@ import { SidePanel } from './panel/SidePanel';
 import { QuickSearchDialog } from './search/QuickSearchDialog';
 import { FavoriteList } from './sidebar/FavoriteList';
 import { PageTree } from './sidebar/PageTree';
+import { SharedList } from './sidebar/SharedList';
 import { TrashLink } from './sidebar/TrashLink';
 import { WorkspaceSwitcher } from './sidebar/WorkspaceSwitcher';
 import { TrashView } from './trash/TrashView';
@@ -139,6 +140,8 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
   onSelectPage, isTrashRoute,
 }: ActiveNotesFrameProps) {
   const quickSearch = useQuickSearchShortcut();
+  const { data: workspaces } = useWorkspaces();
+  const activeWorkspace = workspaces?.find((item) => item.id === workspaceId);
   return (
     <NotesFrame
       sidebar={(
@@ -146,6 +149,13 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
           {workspaceSwitcher}
           <div>
             <FavoriteList onSelectPage={onSelectPage} />
+            {activeWorkspace?.myRole && (
+              <SharedList
+                workspaceId={workspaceId}
+                isGuest={activeWorkspace.myRole === 'GUEST'}
+                onSelectPage={onSelectPage}
+              />
+            )}
             <PageTree
               workspaceId={workspaceId}
               activePageId={pageId}
