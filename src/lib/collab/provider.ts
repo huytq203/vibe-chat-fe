@@ -17,6 +17,8 @@ export interface CreateCollabProviderOptions {
   getToken: () => string | null | Promise<string | null>;
   onStatus: (status: CollabConnectionStatus) => void;
   onAuthenticationFailed?: (reason: string) => void;
+  /** Bắn khi SERVER đã đồng bộ xong, khác hẳn với việc nạp xong IndexedDB. */
+  onServerSynced?: () => void;
 }
 
 /** Tạo kết nối trực tiếp tới collab server và lấy token mới ở mỗi lần nối lại. */
@@ -26,6 +28,7 @@ export function createCollabProvider({
   getToken,
   onStatus,
   onAuthenticationFailed,
+  onServerSynced,
 }: CreateCollabProviderOptions): CollabProvider {
   return new HocuspocusProvider({
     url: env.NEXT_PUBLIC_NOTION_WS_URL,
@@ -33,6 +36,7 @@ export function createCollabProvider({
     document: doc,
     token: async () => (await getToken()) ?? '',
     onStatus: ({ status }) => onStatus(status),
+    onSynced: () => onServerSynced?.(),
     onAuthenticationFailed: ({ reason }: onAuthenticationFailedParameters) =>
       onAuthenticationFailed?.(reason),
   });

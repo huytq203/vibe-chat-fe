@@ -14,7 +14,8 @@ export interface CreateCollabSessionOptions {
   getToken: () => Promise<string | null>;
   onProvider: (provider: CollabProvider) => void;
   onStatus: (status: CollabConnectionStatus) => void;
-  onSynced: () => void;
+  onLocalReady: () => void;
+  onServerSynced: () => void;
   onAuthenticationFailed: (reason: string) => void;
   onError: (message: string) => void;
 }
@@ -46,13 +47,16 @@ export function createCollabSession(
   void persistence.whenSynced
     .then(() => {
       if (destroyed) return;
-      options.onSynced();
+      // CHỈ có nghĩa "đã nạp xong bản trong IndexedDB của máy này". KHÔNG được
+      // hiểu là đã đồng bộ với server — provider bên dưới còn chưa nối.
+      options.onLocalReady();
       provider = createCollabProvider({
         pageId: options.pageId,
         doc,
         getToken: options.getToken,
         onStatus: options.onStatus,
         onAuthenticationFailed: options.onAuthenticationFailed,
+        onServerSynced: options.onServerSynced,
       });
       options.onProvider(provider);
     })

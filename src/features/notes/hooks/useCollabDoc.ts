@@ -14,6 +14,7 @@ export interface UseCollabDocResult {
   doc: YDoc | null;
   provider: CollabProvider | null;
   status: CollabConnectionStatus | 'offline';
+  isLocalReady: boolean;
   isSynced: boolean;
   error: string | null;
 }
@@ -24,7 +25,15 @@ const isOffline = (): boolean =>
 
 function emptyState(): CollabState {
   const status = isOffline() ? 'offline' : 'disconnected';
-  return { doc: null, provider: null, status, isSynced: false, error: null, pageId: null };
+  return {
+    doc: null,
+    provider: null,
+    status,
+    isLocalReady: false,
+    isSynced: false,
+    error: null,
+    pageId: null,
+  };
 }
 
 export function useCollabDoc(
@@ -44,7 +53,10 @@ export function useCollabDoc(
       pageId,
       getToken: async () => apiAuth.getToken(),
       onProvider: (provider) => updateState((value) => ({ ...value, provider })),
-      onSynced: () => updateState((value) => ({ ...value, isSynced: true })),
+      onLocalReady: () =>
+        updateState((value) => ({ ...value, isLocalReady: true })),
+      onServerSynced: () =>
+        updateState((value) => ({ ...value, isSynced: true })),
       onAuthenticationFailed: (error) =>
         updateState((value) => ({ ...value, error })),
       onError: (error) => updateState((value) => ({ ...value, error })),
@@ -53,6 +65,7 @@ export function useCollabDoc(
         updateState((value) => ({
           ...value,
           status: isOffline() ? 'offline' : status,
+          isSynced: status === 'connected' ? value.isSynced : false,
           error: status === 'connected' ? null : value.error,
         }));
       },

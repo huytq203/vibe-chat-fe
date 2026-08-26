@@ -5,7 +5,8 @@ interface MockSessionOptions {
   pageId: string;
   getToken: () => Promise<string | null>;
   onStatus: (status: 'connecting' | 'connected' | 'disconnected') => void;
-  onSynced: () => void;
+  onLocalReady: () => void;
+  onServerSynced: () => void;
   onAuthenticationFailed: (reason: string) => void;
 }
 
@@ -120,17 +121,52 @@ describe('hook tài liệu cộng tác', () => {
     await waitFor(() => expect(result.current.status).toBe('connected'));
   });
 
-  it('lấy token mới qua hàm async và phản ánh lúc IndexedDB đồng bộ xong', async () => {
+  it('lấy token mới qua hàm async', async () => {
     authMock.getToken.mockReturnValueOnce('token-1').mockReturnValueOnce('token-2');
-    const { result } = renderHook(() => useCollabDoc('page-1'));
+    renderHook(() => useCollabDoc('page-1'));
     const sessionOptions = collabMock.optionsByPage.get('page-1');
     if (!sessionOptions) throw new Error('Phiên cộng tác chưa được tạo trong test');
 
     await expect(sessionOptions.getToken()).resolves.toBe('token-1');
     await expect(sessionOptions.getToken()).resolves.toBe('token-2');
-    act(() => sessionOptions.onSynced());
 
     expect(authMock.getToken).toHaveBeenCalledTimes(2);
+  });
+
+  it('không coi là đã đồng bộ khi mới chỉ nạp xong bản cục bộ', async () => {
+    const { result } = renderHook(() => useCollabDoc('page-1'));
+    const sessionOptions = collabMock.optionsByPage.get('page-1');
+    if (!sessionOptions) throw new Error('Phiên cộng tác chưa được tạo trong test');
+
+    act(() => sessionOptions.onLocalReady());
+
+    await waitFor(() => expect(result.current.isLocalReady).toBe(true));
+    expect(result.current.isSynced).toBe(false);
+  });
+
+  it('đánh dấu đã đồng bộ khi server báo synced', async () => {
+    const { result } = renderHook(() => useCollabDoc('page-1'));
+    const sessionOptions = collabMock.optionsByPage.get('page-1');
+    if (!sessionOptions) throw new Error('Phiên cộng tác chưa được tạo trong test');
+
+    act(() => sessionOptions.onLocalReady());
+    await waitFor(() => expect(result.current.isLocalReady).toBe(true));
+
+    act(() => sessionOptions.onServerSynced());
+
     await waitFor(() => expect(result.current.isSynced).toBe(true));
+  });
+
+  it('bỏ trạng thái đã đồng bộ khi kết nối bị rớt', async () => {
+    const { result } = renderHook(() => useCollabDoc('page-1'));
+    const sessionOptions = collabMock.optionsByPage.get('page-1');
+    if (!sessionOptions) throw new Error('Phiên cộng tác chưa được tạo trong test');
+
+    act(() => sessionOptions.onServerSynced());
+    await waitFor(() => expect(result.current.isSynced).toBe(true));
+
+    act(() => sessionOptions.onStatus('disconnected'));
+
+    await waitFor(() => expect(result.current.isSynced).toBe(false));
   });
 });

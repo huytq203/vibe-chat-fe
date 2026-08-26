@@ -139,7 +139,8 @@ describe('hạ tầng cộng tác thời gian thực', () => {
       getToken: async () => 'token-moi',
       onProvider: vi.fn(),
       onStatus: vi.fn(),
-      onSynced: vi.fn(),
+      onLocalReady: vi.fn(),
+      onServerSynced: vi.fn(),
       onAuthenticationFailed: vi.fn(),
       onError: vi.fn(),
     });
