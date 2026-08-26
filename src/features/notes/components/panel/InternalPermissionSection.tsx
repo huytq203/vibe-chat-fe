@@ -24,10 +24,12 @@ function resolveSubject(entry: EffectivePagePermission, members: MemberMap, prof
   const subjectId = entry.permission.subjectId;
   const member = members.get(subjectId);
   const profile = profiles.get(subjectId);
+  // Ưu tiên tên từ member nếu có giá trị không rỗng, sau đó tới profile, cuối cùng dự phòng
+  const memberName = member?.user?.displayName?.trim();
+  const profileName = profile?.displayName?.trim() || profile?.username?.trim();
   return {
     avatarUrl: member?.user?.avatarUrl ?? profile?.avatarUrl ?? null,
-    name: member?.user?.displayName ?? profile?.displayName ?? profile?.username
-      ?? 'Người dùng Halo',
+    name: memberName || profileName || 'Người dùng Halo',
     username: profile?.username,
   };
 }
@@ -50,9 +52,14 @@ export function InternalPermissionSection({
     [members],
   );
   const userGrants = useMemo(() => permissions.filter(isUserGrant), [permissions]);
+  // Tra hồ sơ cho cả người ĐÃ là thành viên nếu bản ghi member không có tên dùng được:
+  // `member.user` đến từ bảng UserSnapshot phía backend và có thể rỗng, khi đó lọc theo
+  // membership sẽ khiến hàng đó không bao giờ tra được tên và rơi xuống chuỗi dự phòng
+  // "Người dùng Halo".
   const unknownIds = useMemo(() => [...new Set(userGrants
     .map((entry) => entry.permission.subjectId)
-    .filter((subjectId) => !membersById.has(subjectId)))].sort(), [membersById, userGrants]);
+    .filter((subjectId) => !membersById.get(subjectId)?.user?.displayName?.trim()))]
+    .sort(), [membersById, userGrants]);
   const profiles = useUserProfiles(unknownIds);
   const grantedIds = useMemo(() => userGrants
     .filter((entry) => !entry.inherited)

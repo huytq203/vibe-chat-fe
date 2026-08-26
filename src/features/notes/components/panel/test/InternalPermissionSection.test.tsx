@@ -156,3 +156,108 @@ describe('InternalPermissionSection — sửa quyền ngay trong danh sách', ()
     await waitFor(() => expect(deleted).toBe('perm-1'));
   });
 });
+
+describe('InternalPermissionSection — xử lý member.user = null', () => {
+  it('member.user = null nhưng có profile từ API → hiện tên từ profile, không phải "Người dùng Halo"', async () => {
+    // Đây là trường hợp bug: member là workspace member nhưng UserSnapshot rỗng,
+    // nên member.user = null. Trước đây chỉ tra hồ sơ cho người ngoài members,
+    // nên id này bị bỏ qua, không lấy được tên từ profile, rơi xuống "Người dùng Halo".
+    const memberWithNullUser: WorkspaceMember = {
+      id: 'wm-2', workspaceId: 'ws-1', userId: 'user-4', role: 'MEMBER',
+      invitedBy: null, joinedAt: '2026-08-25T00:00:00.000Z',
+      user: null, // UserSnapshot trống
+    };
+
+    const perm: EffectivePagePermission = {
+      permission: { id: 'perm-2', pageId: PAGE_ID, subjectType: 'USER', subjectId: 'user-4',
+        role: 'VIEW', grantedBy: 'user-1', createdAt: '2026-08-25T00:00:00.000Z' },
+      inherited: false, sourcePageId: PAGE_ID, sourcePageTitle: 'Trang',
+    };
+
+    let profileFetched = false;
+    server.use(
+      http.get(`${VIBE_URL}/api/v1/users/:id`, ({ params }) => {
+        if (params.id === 'user-4') {
+          profileFetched = true;
+          return envelope({
+            id: 'user-4', username: 'duydk', displayName: 'Duy Đặng Khoa',
+            avatarUrl: null, isBot: false, friendship: 'NONE',
+          });
+        }
+        return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+      }),
+    );
+
+    renderWithProviders(
+      <InternalPermissionSection
+        members={[memberWithNullUser]} pageId={PAGE_ID} permissions={[perm]} />,
+    );
+
+    // Phải gọi API để lấy profile
+    await waitFor(() => {
+      expect(profileFetched).toBe(true);
+    });
+
+    // Phải hiện tên từ profile "Duy Đặng Khoa", không phải "Người dùng Halo"
+    expect(screen.getByText('Duy Đặng Khoa')).toBeInTheDocument();
+  });
+
+  it('member.user.displayName có giá trị → không tra hồ sơ, hiện tên từ member', async () => {
+    let profileRequests = 0;
+    server.use(
+      http.get(`${VIBE_URL}/api/v1/users/:id`, () => {
+        profileRequests += 1;
+        return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+      }),
+    );
+
+    renderWithProviders(
+      <InternalPermissionSection
+        members={[member]} pageId={PAGE_ID} permissions={[permission('VIEW')]} />,
+    );
+
+    // Không nên gọi API vì member đã có displayName
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(profileRequests).toBe(0);
+
+    // Hiện tên từ member
+    expect(screen.getByText('Nguyễn Văn A')).toBeInTheDocument();
+  });
+
+  it('không có nguồn nào có tên → hiện "Người dùng Halo"', async () => {
+    const memberWithoutName: WorkspaceMember = {
+      id: 'wm-3', workspaceId: 'ws-1', userId: 'user-5', role: 'MEMBER',
+      invitedBy: null, joinedAt: '2026-08-25T00:00:00.000Z',
+      user: null, // Không có tên từ member
+    };
+
+    const perm: EffectivePagePermission = {
+      permission: { id: 'perm-3', pageId: PAGE_ID, subjectType: 'USER', subjectId: 'user-5',
+        role: 'VIEW', grantedBy: 'user-1', createdAt: '2026-08-25T00:00:00.000Z' },
+      inherited: false, sourcePageId: PAGE_ID, sourcePageTitle: 'Trang',
+    };
+
+    server.use(
+      http.get(`${VIBE_URL}/api/v1/users/:id`, ({ params }) => {
+        if (params.id === 'user-5') {
+          // Profile không có displayName cũng không có username
+          return envelope({
+            id: 'user-5', username: '', displayName: null,
+            avatarUrl: null, isBot: false, friendship: 'NONE',
+          });
+        }
+        return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+      }),
+    );
+
+    renderWithProviders(
+      <InternalPermissionSection
+        members={[memberWithoutName]} pageId={PAGE_ID} permissions={[perm]} />,
+    );
+
+    // Hiện chuỗi dự phòng "Người dùng Halo"
+    await waitFor(() => {
+      expect(screen.getByText('Người dùng Halo')).toBeInTheDocument();
+    });
+  });
+});
