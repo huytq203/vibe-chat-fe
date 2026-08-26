@@ -30,6 +30,7 @@ const collabMocks = vi.hoisted(() => ({
     doc: null,
     provider: null,
     status: 'connecting' as 'connecting' | 'connected' | 'disconnected' | 'offline',
+    isLocalReady: false,
     isSynced: false,
     error: null as string | null,
   })),
@@ -136,6 +137,7 @@ afterEach(() => {
     doc: null,
     provider: null,
     status: 'connecting',
+    isLocalReady: false,
     isSynced: false,
     error: null,
   });
@@ -195,6 +197,7 @@ describe('bố cục ghi chú', () => {
       doc: null,
       provider: null,
       status: 'disconnected',
+      isLocalReady: false,
       isSynced: false,
       error: serverMessage,
     });

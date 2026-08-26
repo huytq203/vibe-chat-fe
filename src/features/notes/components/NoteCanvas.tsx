@@ -97,6 +97,7 @@ function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people }: PageTop
         <PresenceBar people={people} />
         <ConnectionIndicator
           error={collab.error}
+          isLocalReady={collab.isLocalReady}
           isSynced={collab.isSynced}
           status={collab.status}
         />

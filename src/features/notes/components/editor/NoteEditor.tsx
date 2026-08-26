@@ -189,11 +189,14 @@ export function NoteEditor({ pageId, collab: sharedCollab, people }: NoteEditorP
   const self = activePeople.find((person) => person.isSelf) ?? activePeople[0];
 
   if (pageQuery.isError) return <ErrorState message="Không tải được trang" />;
-  if (collab.error && (!collab.doc || !collab.provider || !collab.isSynced)) {
+  // Cho phép soạn thảo khi mới có bản cục bộ — mất mạng vẫn gõ được. Bù lại
+  // ConnectionIndicator BẮT BUỘC hiện "Chưa lưu lên máy chủ", nếu không người
+  // dùng sẽ tưởng đã lưu trong khi nội dung chỉ nằm trong IndexedDB máy này.
+  if (collab.error && (!collab.doc || !collab.provider || !collab.isLocalReady)) {
     return <ErrorState message={collab.error} />;
   }
   if (pageQuery.isLoading || !pageQuery.data || !collab.doc
-    || !collab.provider || !collab.isSynced || !self) {
+    || !collab.provider || !collab.isLocalReady || !self) {
     return <NoteEditorSkeleton />;
   }
 

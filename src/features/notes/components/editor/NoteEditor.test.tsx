@@ -130,6 +130,7 @@ function setCollabError(error: string | null = null) {
   mocks.useCollabDoc.mockReturnValue({
     doc,
     error,
+    isLocalReady: true,
     isSynced: true,
     provider,
     status: 'connected',

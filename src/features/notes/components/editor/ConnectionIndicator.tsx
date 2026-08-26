@@ -7,6 +7,7 @@ import type { UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 
 interface ConnectionIndicatorProps {
   status: UseCollabDocResult['status'];
+  isLocalReady: boolean;
   isSynced: boolean;
   error: string | null;
 }
@@ -22,6 +23,7 @@ function useCapacityToast(error: string | null): void {
 
 export function ConnectionIndicator({
   status,
+  isLocalReady,
   isSynced,
   error,
 }: ConnectionIndicatorProps) {
@@ -42,6 +44,17 @@ export function ConnectionIndicator({
       <span className="pointer-events-none flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground" role="status">
         <span aria-hidden="true" className="h-2 w-2 rounded-full bg-muted-foreground" />
         Đang lưu cục bộ
+      </span>
+    );
+  }
+
+  // Đã có nội dung cục bộ nhưng server chưa nhận. Phải nói thẳng: người dùng
+  // không có cách nào khác để biết những gì họ gõ mới chỉ nằm trong máy này.
+  if (isLocalReady && !isSynced) {
+    return (
+      <span className="pointer-events-none flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground" role="status">
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-warning motion-safe:animate-pulse" />
+        Chưa lưu lên máy chủ
       </span>
     );
   }
