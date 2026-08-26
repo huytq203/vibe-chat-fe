@@ -453,6 +453,12 @@
         background-color: var(--primary);
     }
 }
+
+.bn-mantine .bn-side-menu > [draggable="true"],
+.bn-mantine .bn-side-menu > [draggable="true"] [data-test="dragHandle"] {
+    cursor: grab;
+}
+
 /*
   Tiptap rich editor (ô soạn tin) — extension Placeholder chỉ gắn class +
   data-placeholder, cần CSS thủ công để hiện gợi ý khi editor rỗng.
