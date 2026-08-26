@@ -38,9 +38,13 @@ function emptyState(): CollabState {
 
 export function useCollabDoc(
   pageId: string,
-  options: { enabled?: boolean } = {},
+  options: {
+    enabled?: boolean;
+    onStateless?: (payload: string) => void;
+  } = {},
 ): UseCollabDocResult {
   const enabled = options.enabled !== false && pageId.length > 0;
+  const { onStateless } = options;
   const [state, setState] = useState<CollabState>(emptyState);
 
   useEffect(() => {
@@ -57,6 +61,7 @@ export function useCollabDoc(
         updateState((value) => ({ ...value, isLocalReady: true })),
       onServerSynced: () =>
         updateState((value) => ({ ...value, isSynced: true })),
+      onStateless: (payload) => onStateless?.(payload),
       onAuthenticationFailed: (error) =>
         updateState((value) => ({ ...value, error })),
       onError: (error) => updateState((value) => ({ ...value, error })),
@@ -86,6 +91,6 @@ export function useCollabDoc(
       window.removeEventListener('online', handleOnline);
       session.destroy();
     };
-  }, [enabled, pageId]);
+  }, [enabled, onStateless, pageId]);
   return enabled && state.pageId === pageId ? state : emptyState();
 }

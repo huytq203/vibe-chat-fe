@@ -19,6 +19,11 @@ const navigation = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
+interface CollabDocOptions {
+  enabled?: boolean;
+  onStateless?: (payload: string) => void;
+}
+
 const collabMocks = vi.hoisted(() => ({
   awareness: vi.fn(() => [{
     userId: 'user-1',
@@ -26,14 +31,18 @@ const collabMocks = vi.hoisted(() => ({
     color: 'var(--primary)',
     isSelf: true,
   }]),
-  collabDoc: vi.fn(() => ({
-    doc: null,
-    provider: null,
-    status: 'connecting' as 'connecting' | 'connected' | 'disconnected' | 'offline',
-    isLocalReady: false,
-    isSynced: false,
-    error: null as string | null,
-  })),
+  collabDoc: vi.fn((pageId: string, options?: CollabDocOptions) => {
+    void pageId;
+    void options;
+    return {
+      doc: null,
+      provider: null,
+      status: 'connecting' as 'connecting' | 'connected' | 'disconnected' | 'offline',
+      isLocalReady: false,
+      isSynced: false,
+      error: null as string | null,
+    };
+  }),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -107,7 +116,10 @@ function renderLayout() {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   }
 
-  return render(<NotesLayout />, { wrapper: Wrapper });
+  return {
+    ...render(<NotesLayout />, { wrapper: Wrapper }),
+    queryClient,
+  };
 }
 
 function useDefaultHandlers(pages = [buildPage()]) {
@@ -206,6 +218,30 @@ describe('bố cục ghi chú', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent(serverMessage);
     expect(screen.getByLabelText('Người viết (Bạn)')).toBeInTheDocument();
+  });
+
+  it('chỉ làm mới bình luận khi tín hiệu stateless khớp trang', async () => {
+    navigation.params = { workspaceId: WORKSPACE_ID, pageId: 'page-1' };
+    useDefaultHandlers();
+    const { queryClient } = renderLayout();
+    await screen.findByText('Tài liệu dự án');
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const options = collabMocks.collabDoc.mock.calls.at(-1)?.[1];
+    if (!options?.onStateless) {
+      throw new Error('Callback stateless chưa được truyền vào hook trong test');
+    }
+
+    options.onStateless('{"type":"comments-changed","pageId":"page-1"}');
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['notion', 'comments', 'page-1'],
+    });
+
+    invalidateSpy.mockClear();
+    options.onStateless('{"type":"khong-ro","pageId":"page-1"}');
+    options.onStateless('{"type":"comments-changed","pageId":"page-2"}');
+    expect(() => options.onStateless?.('{json-hong')).not.toThrow();
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
   it('Ctrl+K mở dialog tìm nhanh', async () => {

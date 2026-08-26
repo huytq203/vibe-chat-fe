@@ -120,6 +120,25 @@ describe('hạ tầng cộng tác thời gian thực', () => {
     expect(onAuthenticationFailed).toHaveBeenCalledWith('No permission for this page');
   });
 
+  it('chuyển nguyên văn payload stateless từ provider', () => {
+    const onStateless = vi.fn<(payload: string) => void>();
+    createCollabProvider({
+      pageId: 'abc',
+      doc: new YDoc(),
+      getToken: () => 'token-moi',
+      onStatus: vi.fn(),
+      onStateless,
+    });
+
+    const callback = latestProviderConfiguration().onStateless;
+    if (!callback) throw new Error('Callback stateless chưa được gắn trong test');
+    callback({ payload: '{"type":"comments-changed","pageId":"abc"}' });
+
+    expect(onStateless).toHaveBeenCalledWith(
+      '{"type":"comments-changed","pageId":"abc"}',
+    );
+  });
+
   it('nạp persistence trước provider và huỷ provider, persistence, doc đúng thứ tự', async () => {
     const lifecycle: string[] = [];
     persistenceConstructor.mockImplementationOnce(() => {
@@ -141,6 +160,7 @@ describe('hạ tầng cộng tác thời gian thực', () => {
       onStatus: vi.fn(),
       onLocalReady: vi.fn(),
       onServerSynced: vi.fn(),
+      onStateless: vi.fn(),
       onAuthenticationFailed: vi.fn(),
       onError: vi.fn(),
     });

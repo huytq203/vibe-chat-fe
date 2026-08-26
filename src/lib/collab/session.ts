@@ -16,6 +16,7 @@ export interface CreateCollabSessionOptions {
   onStatus: (status: CollabConnectionStatus) => void;
   onLocalReady: () => void;
   onServerSynced: () => void;
+  onStateless: (payload: string) => void;
   onAuthenticationFailed: (reason: string) => void;
   onError: (message: string) => void;
 }
@@ -57,6 +58,7 @@ export function createCollabSession(
         onStatus: options.onStatus,
         onAuthenticationFailed: options.onAuthenticationFailed,
         onServerSynced: options.onServerSynced,
+        onStateless: options.onStateless,
       });
       options.onProvider(provider);
     })

@@ -7,6 +7,7 @@ interface MockSessionOptions {
   onStatus: (status: 'connecting' | 'connected' | 'disconnected') => void;
   onLocalReady: () => void;
   onServerSynced: () => void;
+  onStateless: (payload: string) => void;
   onAuthenticationFailed: (reason: string) => void;
 }
 
@@ -155,6 +156,17 @@ describe('hook tài liệu cộng tác', () => {
     act(() => sessionOptions.onServerSynced());
 
     await waitFor(() => expect(result.current.isSynced).toBe(true));
+  });
+
+  it('chuyển payload stateless lên callback tùy chọn', () => {
+    const onStateless = vi.fn<(payload: string) => void>();
+    renderHook(() => useCollabDoc('page-1', { onStateless }));
+    const sessionOptions = collabMock.optionsByPage.get('page-1');
+    if (!sessionOptions) throw new Error('Phiên cộng tác chưa được tạo trong test');
+
+    act(() => sessionOptions.onStateless('payload-tu-server'));
+
+    expect(onStateless).toHaveBeenCalledWith('payload-tu-server');
   });
 
   it('bỏ trạng thái đã đồng bộ khi kết nối bị rớt', async () => {

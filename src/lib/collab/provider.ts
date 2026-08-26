@@ -1,6 +1,7 @@
 import {
   HocuspocusProvider,
   type onAuthenticationFailedParameters,
+  type onStatelessParameters,
 } from '@hocuspocus/provider';
 import type { Doc as YDoc } from 'yjs';
 
@@ -19,6 +20,7 @@ export interface CreateCollabProviderOptions {
   onAuthenticationFailed?: (reason: string) => void;
   /** Bắn khi SERVER đã đồng bộ xong, khác hẳn với việc nạp xong IndexedDB. */
   onServerSynced?: () => void;
+  onStateless?: (payload: string) => void;
 }
 
 /** Tạo kết nối trực tiếp tới collab server và lấy token mới ở mỗi lần nối lại. */
@@ -29,6 +31,7 @@ export function createCollabProvider({
   onStatus,
   onAuthenticationFailed,
   onServerSynced,
+  onStateless,
 }: CreateCollabProviderOptions): CollabProvider {
   return new HocuspocusProvider({
     url: env.NEXT_PUBLIC_NOTION_WS_URL,
@@ -37,6 +40,7 @@ export function createCollabProvider({
     token: async () => (await getToken()) ?? '',
     onStatus: ({ status }) => onStatus(status),
     onSynced: () => onServerSynced?.(),
+    onStateless: ({ payload }: onStatelessParameters) => onStateless?.(payload),
     onAuthenticationFailed: ({ reason }: onAuthenticationFailedParameters) =>
       onAuthenticationFailed?.(reason),
   });

@@ -1,8 +1,9 @@
 'use client';
 
 import { FileText, PanelRightClose, PanelRightOpen, PanelLeft } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
@@ -12,6 +13,7 @@ import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/us
 import { usePage } from '@/features/notes/hooks/use-query';
 import { recordRecentPage } from '@/features/notes/lib/recent-pages';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+import { notionKeys } from '@/services/keys';
 import { ConnectionIndicator } from './editor/ConnectionIndicator';
 import { PresenceBar } from './editor/PresenceBar';
 import { Breadcrumb } from './page/Breadcrumb';
@@ -128,9 +130,28 @@ interface NoteCanvasProps {
 }
 
 export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
+  const queryClient = useQueryClient();
   const pageQuery = usePage(pageId ?? '');
+  const handleStateless = useCallback((payload: string) => {
+    if (!pageId) return;
+    try {
+      const message: unknown = JSON.parse(payload);
+      if (
+        typeof message !== 'object'
+        || message === null
+        || !('type' in message)
+        || message.type !== 'comments-changed'
+        || !('pageId' in message)
+        || message.pageId !== pageId
+      ) return;
+      void queryClient.invalidateQueries({ queryKey: notionKeys.comments(pageId) });
+    } catch {
+      // Bỏ qua payload mạng hỏng để editor tiếp tục hoạt động.
+    }
+  }, [pageId, queryClient]);
   const collab = useCollabDoc(pageId ?? '', {
     enabled: Boolean(pageId && pageQuery.data),
+    onStateless: handleStateless,
   });
   const people = useAwareness(collab.provider);
 
