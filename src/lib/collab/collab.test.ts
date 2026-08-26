@@ -51,6 +51,7 @@ import {
   createCollabProvider,
   createCollabSession,
 } from '@/lib/collab';
+import { TOKEN_TIMEOUT_MS } from '@/lib/collab/provider';
 
 function latestProviderConfiguration(): HocuspocusProviderConfiguration {
   const configuration = providerConstructor.mock.calls.at(-1)?.[0];
@@ -99,6 +100,93 @@ describe('hạ tầng cộng tác thời gian thực', () => {
 
     await expect(token()).resolves.toBe('token-moi');
     expect(getToken).toHaveBeenCalledOnce();
+  });
+
+  it('returns an empty token and reports authentication failure when token retrieval times out', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const onAuthenticationFailed = vi.fn<(reason: string) => void>();
+      createCollabProvider({
+        pageId: 'abc',
+        doc: new YDoc(),
+        getToken: () => new Promise<string | null>(() => undefined),
+        onStatus: vi.fn(),
+        onAuthenticationFailed,
+      });
+
+      const token = latestProviderConfiguration().token;
+      expect(typeof token).toBe('function');
+      if (typeof token !== 'function') {
+        throw new Error('Token must be a function');
+      }
+
+      const tokenPromise = token();
+      await vi.advanceTimersByTimeAsync(TOKEN_TIMEOUT_MS);
+
+      await expect(tokenPromise).resolves.toBe('');
+      expect(onAuthenticationFailed).toHaveBeenCalledOnce();
+      expect(onAuthenticationFailed).toHaveBeenCalledWith(
+        'Không lấy được phiên đăng nhập, hãy tải lại trang',
+      );
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns a token without reporting authentication failure before the timeout', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const onAuthenticationFailed = vi.fn<(reason: string) => void>();
+      createCollabProvider({
+        pageId: 'abc',
+        doc: new YDoc(),
+        getToken: () => Promise.resolve('fresh-token'),
+        onStatus: vi.fn(),
+        onAuthenticationFailed,
+      });
+
+      const token = latestProviderConfiguration().token;
+      expect(typeof token).toBe('function');
+      if (typeof token !== 'function') {
+        throw new Error('Token must be a function');
+      }
+
+      await expect(token()).resolves.toBe('fresh-token');
+      expect(onAuthenticationFailed).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns an empty token without reporting authentication failure for a null token', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const onAuthenticationFailed = vi.fn<(reason: string) => void>();
+      createCollabProvider({
+        pageId: 'abc',
+        doc: new YDoc(),
+        getToken: () => null,
+        onStatus: vi.fn(),
+        onAuthenticationFailed,
+      });
+
+      const token = latestProviderConfiguration().token;
+      expect(typeof token).toBe('function');
+      if (typeof token !== 'function') {
+        throw new Error('Token must be a function');
+      }
+
+      await expect(token()).resolves.toBe('');
+      expect(onAuthenticationFailed).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('chuyển nguyên văn lý do xác thực thất bại từ provider', () => {
