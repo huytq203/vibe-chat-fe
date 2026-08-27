@@ -61,7 +61,7 @@ function ChildSkeletons() {
   return (
     <div role="group" className="ml-3 space-y-px">
       {Array.from({ length: CHILD_SKELETON_COUNT }, (_, index) => (
-        <Skeleton key={index} rounded="sm" className="h-[30px] w-full" />
+      <Skeleton key={index} rounded="sm" className="h-11 w-full md:h-9" />
       ))}
     </div>
   );
@@ -166,7 +166,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           tabIndex={0}
           style={rowStyle}
           className={cn(
-            'group relative z-10 flex h-[30px] min-w-0 cursor-grab items-center rounded-sm border border-transparent text-sm',
+            'group relative z-10 flex h-11 min-w-0 cursor-grab items-center rounded-lg border border-transparent text-sm md:h-9',
             'text-muted-foreground hover:bg-sidebar-accent active:cursor-grabbing',
             focusRingClassName,
             isActive && 'bg-sidebar-accent text-foreground',
@@ -188,7 +188,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-3 shrink-0 rounded-sm p-0 text-danger"
+            className="h-8 w-5 shrink-0 rounded-lg p-0 text-danger"
             aria-label={`Thử tải lại trang con của ${pageTitle}`}
             title="Thử tải lại"
             onPointerDown={(event) => event.stopPropagation()}
@@ -203,7 +203,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-3 shrink-0 rounded-sm p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+            className="h-8 w-5 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
             aria-label={`${isExpanded ? 'Gập' : 'Mở'} trang ${pageTitle}`}
             title={isExpanded ? 'Gập trang' : 'Mở trang'}
             onPointerDown={(event) => event.stopPropagation()}
@@ -221,7 +221,7 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
             />
           </Button>
         ) : (
-          <span aria-hidden="true" className="h-6 w-3 shrink-0" />
+          <span aria-hidden="true" className="h-8 w-5 shrink-0" />
         )}
 
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden="true">
@@ -234,14 +234,14 @@ export function PageTreeRow({ workspaceId, activePageId, onSelectPage, page, dep
         <span className="ml-2.5 min-w-0 flex-1 truncate">{pageTitle}</span>
 
         <div
-          className="flex shrink-0 opacity-0 transition-opacity duration-[80ms] ease-linear group-hover:opacity-100 group-focus-within:opacity-100"
+          className="flex shrink-0 opacity-100 transition-opacity duration-[80ms] ease-linear md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-6 w-6 rounded-sm p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+            className="h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
             aria-label={`Tạo trang con trong ${pageTitle}`}
             title={isAtMaxDepth ? 'Đã đạt độ sâu tối đa' : 'Tạo trang con'}
             disabled={isAtMaxDepth}

@@ -22,6 +22,27 @@ const PUBLIC_CONTENT_STYLES = `
     margin-block: 0.5rem;
   }
 
+  h1, h2, h3, h4, h5, h6,
+  [data-content-type="heading"] {
+    margin: 0;
+    padding-top: 0.75rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  h1, [data-content-type="heading"][data-level="1"] { font-size: 1.75rem; }
+  h2, [data-content-type="heading"][data-level="2"] { font-size: 1.375rem; }
+  h3, [data-content-type="heading"][data-level="3"] { font-size: 1.125rem; }
+  h4, [data-content-type="heading"][data-level="4"] { font-size: 1rem; }
+  h5, [data-content-type="heading"][data-level="5"] { font-size: 0.9375rem; }
+  h6, [data-content-type="heading"][data-level="6"] { font-size: 0.875rem; }
+
+  [data-content-type="heading"] > :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+  }
+
   [data-content-type="bulletListItem"],
   [data-content-type="numberedListItem"] {
     position: relative;
@@ -137,7 +158,7 @@ export function PublicPageView({ page, token }: PublicPageViewProps) {
       <article className="mx-auto w-full max-w-[720px] px-5 pb-10 pt-24 md:px-0">
         <header className="mb-8 flex items-start gap-4">
           <PageIcon icon={page.icon} className="mt-1 size-9 shrink-0 text-3xl" />
-          <h1 className="min-w-0 flex-1 text-3xl font-bold leading-[44px] tracking-[-0.5px] md:text-4xl">
+          <h1 className="min-w-0 flex-1 text-2xl font-bold leading-8 tracking-[-0.02em] [overflow-wrap:anywhere] md:text-[30px] md:leading-9">
             {title}
           </h1>
           <AuthorAvatar createdBy={page.createdBy} />

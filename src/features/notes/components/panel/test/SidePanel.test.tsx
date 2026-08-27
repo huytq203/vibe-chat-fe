@@ -54,7 +54,7 @@ afterEach(() => {
 });
 
 describe("bảng bên ghi chú", () => {
-  it("nằm cùng luồng flex để đẩy canvas trên desktop và chỉ phủ dưới 1180px", () => {
+  it("nằm cùng luồng flex để đẩy canvas trên desktop và phủ toàn màn ở viewport hẹp", () => {
     resetStore(true);
     render(<NotesLayout />);
 
@@ -65,9 +65,15 @@ describe("bảng bên ghi chú", () => {
     expect(flow).toHaveClass("flex");
     expect(canvas.parentElement).toBe(flow);
     expect(panel.parentElement).toBe(flow);
-    expect(panel).toHaveClass("relative", "w-[360px]");
+    expect(panel).toHaveClass("relative", "w-[340px]", "min-[1280px]:ml-3");
     expect(panel).not.toHaveClass("absolute", "fixed");
-    expect(panel).toHaveClass("max-[1179px]:fixed", "max-[1179px]:w-full");
+    expect(panel).toHaveClass(
+      "max-[1279px]:fixed",
+      "max-[1279px]:w-full",
+      "min-[1280px]:rounded-2xl",
+      "min-[1280px]:border",
+      "min-[1280px]:shadow-subtle",
+    );
   });
 
   it("lưu trạng thái mở và tab đang chọn vào store", async () => {
@@ -84,7 +90,16 @@ describe("bảng bên ghi chú", () => {
     );
 
     act(() => useNotesUiStore.getState().setSidePanelOpen(false));
-    expect(screen.getByTestId("notes-side-panel")).toHaveClass("w-0");
+    expect(screen.getByTestId("notes-side-panel")).toHaveClass(
+      "w-0",
+      "border-0",
+      "shadow-none",
+      "pointer-events-none",
+    );
+    expect(screen.getByTestId("notes-side-panel")).not.toHaveClass(
+      "min-[1280px]:border",
+      "min-[1280px]:shadow-subtle",
+    );
   });
 
   it("/notes/trash hiện TrashView, ẩn NoteCanvas và SidePanel", () => {

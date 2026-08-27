@@ -13,7 +13,7 @@ interface BreadcrumbProps {
 
 function BreadcrumbFrame({ children }: { children?: React.ReactNode }) {
   return (
-    <nav aria-label="Đường dẫn trang" className="h-[44px] overflow-hidden px-6">
+    <nav aria-label="Đường dẫn trang" className="h-11 min-w-0 overflow-hidden">
       {children}
     </nav>
   );
@@ -26,7 +26,7 @@ interface BreadcrumbItemsProps {
 
 function BreadcrumbItems({ items, onSelectPage }: BreadcrumbItemsProps) {
   return (
-    <ol className="flex h-full min-w-0 items-center text-sm font-normal">
+    <ol className="flex h-full min-w-0 items-center text-[13px] font-medium sm:text-sm">
       {items.map((item, index) => {
         const isCurrent = index === items.length - 1;
         const title = item.title || 'Không có tiêu đề';
@@ -38,7 +38,7 @@ function BreadcrumbItems({ items, onSelectPage }: BreadcrumbItemsProps) {
             ) : (
               <Button
                 variant="ghost" size="xs"
-                className="h-auto min-w-0 rounded-sm px-1 py-1 font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                className="h-8 min-w-0 rounded-lg px-1.5 py-1 font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                 onClick={() => onSelectPage(item.id)}
               >
                 <span className="truncate">{title}</span>

@@ -459,6 +459,32 @@
     cursor: grab;
 }
 
+/* Notes: compact reading scale that matches the app shell instead of BlockNote's
+   oversized 3em / 2em defaults. Variables cover both normal and transitional
+   collaboration DOM (`data-prev-level`). */
+.notes-editor {
+    --bn-font-family: var(--font-ui);
+}
+.notes-editor [data-content-type="heading"] {
+    --level: 1.75rem;
+    line-height: 1.3;
+    padding-top: 0.75rem;
+}
+.notes-editor [data-content-type="heading"][data-level="2"] { --level: 1.375rem; }
+.notes-editor [data-content-type="heading"][data-level="3"] { --level: 1.125rem; }
+.notes-editor [data-content-type="heading"][data-level="4"] { --level: 1rem; }
+.notes-editor [data-content-type="heading"][data-level="5"] { --level: 0.9375rem; }
+.notes-editor [data-content-type="heading"][data-level="6"] { --level: 0.875rem; }
+.notes-editor [data-prev-level="1"] { --prev-level: 1.75rem; }
+.notes-editor [data-prev-level="2"] { --prev-level: 1.375rem; }
+.notes-editor [data-prev-level="3"] { --prev-level: 1.125rem; }
+.notes-editor [data-prev-level="4"] { --prev-level: 1rem; }
+.notes-editor [data-prev-level="5"] { --prev-level: 0.9375rem; }
+.notes-editor [data-prev-level="6"] { --prev-level: 0.875rem; }
+.notes-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content {
+    line-height: 1.3;
+}
+
 /*
   Tiptap rich editor (ô soạn tin) — extension Placeholder chỉ gắn class +
   data-placeholder, cần CSS thủ công để hiện gợi ý khi editor rỗng.

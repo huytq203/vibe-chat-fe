@@ -15,15 +15,18 @@ type BeforeChangeCallback = (
 
 const mocks = vi.hoisted(() => ({
   blockNoteView: vi.fn(({
+    className,
     editable,
     onKeyUp,
     onPointerUp,
   }: {
+    className?: string;
     editable: boolean;
     onKeyUp?: KeyboardEventHandler<HTMLDivElement>;
     onPointerUp?: PointerEventHandler<HTMLDivElement>;
   }) => (
     <div
+      className={className}
       data-editable={String(editable)}
       data-testid="blocknote-view"
       onKeyUp={onKeyUp}
@@ -194,6 +197,12 @@ describe('trình soạn thảo ghi chú', () => {
     render(<NoteEditor pageId="page-1" />);
 
     expect(screen.getByTestId('blocknote-view')).toHaveAttribute('data-editable', 'true');
+  });
+
+  it('gắn typography scale riêng cho nội dung ghi chú', () => {
+    render(<NoteEditor pageId="page-1" />);
+
+    expect(screen.getByTestId('blocknote-view')).toHaveClass('notes-editor', 'mt-3');
   });
 
   it('giữ editor cục bộ dùng được khi máy chủ từ chối sau lúc nạp doc', () => {

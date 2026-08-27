@@ -202,6 +202,36 @@ describe('bố cục ghi chú', () => {
     expect(await screen.findByText('Chọn một trang ở bên trái')).toBeInTheDocument();
   });
 
+  it('dùng surface card đồng bộ với shell desktop và chỉ hiện sidebar trên mobile khi chưa chọn trang', async () => {
+    navigation.params = { workspaceId: WORKSPACE_ID };
+    useDefaultHandlers();
+    renderLayout();
+
+    await screen.findByRole('treeitem', { name: /Tài liệu dự án/ });
+    expect(screen.getByTestId('notes-sidebar-surface')).toHaveClass(
+      'md:w-[300px]',
+      'md:rounded-2xl',
+      'md:border',
+      'md:shadow-subtle',
+    );
+    expect(screen.getByTestId('notes-sidebar-surface')).toHaveClass('flex');
+    expect(screen.getByTestId('notes-main-pane')).toHaveClass('hidden', 'md:flex');
+  });
+
+  it('chỉ hiện tài liệu trên mobile khi đã chọn trang và cho quay lại cây trang', async () => {
+    navigation.params = { workspaceId: WORKSPACE_ID, pageId: 'page-1' };
+    useDefaultHandlers();
+    renderLayout();
+    const user = userEvent.setup();
+
+    await screen.findByText('Tài liệu dự án');
+    expect(screen.getByTestId('notes-sidebar-surface')).toHaveClass('hidden', 'md:flex');
+    expect(screen.getByTestId('notes-main-pane')).toHaveClass('flex');
+
+    await user.click(screen.getByRole('button', { name: 'Quay lại danh sách trang' }));
+    expect(navigation.push).toHaveBeenCalledWith(`/notes/${WORKSPACE_ID}`);
+  });
+
   it('đặt hiện diện và nguyên văn lỗi server trên dải breadcrumb', async () => {
     const serverMessage = 'This page already has 50 people connected, please try again later';
     navigation.params = { workspaceId: WORKSPACE_ID, pageId: 'page-1' };

@@ -78,6 +78,18 @@ describe('trang ghi chú công khai', () => {
     expect(srcdoc).toContain(html);
   });
 
+  it('dùng thang heading gọn trong nội dung công khai', () => {
+    const html =
+      '<div class="bn-block-content" data-content-type="heading" data-level="1"><h1>Tiêu đề mục</h1></div>';
+    render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);
+
+    const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
+    const srcdoc = frame.getAttribute('srcdoc') ?? '';
+    expect(srcdoc).toContain('[data-content-type="heading"][data-level="1"]');
+    expect(srcdoc).toContain('font-size: 1.75rem');
+    expect(srcdoc).toContain(':is(h1, h2, h3, h4, h5, h6)');
+  });
+
   it('ẩn hẳn menu trang con khi includeSubpages tắt', () => {
     render(
       <PublicPageView

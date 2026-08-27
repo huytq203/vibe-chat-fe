@@ -16,7 +16,7 @@ interface FavoriteListProps {
 
 function FavoriteHeading() {
   return (
-    <div id="favorite-heading" className="flex h-[30px] items-center pl-4 text-xs font-medium leading-3 text-muted-foreground">
+    <div id="favorite-heading" className="flex h-8 items-center px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
       Ghim
     </div>
   );
@@ -28,7 +28,7 @@ function FavoriteListSkeleton() {
       <FavoriteHeading />
       <div className="space-y-px px-2" data-testid="favorite-list-loading">
         {Array.from({ length: FAVORITE_SKELETON_COUNT }, (_, index) => (
-          <Skeleton key={index} rounded="sm" className="h-[30px] w-full" />
+          <Skeleton key={index} rounded="sm" className="h-11 w-full md:h-9" />
         ))}
       </div>
     </section>
@@ -63,7 +63,7 @@ export function FavoriteList({ onSelectPage }: FavoriteListProps) {
             <li key={favorite.pageId}>
               <Button
                 variant="ghost"
-                className={`h-[30px] w-full justify-start rounded-sm px-3 text-sm font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground [&>div]:w-full [&>div]:min-w-0 [&>div]:gap-2.5 ${focusRingClassName}`}
+                className={`h-11 w-full justify-start rounded-lg px-3 text-sm font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-foreground md:h-9 [&>div]:w-full [&>div]:min-w-0 [&>div]:gap-2.5 ${focusRingClassName}`}
                 onClick={() => onSelectPage(favorite.pageId)}
               >
                 <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden="true">

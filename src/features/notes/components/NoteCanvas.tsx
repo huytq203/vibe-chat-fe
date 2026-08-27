@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, PanelRightClose, PanelRightOpen, PanelLeft } from 'lucide-react';
+import { ArrowLeft, FileText, PanelRightClose, PanelRightOpen, PanelLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect } from 'react';
@@ -84,19 +84,32 @@ interface PageTopbarProps {
   pageId: string;
   pageTitle?: string;
   people: CollabPerson[];
+  onBack: () => void;
 }
 
-function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people }: PageTopbarProps) {
+function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people, onBack }: PageTopbarProps) {
   const isPanelOpen = useNotesUiStore((state) => state.isSidePanelOpen);
   const toggleSidePanel = useNotesUiStore((state) => state.toggleSidePanel);
 
   return (
-    <div className="flex h-[44px] min-w-0 items-center">
+    <header className="flex min-h-14 min-w-0 shrink-0 items-center gap-1 border-b border-border bg-background px-2 max-md:pt-[var(--safe-top)] md:gap-2 md:px-3">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="size-11 shrink-0 rounded-xl text-muted-foreground md:hidden"
+        aria-label="Quay lại danh sách trang"
+        title="Quay lại danh sách trang"
+        onClick={onBack}
+      >
+        <ArrowLeft aria-hidden="true" className="size-5" />
+      </Button>
       <div className="min-w-0 flex-1">
         <Breadcrumb pageId={pageId} onSelectPage={onSelectPage} />
       </div>
-      <div className="flex shrink-0 items-center gap-3 pe-6">
-        <PresenceBar people={people} />
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="hidden sm:block">
+          <PresenceBar people={people} />
+        </div>
         <ConnectionIndicator
           error={collab.error}
           isLocalReady={collab.isLocalReady}
@@ -107,6 +120,7 @@ function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people }: PageTop
         <Button
           variant="ghost"
           size="icon-sm"
+          className="size-9 rounded-xl"
           aria-controls="notes-side-panel"
           aria-expanded={isPanelOpen}
           aria-label={isPanelOpen ? 'Đóng bảng bên' : 'Mở bảng bên'}
@@ -120,16 +134,17 @@ function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people }: PageTop
           )}
         </Button>
       </div>
-    </div>
+    </header>
   );
 }
 
 interface NoteCanvasProps {
   pageId: string | null;
   onSelectPage: (id: string) => void;
+  onBack?: () => void;
 }
 
-export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
+export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: NoteCanvasProps) {
   const queryClient = useQueryClient();
   const pageQuery = usePage(pageId ?? '');
   const handleStateless = useCallback((payload: string) => {
@@ -156,7 +171,7 @@ export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
   const people = useAwareness(collab.provider);
 
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-background">
+    <main className="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-2xl md:border md:shadow-subtle">
       {pageId ? (
         <PageTopbar
           collab={collab}
@@ -164,11 +179,12 @@ export function NoteCanvas({ pageId, onSelectPage }: NoteCanvasProps) {
           pageId={pageId}
           pageTitle={pageQuery.data?.title}
           people={people}
+          onBack={onBack}
         />
       ) : (
-        <div aria-hidden="true" className="h-[44px]" />
+        <div aria-hidden="true" className="h-14 border-b border-border" />
       )}
-      <div className="mx-auto w-full max-w-[45rem] px-6 pt-24 pb-40">
+      <div className="mx-auto w-full max-w-[45rem] px-4 pb-[calc(var(--safe-bottom)+6rem)] pt-10 sm:px-8 sm:pt-14 md:px-12 md:pb-32 md:pt-16">
         {pageId ? (
           <SelectedPage
             collab={collab}

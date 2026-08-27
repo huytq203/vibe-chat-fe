@@ -113,27 +113,44 @@ function TrashRow({ item, workspaceId }: { item: TrashItem; workspaceId: string 
   }
 
   return (
-    <li className="flex min-w-0 items-center gap-3 px-4 py-3">
-      <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground" aria-hidden="true">
-        {item.icon ? <span className="text-base leading-none">{item.icon}</span> : <FileText className="size-4" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm text-foreground">{title}</span>
-        {item.parentTitle && (
-          <span className="block truncate text-xs text-muted-foreground">
-            trong «{item.parentTitle}»
-          </span>
-        )}
-      </span>
-      <span className="shrink-0 text-xs text-muted-foreground">
-        {remaining > 0 ? `còn ${remaining} ngày` : 'sắp bị xoá'}
-      </span>
-      <Button type="button" variant="ghost" size="xs" isLoading={restore.isPending} onClick={handleRestore}>
-        Khôi phục
-      </Button>
-      <Button type="button" variant="danger-outline" size="xs" onClick={() => setPurgeOpen(true)}>
-        Xoá vĩnh viễn
-      </Button>
+    <li className="flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground" aria-hidden="true">
+          {item.icon ? <span className="text-base leading-none">{item.icon}</span> : <FileText className="size-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">{title}</span>
+          {item.parentTitle && (
+            <span className="block truncate text-xs text-muted-foreground">
+              trong «{item.parentTitle}»
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="flex min-w-0 items-center gap-2 sm:shrink-0">
+        <span className="me-auto shrink-0 text-xs text-muted-foreground sm:me-1">
+          {remaining > 0 ? `còn ${remaining} ngày` : 'sắp bị xoá'}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="max-sm:h-11"
+          isLoading={restore.isPending}
+          onClick={handleRestore}
+        >
+          Khôi phục
+        </Button>
+        <Button
+          type="button"
+          variant="danger-outline"
+          size="xs"
+          className="max-sm:h-11"
+          onClick={() => setPurgeOpen(true)}
+        >
+          Xoá vĩnh viễn
+        </Button>
+      </div>
       <PurgeDialog
         open={isPurgeOpen}
         title={title}

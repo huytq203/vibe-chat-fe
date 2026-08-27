@@ -1,22 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, QrCode, Settings, User } from 'lucide-react';
+import { QrCode, Settings, User } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover/Popover';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog/AlertDialog';
-import { Button } from '@/components/ui/button/Button';
-import { useAuthStore, useLogout } from '@/features/auth';
+import { useAuthStore } from '@/features/auth';
 import { SettingsModal } from '@/features/settings';
 import { ShareLinkDialog } from '@/features/share-links';
 import { Avatar } from './Avatar';
@@ -31,11 +22,9 @@ interface UserMenuProps {
 
 export function UserMenu({ variant = 'default' }: UserMenuProps) {
   const me = useAuthStore((s) => s.user);
-  const logout = useLogout();
   const isMobile = useIsMobile();
   const router = useRouter();
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -48,20 +37,10 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
     setProfileOpen(true);
   };
 
-  const handleRequestLogout = () => {
-    setPopoverOpen(false);
-    setConfirmOpen(true);
-  };
-
   const handleOpenSettings = () => {
     setPopoverOpen(false);
     if (isMobile) router.push('/settings');
     else setSettingsOpen(true);
-  };
-
-  const handleConfirmLogout = () => {
-    setConfirmOpen(false);
-    logout.mutate();
   };
 
   return (
@@ -138,15 +117,6 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
               <Settings className="h-4 w-4 text-muted-foreground" />
               Cài đặt
             </button>
-            <div className="my-1 h-px bg-border" />
-            <button
-              type="button"
-              onClick={handleRequestLogout}
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-danger transition-colors hover:bg-danger/10"
-            >
-              <LogOut className="h-4 w-4" />
-              Đăng xuất
-            </button>
           </div>
         </PopoverContent>
       </Popover>
@@ -156,34 +126,6 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
       <ShareLinkDialog open={shareOpen} onOpenChange={setShareOpen} />
 
       {!isMobile && <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />}
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Đăng xuất khỏi HaloChat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng. Mọi phiên realtime sẽ
-              bị đóng.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmOpen(false)}
-              disabled={logout.isPending}
-            >
-              Huỷ
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleConfirmLogout}
-              isLoading={logout.isPending}
-            >
-              Đăng xuất
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

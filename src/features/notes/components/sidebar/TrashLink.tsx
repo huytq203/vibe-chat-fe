@@ -17,7 +17,7 @@ export function TrashLink() {
       href="/notes/trash"
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'flex h-[30px] items-center gap-2.5 rounded-sm px-3 text-sm font-normal text-muted-foreground',
+        'flex h-11 items-center gap-2.5 rounded-lg px-3 text-sm font-normal text-muted-foreground md:h-9',
         'transition-colors hover:bg-sidebar-accent hover:text-foreground',
         isActive && 'bg-sidebar-accent text-foreground',
         focusRingClassName,

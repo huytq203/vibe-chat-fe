@@ -68,6 +68,28 @@ describe('tiêu đề ghi chú cộng tác', () => {
     expect(title).toHaveValue('Tiêu đề từ tab khác');
   });
 
+  it('dùng textarea tự giãn và xuống dòng cho tiêu đề dài', () => {
+    const doc = new YDoc();
+    doc.getText('title').insert(
+      0,
+      'Kế hoạch phát hành sản phẩm với một tiêu đề rất dài cần hiển thị đầy đủ',
+    );
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />);
+
+    const title = screen.getByRole('textbox', { name: 'Tiêu đề trang' });
+    expect(title.tagName).toBe('TEXTAREA');
+    expect(title).toHaveAttribute('rows', '1');
+    expect(title).toHaveClass(
+      'resize-none',
+      'overflow-hidden',
+      'whitespace-pre-wrap',
+      'text-[32px]',
+      'md:text-[36px]',
+      '[field-sizing:content]',
+      '[overflow-wrap:anywhere]',
+    );
+  });
+
   it('chuyển xuống thân bài bằng cả Enter và Tab', async () => {
     const doc = new YDoc();
     const onMoveToBody = vi.fn();

@@ -21,7 +21,7 @@ function createPageIconTrigger(icon: string | null, isPending: boolean) {
     return (
       <Button
         variant="ghost" aria-label="Đổi icon trang" title="Đổi icon"
-        className="mb-2 h-[78px] w-[78px] rounded-sm p-0 text-7xl hover:bg-sidebar-accent"
+        className="mb-2 size-14 rounded-lg p-0 text-5xl hover:bg-sidebar-accent"
         disabled={isPending} onMouseEnter={prefetchEmojiPicker} onFocus={prefetchEmojiPicker}
       >
         <span className="leading-none" aria-hidden="true">{icon}</span>
@@ -72,7 +72,7 @@ export function PageIcon({ pageId, icon }: PageIconProps) {
   }
 
   return (
-    <div className={icon ? undefined : 'group/icon absolute bottom-full left-0 h-[78px] w-full'}>
+    <div className={icon ? undefined : 'group/icon absolute bottom-full left-0 h-14 w-full'}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger render={createPageIconTrigger(icon, updatePage.isPending)} />
         <PageIconPicker icon={icon} onUpdateIcon={updateIcon} />

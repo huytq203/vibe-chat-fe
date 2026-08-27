@@ -77,10 +77,12 @@ export function SidePanel() {
       aria-hidden={!isOpen}
       data-testid="notes-side-panel"
       className={cn(
-        'relative z-20 h-full shrink-0 overflow-hidden bg-muted',
-        'transition-[width] duration-200 ease-[cubic-bezier(.32,.72,0,1)]',
-        'motion-reduce:transition-none max-[1179px]:fixed max-[1179px]:inset-0 max-[1179px]:z-50',
-        isOpen ? 'w-[360px] max-[1179px]:w-full' : 'w-0 max-[1179px]:invisible',
+        'relative z-20 h-full shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground',
+        'transition-[width,margin] duration-200 ease-[cubic-bezier(.32,.72,0,1)]',
+        'motion-reduce:transition-none max-[1279px]:fixed max-[1279px]:inset-0 max-[1279px]:z-50',
+        isOpen
+          ? 'pointer-events-auto w-[340px] max-[1279px]:w-full min-[1280px]:ml-3 min-[1280px]:rounded-2xl min-[1280px]:border min-[1280px]:bg-sidebar/75 min-[1280px]:shadow-subtle min-[1280px]:backdrop-blur-md'
+          : 'pointer-events-none w-0 border-0 shadow-none max-[1279px]:invisible min-[1280px]:ml-0',
       )}
     >
       {isOpen && (
@@ -89,13 +91,13 @@ export function SidePanel() {
           onValueChange={(value) => {
             if (isSidePanelTab(value)) setActiveTab(value);
           }}
-          className="h-full min-w-[360px] max-[1179px]:min-w-0"
+          className="flex h-full min-w-[340px] flex-col max-[1279px]:min-w-0"
         >
-          <div className="flex h-[44px] items-center">
+          <div className="flex min-h-14 shrink-0 items-center border-b border-border max-[1279px]:pt-[var(--safe-top)]">
             <TabsList
               size="sm"
               aria-label="Nội dung bảng bên"
-              className="h-full w-full flex-1 rounded-none bg-transparent p-0 [&>span:first-child]:hidden"
+              className="h-14 w-full flex-1 rounded-none bg-transparent p-0 [&>span:first-child]:hidden"
             >
               {tabs.map((tab) => (
                 <TabsTrigger
@@ -116,14 +118,14 @@ export function SidePanel() {
               size="icon-sm"
               aria-label="Đóng bảng bên"
               title="Đóng bảng bên"
-              className="me-2 min-[1180px]:hidden"
+              className="me-2 size-11 rounded-xl min-[1280px]:hidden"
               onClick={() => setOpen(false)}
             >
               <PanelRightClose aria-hidden="true" className="size-4" />
             </Button>
           </div>
           {tabs.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value} className="mt-0 h-[calc(100%_-_44px)] overflow-hidden">
+            <TabsContent key={tab.value} value={tab.value} className="mt-0 min-h-0 flex-1 overflow-hidden pb-[var(--safe-bottom)] min-[1280px]:pb-0">
               <PanelContent pageId={params.pageId} workspaceId={params.workspaceId} tab={tab.value} />
             </TabsContent>
           ))}

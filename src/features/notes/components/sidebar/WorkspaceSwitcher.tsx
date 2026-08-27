@@ -47,10 +47,10 @@ function WorkspaceMenu({
             <Button
               variant="ghost"
               aria-label="Chọn workspace"
-              className={`h-10 w-full justify-start rounded-sm px-2 text-sm text-foreground hover:bg-sidebar-accent hover:text-foreground [&>div]:min-w-0 [&>div]:w-full ${focusRingClassName}`}
+              className={`h-11 w-full justify-start rounded-xl px-2 text-sm text-foreground hover:bg-sidebar-accent hover:text-foreground md:h-10 [&>div]:min-w-0 [&>div]:w-full ${focusRingClassName}`}
             >
               <Avatar
-                className="h-5 w-5 text-xs"
+                className="h-6 w-6 text-xs"
                 alt={activeWorkspace?.name ?? 'Chưa chọn workspace'}
                 fallback={activeWorkspace?.icon || undefined}
                 aria-hidden="true"
@@ -107,8 +107,8 @@ export function WorkspaceSwitcher({
       <div className="px-2">
         <Skeleton
           data-testid="workspace-switcher-skeleton"
-          rounded="sm"
-          className="h-10 w-full"
+          rounded="md"
+          className="h-11 w-full md:h-10"
         />
       </div>
     );

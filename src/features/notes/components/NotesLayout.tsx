@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { PanelLeft } from 'lucide-react';
+import { FileText, PanelLeft, Search } from 'lucide-react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import { Button } from '@/components/ui/button/Button';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { useWorkspaces } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+import { cn } from '@/lib/utils/cn';
 import { NoteCanvas } from './NoteCanvas';
 import { SidePanel } from './panel/SidePanel';
 import { QuickSearchDialog } from './search/QuickSearchDialog';
@@ -38,22 +40,42 @@ function useQuickSearchShortcut() {
 interface NotesFrameProps {
   sidebar: ReactNode;
   children: ReactNode;
+  mobilePane?: 'sidebar' | 'content';
 }
 
-function NotesFrame({ sidebar, children }: NotesFrameProps) {
+function NotesFrame({ sidebar, children, mobilePane = 'content' }: NotesFrameProps) {
   return (
-    <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-background">
-      <aside className="w-[260px] shrink-0 overflow-y-auto bg-sidebar py-2">{sidebar}</aside>
-      {children}
+    <div className="flex h-full min-w-0 flex-1 overflow-hidden bg-background md:gap-3">
+      <aside
+        data-testid="notes-sidebar-surface"
+        className={cn(
+          'h-full w-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground',
+          'md:flex md:w-[300px] md:min-w-[260px] md:rounded-2xl md:border md:bg-sidebar/75 md:shadow-subtle md:backdrop-blur-md',
+          mobilePane === 'sidebar' ? 'flex' : 'hidden',
+        )}
+      >
+        {sidebar}
+      </aside>
+      <div
+        data-testid="notes-main-pane"
+        className={cn(
+          'h-full min-w-0 flex-1 overflow-hidden md:flex',
+          mobilePane === 'content' ? 'flex' : 'hidden',
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
 function CanvasFallback({ children }: { children: ReactNode }) {
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-background">
-      <div aria-hidden="true" className="h-[44px]" />
-      <div className="mx-auto w-full max-w-[45rem] px-6 pt-24">{children}</div>
+    <main className="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-2xl md:border md:shadow-subtle">
+      <div aria-hidden="true" className="h-14 border-b border-border" />
+      <div className="mx-auto w-full max-w-[45rem] px-4 pt-12 sm:px-8 md:px-12 md:pt-16">
+        {children}
+      </div>
     </main>
   );
 }
@@ -61,12 +83,15 @@ function CanvasFallback({ children }: { children: ReactNode }) {
 function NotesLayoutSkeleton() {
   return (
     <NotesFrame
+      mobilePane="sidebar"
       sidebar={(
-        <div className="space-y-px px-2">
-          <Skeleton rounded="sm" className="mb-4 h-10 w-full" />
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} rounded="sm" className="h-[30px] w-full" />
-          ))}
+        <div className="flex h-full flex-col px-3 pb-[var(--safe-bottom)] pt-[calc(var(--safe-top)+0.75rem)] md:py-3">
+          <Skeleton rounded="sm" className="mb-3 h-10 w-full" />
+          <div className="space-y-1">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} rounded="sm" className="h-11 w-full md:h-9" />
+            ))}
+          </div>
         </div>
       )}
     >
@@ -116,9 +141,13 @@ function useNotesNavigation() {
   const handleSelectPage = useCallback((id: string) => {
     if (activeWorkspaceId) router.push(`/notes/${activeWorkspaceId}/${id}`);
   }, [activeWorkspaceId, router]);
+  const handleBackToPages = useCallback(() => {
+    if (activeWorkspaceId) router.push(`/notes/${activeWorkspaceId}`);
+  }, [activeWorkspaceId, router]);
 
   return {
     activeWorkspaceId,
+    handleBackToPages,
     handleSelectPage,
     handleSelectWorkspace,
     isTrashRoute,
@@ -133,42 +162,87 @@ interface ActiveNotesFrameProps {
   pageId: string | null;
   workspaceSwitcher: ReactNode;
   onSelectPage: (id: string) => void;
+  onBackToPages: () => void;
   isTrashRoute: boolean;
 }
 
 function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
-  onSelectPage, isTrashRoute,
+  onSelectPage, onBackToPages, isTrashRoute,
 }: ActiveNotesFrameProps) {
   const quickSearch = useQuickSearchShortcut();
   const { data: workspaces } = useWorkspaces();
   const activeWorkspace = workspaces?.find((item) => item.id === workspaceId);
+  const showContentOnMobile = Boolean(pageId || isTrashRoute);
+
+  const sidebar = (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0 border-b border-border px-3 pb-3 pt-[calc(var(--safe-top)+0.75rem)] md:border-b-0 md:pt-3">
+        <div className="flex h-10 items-center gap-2.5 px-1">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+            <FileText aria-hidden="true" className="size-[18px]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[15px] font-bold text-foreground">Ghi chú</h1>
+            <p className="truncate text-[11.5px] text-muted-foreground">Không gian tài liệu của bạn</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-9 rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+            aria-label="Tìm nhanh trang"
+            title="Tìm nhanh (Ctrl+K)"
+            onClick={() => quickSearch.setOpen(true)}
+          >
+            <Search aria-hidden="true" className="size-4" />
+          </Button>
+        </div>
+        <div className="mt-2">{workspaceSwitcher}</div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto py-2">
+        <FavoriteList onSelectPage={onSelectPage} />
+        {activeWorkspace?.myRole && (
+          <SharedList
+            workspaceId={workspaceId}
+            isGuest={activeWorkspace.myRole === 'GUEST'}
+            onSelectPage={onSelectPage}
+          />
+        )}
+        <section aria-labelledby="pages-heading">
+          <div
+            id="pages-heading"
+            className="flex h-8 items-center px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Trang
+          </div>
+          <PageTree
+            workspaceId={workspaceId}
+            activePageId={pageId}
+            onSelectPage={onSelectPage}
+          />
+        </section>
+      </div>
+
+      <footer className="shrink-0 border-t border-border px-2 pb-[calc(var(--safe-bottom)+0.5rem)] pt-2 md:pb-2">
+        <TrashLink />
+      </footer>
+    </div>
+  );
+
   return (
     <NotesFrame
-      sidebar={(
-        <div className="space-y-4">
-          {workspaceSwitcher}
-          <div>
-            <FavoriteList onSelectPage={onSelectPage} />
-            {activeWorkspace?.myRole && (
-              <SharedList
-                workspaceId={workspaceId}
-                isGuest={activeWorkspace.myRole === 'GUEST'}
-                onSelectPage={onSelectPage}
-              />
-            )}
-            <PageTree
-              workspaceId={workspaceId}
-              activePageId={pageId}
-              onSelectPage={onSelectPage}
-            />
-          </div>
-          <div className="px-2"><TrashLink /></div>
-        </div>
-      )}
+      sidebar={sidebar}
+      mobilePane={showContentOnMobile ? 'content' : 'sidebar'}
     >
-      {isTrashRoute ? <TrashView workspaceId={workspaceId} /> : (
-        <div data-testid="notes-content-flow" className="flex min-w-0 flex-1">
-          <NoteCanvas pageId={pageId} onSelectPage={onSelectPage} />
+      {isTrashRoute ? (
+        <TrashView workspaceId={workspaceId} onBack={onBackToPages} />
+      ) : (
+        <div data-testid="notes-content-flow" className="flex h-full min-w-0 flex-1 overflow-hidden">
+          <NoteCanvas
+            pageId={pageId}
+            onSelectPage={onSelectPage}
+            onBack={onBackToPages}
+          />
           <SidePanel />
         </div>
       )}
@@ -201,14 +275,14 @@ export function NotesLayout() {
 
   if (isError) {
     return (
-      <NotesFrame sidebar={workspaceSwitcher}>
+      <NotesFrame sidebar={workspaceSwitcher} mobilePane="sidebar">
         <CanvasFallback><ErrorState onRetry={refetch} /></CanvasFallback>
       </NotesFrame>
     );
   }
   if (!navigation.activeWorkspaceId) {
     return (
-      <NotesFrame sidebar={workspaceSwitcher}>
+      <NotesFrame sidebar={workspaceSwitcher} mobilePane="sidebar">
         <CanvasFallback>
           <EmptyState
             icon={<PanelLeft aria-hidden="true" />}
@@ -225,6 +299,7 @@ export function NotesLayout() {
       workspaceId={navigation.activeWorkspaceId}
       pageId={navigation.pageId}
       workspaceSwitcher={workspaceSwitcher}
+      onBackToPages={navigation.handleBackToPages}
       onSelectPage={navigation.handleSelectPage}
       isTrashRoute={navigation.isTrashRoute}
     />

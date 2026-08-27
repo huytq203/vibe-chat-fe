@@ -23,7 +23,7 @@ function PageTreeSkeleton() {
   return (
     <div className="space-y-px px-2" data-testid="page-tree-loading">
       {Array.from({ length: ROOT_SKELETON_COUNT }, (_, index) => (
-        <Skeleton key={index} rounded="sm" className="h-[30px] w-full" />
+        <Skeleton key={index} rounded="sm" className="h-11 w-full md:h-9" />
       ))}
     </div>
   );

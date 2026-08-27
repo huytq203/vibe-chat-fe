@@ -167,7 +167,7 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
     <>
       <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} page={page} />
       <BlockNoteView
-        className="mt-4"
+        className="notes-editor mt-3"
         editable={editable}
         editor={editor}
         theme={currentTheme.isDark ? 'dark' : 'light'}
