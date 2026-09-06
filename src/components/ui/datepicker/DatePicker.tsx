@@ -1,14 +1,14 @@
 'use client';
 import * as React from 'react';
 import { Popover as BasePopover } from '@base-ui/react';
-import { DayPicker, type DateRange } from 'react-day-picker';
+import { DayPicker, type DateRange, type Matcher } from 'react-day-picker';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown, Clock } from 'lucide-react';
 import { tv } from 'tailwind-variants';
 import * as locales from 'react-day-picker/locale';
 
-import 'react-day-picker/dist/style.css';
 import { Button } from '@/components/ui/button/Button';
+import { dayPickerClassNames } from '@/components/ui/calendar/day-picker-theme';
 
 // ---------- types ----------
 
@@ -57,11 +57,19 @@ export interface DatePickerProps {
     captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years" | undefined;
     /** Cho phép gõ tay ngày (dd/MM/yyyy) song song với chọn lịch — chỉ áp dụng mode 'single' */
     editable?: boolean;
+    /** Tháng đầu tiên có thể điều hướng tới (mặc định 01/1900) */
+    startMonth?: Date;
+    /** Tháng cuối cùng có thể điều hướng tới (mặc định 12/2100) */
+    endMonth?: Date;
+    /** Vô hiệu hoá mọi ngày sau hôm nay */
+    disableFutureDates?: boolean;
 }
 
 // ---------- helpers ----------
 
 const DEFAULT_TIME: TimeParts = { h: '00', m: '00', s: '00' };
+const DEFAULT_START_MONTH = new Date(1900, 0);
+const DEFAULT_END_MONTH = new Date(2100, 11);
 
 function parseTimeParts(timeStr: string): TimeParts {
     const [h = '00', m = '00', s = '00'] = timeStr.split(':');
@@ -192,7 +200,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ parts, onChange, timeFormat, ti
         <div className="flex items-center gap-1.5">
             <div className="flex-1">
                 <NativeScrollSelect
-                    aria-label="Hours"
+                    aria-label="Giờ"
                     value={parts.h}
                     options={hoursOptions}
                     onChange={(val) => onChange({ ...parts, h: val })}
@@ -203,7 +211,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ parts, onChange, timeFormat, ti
                     <span className="text-sm font-bold text-muted-foreground">:</span>
                     <div className="flex-1">
                         <NativeScrollSelect
-                            aria-label="Minutes"
+                            aria-label="Phút"
                             value={parts.m}
                             options={minutesOptions}
                             onChange={(val) => onChange({ ...parts, m: val })}
@@ -216,7 +224,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ parts, onChange, timeFormat, ti
                     <span className="text-sm font-bold text-muted-foreground">:</span>
                     <div className="flex-1">
                         <NativeScrollSelect
-                            aria-label="Seconds"
+                            aria-label="Giây"
                             value={parts.s}
                             options={secondsOptions}
                             onChange={(val) => onChange({ ...parts, s: val })}
@@ -249,6 +257,9 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     required,
     captionLayout = undefined,
     editable = false,
+    startMonth = DEFAULT_START_MONTH,
+    endMonth = DEFAULT_END_MONTH,
+    disableFutureDates = false,
 }, ref) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -259,7 +270,10 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     const [internalDate, setInternalDate] = React.useState<Date | DateRange | undefined>(undefined);
     const date = isControlled ? value : internalDate;
 
-    const [calendarMonth, setCalendarMonth] = React.useState<Date>(new Date());
+    const [calendarMonth, setCalendarMonth] = React.useState<Date>(() => {
+        const selected = date instanceof Date ? date : (date as DateRange | undefined)?.from;
+        return selected ?? new Date();
+    });
     const handleOpenChange = (newOpen: boolean) => {
         if (newOpen) {
             const selectedDate = date instanceof Date ? date : (date as DateRange)?.from;
@@ -303,7 +317,11 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
         }
     };
 
-    const [inputValue, setInputValue] = React.useState('');
+    // Khởi tạo từ `date` để lần mount đầu (hoặc remount khi quay lại bước trước)
+    // ô nhập vẫn hiển thị đúng giá trị — nếu để rỗng, onBlur sẽ commit rỗng và xoá dữ liệu.
+    const [inputValue, setInputValue] = React.useState(() =>
+        date instanceof Date ? format(date, 'dd/MM/yyyy') : '',
+    );
     // Đồng bộ ô nhập khi `date` đổi từ ngoài (chọn lịch / controlled) — chỉnh state ngay
     // trong render (pattern React chính thức) thay vì effect để tránh cascading render.
     const [syncedDate, setSyncedDate] = React.useState(date);
@@ -362,6 +380,13 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
 
         return <span className="text-muted-foreground">{placeholder}</span>;
     }, [date, mode, showTime, timeFormat, timeValue, timeParts, placeholder]);
+
+    const disabledMatchers = React.useMemo<Matcher[] | undefined>(() => {
+        const matchers: Matcher[] = [];
+        if (disablePastDates) matchers.push({ before: new Date() });
+        if (disableFutureDates) matchers.push({ after: new Date() });
+        return matchers.length > 0 ? matchers : undefined;
+    }, [disablePastDates, disableFutureDates]);
 
     const isTimeMode = mode === 'time-only';
     const needsTimePicker = isTimeMode || (mode === 'single' && showTime);
@@ -447,10 +472,10 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                         onMonthChange={setCalendarMonth}
                                         onSelect={(d) => handleDateSelect(d)}
                                         captionLayout={captionLayout}
-                                        startMonth={new Date(1900, 0)}
-                                        endMonth={new Date(2100, 11)}
-                                        disabled={disablePastDates ? [{ before: new Date() }] : undefined}
-                                        className="rdp-custom"
+                                        startMonth={startMonth}
+                                        endMonth={endMonth}
+                                        disabled={disabledMatchers}
+                                        classNames={dayPickerClassNames}
                                     />
                                 </div>
                             )}
@@ -464,10 +489,10 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                         onMonthChange={setCalendarMonth}
                                         onSelect={(d) => handleDateSelect(d)}
                                         captionLayout={captionLayout}
-                                        startMonth={new Date(1900, 0)}
-                                        endMonth={new Date(2100, 11)}
-                                        disabled={disablePastDates ? [{ before: new Date() }] : undefined}
-                                        className="rdp-custom"
+                                        startMonth={startMonth}
+                                        endMonth={endMonth}
+                                        disabled={disabledMatchers}
+                                        classNames={dayPickerClassNames}
                                     />
                                 </div>
                             )}
@@ -477,7 +502,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                     <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         <Clock className="w-3.5 h-3.5" />
                                         <span>
-                                            {timeFormat === 'HH' ? 'Select hour' : timeFormat === 'HH:mm' ? 'Hour : Minute' : 'Hour : Minute : Second'}
+                                            {timeFormat === 'HH' ? 'Chọn giờ' : timeFormat === 'HH:mm' ? 'Giờ : Phút' : 'Giờ : Phút : Giây'}
                                         </span>
                                     </div>
                                     <TimePicker
@@ -502,10 +527,10 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                     }}
                                     className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
                                 >
-                                    Clear
+                                    Xoá lựa chọn
                                 </button>
-                                <Button size="sm" onClick={() => setOpen(false)}>
-                                    Confirm
+                                <Button type="button" size="sm" onClick={() => setOpen(false)}>
+                                    Xong
                                 </Button>
                             </div>
                         </BasePopover.Popup>

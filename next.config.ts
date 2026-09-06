@@ -66,6 +66,9 @@ const TASK_URL = process.env.TASK_URL || process.env.NEXT_PUBLIC_TASK_URL;
 const NOTION_URL = process.env.NOTION_URL || process.env.NEXT_PUBLIC_NOTION_URL;
 // bot-service (Management API riêng, cùng envelope {success,data,error} với auth-service).
 const BOT_URL = process.env.BOT_URL || process.env.NEXT_PUBLIC_BOT_URL;
+// ai-service (cổng AI duy nhất). Tách khỏi BOT_URL từ 2026-09-06 khi module AI
+// rời bot-service; bot-service không còn giữ API key của provider nào.
+const AI_URL = process.env.AI_URL || process.env.NEXT_PUBLIC_AI_URL;
 
 if (!isElectron && (!AUTH_URL || !VIBE_URL)) {
   throw new Error('Missing AUTH_URL or VIBE_URL in env — BE deployed, must be set.');
@@ -102,11 +105,13 @@ function buildContentSecurityPolicy(): string {
         process.env.NEXT_PUBLIC_NOTION_URL,
         process.env.NEXT_PUBLIC_NOTION_WS_URL,
         process.env.NEXT_PUBLIC_BOT_URL,
+        process.env.NEXT_PUBLIC_AI_URL,
         AUTH_URL,
         VIBE_URL,
         TASK_URL,
         NOTION_URL,
         BOT_URL,
+        AI_URL,
       ]
         .map(toOrigin)
         .filter((origin): origin is string => origin !== null),
@@ -160,14 +165,16 @@ const nextConfig: NextConfig = {
       if (NOTION_URL) {
         rules.unshift({ source: '/notion-proxy/:path*', destination: `${NOTION_URL}/:path*` });
       }
-      // bot-service: prefix riêng /api/v1/ai + /api/v1/bot(s) — phải đứng trước
-      // catch-all /api/v1/:path*. AI chat cũng do bot-service phục vụ (giữ DEEPSEEK_API_KEY).
+      // bot-service: prefix riêng /api/v1/bot(s) — phải đứng trước catch-all /api/v1/:path*.
       if (BOT_URL) {
         rules.unshift(
-          { source: '/api/v1/ai/:path*', destination: `${BOT_URL}/api/v1/ai/:path*` },
           { source: '/api/v1/bots/:path*', destination: `${BOT_URL}/api/v1/bots/:path*` },
           { source: '/api/v1/bot/:path*', destination: `${BOT_URL}/api/v1/bot/:path*` },
         );
+      }
+      // ai-service: /api/v1/ai/* — cũng phải đứng trước catch-all /api/v1/:path*.
+      if (AI_URL) {
+        rules.unshift({ source: '/api/v1/ai/:path*', destination: `${AI_URL}/api/v1/ai/:path*` });
       }
       return rules;
     },

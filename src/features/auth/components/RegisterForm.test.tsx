@@ -42,7 +42,7 @@ async function fillStep2() {
 
 async function fillStep3() {
   // DatePicker (editable) nhận định dạng dd/MM/yyyy và tự chuyển về yyyy-MM-dd cho form.
-  fireEvent.change(screen.getByPlaceholderText('Chọn ngày sinh'), {
+  fireEvent.change(screen.getByPlaceholderText('dd/mm/yyyy'), {
     target: { value: '15/01/2000' },
   });
   await userEvent.click(screen.getByRole('button', { name: /tiếp theo/i }));
@@ -104,5 +104,25 @@ describe('RegisterForm (multi-step)', () => {
     // Quay lại bước 2 với lỗi gắn vào field email
     expect(await screen.findByText('Email đã được sử dụng')).toBeTruthy();
     expect(screen.getByText('Thông tin liên lạc')).toBeTruthy();
+  });
+
+  it('giữ nguyên ngày sinh khi BE báo trùng email và quay lại bước Ngày sinh', async () => {
+    mutateAsync.mockRejectedValue(new ApiError(409, 'USER_EMAIL_TAKEN', 'Email đã được sử dụng'));
+    render(<RegisterForm />);
+
+    await fillStep1();
+    await fillStep2();
+    await fillStep3();
+    await fillStep4();
+
+    // Từ bước Liên lạc tiến lại sang bước Ngày sinh — DatePicker remount
+    await userEvent.click(screen.getByRole('button', { name: /tiếp theo/i }));
+    const dobInput = await screen.findByPlaceholderText('dd/mm/yyyy');
+    expect((dobInput as HTMLInputElement).value).toBe('15/01/2000');
+
+    // Blur không được xoá giá trị đã có
+    fireEvent.blur(dobInput);
+    expect((dobInput as HTMLInputElement).value).toBe('15/01/2000');
+    expect(screen.getByText(/26 tuổi|25 tuổi/)).toBeTruthy();
   });
 });

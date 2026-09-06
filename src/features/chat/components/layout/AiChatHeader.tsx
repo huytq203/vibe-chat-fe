@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeft, Bot, PanelLeftOpen, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, PanelLeftOpen, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import { useAiConfig } from '@/features/chat/hooks/useAiConfig';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import type { AiSession } from '@/features/chat/hooks/useAiSessions';
 
 interface AiChatHeaderProps {
@@ -22,8 +22,6 @@ export function AiChatHeader({
   onCreateSession,
   onDeleteSession,
 }: AiChatHeaderProps) {
-  const { data: aiConfig } = useAiConfig();
-
   return (
     <header className="flex shrink-0 items-center gap-2.5 border-b bg-sidebar px-3 py-2.5 max-md:pt-[calc(var(--safe-top)+0.625rem)] md:rounded-2xl md:border md:bg-sidebar/75 md:shadow-subtle md:backdrop-blur-md">
       {onBack && (
@@ -43,9 +41,7 @@ export function AiChatHeader({
         </Button>
       )}
 
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-subtle">
-        <Bot className="h-[18px] w-[18px]" />
-      </span>
+      <AiAvatar className="h-9 w-9 shadow-subtle ring-1 ring-primary/20" />
 
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-[14.5px] font-bold leading-tight text-foreground">

@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isElectron } from "@/lib/electron";
+import { BANNER_DELAY_MS } from "./install-eligibility";
 import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
 
 vi.mock("@/lib/electron", () => ({ isElectron: vi.fn(() => false) }));
@@ -18,8 +18,37 @@ function setUserAgent(value: string): void {
   Object.defineProperty(navigator, "userAgent", { configurable: true, value });
 }
 
+/** Giả lập user đã quay lại app đủ nhiều để được mời cài. */
+function seedReturningVisitor(): void {
+  localStorage.setItem("halo.pwa.visit-count", "5");
+}
+
+function firePromptEvent(prompt = vi.fn().mockResolvedValue(undefined)): typeof prompt {
+  fireEvent(
+    window,
+    Object.assign(new Event("beforeinstallprompt"), {
+      prompt,
+      userChoice: Promise.resolve({ outcome: "accepted" as const }),
+    }),
+  );
+  return prompt;
+}
+
+function waitForBannerDelay(): void {
+  act(() => {
+    vi.advanceTimersByTime(BANNER_DELAY_MS);
+  });
+}
+
 describe("ServiceWorkerRegister", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
+    // Store giữ sự kiện ở module scope — `appinstalled` là cách dọn đúng ngữ nghĩa.
+    fireEvent(window, new Event("appinstalled"));
     setOnline(true);
     setUserAgent(DESKTOP_UA);
     localStorage.clear();
@@ -33,38 +62,56 @@ describe("ServiceWorkerRegister", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Mất kết nối");
   });
 
-  it("hiện nút cài đặt và gọi prompt của browser", async () => {
-    const prompt = vi.fn().mockResolvedValue(undefined);
-    const event = Object.assign(new Event("beforeinstallprompt"), {
-      prompt,
-      userChoice: Promise.resolve({ outcome: "accepted" as const }),
-    });
-    const user = userEvent.setup();
+  it("không mời cài ngay khi vừa tải trang", () => {
+    seedReturningVisitor();
+    render(<ServiceWorkerRegister />);
+    firePromptEvent();
+
+    expect(screen.queryByRole("button", { name: "Cài đặt" })).not.toBeInTheDocument();
+  });
+
+  it("không mời cài ở lần truy cập đầu tiên dù đã đủ thời gian", () => {
+    render(<ServiceWorkerRegister />);
+    firePromptEvent();
+    waitForBannerDelay();
+
+    expect(screen.queryByRole("button", { name: "Cài đặt" })).not.toBeInTheDocument();
+  });
+
+  it("mời cài sau khi user quay lại và ở lại đủ lâu", () => {
+    seedReturningVisitor();
 
     render(<ServiceWorkerRegister />);
-    fireEvent(window, event);
-    await user.click(screen.getByRole("button", { name: "Cài đặt" }));
+    const prompt = firePromptEvent();
+    waitForBannerDelay();
+    fireEvent.click(screen.getByRole("button", { name: "Cài đặt" }));
 
     expect(prompt).toHaveBeenCalledOnce();
   });
 
-  it("hướng dẫn thủ công trên iOS vì không có beforeinstallprompt", () => {
-    setUserAgent(IPHONE_UA);
-    render(<ServiceWorkerRegister />);
-
-    expect(screen.getByText(/Thêm vào MH chính/)).toBeInTheDocument();
-  });
-
-  it("không hiện lại hướng dẫn iOS sau khi user đóng", async () => {
-    setUserAgent(IPHONE_UA);
-    const user = userEvent.setup();
+  it("không mời cài lại sau khi user đã đóng banner", () => {
+    seedReturningVisitor();
 
     const { unmount } = render(<ServiceWorkerRegister />);
-    await user.click(screen.getByRole("button", { name: "Đóng hướng dẫn cài đặt" }));
+    firePromptEvent();
+    waitForBannerDelay();
+    fireEvent.click(screen.getByRole("button", { name: "Đóng lời mời cài đặt" }));
     unmount();
-    render(<ServiceWorkerRegister />);
 
-    expect(screen.queryByText(/Thêm vào MH chính/)).not.toBeInTheDocument();
+    render(<ServiceWorkerRegister />);
+    waitForBannerDelay();
+
+    expect(screen.queryByRole("button", { name: "Cài đặt" })).not.toBeInTheDocument();
+  });
+
+  it("hướng dẫn thủ công trên iOS vì không có beforeinstallprompt", () => {
+    setUserAgent(IPHONE_UA);
+    seedReturningVisitor();
+
+    render(<ServiceWorkerRegister />);
+    waitForBannerDelay();
+
+    expect(screen.getByText(/Thêm vào MH chính/)).toBeInTheDocument();
   });
 
   it("không chạy UI PWA trong Electron", () => {

@@ -15,6 +15,10 @@ import { ProfileDialog } from '@/features/chat/components/contact/ProfileDialog'
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
+import { InstallAppMenuItem } from '@/lib/pwa/InstallAppMenuItem';
+
+const MENU_ITEM_CLASS =
+  'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground';
 
 interface UserMenuProps {
   variant?: 'default' | 'dock';
@@ -96,7 +100,7 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
             <button
               type="button"
               onClick={handleOpenProfile}
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className={MENU_ITEM_CLASS}
             >
               <User className="h-4 w-4 text-muted-foreground" />
               Thông tin tài khoản
@@ -104,7 +108,7 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
             <button
               type="button"
               onClick={() => { setPopoverOpen(false); setShareOpen(true); }}
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className={MENU_ITEM_CLASS}
             >
               <QrCode className="h-4 w-4 text-muted-foreground" />
               Chia sẻ hồ sơ
@@ -112,11 +116,15 @@ export function UserMenu({ variant = 'default' }: UserMenuProps) {
             <button
               type="button"
               onClick={handleOpenSettings}
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className={MENU_ITEM_CLASS}
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
               Cài đặt
             </button>
+            <InstallAppMenuItem
+              className={MENU_ITEM_CLASS}
+              onSelect={() => setPopoverOpen(false)}
+            />
           </div>
         </PopoverContent>
       </Popover>

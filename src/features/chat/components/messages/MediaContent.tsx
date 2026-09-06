@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { Download, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Progress } from '@/components/ui/progress/Progress';
 import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
-import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
+import { downloadMedia, useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
 import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
 import { useImageLightbox } from './LightboxProvider';
 import { VoicePlayer } from './VoicePlayer';
@@ -49,7 +50,15 @@ function SingleMedia({ message, isMe }: MediaContentProps) {
 
   if (message.type === 'IMAGE') {
     return (
-      <ImageView id={message.id} sortKey={message.createdAt} url={url} name={name} onError={onError} />
+      <ImageView
+        id={message.id}
+        sortKey={message.createdAt}
+        conversationId={message.conversationId}
+        mediaId={mediaId}
+        url={url}
+        name={name}
+        onError={onError}
+      />
     );
   }
   if (message.type === 'VIDEO') {
@@ -133,6 +142,8 @@ function MediaCell({
       <ImageView
         id={`${message.id}:${attachment.mediaId}`}
         sortKey={`${message.createdAt}:${attachment.mediaId}`}
+        conversationId={message.conversationId}
+        mediaId={attachment.mediaId}
         url={url}
         name={attachment.fileName}
         onError={onError}
@@ -168,6 +179,8 @@ function MediaPlaceholder({ name }: { name: string }) {
 function ImageView({
   id,
   sortKey,
+  conversationId,
+  mediaId,
   url,
   name,
   onError,
@@ -175,6 +188,8 @@ function ImageView({
 }: {
   id: string;
   sortKey: string;
+  conversationId: string;
+  mediaId: string | null;
   url: string | null;
   name: string;
   onError: () => void;
@@ -182,12 +197,24 @@ function ImageView({
 }) {
   const lightbox = useImageLightbox();
 
-  // Đăng ký ảnh vào album dùng chung (gỡ khi unmount / url đổi).
+  // Đăng ký ảnh vào album dùng chung (gỡ khi unmount / url đổi). Luôn kèm handler
+  // tải: cả hội thoại dùng chung MỘT album, nên chỉ cần vài ảnh thiếu handler là
+  // nút "Tải ảnh về máy" sẽ chớp tắt lúc vuốt qua lại. `downloadMedia` tự chọn
+  // đường phù hợp — lưu thẳng bytes với object URL, hoặc ký lại theo mediaId.
   useEffect(() => {
     if (!url) return;
-    lightbox.register({ id, src: url, alt: name, sortKey });
+    lightbox.register({
+      id,
+      src: url,
+      alt: name,
+      sortKey,
+      onDownload: async () => {
+        const saved = await downloadMedia(conversationId, mediaId, name, url);
+        if (!saved) toast.error('Không tải được ảnh. Vui lòng thử lại.');
+      },
+    });
     return () => lightbox.unregister(id);
-  }, [lightbox, id, url, name, sortKey]);
+  }, [lightbox, id, url, name, sortKey, conversationId, mediaId]);
 
   if (!url) return <MediaPlaceholder name={name} />;
   return (

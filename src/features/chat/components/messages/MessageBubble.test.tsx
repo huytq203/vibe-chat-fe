@@ -8,6 +8,14 @@ vi.mock('@/features/chat/components/contact/UserProfileDialog', () => ({
   UserProfileDialog: () => null,
 }));
 
+vi.mock('@/features/chat/hooks/use-mutations', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/chat/hooks/use-mutations')>();
+  return {
+    ...actual,
+    useOpenDirectConversation: () => ({ mutate: vi.fn() }),
+  };
+});
+
 function buildMessage(overrides: Partial<Message> = {}): Message {
   return {
     id: 'msg-1',
@@ -65,6 +73,34 @@ describe('MessageBubble', () => {
     const bubble = container.querySelector('.rounded-2xl') as HTMLElement;
     expect(bubble).toHaveClass('rounded-2xl', 'border', 'border-border');
     expect(bubble.className).not.toMatch(/rounded-bl-md/);
+  });
+
+  it('gives contact cards a larger responsive wrapper without fixed-width overflow', () => {
+    const { container } = renderWithProviders(
+      <MessageBubble
+        message={buildMessage({
+          senderId: 'me',
+          type: 'CONTACT',
+          metadata: {
+            contact: {
+              contactUserId: 'contact-1',
+              displayName: 'Trần Quang Huy',
+              username: 'huytq',
+              avatarUrl: null,
+            },
+          },
+        })}
+        meId="me"
+        showAvatar={false}
+      />,
+    );
+
+    const card = container.querySelector('[data-contact-card]') as HTMLElement;
+    const wrapper = card.parentElement?.parentElement as HTMLElement;
+
+    expect(card).toHaveClass('w-full');
+    expect(card).not.toHaveClass('w-[270px]');
+    expect(wrapper).toHaveClass('min-w-0', 'w-[352px]', 'max-w-[92%]');
   });
 
   it('renders Markdown only when the sender is marked as a bot', () => {

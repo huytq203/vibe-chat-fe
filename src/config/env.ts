@@ -18,6 +18,8 @@ const schema = z.object({
   NEXT_PUBLIC_NOTION_WS_URL: z.string().url(),
   // bot-service (Management API "BotFather" — tạo/sửa/xoá bot, issue/rotate/revoke token).
   NEXT_PUBLIC_BOT_URL: z.string().url(),
+  // ai-service (cổng AI duy nhất — giữ API key của provider; bot-service không còn giữ).
+  NEXT_PUBLIC_AI_URL: z.string().url(),
   // true → client gọi same-origin (Next rewrites proxy). false → gọi thẳng BE.
   NEXT_PUBLIC_USE_PROXY: z
     .enum(['true', 'false'])
@@ -44,6 +46,7 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_NOTION_URL: process.env.NEXT_PUBLIC_NOTION_URL,
   NEXT_PUBLIC_NOTION_WS_URL: process.env.NEXT_PUBLIC_NOTION_WS_URL,
   NEXT_PUBLIC_BOT_URL: process.env.NEXT_PUBLIC_BOT_URL,
+  NEXT_PUBLIC_AI_URL: process.env.NEXT_PUBLIC_AI_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

@@ -5,11 +5,19 @@ import { AtSign, Cake, Mail, Pen, Phone, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 import { Avatar } from '@/features/chat/components/common/Avatar';
 import type { AuthUser, Gender } from '@/features/auth';
+import type { ProfileMediaTarget } from './ProfileMediaLightbox';
 
 type ProfileInfoViewProps = {
   me: AuthUser | undefined;
   isLoading: boolean;
   onEdit: () => void;
+  /**
+   * Màn info đang hiển thị. Panel sửa trượt ngang nên màn info vẫn nằm trong DOM
+   * khi user đang cập nhật — khoá lại để ảnh không bấm/tab tới được lúc đó.
+   */
+  isActive: boolean;
+  /** Mở xem to ảnh bìa / ảnh đại diện (lightbox do parent render, ngoài Dialog). */
+  onPreview: (target: ProfileMediaTarget) => void;
 };
 
 // UNDISCLOSED bỏ qua → hiển thị '—'.
@@ -23,30 +31,47 @@ function formatDob(value: string | null | undefined): string | null {
 }
 
 /** Màn hình xem thông tin tài khoản (cover + avatar + bio + các dòng thông tin). */
-export function ProfileInfoView({ me, isLoading, onEdit }: ProfileInfoViewProps) {
+export function ProfileInfoView({ me, isLoading, onEdit, isActive, onPreview }: ProfileInfoViewProps) {
   const genderText = me?.gender ? GENDER_LABEL[me.gender] : null;
   const dobText = formatDob(me?.dateOfBirth);
+  // Ảnh bìa mặc định chỉ là gradient — không có gì để phóng to.
+  const canZoomCover = isActive && Boolean(me?.coverUrl);
+  const canZoomAvatar = isActive && Boolean(me?.avatarUrl);
 
   return (
     <div className="w-1/2 shrink-0 flex flex-col justify-between">
       <div>
         {/* Ảnh bìa: dùng coverUrl nếu có, ngược lại gradient mặc định. */}
-        <div className="h-28 overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary">
+        <button
+          type="button"
+          disabled={!canZoomCover}
+          onClick={() => onPreview('cover')}
+          aria-label="Xem ảnh bìa"
+          className="block h-28 w-full overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary enabled:cursor-zoom-in"
+        >
           {me?.coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={me.coverUrl} alt="" className="h-full w-full object-cover" />
           )}
-        </div>
+        </button>
         <div className="-mt-10 flex flex-col items-center px-6 pb-2">
           {isLoading ? (
             <Skeleton rounded="full" className="h-[72px] w-[72px]" />
           ) : (
-            <Avatar
-              name={me?.displayName ?? me?.username}
-              src={me?.avatarUrl}
-              size="lg"
-              className="ring-4 ring-background"
-            />
+            <button
+              type="button"
+              disabled={!canZoomAvatar}
+              onClick={() => onPreview('avatar')}
+              aria-label="Xem ảnh đại diện"
+              className="rounded-full enabled:cursor-zoom-in"
+            >
+              <Avatar
+                name={me?.displayName ?? me?.username}
+                src={me?.avatarUrl}
+                size="lg"
+                className="ring-4 ring-background"
+              />
+            </button>
           )}
           <div className="mt-2 text-center">
             {isLoading ? (

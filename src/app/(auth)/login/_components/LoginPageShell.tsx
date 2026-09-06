@@ -1,59 +1,48 @@
 import Image from 'next/image';
+import { BrandWatermark } from '@/components/common/BrandAssets';
 
 /** Props for LoginPageShell */
 export interface LoginPageShellProps {
   children: React.ReactNode;
 }
 
-/** Shell riêng cho `/login`, giữ bố cục Vespa nhưng dùng cùng palette với register. */
+/**
+ * Shell phẳng (full-bleed) cho `/login`, cùng palette với register.
+ *
+ * Không dùng card có khung: khung buộc cả hai cột nằm gọn trong viewport nên form
+ * dễ bị cắt khi màn hình thấp. Ở dạng phẳng, riêng cột form là vùng cuộn.
+ */
 export function LoginPageShell({ children }: LoginPageShellProps) {
   return (
-    <div className="relative h-full overflow-y-auto overflow-x-hidden bg-background md:p-4 md:pt-[calc(var(--safe-top)+1rem)] md:pb-[calc(var(--safe-bottom)+1rem)] lg:p-8">
-      {/* Lớp trang trí riêng, `overflow-hidden` để glow tràn mép (-top/-bottom) bị
-          cắt thay vì cộng vào vùng cuộn của container — nếu để chung, riêng glow đáy
-          đã đẻ ra 96px scroll dù nội dung vừa màn hình. */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="absolute inset-y-0 left-0 hidden w-[45%] opacity-[0.04] md:block">
-          <Image
-            src="/asset/login-vespa-watermark.png"
-            alt=""
-            fill
-            sizes="45vw"
-            className="object-cover object-left"
-          />
-        </div>
+    <div data-auth-surface className="relative flex h-full overflow-hidden bg-background">
+      {/* Lớp trang trí — nằm trong `overflow-hidden` của root nên phần tràn mép
+          không cộng vào vùng cuộn của cột form. */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Watermark bám theo cột form: mép phải dừng đúng chỗ panel minh hoạ bắt
+            đầu nên vết cắt bị panel (nền đục) che, các mép còn lại tràn ra ngoài
+            viewport. Root đã `overflow-hidden` nên không sinh thêm vùng cuộn. */}
+        <BrandWatermark className="right-0 lg:right-[42%]" />
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      {/* Wrapper `min-h-full` + căn giữa: khi màn hình quá thấp, wrapper cao theo nội
-          dung nên card không bị cắt mép trên — lỗi kinh điển của flex centering trong
-          vùng cuộn. Scroll nằm ở container ngoài, card luôn hiển thị trọn vẹn. */}
-      <div className="relative flex min-h-full items-center justify-center">
-        {/* `overflow-hidden` chỉ để cắt glow/ảnh minh hoạ tràn mép card — giữ đúng
-            hành vi clip của `overflow-y-auto` cũ nhưng không tạo thanh cuộn. */}
-        <div
-          data-auth-surface
-          className="flex min-h-full w-full flex-col overflow-hidden bg-background md:min-h-0 md:max-w-5xl md:rounded-2xl md:border md:border-border md:shadow-2xl lg:flex-row"
-        >
-          <div className="relative z-10 flex flex-1 items-center justify-start px-5 pt-[calc(var(--safe-top)+2rem)] pb-[calc(var(--safe-bottom)+2rem)] sm:px-6 md:p-8 lg:p-10">
-            {children}
-          </div>
+      {/* Cột form là vùng cuộn duy nhất. `my-auto` căn giữa khi còn dư chiều cao,
+          tự về 0 khi nội dung cao hơn viewport để không mất phần đầu form. */}
+      <div className="relative z-10 flex min-w-0 flex-1 justify-center overflow-y-auto overflow-x-hidden px-5 pt-[calc(var(--safe-top)+2rem)] pb-[calc(var(--safe-bottom)+2rem)] sm:px-6 md:p-8 lg:px-12 lg:py-8">
+        <div className="my-auto w-full max-w-md">{children}</div>
+      </div>
 
-          <div className="relative hidden bg-sidebar lg:block lg:w-[42%]">
-            <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-            <div className="pointer-events-none absolute inset-0 z-20 -translate-x-44 -translate-y-10 p-6">
-              <Image
-                src="/asset/login-vespa-card.png"
-                alt=""
-                fill
-                sizes="42vw"
-                className="object-contain object-bottom"
-              />
-            </div>
-          </div>
+      <div className="relative hidden overflow-hidden bg-sidebar lg:block lg:w-[42%] lg:flex-none">
+        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+        <div className="pointer-events-none absolute inset-4 z-20 p-6">
+          <Image
+            src="/asset/logo/banner2-nobg.png"
+            alt=""
+            fill
+            sizes="42vw"
+            className="object-contain drop-shadow-[0_20px_34px_rgb(61_31_91/0.2)]"
+          />
         </div>
       </div>
     </div>

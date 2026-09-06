@@ -28,7 +28,7 @@ export type AiStreamOptions = {
 const FALLBACK_STATUSES = new Set([404, 405, 501, 502, 504]);
 
 /**
- * Gửi kèm base64 để model đọc được ảnh/tệp thật. Route `/api/v1/ai` của bot-service
+ * Gửi kèm base64 để model đọc được ảnh/tệp thật. Route `/api/v1/ai` của ai-service
  * đã nới body limit riêng cho việc này; các route khác vẫn giữ mức mặc định.
  * Tệp đã mất `data` (vd gửi lại sau khi tải lại trang) chỉ còn tên — BE tự xử lý.
  */
@@ -105,8 +105,8 @@ async function consume(response: Response, onDelta: (text: string) => void): Pro
 }
 
 /**
- * REST endpoint AI của bot-service. Pure transport.
- * FE không giữ API key AI — bot-service gọi provider bằng key của nó.
+ * REST endpoint AI của ai-service. Pure transport.
+ * FE không giữ API key AI — ai-service gọi provider bằng key nó tự quản lý.
  */
 export const aiApi = {
   chat,

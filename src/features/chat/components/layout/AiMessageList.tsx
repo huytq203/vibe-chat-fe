@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDown, Bot } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
+import { AiMascot } from '@/components/common/BrandAssets';
 import { TypingDots } from '@/features/chat/components/common/TypingDots';
 import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
 import { AiMessageContent } from './AiMessageContent';
@@ -160,7 +161,7 @@ export function AiMessageList({
         <div className={cn(isPage && 'mx-auto w-full max-w-[680px]')}>
           {messages.length === 0 && !loading && !isPage && (
             <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center">
-              <Bot className="h-10 w-10 text-muted-foreground/40" />
+              <AiMascot className="h-24 w-28 drop-shadow-[0_12px_20px_rgb(61_31_91/0.16)]" />
               <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
             </div>
           )}

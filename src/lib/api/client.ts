@@ -112,8 +112,8 @@ function resolveBase(path: string, service?: ApiService): string {
   // USE_PROXY=true → same-origin, để Next rewrites proxy. USE_PROXY=false → gọi thẳng BE.
   if (env.NEXT_PUBLIC_USE_PROXY) return '';
   if (path.startsWith('/api/v1/auth/')) return env.NEXT_PUBLIC_AUTH_URL;
-  // AI chat: bot-service giữ DEEPSEEK_API_KEY, FE không giữ key AI nào.
-  if (path.startsWith('/api/v1/ai/')) return env.NEXT_PUBLIC_BOT_URL;
+  // AI chat do ai-service phục vụ — nó giữ API key provider, bot-service thì không.
+  if (path.startsWith('/api/v1/ai/')) return env.NEXT_PUBLIC_AI_URL;
   // bot-service: cả /api/v1/bot/... (self, messages) lẫn /api/v1/bots/... (management).
   if (path.startsWith('/api/v1/bot')) return env.NEXT_PUBLIC_BOT_URL;
   return env.NEXT_PUBLIC_VIBE_URL;

@@ -5,6 +5,7 @@ vi.mock('@/config/env', () => ({
     NEXT_PUBLIC_AUTH_URL: 'http://auth.test',
     NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
     NEXT_PUBLIC_BOT_URL: 'http://bot.test',
+    NEXT_PUBLIC_AI_URL: 'http://ai.test',
     NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
     NEXT_PUBLIC_WS_URL: 'http://vibe.test',
     NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',
@@ -29,9 +30,9 @@ describe('resolveApiUrl', () => {
     );
   });
 
-  it('nên route /api/v1/ai/chat sang NEXT_PUBLIC_BOT_URL', async () => {
+  it('nên route /api/v1/ai/chat sang NEXT_PUBLIC_AI_URL chứ không phải bot-service', async () => {
     const { resolveApiUrl } = await import('./client');
-    expect(resolveApiUrl('/api/v1/ai/chat')).toBe('http://bot.test/api/v1/ai/chat');
+    expect(resolveApiUrl('/api/v1/ai/chat')).toBe('http://ai.test/api/v1/ai/chat');
   });
 
   it('nên route /api/v1/auth/login sang NEXT_PUBLIC_AUTH_URL', async () => {
@@ -64,6 +65,7 @@ describe('resolveApiUrl khi dùng proxy', () => {
         NEXT_PUBLIC_AUTH_URL: 'http://auth.test',
         NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
         NEXT_PUBLIC_BOT_URL: 'http://bot.test',
+        NEXT_PUBLIC_AI_URL: 'http://ai.test',
         NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
         NEXT_PUBLIC_WS_URL: 'http://vibe.test',
         NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',

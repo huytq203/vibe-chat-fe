@@ -110,6 +110,7 @@ function MessageBubbleImpl({
     (message.type === "IMAGE" ||
       message.type === "VIDEO" ||
       message.type === "CONTACT");
+  const isContactCard = !message.isDeleted && message.type === "CONTACT";
   // Menu hành động: mọi tin đã gửi xong, chưa gỡ. Reply cho tất cả;
   // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
   const canActions = !isSending && !isFailed && !message.isDeleted;
@@ -186,9 +187,12 @@ function MessageBubbleImpl({
       )}
       <div
         className={cn(
-          isMarkdownText
-            ? "max-w-[88%] sm:max-w-[78%] md:max-w-[720px]"
-            : "max-w-[65%]",
+          "min-w-0",
+          isContactCard
+            ? "w-[352px] max-w-[92%]"
+            : isMarkdownText
+              ? "max-w-[88%] sm:max-w-[78%] md:max-w-[720px]"
+              : "max-w-[65%]",
         )}
       >
         <BubbleHeader

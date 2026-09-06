@@ -13,6 +13,7 @@ const TEST_ENV: Record<string, string> = {
   NEXT_PUBLIC_NOTION_URL: 'http://localhost:3007',
   NEXT_PUBLIC_NOTION_WS_URL: 'ws://localhost:3008',
   NEXT_PUBLIC_BOT_URL: 'http://localhost:3010',
+  NEXT_PUBLIC_AI_URL: 'http://localhost:3004',
 };
 for (const [key, value] of Object.entries(TEST_ENV)) {
   if (!process.env[key]) vi.stubEnv(key, value);

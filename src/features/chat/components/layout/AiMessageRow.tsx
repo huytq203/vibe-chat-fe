@@ -1,7 +1,8 @@
 'use client';
 
-import { Bot, File, FileJson, FileText } from 'lucide-react';
+import { File, FileJson, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import type { AiAttachmentMeta, AiMessage } from '@/features/chat/hooks/useAiSessions';
 import { AiMessageContent } from './AiMessageContent';
 import {
@@ -60,9 +61,7 @@ function UserContent({ message }: { message: AiMessage }) {
 export function AiAuthorLabel() {
   return (
     <div className="mb-1.5 flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-subtle">
-        <Bot className="h-3.5 w-3.5" />
-      </span>
+      <AiAvatar className="h-7 w-7 shadow-subtle ring-1 ring-primary/20" />
       <p className="text-[11.5px] font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.55)]">
         Halo AI
       </p>

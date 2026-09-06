@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Download, ImageOff, Link as LinkIcon, Play } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { Progress } from '@/components/ui/progress/Progress';
 import { ImageLightbox, type LightboxSlide } from '@/components/common/ImageLightbox';
 import { fileExtFromName, formatFileSize, getFileIconMeta } from '@/features/chat/utils';
-import { useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
+import { downloadMedia, useMediaDownload } from '@/features/chat/hooks/useMediaDownload';
 import { useRefreshableUrl } from '@/features/chat/hooks/useRefreshableUrl';
 import { useSharedContent, type SharedMedia, type SharedTab } from '@/features/chat/hooks/useSharedContent';
 
@@ -129,12 +130,20 @@ function MediaGrid({ conversationId, items }: { conversationId: string; items: S
     const indexByKey: Record<string, number> = {};
     for (const it of items) {
       if (it.message.type === 'IMAGE' && it.attachment.downloadUrl) {
+        const { mediaId, fileName, downloadUrl } = it.attachment;
         indexByKey[it.key] = slides.length;
-        slides.push({ src: it.attachment.downloadUrl, alt: it.attachment.fileName });
+        slides.push({
+          src: downloadUrl,
+          alt: fileName,
+          onDownload: async () => {
+            const saved = await downloadMedia(conversationId, mediaId, fileName, downloadUrl);
+            if (!saved) toast.error('Không tải được ảnh. Vui lòng thử lại.');
+          },
+        });
       }
     }
     return { slides, indexByKey };
-  }, [items]);
+  }, [items, conversationId]);
 
   return (
     <>

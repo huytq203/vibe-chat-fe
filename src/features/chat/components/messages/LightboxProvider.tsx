@@ -68,7 +68,7 @@ export function LightboxProvider({ children }: { children: ReactNode }) {
       return a.id < b.id ? -1 : 1; // tie-break ổn định
     });
     const i = arr.findIndex((s) => s.id === id);
-    setOrdered(arr.map(({ src, alt }) => ({ src, alt })));
+    setOrdered(arr.map(({ src, alt, onDownload }) => ({ src, alt, onDownload })));
     setIndex(i < 0 ? 0 : i);
     setIsOpen(true);
   }, []);

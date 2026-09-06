@@ -18,6 +18,7 @@ import type { Gender } from '@/features/auth';
 import { UserProfileActions } from './UserProfileActions';
 import { UserProfileExtraActions } from './UserProfileExtraActions';
 import { CommonGroupsSection } from './CommonGroupsSection';
+import { ProfileMediaLightbox, type ProfileMediaTarget } from './ProfileMediaLightbox';
 
 type UserProfileDialogProps = {
   open: boolean;
@@ -46,6 +47,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
   const router = useRouter();
   const [reportOpen, setReportOpen] = useState(false);
   const [friendPickerOpen, setFriendPickerOpen] = useState(false);
+  const [preview, setPreview] = useState<ProfileMediaTarget | null>(null);
 
   const { data: profile, isLoading, isError } = useUserProfile(userId, open);
   const openDirectMut = useOpenDirectConversation();
@@ -85,23 +87,38 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
             </p>
           ) : (
             <div className="max-h-[80vh] overflow-y-auto">
-              <div className="h-28 overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary">
+              {/* Ảnh bìa mặc định chỉ là gradient — không có gì để phóng to. */}
+              <button
+                type="button"
+                disabled={!profile?.coverUrl}
+                onClick={() => setPreview('cover')}
+                aria-label="Xem ảnh bìa"
+                className="block h-28 w-full overflow-hidden bg-gradient-to-br from-primary/30 via-accent to-secondary enabled:cursor-zoom-in"
+              >
                 {profile?.coverUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={profile.coverUrl} alt="" className="h-full w-full object-cover" />
                 )}
-              </div>
+              </button>
 
               <div className="-mt-10 flex flex-col items-center px-6">
                 {isLoading ? (
                   <Skeleton rounded="full" className="h-[72px] w-[72px]" />
                 ) : (
-                  <Avatar
-                    name={name}
-                    src={profile?.avatarUrl}
-                    size="lg"
-                    className="ring-4 ring-background"
-                  />
+                  <button
+                    type="button"
+                    disabled={!profile?.avatarUrl}
+                    onClick={() => setPreview('avatar')}
+                    aria-label="Xem ảnh đại diện"
+                    className="rounded-full enabled:cursor-zoom-in"
+                  >
+                    <Avatar
+                      name={name}
+                      src={profile?.avatarUrl}
+                      size="lg"
+                      className="ring-4 ring-background"
+                    />
+                  </button>
                 )}
                 <div className="mt-2 text-center">
                   {isLoading ? (
@@ -166,6 +183,14 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
           )}
         </DialogContent>
       </Dialog>
+
+      <ProfileMediaLightbox
+        coverUrl={profile?.coverUrl}
+        avatarUrl={profile?.avatarUrl}
+        name={name}
+        target={preview}
+        onClose={() => setPreview(null)}
+      />
 
       {/* Render ngoài Dialog chính để thoát khỏi nested dialog context của Base UI */}
       {userId && (

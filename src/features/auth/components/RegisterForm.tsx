@@ -7,12 +7,6 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Form } from '@/components/ui/form/Form';
 import { Button } from '@/components/ui/button/Button';
-import {
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card/Card';
 import { cn } from '@/lib/utils/cn';
 import {
   registerFormSchema,
@@ -149,11 +143,13 @@ export const RegisterForm = () => {
 
   return (
     <div className="w-full max-w-md">
-      <CardHeader className="border-b-0 px-0 pb-2 pt-0 text-center md:px-6 md:pt-8">
-        <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
-        <CardDescription>Tham gia Halo ngay hôm nay</CardDescription>
-      </CardHeader>
-      <CardContent className="px-0 pb-0 pt-2 md:px-6 md:pb-8">
+      <header className="space-y-1.5 pb-2 text-center">
+        <h1 className="text-2xl font-semibold leading-none tracking-tight text-foreground">
+          Tạo tài khoản
+        </h1>
+        <p className="text-sm text-muted-foreground">Tham gia Halo ngay hôm nay</p>
+      </header>
+      <div className="pt-2">
         <StepProgress labels={STEPS.map((s) => s.label)} current={step} />
         <Form {...form}>
           <form onSubmit={handleFormSubmit}>
@@ -161,7 +157,7 @@ export const RegisterForm = () => {
               key={step}
               className={cn(dir === 'back' ? 'animate-step-in-back' : 'animate-step-in')}
             >
-              <div className="mb-5">
+              <div className="mb-4">
                 <h2 className="text-lg font-bold text-foreground">{STEPS[step].title}</h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">{STEPS[step].sub}</p>
               </div>
@@ -171,7 +167,7 @@ export const RegisterForm = () => {
               {step === 2 && <StepBirthday />}
               {step === 3 && <StepSecurity />}
 
-              <div className="mt-6 flex gap-2.5">
+              <div className="mt-5 flex gap-2.5">
                 {step > 0 && (
                   <Button
                     type="button"
@@ -200,13 +196,13 @@ export const RegisterForm = () => {
           </form>
         </Form>
 
-        <p className="mt-5 text-center text-sm text-muted-foreground">
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Đã có tài khoản?{' '}
           <Button variant="link" type="button" className="px-0" onClick={() => router.push('/login')}>
             Đăng nhập
           </Button>
         </p>
-      </CardContent>
+      </div>
     </div>
   );
 };

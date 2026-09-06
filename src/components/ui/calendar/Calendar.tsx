@@ -5,15 +5,16 @@ import { DayPicker, type DateRange, type Matcher } from 'react-day-picker';
 import { tv, type VariantProps } from 'tailwind-variants';
 import * as locales from 'react-day-picker/locale';
 
-import 'react-day-picker/dist/style.css';
+import { dayPickerClassNames } from './day-picker-theme';
 
 const calendarVariants = tv({
-  base: 'rdp-custom',
+  base: '',
   variants: {
+    // Ghi đè kích thước ô ngày của `dayPickerClassNames` (th = weekday, td = ngày).
     size: {
-      sm: '[&_.rdp-day]:h-7 [&_.rdp-day]:w-7 [&_.rdp-day]:text-xs',
-      md: '[&_.rdp-day]:h-9 [&_.rdp-day]:w-9 [&_.rdp-day]:text-sm',
-      lg: '[&_.rdp-day]:h-11 [&_.rdp-day]:w-11 [&_.rdp-day]:text-base',
+      sm: '[&_th]:w-7 [&_td]:h-7 [&_td]:w-7 [&_td>button]:h-7 [&_td>button]:w-7 [&_td>button]:text-xs',
+      md: '',
+      lg: '[&_th]:w-11 [&_td]:h-11 [&_td]:w-11 [&_td>button]:h-11 [&_td>button]:w-11 [&_td>button]:text-base',
     },
   },
   defaultVariants: {
@@ -79,6 +80,7 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(({
     disabled: getDisabled(),
     numberOfMonths,
     showOutsideDays,
+    classNames: dayPickerClassNames,
     className: calendarVariants({ size, className }),
   };
 

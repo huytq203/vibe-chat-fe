@@ -1,10 +1,11 @@
 'use client';
 import { useState, type ReactNode } from 'react';
-import { BarChart2, Bot, CalendarClock, Check, Clock, IdCard, MoreHorizontal, PanelTopOpen, Type } from 'lucide-react';
+import { BarChart2, CalendarClock, Check, Clock, IdCard, MoreHorizontal, PanelTopOpen, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu/DropdownMenu';
 import { cn } from '@/lib/utils/cn';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { SELF_DESTRUCT_OPTIONS } from '@/features/chat/utils';
 import type { AttachmentKind } from '@/features/chat/hooks/useAttachments';
@@ -125,7 +126,7 @@ export function ComposerActions({
               )}
               {onAiClick && (
                 <ActionItem
-                  icon={<Bot className="h-[18px] w-[18px]" />}
+                  icon={<AiAvatar className="h-5 w-5 ring-1 ring-primary/15" />}
                   label="Hỏi AI"
                   onClick={() => handleMoreAction(onAiClick)}
                 />

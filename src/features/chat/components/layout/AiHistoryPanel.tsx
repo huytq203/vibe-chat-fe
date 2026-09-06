@@ -1,7 +1,8 @@
 'use client';
 
-import { Bot, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
 import type { AiSession } from '@/features/chat/hooks/useAiSessions';
 
 interface AiHistoryPanelProps {
@@ -15,7 +16,7 @@ export function AiHistoryPanel({ sessions, activeId, onSelect, onDelete }: AiHis
   if (sessions.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
-        <Bot className="h-8 w-8 text-muted-foreground/40" />
+        <AiMascot className="h-20 w-24 drop-shadow-[0_10px_18px_rgb(61_31_91/0.14)]" />
         <p className="text-[13px] text-muted-foreground">Chưa có cuộc trò chuyện nào</p>
       </div>
     );
@@ -35,7 +36,7 @@ export function AiHistoryPanel({ sessions, activeId, onSelect, onDelete }: AiHis
               : 'text-foreground hover:bg-muted',
           )}
         >
-          <Bot className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <AiAvatar className="h-5 w-5 ring-1 ring-primary/15" />
           <span className="flex-1 truncate text-[13px]">{session.title}</span>
           <span
             role="button"

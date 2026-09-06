@@ -4,7 +4,7 @@ import { Download, RefreshCw, Share, WifiOff, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button/Button";
 import { isElectron } from "@/lib/electron";
-import { useInstallPrompt } from "./useInstallPrompt";
+import { useInstallBanner } from "./useInstallBanner";
 import { useOnlineStatus } from "./useOnlineStatus";
 import { useServiceWorkerUpdate } from "./useServiceWorkerUpdate";
 
@@ -43,7 +43,7 @@ export function ServiceWorkerRegister(): ReactNode {
   // Electron đã là app desktop: không cần cài, không cần SW cache (gây UI cũ sau update).
   const isSupported = !isElectron();
   const isOnline = useOnlineStatus(isSupported);
-  const { mode, install, dismissInstall } = useInstallPrompt(isSupported);
+  const { mode, install, dismiss: dismissInstall } = useInstallBanner(isSupported);
   const { waitingWorker, isUpdating, applyUpdate, dismissUpdate } =
     useServiceWorkerUpdate(isSupported);
 

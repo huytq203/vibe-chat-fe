@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowUpRight, Languages, Lightbulb, MessageSquareQuote, Sparkles, TextQuote } from 'lucide-react';
+import { ArrowUpRight, Languages, Lightbulb, MessageSquareQuote, TextQuote } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { AiMascot } from '@/components/common/BrandAssets';
 
 type Suggestion = {
   icon: LucideIcon;
@@ -24,10 +25,8 @@ export function AiWelcome({ onPick }: AiWelcomeProps) {
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-1 py-4">
       <div className="w-full max-w-[560px] rounded-2xl border bg-sidebar/75 p-6 shadow-subtle backdrop-blur-md sm:p-8">
         <div className="flex flex-col items-center text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-subtle">
-            <Sparkles className="h-6 w-6" />
-          </span>
-          <h2 className="mt-4 text-balance text-[21px] font-bold leading-tight tracking-tight text-foreground">
+          <AiMascot className="h-32 w-40 drop-shadow-[0_16px_24px_rgb(61_31_91/0.18)] sm:h-36 sm:w-44" />
+          <h2 className="mt-2 text-balance text-[21px] font-bold leading-tight tracking-tight text-foreground">
             Halo AI có thể giúp gì cho bạn?
           </h2>
           <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground">

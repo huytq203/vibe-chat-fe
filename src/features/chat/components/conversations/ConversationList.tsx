@@ -153,7 +153,7 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-primary/30 bg-primary/15">
             <Image
-              src="/icon-192.png"
+              src="/asset/logo/logo4-192.png"
               alt="HaloChat"
               width={36}
               height={36}

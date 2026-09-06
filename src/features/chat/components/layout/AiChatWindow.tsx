@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { type DraggableData } from 'react-draggable';
-import { Bot, Clock, Plus, X } from 'lucide-react';
+import { Clock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
@@ -74,9 +75,7 @@ export function AiChatWindow() {
     >
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="ai-drag-handle flex min-w-0 flex-1 cursor-move items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-primary/30 bg-primary/15">
-            <Bot className="h-4 w-4 text-primary" />
-          </div>
+          <AiAvatar className="h-8 w-8 shadow-subtle ring-1 ring-primary/25" />
           <span className="truncate text-sm font-bold tracking-tight">Halo AI</span>
         </div>
         <div className="no-drag flex shrink-0 items-center gap-0.5">
