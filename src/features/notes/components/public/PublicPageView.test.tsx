@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import type { z } from 'zod';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { publicPageSchema } from '@/features/notes/schemas';
 import { render, screen } from '@/test/test-utils';
 import { generateMetadata } from '@/app/p/[token]/page';
@@ -56,7 +57,7 @@ describe('trang ghi chú công khai', () => {
     render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);
 
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
-    expect(frame).toHaveAttribute('sandbox', '');
+    expect(frame).toHaveAttribute('sandbox', 'allow-same-origin');
     expect(frame.getAttribute('sandbox')).not.toContain('allow-scripts');
     expect(frame.getAttribute('srcdoc')).toContain(html);
     expect(screen.queryByText('Nội dung lạ')).not.toBeInTheDocument();
@@ -75,7 +76,58 @@ describe('trang ghi chú công khai', () => {
     expect(srcdoc).toContain('numberedListItem');
     expect(srcdoc).toContain('checkListItem');
     expect(srcdoc).toContain('codeBlock');
+    expect(srcdoc).toContain('public-code-copy');
+    expect(srcdoc).toContain('Liberation Mono');
+    expect(srcdoc).toContain('--shiki-light');
     expect(srcdoc).toContain(html);
+  });
+
+  it('gắn nút sao chép cho code block trong iframe mà không bật script', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    render(<PublicPageView page={buildPublicPage()} token="public-token" />);
+
+    const frame = screen.getByTitle('Nội dung trang Ghi chú công khai') as HTMLIFrameElement;
+    const frameDocument = frame.contentDocument;
+    expect(frameDocument).not.toBeNull();
+    frameDocument!.body.innerHTML = `
+      <div data-content-type="codeBlock">
+        <pre><code data-language="text">const answer = 42;</code></pre>
+      </div>
+    `;
+
+    frame.dispatchEvent(new Event('load'));
+    frame.dispatchEvent(new Event('load'));
+    const copyButton = frameDocument!.querySelector<HTMLButtonElement>('.public-code-copy');
+    expect(copyButton).not.toBeNull();
+    expect(frameDocument!.querySelectorAll('.public-code-copy')).toHaveLength(1);
+    await user.click(copyButton!);
+
+    expect(writeText).toHaveBeenCalledWith('const answer = 42;');
+    expect(copyButton).toHaveTextContent('Đã chép');
+    expect(frame.getAttribute('sandbox')).not.toContain('allow-scripts');
+  });
+
+  it('ưu tiên ngôn ngữ backend export trên wrapper code block', async () => {
+    render(<PublicPageView page={buildPublicPage()} token="public-token" />);
+
+    const frame = screen.getByTitle('Nội dung trang Ghi chú công khai') as HTMLIFrameElement;
+    const frameDocument = frame.contentDocument!;
+    frameDocument.body.innerHTML = `
+      <div data-content-type="codeBlock" data-language="jsx">
+        <pre><code class="bn-inline-content">funtion haloCat(){
+console.log("hellohuy")
+}</code></pre>
+      </div>
+    `;
+
+    frame.dispatchEvent(new Event('load'));
+
+    await vi.waitFor(() => {
+      expect(frameDocument.querySelector('pre')).toHaveClass('shiki');
+      expect(frameDocument.querySelector('code span[style*="--shiki-light"]')).not.toBeNull();
+      expect(frameDocument.querySelector('.public-code-language')).toHaveTextContent('JSX');
+    });
   });
 
   it('dùng thang heading gọn trong nội dung công khai', () => {

@@ -120,4 +120,59 @@ describe('bộ chuyển workspace', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Workspace Hai' }));
     await waitFor(() => expect(onSelectWorkspace).toHaveBeenCalledWith('workspace-2'));
   });
+
+  it('tạo workspace thành công khi response có vai trò OWNER', async () => {
+    const personal = buildWorkspace('workspace-personal', 'Cá nhân');
+    const created = buildWorkspace('workspace-created', 'Nhóm sản phẩm');
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/workspaces`, () => envelope([personal])),
+      http.post(`${NOTION_URL}/api/v1/workspaces`, () => envelope(created)),
+    );
+    const { onSelectWorkspace } = renderSwitcher(personal.id);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Chọn workspace' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Tạo workspace mới' }));
+    await user.type(screen.getByRole('textbox', { name: 'Tên workspace' }), 'Nhóm sản phẩm');
+    await user.click(screen.getByRole('button', { name: 'Tạo workspace' }));
+
+    await waitFor(() => expect(onSelectWorkspace).toHaveBeenCalledWith(created.id));
+    expect(screen.queryByRole('dialog', { name: 'Tạo workspace mới' })).not.toBeInTheDocument();
+  });
+
+  it('OWNER xóa workspace nhóm rồi chuyển về workspace còn lại', async () => {
+    const personal = { ...buildWorkspace('workspace-personal', 'Cá nhân'), type: 'PERSONAL' };
+    const team = buildWorkspace('workspace-team', 'Nhóm bị tạo nhầm');
+    let deletedWorkspaceId: string | undefined;
+    server.use(
+      http.get(`${NOTION_URL}/api/v1/workspaces`, () => envelope([personal, team])),
+      http.delete(`${NOTION_URL}/api/v1/workspaces/:workspaceId`, ({ params }) => {
+        deletedWorkspaceId = String(params.workspaceId);
+        return envelope({ deleted: true });
+      }),
+    );
+    const { onSelectWorkspace } = renderSwitcher(team.id);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Chọn workspace' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Xóa workspace hiện tại' }));
+    expect(screen.getByRole('alertdialog', { name: 'Xóa workspace này?' })).toHaveTextContent(
+      team.name,
+    );
+    await user.click(screen.getByRole('button', { name: 'Xóa workspace' }));
+
+    await waitFor(() => expect(deletedWorkspaceId).toBe(team.id));
+    expect(onSelectWorkspace).toHaveBeenCalledWith(personal.id);
+  });
+
+  it('không cho xóa workspace cá nhân', async () => {
+    const personal = { ...buildWorkspace('workspace-personal', 'Cá nhân'), type: 'PERSONAL' };
+    server.use(http.get(`${NOTION_URL}/api/v1/workspaces`, () => envelope([personal])));
+    renderSwitcher(personal.id);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Chọn workspace' }));
+
+    expect(screen.queryByRole('menuitem', { name: 'Xóa workspace hiện tại' })).not.toBeInTheDocument();
+  });
 });

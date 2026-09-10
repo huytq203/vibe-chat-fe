@@ -14,6 +14,7 @@ import { NoteCanvas } from './NoteCanvas';
 import { SidePanel } from './panel/SidePanel';
 import { QuickSearchDialog } from './search/QuickSearchDialog';
 import { FavoriteList } from './sidebar/FavoriteList';
+import { NewPageButton } from './sidebar/NewPageButton';
 import { PageTree } from './sidebar/PageTree';
 import { SharedList } from './sidebar/SharedList';
 import { TrashLink } from './sidebar/TrashLink';
@@ -73,7 +74,7 @@ function CanvasFallback({ children }: { children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-2xl md:border md:shadow-subtle">
       <div aria-hidden="true" className="h-14 border-b border-border" />
-      <div className="mx-auto w-full max-w-[45rem] px-4 pt-12 sm:px-8 md:px-12 md:pt-16">
+      <div className="mx-auto w-full max-w-[45rem] px-4 pt-12 sm:px-6 md:px-6 md:pt-16">
         {children}
       </div>
     </main>
@@ -209,11 +210,16 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
           />
         )}
         <section aria-labelledby="pages-heading">
-          <div
-            id="pages-heading"
-            className="flex h-8 items-center px-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-          >
-            Trang
+          <div className="flex h-8 items-center gap-2 pl-4 pr-2.5">
+            <span
+              id="pages-heading"
+              className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Trang
+            </span>
+            {activeWorkspace?.myRole !== 'GUEST' && (
+              <NewPageButton workspaceId={workspaceId} onSelectPage={onSelectPage} />
+            )}
           </div>
           <PageTree
             workspaceId={workspaceId}

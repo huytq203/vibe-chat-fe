@@ -6,8 +6,8 @@ import { ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button/Button';
 import { AiMascot } from '@/components/common/BrandAssets';
-import { TypingDots } from '@/features/chat/components/common/TypingDots';
-import type { AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { TypingDots } from '@/components/common/TypingDots';
+import type { AiMessage } from '@/features/ai/types';
 import { AiMessageContent } from './AiMessageContent';
 import { AiAuthorLabel, AiMessageRow, type AiMessageVariant } from './AiMessageRow';
 

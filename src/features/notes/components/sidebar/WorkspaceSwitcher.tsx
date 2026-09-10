@@ -1,9 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog/AlertDialog';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -14,8 +22,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu/DropdownMenu';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import { useDeleteWorkspace } from '@/features/notes/hooks/use-mutations';
 import { useWorkspaces } from '@/features/notes/hooks/use-query';
 import type { Workspace } from '@/features/notes/types';
+import { toast } from 'sonner';
 import { CreateWorkspaceDialog } from './CreateWorkspaceDialog';
 
 const focusRingClassName =
@@ -29,6 +39,7 @@ interface WorkspaceSwitcherProps {
 interface WorkspaceMenuProps extends WorkspaceSwitcherProps {
   workspaces: Workspace[];
   onCreateWorkspace: () => void;
+  onDeleteWorkspace: (workspace: Workspace) => void;
 }
 
 function WorkspaceMenu({
@@ -36,6 +47,7 @@ function WorkspaceMenu({
   activeWorkspaceId,
   onSelectWorkspace,
   onCreateWorkspace,
+  onDeleteWorkspace,
 }: WorkspaceMenuProps) {
   const activeWorkspace = workspaces.find(({ id }) => id === activeWorkspaceId);
 
@@ -89,6 +101,18 @@ function WorkspaceMenu({
             <Plus aria-hidden="true" />
             Tạo workspace mới
           </DropdownMenuItem>
+          {activeWorkspace?.type === 'TEAM' && activeWorkspace.myRole === 'OWNER' && (
+            <>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                className={`text-danger focus:bg-danger/10 focus:text-danger ${focusRingClassName}`}
+                onClick={() => onDeleteWorkspace(activeWorkspace)}
+              >
+                <Trash2 aria-hidden="true" />
+                Xóa workspace hiện tại
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -100,7 +124,28 @@ export function WorkspaceSwitcher({
   onSelectWorkspace,
 }: WorkspaceSwitcherProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
+  const deleteWorkspace = useDeleteWorkspace();
   const { data, isLoading, isError, refetch } = useWorkspaces();
+
+  function handleDeleteDialogChange(nextOpen: boolean) {
+    if (!nextOpen && !deleteWorkspace.isPending) setWorkspaceToDelete(null);
+  }
+
+  function handleDeleteWorkspace() {
+    if (!workspaceToDelete || !data) return;
+    const deletedWorkspace = workspaceToDelete;
+    const nextWorkspace = data.find(({ id }) => id !== deletedWorkspace.id);
+    deleteWorkspace.mutate(deletedWorkspace.id, {
+      onSuccess: () => {
+        toast.success(`Đã xóa workspace “${deletedWorkspace.name}”`);
+        setWorkspaceToDelete(null);
+        if (deletedWorkspace.id === activeWorkspaceId && nextWorkspace) {
+          onSelectWorkspace(nextWorkspace.id);
+        }
+      },
+    });
+  }
 
   if (isLoading) {
     return (
@@ -148,12 +193,47 @@ export function WorkspaceSwitcher({
         activeWorkspaceId={activeWorkspaceId}
         onSelectWorkspace={onSelectWorkspace}
         onCreateWorkspace={() => setIsDialogOpen(true)}
+        onDeleteWorkspace={setWorkspaceToDelete}
       />
       <CreateWorkspaceDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onCreated={onSelectWorkspace}
       />
+      <AlertDialog
+        open={workspaceToDelete !== null}
+        onOpenChange={handleDeleteDialogChange}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa workspace này?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Workspace{' '}
+              <span className="font-semibold text-foreground">
+                {workspaceToDelete?.name}
+              </span>{' '}
+              cùng toàn bộ trang bên trong sẽ không còn truy cập được. Thao tác này không thể
+              hoàn tác trong ứng dụng.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              disabled={deleteWorkspace.isPending}
+              onClick={() => setWorkspaceToDelete(null)}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              isLoading={deleteWorkspace.isPending}
+              onClick={handleDeleteWorkspace}
+            >
+              Xóa workspace
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

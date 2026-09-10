@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/error-message';
 import { notionKeys } from '@/services/keys';
 import type { CommentBody, CreateShareLinkInput, Page, PageRole, SetPermissionInput,
-  UpdateShareLinkInput } from '@/features/notes/types';
+  UpdateShareLinkInput, Workspace } from '@/features/notes/types';
 import {
   commentsApi, favoritesApi, invitesApi, pagesApi,
   permissionsApi, shareLinksApi, trashApi, versionsApi, workspacesApi,
@@ -80,6 +80,22 @@ function useInvalidatingMutation<TData, TVariables>(
 export function useCreateWorkspace() {
   return useInvalidatingMutation((input: CreateWorkspaceInput) =>
     workspacesApi.create(input), () => notionKeys.workspaces());
+}
+export function useDeleteWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (workspaceId: string) => workspacesApi.remove(workspaceId),
+    onSuccess: (_, workspaceId) => {
+      qc.setQueryData<Workspace[]>(notionKeys.workspaces(), (workspaces) =>
+        workspaces?.filter(({ id }) => id !== workspaceId));
+      qc.removeQueries({
+        predicate: ({ queryKey }) =>
+          queryKey[0] === notionKeys.all[0] && queryKey.includes(workspaceId),
+      });
+      qc.invalidateQueries({ queryKey: notionKeys.workspaces() });
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
 }
 export function useUpdateWorkspace() {
   const qc = useQueryClient();

@@ -43,4 +43,25 @@ describe("AiMessageContent", () => {
     );
     expect(screen.getByText("Tóm tắt nội dung:")).toBeInTheDocument();
   });
+
+  it("nên điều hướng trong app khi link bắt đầu bằng dấu gạch chéo", () => {
+    renderWithProviders(
+      <AiMessageContent content="[Trang kế hoạch](/notes/workspace-1/page-1)" />,
+    );
+
+    const link = screen.getByRole("link", { name: "Trang kế hoạch" });
+    expect(link).toHaveAttribute("href", "/notes/workspace-1/page-1");
+    expect(link).not.toHaveAttribute("target");
+    expect(link).not.toHaveAttribute("rel");
+  });
+
+  it("nên mở tab mới an toàn khi link là địa chỉ bên ngoài", () => {
+    renderWithProviders(
+      <AiMessageContent content="[Tài liệu](https://example.com/docs)" />,
+    );
+
+    const link = screen.getByRole("link", { name: "Tài liệu" });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
 });

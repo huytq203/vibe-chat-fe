@@ -13,9 +13,9 @@ import { BookmarkCard } from "@/features/my-store/components/BookmarkCard";
 import { ContactCardContent } from "./ContactCardContent";
 import { CallMessageContent } from "./CallMessageContent";
 import { PollBubble } from "./PollBubble";
-import { BotCommandText, hasBotCommand } from "./BotCommandText";
+import { BotCommandText, hasBotCommand, linkifyBotCommands } from "./BotCommandText";
 import type { StickerSnapshot } from '@/features/chat/types/message';
-import { AiMessageContent } from '@/features/chat/components/layout/AiMessageContent';
+import { AiMessageContent } from '@/features/ai';
 
 const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "FILE"] as const;
 
@@ -82,7 +82,11 @@ export function BubbleContent({
       return (
         <AiMessageContent
           content={body}
-          commandConversationId={enableBotCommands ? message.conversationId : undefined}
+          renderText={
+            enableBotCommands
+              ? (text) => linkifyBotCommands(text, message.conversationId)
+              : undefined
+          }
         />
       );
     }

@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type SidePanelTab = 'comments' | 'versions' | 'share';
+export type SidePanelTab = 'comments' | 'versions' | 'share' | 'ai';
 
 type NotesUiState = {
   activeWorkspaceId: string | null;
@@ -18,6 +18,9 @@ type NotesUiState = {
   /** ID các node đang mở, tách theo workspace để đổi workspace không lẫn trạng thái. */
   expandedByWorkspace: Record<string, string[]>;
   toggleExpanded: (workspaceId: string, pageId: string) => void;
+  /** Hội thoại AI đang mở, tách theo workspace vì lịch sử thuộc workspace. */
+  aiConversationByWorkspace: Record<string, string | null>;
+  setAiConversation: (workspaceId: string, conversationId: string | null) => void;
 };
 
 export const useNotesUiStore = create<NotesUiState>()(
@@ -51,6 +54,14 @@ export const useNotesUiStore = create<NotesUiState>()(
             },
           };
         }),
+      aiConversationByWorkspace: {},
+      setAiConversation: (workspaceId, conversationId) =>
+        set((state) => ({
+          aiConversationByWorkspace: {
+            ...state.aiConversationByWorkspace,
+            [workspaceId]: conversationId,
+          },
+        })),
     }),
     { name: 'halo-notes-ui' },
   ),

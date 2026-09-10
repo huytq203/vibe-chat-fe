@@ -58,7 +58,14 @@
 | Test          | Vitest + Testing Library + Playwright | Auth/DB | NextAuth v5 / Prisma (wrap `lib/`) |
 
 **Cấm:** moment, lodash full bundle, axios mặc định, styled-components, emotion, redux/redux-toolkit, react-query v4-.
-**Thêm lib mới ngoài bảng này → DỪNG, hỏi user.**
+**Thêm lib mới ngoài bảng này:** được phép, nhưng **phải hỏi user trước**, không được tự cài. Khi hỏi phải mô tả đủ để user quyết được mà không cần tự tra:
+
+- Lib đó **là gì**, giải quyết việc gì trong task này
+- **Kích thước** và **mức độ phổ biến** (lượt tải/tuần)
+- **Giấy phép**
+- Đã cân nhắc **dùng thứ có sẵn** chưa, vì sao không đủ
+
+Thêm một phụ thuộc là thêm một thứ phải cập nhật, vá lỗi bảo mật và gỡ bỏ về sau — nên quyết định đó thuộc về user. Hai chốt ở [rules/05-security.md](./rules/05-security.md) §10 vẫn giữ: `npm audit` không có lỗ hổng high/critical, lib dưới 1k lượt tải/tuần thì càng phải cân nhắc kỹ.
 
 ---
 
@@ -98,6 +105,6 @@
 
 ## 7. Khi nào DỪNG và hỏi user
 
-Thêm lib chưa có trong §2 · yêu cầu mâu thuẫn rule · đụng `app/api/` hoặc DB schema · đọc/sửa file ngoài `src/`,`public/`,`.claude/` · đổi config bảo mật/CSP/env · refactor > 5 file hoặc rename module · cài/xoá package.
+**cài lib mới** (kèm mô tả theo §2) · yêu cầu mâu thuẫn rule · đụng `app/api/` hoặc DB schema · đọc/sửa file ngoài `src/`,`public/`,`.claude/` · đổi config bảo mật/CSP/env · refactor > 5 file hoặc rename module · xoá package đang được dùng.
 
 > **Ghi nhớ:** Code được đọc bởi đồng nghiệp 6 tháng sau **và bởi AI Agent**. Tối ưu cho việc thay đổi, không cho việc viết một lần.

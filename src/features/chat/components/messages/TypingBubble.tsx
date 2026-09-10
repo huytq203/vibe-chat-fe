@@ -1,7 +1,7 @@
 'use client';
 
 import { Avatar } from '@/features/chat/components/common/Avatar';
-import { TypingDots } from '@/features/chat/components/common/TypingDots';
+import { TypingDots } from '@/components/common/TypingDots';
 
 type TypingBubbleProps = {
   showAvatar: boolean;

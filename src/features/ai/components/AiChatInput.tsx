@@ -5,15 +5,15 @@ import { Paperclip, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { cn } from '@/lib/utils/cn';
-import type { AiAttachment } from '@/features/chat/types/ai-attachment';
+import type { AiAttachment } from '@/features/ai/types';
 import type { AiMessageVariant } from './AiMessageRow';
 import { AiAttachmentTray } from './AiAttachmentTray';
 
 interface AiChatInputProps {
   input: string;
   loading: boolean;
-  attachments: AiAttachment[];
-  attachmentError: string | null;
+  attachments?: AiAttachment[];
+  attachmentError?: string | null;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
   variant?: AiMessageVariant;
@@ -27,8 +27,8 @@ interface AiChatInputProps {
   onSend: () => void;
   /** Dừng lượt AI đang chảy. Có handler → nút gửi đổi thành nút dừng khi loading. */
   onStop?: () => void;
-  onAddFiles: (files: FileList | File[]) => Promise<void>;
-  onRemoveAttachment: (id: string) => void;
+  onAddFiles?: (files: FileList | File[]) => Promise<void>;
+  onRemoveAttachment?: (id: string) => void;
 }
 
 const ACCEPTED_FILES =
@@ -52,12 +52,16 @@ export function AiChatInput({
 }: AiChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPage = variant === 'page';
-  const cannotSend = (!input.trim() && attachments.length === 0) || disabled;
+  const attachmentControls =
+    attachments && attachmentError !== undefined && onAddFiles && onRemoveAttachment
+      ? { attachments, attachmentError, onAddFiles, onRemoveAttachment }
+      : null;
+  const cannotSend = (!input.trim() && !attachmentControls?.attachments.length) || disabled;
   const canStop = loading && Boolean(onStop);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files?.length) {
-      void onAddFiles(e.target.files);
+    if (e.target.files?.length && attachmentControls) {
+      void attachmentControls.onAddFiles(e.target.files);
       e.target.value = '';
     }
   }
@@ -70,35 +74,41 @@ export function AiChatInput({
           : 'border-t border-border p-3',
       )}
     >
-      <div className={cn(isPage && 'px-1')}>
-        <AiAttachmentTray
-          attachments={attachments}
-          error={attachmentError}
-          onRemove={onRemoveAttachment}
-        />
-      </div>
+      {attachmentControls && (
+        <div className={cn(isPage && 'px-1')}>
+          <AiAttachmentTray
+            attachments={attachmentControls.attachments}
+            error={attachmentControls.attachmentError}
+            onRemove={attachmentControls.onRemoveAttachment}
+          />
+        </div>
+      )}
 
       <div className="flex items-end gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={ACCEPTED_FILES}
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
-          type="button"
-          aria-label="Đính kèm file"
-          title="Đính kèm file"
-          disabled={disabled}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Paperclip className="h-4 w-4" />
-        </Button>
+        {attachmentControls && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_FILES}
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+              type="button"
+              aria-label="Đính kèm file"
+              title="Đính kèm file"
+              disabled={disabled}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+          </>
+        )}
         <Textarea
           ref={textareaRef}
           variant={isPage ? 'default' : 'filled'}

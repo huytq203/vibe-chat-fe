@@ -171,6 +171,11 @@ export const notionKeys = {
       : ([...notionKeys.all, 'comments', pageId] as const),
   versions: (pageId: string) => [...notionKeys.all, 'versions', pageId] as const,
   version: (versionId: string) => [...notionKeys.all, 'version', versionId] as const,
+  aiPageDiff: (pageId: string, versionId: string) =>
+    [...notionKeys.all, 'ai-page-diff', pageId, versionId] as const,
+  aiConversations: (workspaceId: string) =>
+    [...notionKeys.all, 'ai-conversations', workspaceId] as const,
+  aiConversation: (id: string) => [...notionKeys.all, 'ai-conversation', id] as const,
   permissions: (pageId: string) => [...notionKeys.all, 'permissions', pageId] as const,
   shareLink: (pageId: string) => [...notionKeys.all, 'share-link', pageId] as const,
   favorites: () => [...notionKeys.all, 'favorites'] as const,

@@ -115,6 +115,9 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    // Giữ application menu để các edit role native có accelerator, nhưng ẩn
+    // thanh menu trên Windows/Linux để giao diện desktop không đổi.
+    autoHideMenuBar: process.platform !== 'darwin',
     // Icon cửa sổ/taskbar trên Linux (Windows lấy từ exe, macOS từ bundle).
     icon: path.join(__dirname, 'resources/icons/512x512.png'),
     webPreferences: {
@@ -140,8 +143,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Remove the default application menu (File, Edit, View, ...)
-  Menu.setApplicationMenu(null);
+  // Electron cần các role native này để Ctrl/Cmd+Z/A/C/X/V hoạt động ổn định
+  // trong input/textarea. Dùng role thay vì tự gửi webContents command để giữ
+  // đúng accelerator theo từng hệ điều hành.
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    ...(process.platform === 'darwin' ? [{ role: 'appMenu' }] : []),
+    { role: 'editMenu' },
+  ]));
   // Cần cho Windows hiện đúng tên/icon thông báo + nhóm taskbar.
   if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
   registerIpc();

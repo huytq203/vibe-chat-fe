@@ -3,13 +3,14 @@ import { apiClient } from '@/lib/api/client';
 import type { CommentBody } from '@/features/notes/types';
 import {
   breadcrumbSchema, commentRecordSchema, commentSchema, deleteFavoriteResultSchema,
+  deleteWorkspaceResultSchema,
   effectivePagePermissionSchema, favoriteItemSchema, favoriteSchema, pageDetailSchema,
   pagePermissionSchema, pageSchema, pageVersionDetailSchema, pageVersionSchema,
   permanentDeleteResultSchema, publicPageSchema, publicUnlockResultSchema,
   removeCommentResultSchema, removeMemberResultSchema, restoreTrashResultSchema,
   restoreVersionResultSchema, revokePermissionResultSchema, searchResultSchema,
   shareLinkSchema, softDeletePageResultSchema, trashItemSchema, workspaceInviteSchema,
-  workspaceMemberRecordSchema, workspaceMemberSchema, workspaceSchema,
+  workspaceMemberRecordSchema, workspaceMemberSchema, workspaceRecordSchema, workspaceSchema,
 } from '@/features/notes/schemas';
 import type { CreateShareLinkInput, SetPermissionInput,
   UpdateShareLinkInput } from '@/features/notes/types';
@@ -46,13 +47,21 @@ export const workspacesApi = {
     const raw = await apiClient.post<unknown>('/api/v1/workspaces', {
       body: input, service: 'notion',
     });
-    return workspaceSchema.parse(raw);
+    // Người tạo luôn là OWNER. Chuẩn hóa ở client để tương thích với các bản BE
+    // cũ trả Workspace thô và tránh biến một request thành công thành toast lỗi Zod.
+    return { ...workspaceRecordSchema.parse(raw), myRole: 'OWNER' as const };
   },
   update: async (id: string, input: UpdateWorkspaceInput) => {
     const raw = await apiClient.patch<unknown>(`/api/v1/workspaces/${id}`, {
       body: input, service: 'notion',
     });
     return workspaceSchema.parse(raw);
+  },
+  remove: async (id: string): Promise<z.infer<typeof deleteWorkspaceResultSchema>> => {
+    const raw = await apiClient.delete<unknown>(`/api/v1/workspaces/${id}`, {
+      service: 'notion',
+    });
+    return deleteWorkspaceResultSchema.parse(raw);
   },
   members: async (id: string) => {
     const raw = await apiClient.get<unknown>(`/api/v1/workspaces/${id}/members`, {

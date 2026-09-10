@@ -3,11 +3,11 @@
 import { File, FileJson, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { AiAvatar } from '@/components/common/BrandAssets';
-import type { AiAttachmentMeta, AiMessage } from '@/features/chat/hooks/useAiSessions';
+import { AiCopyButton } from '@/components/common/AiCopyButton';
+import type { AiAttachmentMeta, AiMessage } from '@/features/ai/types';
 import { AiMessageContent } from './AiMessageContent';
 import {
   AiAssistantActions,
-  AiCopyButton,
   AiFailedActions,
   AiIncompleteActions,
 } from './AiMessageActions';

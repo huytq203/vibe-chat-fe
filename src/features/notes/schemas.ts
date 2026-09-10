@@ -4,19 +4,22 @@ export const workspaceRoleSchema = z.enum(['OWNER', 'ADMIN', 'MEMBER', 'GUEST'])
 
 export const pageRoleSchema = z.enum(['FULL', 'EDIT', 'COMMENT', 'VIEW']);
 
-export const workspaceSchema = z.object({
+export const workspaceRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
   icon: z.string().nullable(),
   type: z.enum(['PERSONAL', 'TEAM']),
   ownerId: z.string(),
-  // BE trả kèm vai trò của chính người gọi. Sidebar cần nó để phân biệt guest
-  // (cây trang rỗng là đúng thiết kế) với member (cây rỗng là bất thường).
-  myRole: workspaceRoleSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   deletedAt: z.iso.datetime().nullable(),
+});
+
+export const workspaceSchema = workspaceRecordSchema.extend({
+  // BE trả kèm vai trò của chính người gọi. Sidebar cần nó để phân biệt guest
+  // (cây trang rỗng là đúng thiết kế) với member (cây rỗng là bất thường).
+  myRole: workspaceRoleSchema,
 });
 
 export const workspaceMemberRecordSchema = z.object({
@@ -50,6 +53,8 @@ export const workspaceInviteSchema = z.object({
 });
 
 export const removeMemberResultSchema = z.object({ removed: z.literal(true) });
+
+export const deleteWorkspaceResultSchema = z.object({ deleted: z.literal(true) });
 
 export const pageSchema = z.object({
   id: z.string(),
@@ -162,7 +167,7 @@ export const removeCommentResultSchema = z.object({ id: z.string() });
 export const pageVersionSchema = z.object({
   id: z.string(),
   pageId: z.string(),
-  kind: z.enum(['AUTO', 'MANUAL', 'BEFORE_RESTORE']),
+  kind: z.enum(['AUTO', 'MANUAL', 'BEFORE_RESTORE', 'BEFORE_AI']),
   label: z.string().nullable(),
   sizeBytes: z.number().int(),
   preview: z.string(),
@@ -171,7 +176,9 @@ export const pageVersionSchema = z.object({
 });
 
 export const pageVersionDetailSchema = pageVersionSchema.extend({
+  title: z.string(),
   html: z.string(),
+  markdown: z.string(),
 });
 
 export const restoreVersionResultSchema = z.object({

@@ -91,7 +91,9 @@ function useVersionDetail(
 ) {
   server.use(
     http.get(`${NOTION_URL}/api/v1/versions/${version.id}`, () =>
-      envelope({ ...version, html }),
+      envelope({
+        ...version, title: 'Tiêu đề phiên bản', html, markdown: 'Nội dung phiên bản',
+      }),
     ),
   );
 }

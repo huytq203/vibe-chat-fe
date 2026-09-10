@@ -6,14 +6,12 @@ import Draggable, { type DraggableData } from 'react-draggable';
 import { Clock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { AiAvatar } from '@/components/common/BrandAssets';
+import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
-import { useAiConversation } from '@/features/chat/hooks/useAiConversation';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
 import { AiHistoryPanel } from './AiHistoryPanel';
-import { AiMessageList } from './AiMessageList';
-import { AiChatInput } from './AiChatInput';
 
 export function AiChatWindow() {
   const isOpen = useAiWindowStore((s) => s.isOpen);
@@ -34,6 +32,7 @@ export function AiChatWindow() {
     useAiAttachments();
 
   const { loading, streaming, send, resend, regenerate, stop, recall, discard } = useAiConversation({
+    streamKey: `chat:${activeSession?.id ?? ''}`,
     session: activeSession,
     actions,
     onSettled: focusInput,

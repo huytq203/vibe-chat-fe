@@ -1,14 +1,31 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { Children, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeHighlight from 'rehype-highlight';
 import { ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
-import { linkifyBotCommands } from '@/features/chat/components/messages/BotCommandText';
 import { cn } from '@/lib/utils/cn';
+
+interface MarkdownLinkProps {
+  children: ReactNode;
+  href?: string;
+}
+
+function MarkdownLink({ children, href }: MarkdownLinkProps) {
+  const className = 'text-primary underline underline-offset-2';
+  if (href?.startsWith('/')) {
+    return <Link href={href} className={className}>{children}</Link>;
+  }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
 
 interface ImageAction {
   prompt: string;
@@ -93,11 +110,8 @@ interface AiMessageContentProps {
   content: string;
   /** Ghi đè cỡ chữ/line-height — trang /ai đọc dài nên dùng thân chữ lớn hơn cửa sổ nổi. */
   className?: string;
-  /**
-   * Hội thoại có bot: slash command trong nội dung Markdown thành chip dán vào ô nhập.
-   * Bỏ trống (chat AI, tin thường) → command giữ nguyên là chữ.
-   */
-  commandConversationId?: string;
+  /** Consumer có thể bọc thêm cách hiển thị chữ; mặc định giữ nguyên nội dung. */
+  renderText?: (text: string) => ReactNode;
 }
 
 const FENCE_RE = /^\s*```/;
@@ -164,7 +178,7 @@ export function normalizeAiMarkdownContent(content: string): string {
 export function AiMessageContent({
   content,
   className,
-  commandConversationId,
+  renderText,
 }: AiMessageContentProps) {
   const imageAction = parseImageAction(content);
   if (imageAction) {
@@ -172,8 +186,12 @@ export function AiMessageContent({
   }
 
   const normalizedContent = normalizeAiMarkdownContent(content);
-  const cmd = (children: ReactNode): ReactNode =>
-    commandConversationId ? linkifyBotCommands(children, commandConversationId) : children;
+  const renderChildren = (children: ReactNode): ReactNode => {
+    if (!renderText) return children;
+    return Children.map(children, (child) =>
+      typeof child === 'string' ? renderText(child) : child,
+    );
+  };
 
   return (
     <div
@@ -209,7 +227,7 @@ export function AiMessageContent({
             </code>
           ),
           p: ({ children }) => (
-            <p className="mb-2 text-pretty last:mb-0">{cmd(children)}</p>
+            <p className="mb-2 text-pretty last:mb-0">{renderChildren(children)}</p>
           ),
           ul: ({ children }) => (
             <ul className="mb-2 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>
@@ -217,34 +235,25 @@ export function AiMessageContent({
           ol: ({ children }) => (
             <ol className="mb-2 ml-5 list-decimal space-y-1 last:mb-0">{children}</ol>
           ),
-          li: ({ children }) => <li>{cmd(children)}</li>,
+          li: ({ children }) => <li>{renderChildren(children)}</li>,
           h1: ({ children }) => (
-            <h1 className="mb-2 text-base font-semibold leading-snug text-balance">{cmd(children)}</h1>
+            <h1 className="mb-2 text-base font-semibold leading-snug text-balance">{renderChildren(children)}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="mb-2 text-[14px] font-semibold leading-snug text-balance">{cmd(children)}</h2>
+            <h2 className="mb-2 text-[14px] font-semibold leading-snug text-balance">{renderChildren(children)}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="mb-1.5 text-[13.5px] font-semibold leading-snug text-balance">{cmd(children)}</h3>
+            <h3 className="mb-1.5 text-[13.5px] font-semibold leading-snug text-balance">{renderChildren(children)}</h3>
           ),
           strong: ({ children }) => (
-            <strong className="font-semibold text-current">{cmd(children)}</strong>
+            <strong className="font-semibold text-current">{renderChildren(children)}</strong>
           ),
           blockquote: ({ children }) => (
             <blockquote className="my-2 rounded-xl border border-border/70 bg-background/45 px-3 py-2 text-muted-foreground">
-              {cmd(children)}
+              {renderChildren(children)}
             </blockquote>
           ),
-          a: ({ children, href }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ children, href }) => <MarkdownLink href={href}>{children}</MarkdownLink>,
           table: ({ children }) => (
             <div className="my-2 max-w-full overflow-x-auto rounded-xl border border-border/70 bg-background/35">
               <table className="w-full border-collapse text-[12px]">
@@ -259,7 +268,7 @@ export function AiMessageContent({
           ),
           td: ({ children }) => (
             <td className="border-b border-r border-border/60 px-2 py-1.5 align-top last:border-r-0">
-              {cmd(children)}
+              {renderChildren(children)}
             </td>
           ),
         }}

@@ -1,7 +1,13 @@
 'use client';
 
+import {
+  BlockNoteSchema,
+  createCodeBlockSpec,
+  defaultBlockSpecs,
+  SyntaxHighlightingExtension,
+  type BlocksChanged,
+} from '@blocknote/core';
 import { vi as vietnameseDictionary } from '@blocknote/core/locales';
-import type { BlocksChanged } from '@blocknote/core';
 // `collaboration` không phải field của BlockNoteEditorOptions — tự đặt nó vào object
 // options (như code cũ làm) là no-op âm thầm: TypeScript không báo lỗi (đối tượng chứ
 // không phải literal ngay chỗ gọi), plugin ySync không bao giờ được cài, ProseMirror
@@ -11,6 +17,7 @@ import type { BlocksChanged } from '@blocknote/core';
 import { withCollaboration } from '@blocknote/core/yjs';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import { AllSelection, type Transaction } from '@tiptap/pm/state';
 // CSS của BlockNote phải import từ đây (TS), KHÔNG phải từ `src/styles/index.css`:
 // `@blocknote/mantine/style.css` chỉ là vỏ chứa hai `@import url(...)` lồng nhau, mà bộ
 // phân giải CSS của Tailwind không đi theo dạng url() — nhét vào index.css thì hai dòng
@@ -50,6 +57,64 @@ import {
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
 import { NoteTitle } from './NoteTitle';
+import { createCodeCopyButton } from '@/features/notes/lib/code-copy-button';
+import {
+  CODE_BLOCK_LANGUAGES,
+  getCodeHighlighter,
+  resolveCodeLanguage,
+} from '@/features/notes/lib/code-highlighting';
+
+export function createNoteCodeBlockSpec() {
+  const baseSpec = createCodeBlockSpec({
+    defaultLanguage: 'text',
+    supportedLanguages: CODE_BLOCK_LANGUAGES,
+  });
+  return {
+    ...baseSpec,
+    implementation: {
+      ...baseSpec.implementation,
+      render: (...args: Parameters<typeof baseSpec.implementation.render>) => {
+        const language = resolveCodeLanguage(args[0].props.language);
+        const block = { ...args[0], props: { ...args[0].props, language } };
+        const rendered = baseSpec.implementation.render.call({}, block, args[1]);
+        if (!rendered.contentDOM) return rendered;
+        const editor = args[1];
+        const { contentDOM } = rendered;
+        const ownerDocument = contentDOM.ownerDocument;
+        const languageSelect = rendered.dom.querySelector('select');
+        const restoreEditorFocus = () => queueMicrotask(() => editor.focus());
+        languageSelect?.addEventListener('change', restoreEditorFocus);
+        const copyControl = createCodeCopyButton(
+          ownerDocument,
+          () => contentDOM.textContent ?? '',
+          'note-code-copy',
+        );
+        rendered.dom.appendChild(copyControl.button);
+
+        return {
+          ...rendered,
+          destroy: () => {
+            languageSelect?.removeEventListener('change', restoreEditorFocus);
+            copyControl.destroy();
+            rendered.destroy?.();
+          },
+        };
+      },
+    },
+  };
+}
+
+const noteEditorSchema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    codeBlock: createNoteCodeBlockSpec(),
+  },
+});
+
+const syntaxHighlighting = SyntaxHighlightingExtension({
+  createHighlighter: getCodeHighlighter,
+});
+
 const DOCUMENT_WARNING_BYTES = 3 * 1024 * 1024;
 const DOCUMENT_LIMIT_BYTES = 5 * 1024 * 1024;
 const DOCUMENT_MEASURE_INTERVAL_MS = 3_000;
@@ -120,6 +185,13 @@ function useCursorActivity(provider: CollabProvider) {
   return { handleCursorKey, markCursorMoved };
 }
 
+function selectAllEditorContent(editor: NoteBlockEditor): void {
+  editor.transact((transaction: Transaction) => {
+    transaction.setSelection(new AllSelection(transaction.doc));
+  });
+  editor.focus();
+}
+
 export function NoteEditorSkeleton() {
   return (
     <div className="space-y-4" data-testid="note-editor-loading">
@@ -150,7 +222,9 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
       user,
     },
     dictionary: vietnameseDictionary,
+    extensions: [syntaxHighlighting],
     resolveFileUrl: resolveAttachmentFileUrl,
+    schema: noteEditorSchema,
     uploadFile,
   }), [doc, provider, user, uploadFile]);
   const moveToBody = useCallback(() => {
@@ -162,18 +236,31 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
   }, [editor]);
   useDocumentLimit(doc, editor);
   const { handleCursorKey, markCursorMoved } = useCursorActivity(provider);
+  const handleSelectAll = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (
+      event.altKey
+      || (!event.ctrlKey && !event.metaKey)
+      || event.key.toLowerCase() !== 'a'
+      || event.nativeEvent.isComposing
+    ) return;
+
+    event.preventDefault();
+    selectAllEditorContent(editor);
+  }, [editor]);
 
   return (
     <>
       <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} page={page} />
-      <BlockNoteView
-        className="notes-editor mt-3"
-        editable={editable}
-        editor={editor}
-        theme={currentTheme.isDark ? 'dark' : 'light'}
-        onKeyUp={handleCursorKey}
-        onPointerUp={markCursorMoved}
-      />
+      <div onKeyDownCapture={handleSelectAll}>
+        <BlockNoteView
+          className="notes-editor mt-3"
+          editable={editable}
+          editor={editor}
+          theme={currentTheme.isDark ? 'dark' : 'light'}
+          onKeyUp={handleCursorKey}
+          onPointerUp={markCursorMoved}
+        />
+      </div>
     </>
   );
 }

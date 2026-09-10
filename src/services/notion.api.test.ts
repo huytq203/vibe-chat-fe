@@ -1,7 +1,7 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { workspaceSchema } from '@/features/notes/schemas';
+import { workspaceRecordSchema, workspaceSchema } from '@/features/notes/schemas';
 
 const NOTION_URL = 'http://localhost:3007';
 const CHAT_URL = 'http://localhost:3005';
@@ -93,6 +93,42 @@ describe('lớp vận chuyển API ghi chú', () => {
     expect(receivedUrl?.origin).toBe(NOTION_URL);
     expect(receivedUrl?.origin).not.toBe(CHAT_URL);
     expect(receivedUrl?.pathname).toBe('/api/v1/workspaces');
+  });
+
+  it('tạo workspace và nhận vai trò OWNER đúng contract', async () => {
+    const teamWorkspace = {
+      ...workspace,
+      id: 'workspace-team',
+      name: 'Nhóm sản phẩm',
+      slug: 'nhom-san-pham',
+      type: 'TEAM',
+    };
+    const legacyResponse = workspaceRecordSchema.parse(teamWorkspace);
+    server.use(
+      http.post(`${NOTION_URL}/api/v1/workspaces`, async ({ request }) => {
+        expect(await request.json()).toEqual({ name: 'Nhóm sản phẩm' });
+        return envelope(legacyResponse);
+      }),
+    );
+
+    await expect(
+      notionApi.workspacesApi.create({ name: 'Nhóm sản phẩm' }),
+    ).resolves.toEqual(teamWorkspace);
+  });
+
+  it('gọi đúng endpoint xóa workspace', async () => {
+    let receivedMethod: string | undefined;
+    server.use(
+      http.delete(`${NOTION_URL}/api/v1/workspaces/workspace-team`, ({ request }) => {
+        receivedMethod = request.method;
+        return envelope({ deleted: true });
+      }),
+    );
+
+    await expect(notionApi.workspacesApi.remove('workspace-team')).resolves.toEqual({
+      deleted: true,
+    });
+    expect(receivedMethod).toBe('DELETE');
   });
 
   it('không gửi parentId khi lấy danh sách trang gốc', async () => {

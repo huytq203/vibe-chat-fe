@@ -125,6 +125,7 @@
     --font-sans:    var(--font-be-vietnam-pro), 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --font-display: var(--font-be-vietnam-pro), 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --font-ui:      var(--font-be-vietnam-pro), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-mono:    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
     /* Z-index scale */
     --z-dropdown: 50;
@@ -155,12 +156,12 @@
     }
 
     /* Multi-step form: panel trượt vào khi đổi bước (register) */
-    --animate-step-in: step-in 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+    --animate-step-in: step-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     @keyframes step-in {
         from { opacity: 0; transform: translateX(24px) scale(0.98); }
         to { opacity: 1; transform: translateX(0) scale(1); }
     }
-    --animate-step-in-back: step-in-back 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+    --animate-step-in-back: step-in-back 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     @keyframes step-in-back {
         from { opacity: 0; transform: translateX(-24px) scale(0.98); }
         to { opacity: 1; transform: translateX(0) scale(1); }
@@ -483,6 +484,118 @@
 .notes-editor [data-prev-level="6"] { --prev-level: 0.875rem; }
 .notes-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content {
     line-height: 1.3;
+}
+/* Dùng chung gutter với tiêu đề và icon; vẫn giữ đủ chỗ cho drag handle. */
+.notes-editor .bn-editor {
+    padding-inline: var(--note-content-gutter);
+}
+/* Con trỏ và vùng bôi đen theo màu thương hiệu thay vì mặc định trình duyệt. */
+.notes-editor .bn-editor {
+    caret-color: var(--primary);
+}
+.notes-editor ::selection {
+    background-color: color-mix(in oklab, var(--primary) 24%, transparent);
+}
+
+/* Code block: mặc định của BlockNote là hộp đen #161616 bo 8px, chữ trắng — lạc
+   hoàn toàn khỏi theme sáng của app. Thay bằng bề mặt lấy từ token, có viền để
+   tách khỏi nền ngay cả khi --muted gần trắng. */
+.notes-editor .bn-block-content[data-content-type="codeBlock"] {
+    background-color: color-mix(in oklab, var(--muted) 94%, var(--foreground) 6%);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > pre {
+    padding: 2.75rem 1rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.65;
+    font-variant-ligatures: contextual;
+    tab-size: 2;
+}
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > pre > code {
+    font: inherit;
+}
+/* Luôn hiện bộ chọn ngôn ngữ; mặc định BlockNote giấu nó tới khi hover. */
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > div > select {
+    top: 8px;
+    left: 10px;
+    height: 1.75rem;
+    max-width: calc(100% - 7rem);
+    appearance: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--background);
+    padding-inline: 0.625rem;
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 1;
+    transition: border-color 150ms ease-out, background-color 150ms ease-out;
+    transition-delay: 0ms;
+}
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > div > select:hover {
+    border-color: color-mix(in oklab, var(--border) 65%, var(--foreground) 35%);
+    background-color: var(--muted);
+}
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > div > select:focus-visible {
+    outline: 2px solid var(--ring) !important;
+    outline-offset: 2px;
+}
+.notes-editor .bn-block-content[data-content-type="codeBlock"] > div > select > option {
+    background-color: var(--background);
+    color: var(--foreground);
+}
+.notes-editor .note-code-copy {
+    position: absolute;
+    z-index: 1;
+    top: 8px;
+    right: 10px;
+    height: 1.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--background);
+    padding-inline: 0.625rem;
+    color: var(--muted-foreground);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+}
+.notes-editor .note-code-copy:hover {
+    border-color: color-mix(in oklab, var(--border) 65%, var(--foreground) 35%);
+    background-color: var(--muted);
+    color: var(--foreground);
+}
+.notes-editor .note-code-copy:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+.notes-editor .note-code-copy[data-state="copied"] { color: var(--success); }
+.notes-editor .note-code-copy[data-state="error"] { color: var(--danger); }
+/* Shiki phát cả --shiki-light lẫn --shiki-dark; BlockNote khoá cứng bản dark cho
+   nền đen của nó, nên nền sáng phải chọn lại bảng màu light. */
+.notes-editor .shiki,
+.notes-editor .shiki span {
+    color: var(--shiki-light);
+}
+.notes-editor[data-color-scheme="dark"] .shiki,
+.notes-editor[data-color-scheme="dark"] .shiki span,
+.notes-editor [data-color-scheme="dark"] .shiki,
+.notes-editor [data-color-scheme="dark"] .shiki span {
+    color: var(--shiki-dark);
+}
+/* Code inline: mặc định chỉ đổi font, không có nền — khó nhận ra giữa văn xuôi. */
+.notes-editor .bn-inline-content code {
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklab, var(--muted) 90%, var(--foreground) 10%);
+    padding: 0.1em 0.35em;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
 }
 
 /*

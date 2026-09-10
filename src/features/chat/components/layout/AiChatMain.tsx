@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { AiChatHeader } from './AiChatHeader';
-import { AiMessageList } from './AiMessageList';
-import { AiChatInput } from './AiChatInput';
+import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import { AiWelcome } from './AiWelcome';
 import type { AiSession, AiSessionActions } from '@/features/chat/hooks/useAiSessions';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
-import { useAiConversation } from '@/features/chat/hooks/useAiConversation';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 
 interface AiChatMainProps {
@@ -33,7 +31,12 @@ export function AiChatMain({
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
   const { loading, streaming, send, resend, regenerate, stop, recall, discard } =
-    useAiConversation({ session, actions, onSettled: focusInput });
+    useAiConversation({
+      streamKey: `chat:${session?.id ?? ''}`,
+      session,
+      actions,
+      onSettled: focusInput,
+    });
 
   useEffect(() => { resize(); }, [input, resize]);
   useEffect(() => { focusInput(); }, [session?.id, focusInput]);

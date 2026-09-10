@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { COLLAB_FRAGMENT_NAME, type CollabProvider, type YDoc } from '@/lib/collab';
 import { cursorColorFor } from '@/features/notes/lib/cursor-colors';
 
-import { NoteEditor } from './NoteEditor';
+import { createNoteCodeBlockSpec, NoteEditor } from './NoteEditor';
 
 type BeforeChangeCallback = (
   context: { getChanges: () => BlocksChanged },
@@ -119,6 +119,7 @@ const editor = {
     return vi.fn();
   }),
   setTextCursorPosition: vi.fn(),
+  transact: vi.fn(),
 };
 
 function setRole(myRole: 'VIEW' | 'EDIT') {
@@ -140,6 +141,21 @@ function setCollabError(error: string | null = null) {
   });
 }
 
+function renderCodeBlock(language: string) {
+  const spec = createNoteCodeBlockSpec();
+  const render = spec.implementation.render;
+  const block = {
+    children: [],
+    content: [],
+    id: 'code-block-1',
+    props: { language },
+    type: 'codeBlock',
+  } as Parameters<typeof render>[0];
+  const codeEditor = { isEditable: false } as Parameters<typeof render>[1];
+
+  return render.call({}, block, codeEditor);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.beforeChange = null;
@@ -154,6 +170,27 @@ afterEach(() => {
 });
 
 describe('trình soạn thảo ghi chú', () => {
+  it('nên hiển thị khối code bình thường khi ngôn ngữ là alias js', () => {
+    expect(() => renderCodeBlock('js')).not.toThrow();
+
+    const rendered = renderCodeBlock('js');
+    expect(rendered.dom.querySelector('select')).toHaveValue('javascript');
+  });
+
+  it('nên lùi về văn bản thuần khi ngôn ngữ không được hỗ trợ', () => {
+    expect(() => renderCodeBlock('vue')).not.toThrow();
+
+    const rendered = renderCodeBlock('vue');
+    expect(rendered.dom.querySelector('select')).toHaveValue('text');
+  });
+
+  it('nên không ném lỗi khi ngôn ngữ là chuỗi rác', () => {
+    expect(() => renderCodeBlock('<script>rác</script>')).not.toThrow();
+
+    const rendered = renderCodeBlock('<script>rác</script>');
+    expect(rendered.contentDOM).toBeInstanceOf(HTMLElement);
+  });
+
   it("lấy fragment bằng hằng số có đúng giá trị 'prosemirror'", () => {
     render(<NoteEditor pageId="page-1" />);
 
@@ -203,6 +240,29 @@ describe('trình soạn thảo ghi chú', () => {
     render(<NoteEditor pageId="page-1" />);
 
     expect(screen.getByTestId('blocknote-view')).toHaveClass('notes-editor', 'mt-3');
+  });
+
+  it('Ctrl+A chọn toàn bộ nội dung BlockNote ở capture phase', () => {
+    render(<NoteEditor pageId="page-1" />);
+
+    const handled = fireEvent.keyDown(screen.getByTestId('blocknote-view'), {
+      ctrlKey: true,
+      key: 'a',
+    });
+
+    expect(handled).toBe(false);
+    expect(editor.transact).toHaveBeenCalledTimes(1);
+    expect(editor.focus).toHaveBeenCalled();
+  });
+
+  it('Cmd+A cũng chọn toàn bộ nhưng AltGr+A không bị chiếm', () => {
+    render(<NoteEditor pageId="page-1" />);
+    const editorView = screen.getByTestId('blocknote-view');
+
+    fireEvent.keyDown(editorView, { key: 'a', metaKey: true });
+    fireEvent.keyDown(editorView, { altKey: true, ctrlKey: true, key: 'a' });
+
+    expect(editor.transact).toHaveBeenCalledTimes(1);
   });
 
   it('giữ editor cục bộ dùng được khi máy chủ từ chối sau lúc nạp doc', () => {

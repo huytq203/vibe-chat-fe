@@ -23,6 +23,7 @@ const kindLabels: Record<PageVersion['kind'], string> = {
   AUTO: 'Tự động',
   MANUAL: 'Thủ công',
   BEFORE_RESTORE: 'Trước khi khôi phục',
+  BEFORE_AI: 'Trước khi AI sửa',
 };
 
 interface VersionGroup {

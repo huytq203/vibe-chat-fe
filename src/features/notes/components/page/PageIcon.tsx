@@ -31,7 +31,7 @@ function createPageIconTrigger(icon: string | null, isPending: boolean) {
   return (
     <Button
       variant="ghost" size="xs" aria-label="Thêm icon cho trang"
-      className="absolute bottom-0 left-0 h-7 bg-sidebar/80 text-muted-foreground opacity-0 group-hover/icon:opacity-100 group-focus-within/icon:opacity-100 focus:opacity-100 hover:bg-sidebar-accent hover:text-foreground"
+      className="h-7 bg-sidebar/80 px-0 text-muted-foreground opacity-0 group-hover/icon:opacity-100 group-focus-within/icon:opacity-100 focus:opacity-100 hover:bg-sidebar-accent hover:text-foreground"
       disabled={isPending} onMouseEnter={prefetchEmojiPicker} onFocus={prefetchEmojiPicker}
     >
       Thêm icon
@@ -72,7 +72,9 @@ export function PageIcon({ pageId, icon }: PageIconProps) {
   }
 
   return (
-    <div className={icon ? undefined : 'group/icon absolute bottom-full left-0 h-14 w-full'}>
+    <div className={icon
+      ? 'px-[var(--note-content-gutter)]'
+      : 'group/icon absolute inset-x-0 bottom-full flex h-14 items-end px-[var(--note-content-gutter)]'}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger render={createPageIconTrigger(icon, updatePage.isPending)} />
         <PageIconPicker icon={icon} onUpdateIcon={updateIcon} />

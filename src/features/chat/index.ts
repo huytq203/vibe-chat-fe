@@ -1,4 +1,12 @@
 export { ChatLayout } from './components/layout/ChatLayout';
+export { TypingDots } from '@/components/common/TypingDots';
+export { AiCopyButton } from '@/components/common/AiCopyButton';
+export {
+  AiAssistantActions,
+  AiFailedActions,
+  AiIncompleteActions,
+} from '@/features/ai';
+export { linkifyBotCommands } from './components/messages/BotCommandText';
 export { useChatUIStore } from './stores/chat-ui.store';
 export { useSelectedConversation } from './hooks/useSelectedConversation';
 export {
@@ -44,3 +52,4 @@ export type {
   MediaCategory,
   MediaStatus,
 } from './types';
+export type { AiAttachment } from '@/features/ai';

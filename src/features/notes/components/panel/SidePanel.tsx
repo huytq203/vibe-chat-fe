@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { History, MessageSquareText, PanelRightClose, Share2 } from 'lucide-react';
+import { History, MessageSquareText, PanelRightClose, Share2, Sparkles } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button/Button';
@@ -16,6 +16,7 @@ import {
   type SidePanelTab,
 } from '@/features/notes/stores/notes-ui.store';
 import { cn } from '@/lib/utils/cn';
+import { AiTab } from './AiTab';
 import { CommentThread } from './CommentThread';
 import { ShareTab } from './ShareTab';
 import { VersionList } from './VersionList';
@@ -24,22 +25,25 @@ const tabs: { value: SidePanelTab; label: string }[] = [
   { value: 'comments', label: 'Bình luận' },
   { value: 'versions', label: 'Lịch sử' },
   { value: 'share', label: 'Chia sẻ' },
+  { value: 'ai', label: 'AI' },
 ];
 
 function isSidePanelTab(value: unknown): value is SidePanelTab {
-  return value === 'comments' || value === 'versions' || value === 'share';
+  return value === 'comments' || value === 'versions' || value === 'share' || value === 'ai';
 }
 
 const emptyTitleByTab: Record<SidePanelTab, string> = {
   comments: 'Chọn một trang để xem bình luận',
   versions: 'Chọn một trang để xem lịch sử',
   share: 'Chọn một trang để chia sẻ',
+  ai: 'Chọn một trang để hỏi AI',
 };
 
 const emptyIconByTab: Record<SidePanelTab, ReactNode> = {
   comments: <MessageSquareText aria-hidden="true" />,
   versions: <History aria-hidden="true" />,
   share: <Share2 aria-hidden="true" />,
+  ai: <Sparkles aria-hidden="true" />,
 };
 
 function PanelContent({ pageId, tab, workspaceId }: {
@@ -50,7 +54,8 @@ function PanelContent({ pageId, tab, workspaceId }: {
   if (!pageId) return <EmptyState icon={emptyIconByTab[tab]} title={emptyTitleByTab[tab]} size="sm" />;
   if (tab === 'comments') return <CommentThread pageId={pageId} />;
   if (tab === 'versions') return <VersionList key={pageId} pageId={pageId} />;
-  if (!workspaceId) return <EmptyState icon={emptyIconByTab.share} title={emptyTitleByTab.share} size="sm" />;
+  if (!workspaceId) return <EmptyState icon={emptyIconByTab[tab]} title={emptyTitleByTab[tab]} size="sm" />;
+  if (tab === 'ai') return <AiTab pageId={pageId} workspaceId={workspaceId} />;
   return <ShareTab key={pageId} pageId={pageId} workspaceId={workspaceId} />;
 }
 

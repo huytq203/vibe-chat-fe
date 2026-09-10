@@ -103,6 +103,36 @@ describe('tiêu đề ghi chú cộng tác', () => {
     expect(onMoveToBody).toHaveBeenCalledTimes(2);
   });
 
+  it('undo và redo tiêu đề bằng phím tắt Windows', async () => {
+    const doc = new YDoc();
+    const user = userEvent.setup();
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />);
+    const title = screen.getByRole('textbox', { name: 'Tiêu đề trang' });
+
+    await user.type(title, 'Kế hoạch mới');
+    await user.keyboard('{Control>}z{/Control}');
+    expect(title).toHaveValue('');
+
+    await user.keyboard('{Control>}y{/Control}');
+    expect(title).toHaveValue('Kế hoạch mới');
+  });
+
+  it('hỗ trợ redo kiểu macOS và chọn toàn bộ tiêu đề', async () => {
+    const doc = new YDoc();
+    const user = userEvent.setup();
+    renderTitle(<NoteTitle doc={doc} editable onMoveToBody={vi.fn()} page={page} />);
+    const title = screen.getByRole('textbox', { name: 'Tiêu đề trang' }) as HTMLTextAreaElement;
+
+    await user.type(title, 'Halo');
+    await user.keyboard('{Meta>}z{/Meta}');
+    await user.keyboard('{Meta>}{Shift>}z{/Shift}{/Meta}');
+    await user.keyboard('{Control>}a{/Control}');
+
+    expect(title).toHaveValue('Halo');
+    expect(title.selectionStart).toBe(0);
+    expect(title.selectionEnd).toBe(4);
+  });
+
   it('không cho sửa tiêu đề ở chế độ chỉ đọc', () => {
     const doc = new YDoc();
     renderTitle(

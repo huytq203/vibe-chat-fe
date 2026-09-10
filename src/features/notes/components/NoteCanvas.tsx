@@ -16,6 +16,7 @@ import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { notionKeys } from '@/services/keys';
 import { ConnectionIndicator } from './editor/ConnectionIndicator';
 import { PresenceBar } from './editor/PresenceBar';
+import { FloatingAiButton } from './FloatingAiButton';
 import { Breadcrumb } from './page/Breadcrumb';
 import { PageIcon } from './page/PageIcon';
 import { PageMenu } from './page/PageMenu';
@@ -67,7 +68,7 @@ function SelectedPage({ collab, pageId, pageQuery, people }: SelectedPageProps) 
 
   // Ảnh bìa: chờ luồng tải tệp ở M6-T3.
   return (
-    <article className="relative text-foreground">
+    <article className="relative text-foreground [--note-content-gutter:10px]">
       <PageIcon pageId={pageId} icon={data.icon} />
       <LazyNoteEditor
         pageId={pageId}
@@ -92,7 +93,7 @@ function PageTopbar({ collab, onSelectPage, pageId, pageTitle, people, onBack }:
   const toggleSidePanel = useNotesUiStore((state) => state.toggleSidePanel);
 
   return (
-    <header className="flex min-h-14 min-w-0 shrink-0 items-center gap-1 border-b border-border bg-background px-2 max-md:pt-[var(--safe-top)] md:gap-2 md:px-3">
+    <header className="sticky top-0 z-10 flex min-h-14 min-w-0 shrink-0 items-center gap-1 border-b border-border bg-background px-2 max-md:pt-[var(--safe-top)] md:gap-2 md:px-3">
       <Button
         variant="ghost"
         size="icon-sm"
@@ -152,11 +153,8 @@ export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: N
     try {
       const message: unknown = JSON.parse(payload);
       if (
-        typeof message !== 'object'
-        || message === null
-        || !('type' in message)
-        || message.type !== 'comments-changed'
-        || !('pageId' in message)
+        typeof message !== 'object' || message === null || !('type' in message)
+        || message.type !== 'comments-changed' || !('pageId' in message)
         || message.pageId !== pageId
       ) return;
       void queryClient.invalidateQueries({ queryKey: notionKeys.comments(pageId) });
@@ -165,32 +163,27 @@ export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: N
     }
   }, [pageId, queryClient]);
   const collab = useCollabDoc(pageId ?? '', {
-    enabled: Boolean(pageId && pageQuery.data),
-    onStateless: handleStateless,
+    enabled: Boolean(pageId && pageQuery.data), onStateless: handleStateless,
   });
   const people = useAwareness(collab.provider);
-
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-2xl md:border md:shadow-subtle">
       {pageId ? (
         <PageTopbar
-          collab={collab}
-          onSelectPage={onSelectPage}
-          pageId={pageId}
+          collab={collab} onSelectPage={onSelectPage} pageId={pageId}
           pageTitle={pageQuery.data?.title}
-          people={people}
-          onBack={onBack}
+          people={people} onBack={onBack}
         />
       ) : (
-        <div aria-hidden="true" className="h-14 border-b border-border" />
+        <div
+          aria-hidden="true"
+          className="sticky top-0 z-10 h-14 border-b border-border bg-background"
+        />
       )}
-      <div className="mx-auto w-full max-w-[45rem] px-4 pb-[calc(var(--safe-bottom)+6rem)] pt-10 sm:px-8 sm:pt-14 md:px-12 md:pb-32 md:pt-16">
+      <div className="mx-auto w-full max-w-[45rem] px-4 pb-[calc(var(--safe-bottom)+6rem)] pt-10 sm:px-6 sm:pt-14 md:px-6 md:pb-32 md:pt-16">
         {pageId ? (
           <SelectedPage
-            collab={collab}
-            pageId={pageId}
-            pageQuery={pageQuery}
-            people={people}
+            collab={collab} pageId={pageId} pageQuery={pageQuery} people={people}
           />
         ) : (
           <EmptyState
@@ -200,6 +193,7 @@ export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: N
           />
         )}
       </div>
+      <FloatingAiButton />
     </main>
   );
 }

@@ -18,6 +18,7 @@ export type AiAttachmentPayload = {
 export type AiStreamOptions = {
   /** Gọi mỗi khi có thêm chữ — dùng để vẽ dần lên UI. */
   onDelta: (text: string) => void;
+  onTool?: (name: string) => void;
   signal?: AbortSignal;
 };
 
@@ -73,7 +74,11 @@ async function chat(
   return content;
 }
 
-async function consume(response: Response, onDelta: (text: string) => void): Promise<string> {
+async function consume(
+  response: Response,
+  onDelta: (text: string) => void,
+  onTool?: (name: string) => void,
+): Promise<string> {
   const body = response.body;
   if (!body) throw new ApiError(502, 'AI_STREAM_FAILED', 'Trợ lý AI không trả về nội dung');
 
@@ -84,6 +89,11 @@ async function consume(response: Response, onDelta: (text: string) => void): Pro
       if (!text) continue;
       content += text;
       onDelta(text);
+      continue;
+    }
+    if (event === 'tool') {
+      const name = readField(data, 'name');
+      if (name) onTool?.(name);
       continue;
     }
     if (event === 'done') return content;
@@ -119,7 +129,7 @@ export const aiApi = {
   chatStream: async (
     messages: AiChatMessage[],
     attachments: readonly AiAttachmentPayload[] | undefined,
-    { onDelta, signal }: AiStreamOptions,
+    { onDelta, onTool, signal }: AiStreamOptions,
   ): Promise<string> => {
     let response: Response;
     try {
@@ -135,7 +145,7 @@ export const aiApi = {
       return content;
     }
 
-    return consume(response, onDelta);
+    return consume(response, onDelta, onTool);
   },
 
   getConfig: () => apiClient.get<{ model: string }>('/api/v1/ai/config'),
