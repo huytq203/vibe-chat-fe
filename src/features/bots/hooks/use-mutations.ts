@@ -4,14 +4,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { botsApi } from '@/services/bots.api';
 import { botKeys, botTokenKeys, chatKeys } from '@/services/keys';
 import { botTokensApi } from '@/services/bot-tokens.api';
-import { sendBotDemoMessage } from '@/lib/bot-demo';
 import { toast } from 'sonner';
 import { usersApi } from '@/services/users.api';
 import { chatApi } from '@/services/chat.api';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 import type {
-  BotDemoCommand,
   IssueTokenInput,
   UpdateBotInlineInput,
   UpdateBotWebappInput,
@@ -95,19 +93,6 @@ export function useRevokeToken(botId: string) {
     mutationFn: (tokenId: string) => botTokensApi.revoke(botId, tokenId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: botTokenKeys.list(botId) }),
-  });
-}
-
-/** Demo: bot gửi 1 tin nhắn "vui" vào conversation qua route nội bộ /api/bot-demo. */
-export function useSendBotDemoMessage() {
-  return useMutation({
-    mutationFn: ({
-      conversationUuid,
-      command,
-    }: {
-      conversationUuid: string;
-      command: BotDemoCommand;
-    }) => sendBotDemoMessage(conversationUuid, command),
   });
 }
 

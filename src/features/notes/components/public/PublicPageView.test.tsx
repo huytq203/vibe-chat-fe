@@ -63,26 +63,25 @@ describe('trang ghi chú công khai', () => {
     expect(screen.queryByText('Nội dung lạ')).not.toBeInTheDocument();
   });
 
-  it('nhúng CSS định dạng list/checklist/code vào iframe công khai', () => {
-    const html =
-      '<div class="bn-block-content" data-content-type="bulletListItem"><p class="bn-inline-content">muc mot</p></div>';
+  it('nên nhúng CSS định dạng nội dung khi iframe chứa HTML Tiptap', () => {
+    const html = '<ul><li><p>Mục một</p></li></ul>';
     render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);
 
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
     const srcdoc = frame.getAttribute('srcdoc') ?? '';
 
     expect(srcdoc).toContain('<style');
-    expect(srcdoc).toContain('bulletListItem');
-    expect(srcdoc).toContain('numberedListItem');
-    expect(srcdoc).toContain('checkListItem');
-    expect(srcdoc).toContain('codeBlock');
+    expect(srcdoc).toContain('ul, ol');
+    expect(srcdoc).toContain('ul[data-type="taskList"]');
+    expect(srcdoc).toContain('li[data-type="taskItem"]');
+    expect(srcdoc).toContain('pre {');
     expect(srcdoc).toContain('public-code-copy');
     expect(srcdoc).toContain('Liberation Mono');
     expect(srcdoc).toContain('--shiki-light');
     expect(srcdoc).toContain(html);
   });
 
-  it('gắn nút sao chép cho code block trong iframe mà không bật script', async () => {
+  it('nên gắn một nút sao chép khi iframe chứa code block Tiptap', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     render(<PublicPageView page={buildPublicPage()} token="public-token" />);
@@ -90,11 +89,7 @@ describe('trang ghi chú công khai', () => {
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai') as HTMLIFrameElement;
     const frameDocument = frame.contentDocument;
     expect(frameDocument).not.toBeNull();
-    frameDocument!.body.innerHTML = `
-      <div data-content-type="codeBlock">
-        <pre><code data-language="text">const answer = 42;</code></pre>
-      </div>
-    `;
+    frameDocument!.body.innerHTML = '<pre><code>const answer = 42;</code></pre>';
 
     frame.dispatchEvent(new Event('load'));
     frame.dispatchEvent(new Event('load'));
@@ -108,18 +103,14 @@ describe('trang ghi chú công khai', () => {
     expect(frame.getAttribute('sandbox')).not.toContain('allow-scripts');
   });
 
-  it('ưu tiên ngôn ngữ backend export trên wrapper code block', async () => {
+  it('nên ưu tiên ngôn ngữ khi code Tiptap có class language', async () => {
     render(<PublicPageView page={buildPublicPage()} token="public-token" />);
 
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai') as HTMLIFrameElement;
     const frameDocument = frame.contentDocument!;
-    frameDocument.body.innerHTML = `
-      <div data-content-type="codeBlock" data-language="jsx">
-        <pre><code class="bn-inline-content">funtion haloCat(){
+    frameDocument.body.innerHTML = `<pre><code class="language-jsx">funtion haloCat(){
 console.log("hellohuy")
-}</code></pre>
-      </div>
-    `;
+}</code></pre>`;
 
     frame.dispatchEvent(new Event('load'));
 
@@ -130,16 +121,15 @@ console.log("hellohuy")
     });
   });
 
-  it('dùng thang heading gọn trong nội dung công khai', () => {
-    const html =
-      '<div class="bn-block-content" data-content-type="heading" data-level="1"><h1>Tiêu đề mục</h1></div>';
+  it('nên dùng thang heading gọn khi iframe chứa heading Tiptap', () => {
+    const html = '<h1>Tiêu đề mục</h1>';
     render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);
 
     const frame = screen.getByTitle('Nội dung trang Ghi chú công khai');
     const srcdoc = frame.getAttribute('srcdoc') ?? '';
-    expect(srcdoc).toContain('[data-content-type="heading"][data-level="1"]');
+    expect(srcdoc).toContain('h1 { font-size: 1.75rem; }');
     expect(srcdoc).toContain('font-size: 1.75rem');
-    expect(srcdoc).toContain(':is(h1, h2, h3, h4, h5, h6)');
+    expect(srcdoc).not.toContain('data-content-type');
   });
 
   it('ẩn hẳn menu trang con khi includeSubpages tắt', () => {

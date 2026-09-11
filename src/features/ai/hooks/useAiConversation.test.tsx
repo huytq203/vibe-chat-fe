@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAiConversation } from '@/features/ai';
+import { withPendingUser } from '@/features/ai/components/AiMessageList';
 import { clearStream } from '@/features/ai/lib/ai-stream-runner';
 import type { AiSession, AiSessionActions, AiStreamFn } from '@/features/ai';
 
@@ -133,7 +134,7 @@ describe('useAiConversation', () => {
     await running;
   });
 
-  it('nên hiện lại text đang chạy khi dựng lại component', async () => {
+  it('nên vẫn hiện tin người dùng khi dựng lại component giữa lúc AI đang trả lời', async () => {
     const controlled = holdStream();
     const key = streamKey('chat:remount');
     const options = {
@@ -151,10 +152,22 @@ describe('useAiConversation', () => {
 
     first.unmount();
     const second = renderHook(() => useAiConversation(options));
+    const visibleMessages = withPendingUser(
+      [], second.result.current.pendingUser, second.result.current.loading,
+    );
 
     expect(second.result.current.streaming).toBe('Phần đang chạy');
+    expect(visibleMessages).toContainEqual({ role: 'user', content: 'Xin chào' });
     controlled.finish('Phần đang chạy đầy đủ');
     await act(async () => running);
+  });
+
+  it('nên không hiện trùng tin người dùng khi lượt đã được lưu', () => {
+    const pendingUser = { role: 'user' as const, content: 'Đã có trên server' };
+
+    const visibleMessages = withPendingUser([pendingUser], pendingUser, true);
+
+    expect(visibleMessages).toEqual([pendingUser]);
   });
 
   it('nên vẫn dừng được luồng khi bấm nút Dừng', async () => {

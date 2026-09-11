@@ -201,6 +201,24 @@
         --switch-background: #1d2a33;
         --info: #38bdf8;                    /* Sky-400 — rich text links */
 
+        /* Note editor: lưu tên/biến, bậc 600 bảo đảm tương phản trên theme sáng. */
+        --note-text-gray: #45556c;
+        --note-text-orange: #f54900;
+        --note-text-yellow: #e17100;
+        --note-text-green: #009966;
+        --note-text-blue: #0084d1;
+        --note-text-purple: #7f22fe;
+        --note-text-pink: #e60076;
+        --note-text-red: #e7000b;
+        --note-hl-gray: #90a1b938;
+        --note-hl-orange: #ff890438;
+        --note-hl-yellow: #ffb90040;
+        --note-hl-green: #00d49238;
+        --note-hl-blue: #00bcff38;
+        --note-hl-purple: #a684ff38;
+        --note-hl-pink: #fb64b638;
+        --note-hl-red: #ff646738;
+
         --chart-1: #f87171;
         --chart-2: #06b6d4;                 /* Cyan thương hiệu */
         --chart-3: #10b981;                 /* Emerald */
@@ -265,6 +283,24 @@
         --sidebar-ring: #22d3ee;
 
         --info: #38bdf8;
+
+        /* Bậc 400 sáng hơn trên nền Charcoal; highlight giữ cùng mực và alpha. */
+        --note-text-gray: #90a1b9;
+        --note-text-orange: #ff8904;
+        --note-text-yellow: #ffb900;
+        --note-text-green: #00d492;
+        --note-text-blue: #00bcff;
+        --note-text-purple: #a684ff;
+        --note-text-pink: #fb64b6;
+        --note-text-red: #ff6467;
+        --note-hl-gray: #90a1b938;
+        --note-hl-orange: #ff890438;
+        --note-hl-yellow: #ffb90040;
+        --note-hl-green: #00d49238;
+        --note-hl-blue: #00bcff38;
+        --note-hl-purple: #a684ff38;
+        --note-hl-pink: #fb64b638;
+        --note-hl-red: #ff646738;
     }
 }
 
@@ -460,30 +496,8 @@
     cursor: grab;
 }
 
-/* Notes: compact reading scale that matches the app shell instead of BlockNote's
-   oversized 3em / 2em defaults. Variables cover both normal and transitional
-   collaboration DOM (`data-prev-level`). */
 .notes-editor {
     --bn-font-family: var(--font-ui);
-}
-.notes-editor [data-content-type="heading"] {
-    --level: 1.75rem;
-    line-height: 1.3;
-    padding-top: 0.75rem;
-}
-.notes-editor [data-content-type="heading"][data-level="2"] { --level: 1.375rem; }
-.notes-editor [data-content-type="heading"][data-level="3"] { --level: 1.125rem; }
-.notes-editor [data-content-type="heading"][data-level="4"] { --level: 1rem; }
-.notes-editor [data-content-type="heading"][data-level="5"] { --level: 0.9375rem; }
-.notes-editor [data-content-type="heading"][data-level="6"] { --level: 0.875rem; }
-.notes-editor [data-prev-level="1"] { --prev-level: 1.75rem; }
-.notes-editor [data-prev-level="2"] { --prev-level: 1.375rem; }
-.notes-editor [data-prev-level="3"] { --prev-level: 1.125rem; }
-.notes-editor [data-prev-level="4"] { --prev-level: 1rem; }
-.notes-editor [data-prev-level="5"] { --prev-level: 0.9375rem; }
-.notes-editor [data-prev-level="6"] { --prev-level: 0.875rem; }
-.notes-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content {
-    line-height: 1.3;
 }
 /* Dùng chung gutter với tiêu đề và icon; vẫn giữ đủ chỗ cho drag handle. */
 .notes-editor .bn-editor {
@@ -633,6 +647,345 @@
 }
 .ProseMirror li {
     margin: 0.125rem 0;
+}
+
+/* Editor ghi chú Tiptap: mọi rule nằm dưới namespace riêng để không đổi ô soạn chat. */
+.notes-editor-next {
+    width: 100%;
+    max-width: 45rem;
+    margin-inline: auto;
+    color: var(--foreground);
+    font-family: var(--font-ui);
+}
+.notes-editor-next__title textarea {
+    min-height: 44px;
+    padding: 0;
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 44px;
+    letter-spacing: -0.5px;
+}
+.notes-editor-next__body {
+    position: relative;
+    min-height: 200px;
+    margin-top: 12px;
+}
+.notes-editor-next .ProseMirror {
+    min-height: 200px;
+    color: var(--foreground);
+    caret-color: var(--primary);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+}
+.notes-editor-next .ProseMirror::selection,
+.notes-editor-next .ProseMirror *::selection {
+    background-color: color-mix(in oklab, var(--primary) 24%, transparent);
+}
+.notes-editor-next .ProseMirror > p {
+    min-height: 40px;
+    padding-block: 8px;
+}
+.notes-editor-next .ProseMirror h1,
+.notes-editor-next .ProseMirror h2,
+.notes-editor-next .ProseMirror h3,
+.notes-editor-next .ProseMirror h4,
+.notes-editor-next .ProseMirror h5,
+.notes-editor-next .ProseMirror h6 {
+    min-height: 40px;
+    margin: 0;
+    padding-block: 8px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+.notes-editor-next .ProseMirror h1 { font-size: 28px; line-height: 1.29; }
+.notes-editor-next .ProseMirror h2 { font-size: 22px; line-height: 1.2; }
+.notes-editor-next .ProseMirror h3 { font-size: 20px; line-height: 1.2; }
+.notes-editor-next .ProseMirror h4 { font-size: 18px; line-height: 24px; }
+.notes-editor-next .ProseMirror h5 { font-size: 16px; line-height: 24px; }
+.notes-editor-next .ProseMirror h6 { font-size: 14px; line-height: 20px; }
+.notes-editor-next .ProseMirror ul,
+.notes-editor-next .ProseMirror ol {
+    min-height: 40px;
+    margin: 0;
+    padding-block: 8px;
+    padding-left: 24px;
+}
+.notes-editor-next .ProseMirror li {
+    margin: 0;
+}
+.notes-editor-next .ProseMirror li > p {
+    margin: 0;
+}
+.notes-editor-next .ProseMirror ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+}
+.notes-editor-next .ProseMirror li[data-type="taskItem"] {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.notes-editor-next .ProseMirror li[data-type="taskItem"] > label {
+    display: flex;
+    height: 24px;
+    align-items: center;
+}
+.notes-editor-next .ProseMirror li[data-type="taskItem"] input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+.notes-editor-next .ProseMirror li[data-type="taskItem"] > div {
+    min-width: 0;
+    flex: 1;
+}
+.notes-editor-next .ProseMirror blockquote {
+    margin: 8px 0;
+    border-left: 1px solid var(--border);
+    padding: 8px 16px;
+    color: var(--foreground);
+}
+.notes-editor-next .ProseMirror blockquote p {
+    margin: 0;
+}
+.notes-editor-next .ProseMirror pre {
+    margin: 8px 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--muted);
+    padding: 16px;
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 24px;
+    tab-size: 2;
+}
+.notes-editor-next .ProseMirror pre code {
+    background: transparent;
+    padding: 0;
+    font: inherit;
+}
+.notes-editor-next__code-block {
+    position: relative;
+    margin: 8px 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: color-mix(in oklab, var(--muted) 94%, var(--foreground) 6%);
+    color: var(--foreground);
+}
+.notes-editor-next .ProseMirror .notes-editor-next__code-block > pre {
+    margin: 0;
+    overflow-x: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 44px 16px 16px;
+}
+.notes-editor-next__code-toolbar {
+    position: absolute;
+    z-index: 1;
+    top: 8px;
+    right: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    pointer-events: none;
+}
+.notes-editor-next__code-toolbar select,
+.notes-editor-next__code-toolbar button,
+.notes-editor-next__code-language {
+    height: 28px;
+    max-width: calc(100% - 112px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--background);
+    padding-inline: 10px;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    pointer-events: auto;
+}
+.notes-editor-next__code-toolbar select {
+    color: var(--foreground);
+    font-family: var(--font-mono);
+}
+.notes-editor-next__code-toolbar button {
+    max-width: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+.notes-editor-next__code-language {
+    display: inline-flex;
+    align-items: center;
+    border-color: transparent;
+    background: transparent;
+    font-family: var(--font-mono);
+    pointer-events: none;
+}
+.notes-editor-next__code-toolbar select:hover,
+.notes-editor-next__code-toolbar button:hover {
+    border-color: color-mix(in oklab, var(--border) 65%, var(--foreground) 35%);
+    background-color: var(--muted);
+    color: var(--foreground);
+}
+.notes-editor-next__code-toolbar select:focus-visible,
+.notes-editor-next__code-toolbar button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+.notes-editor-next__code-toolbar button[data-state="copied"] { color: var(--success); }
+.notes-editor-next__code-toolbar button[data-state="error"] { color: var(--danger); }
+.notes-editor-next .shiki .notes-editor-next__code-token { color: var(--shiki-light); }
+.dark .notes-editor-next .shiki .notes-editor-next__code-token,
+[data-color-scheme="dark"] .notes-editor-next .shiki .notes-editor-next__code-token {
+    color: var(--shiki-dark);
+}
+.notes-editor-next .ProseMirror .tableWrapper {
+    margin: 8px 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+.notes-editor-next .ProseMirror table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.notes-editor-next .ProseMirror th,
+.notes-editor-next .ProseMirror td {
+    position: relative;
+    min-width: 120px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+.notes-editor-next .ProseMirror th {
+    background-color: var(--muted);
+    font-weight: 700;
+}
+.notes-editor-next .ProseMirror tr:last-child > * { border-bottom: 0; }
+.notes-editor-next .ProseMirror tr > *:last-child { border-right: 0; }
+.notes-editor-next .ProseMirror .selectedCell::after {
+    position: absolute;
+    inset: 0;
+    background-color: color-mix(in oklab, var(--primary) 12%, transparent);
+    content: "";
+    pointer-events: none;
+}
+.notes-editor-next .ProseMirror .column-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -1px;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--primary);
+    pointer-events: none;
+}
+.notes-editor-next .ProseMirror hr {
+    margin: 24px 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+.notes-editor-next .ProseMirror a {
+    color: var(--info);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+.notes-editor-next mark[data-color="gray"] { background: var(--note-hl-gray); }
+.notes-editor-next mark[data-color="orange"] { background: var(--note-hl-orange); }
+.notes-editor-next mark[data-color="yellow"] { background: var(--note-hl-yellow); }
+.notes-editor-next mark[data-color="green"] { background: var(--note-hl-green); }
+.notes-editor-next mark[data-color="blue"] { background: var(--note-hl-blue); }
+.notes-editor-next mark[data-color="purple"] { background: var(--note-hl-purple); }
+.notes-editor-next mark[data-color="pink"] { background: var(--note-hl-pink); }
+.notes-editor-next mark[data-color="red"] { background: var(--note-hl-red); }
+.notes-editor-next__color-swatch {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--note-swatch);
+}
+.notes-editor-next__color-swatch--highlight {
+    border-radius: var(--radius-sm);
+    background: var(--note-highlight-swatch);
+}
+.notes-editor-next__color-swatch[data-note-color="gray"] { --note-swatch: var(--note-text-gray); --note-highlight-swatch: var(--note-hl-gray); }
+.notes-editor-next__color-swatch[data-note-color="orange"] { --note-swatch: var(--note-text-orange); --note-highlight-swatch: var(--note-hl-orange); }
+.notes-editor-next__color-swatch[data-note-color="yellow"] { --note-swatch: var(--note-text-yellow); --note-highlight-swatch: var(--note-hl-yellow); }
+.notes-editor-next__color-swatch[data-note-color="green"] { --note-swatch: var(--note-text-green); --note-highlight-swatch: var(--note-hl-green); }
+.notes-editor-next__color-swatch[data-note-color="blue"] { --note-swatch: var(--note-text-blue); --note-highlight-swatch: var(--note-hl-blue); }
+.notes-editor-next__color-swatch[data-note-color="purple"] { --note-swatch: var(--note-text-purple); --note-highlight-swatch: var(--note-hl-purple); }
+.notes-editor-next__color-swatch[data-note-color="pink"] { --note-swatch: var(--note-text-pink); --note-highlight-swatch: var(--note-hl-pink); }
+.notes-editor-next__color-swatch[data-note-color="red"] { --note-swatch: var(--note-text-red); --note-highlight-swatch: var(--note-hl-red); }
+.notes-editor-next .ProseMirror img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 16px auto;
+    border-radius: var(--radius-lg);
+}
+.notes-editor-next .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+}
+
+/* Floating UI đặt mép phải cụm tại mép khối: rộng 52px tạo hai máng −52/−28px. */
+.notes-editor-next__gutter {
+    --note-insert-lane: -52px;
+    --note-drag-lane: -28px;
+    box-sizing: border-box;
+    width: 52px;
+    height: 24px;
+    opacity: 0;
+    transition: opacity 80ms linear;
+}
+.notes-editor-next__gutter-content {
+    display: flex;
+    width: 52px;
+    height: 24px;
+}
+.notes-editor-next__gutter--visible { opacity: 1; }
+.notes-editor-next__insert-button,
+.notes-editor-next__drag-button {
+    height: 24px;
+    min-height: 24px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+}
+.notes-editor-next__insert-button {
+    width: 24px;
+    min-width: 24px;
+}
+.notes-editor-next__drag-button {
+    width: 18px;
+    min-width: 18px;
+    cursor: grab;
+}
+.notes-editor-next__drag-button:active { cursor: grabbing; }
+.notes-editor-next__insert-button svg,
+.notes-editor-next__drag-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notes-editor-next__gutter {
+        transition-duration: 0.01ms;
+    }
 }
 
 /* Mask cho BrandWatermark: dấu ấn thương hiệu được tô bằng `bg-primary` rồi cắt

@@ -8,7 +8,6 @@ import {
   Pin,
   PinOff,
   Settings,
-  Sparkles,
   Trash2,
   UserMinus,
   UserPlus,
@@ -28,8 +27,6 @@ type ContactOptionsSectionProps = {
   onMembers: () => void;
   onCreateGroup: () => void;
   onConvSettings: () => void;
-  canBotDemo: boolean;
-  onBotDemo: () => void;
 };
 
 export function ContactOptionsSection({
@@ -42,8 +39,6 @@ export function ContactOptionsSection({
   onMembers,
   onCreateGroup,
   onConvSettings,
-  canBotDemo,
-  onBotDemo,
 }: ContactOptionsSectionProps) {
   const {
     isDirect,
@@ -70,13 +65,6 @@ export function ContactOptionsSection({
     <section className="px-3 pb-4 pt-2">
       <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground">Tuỳ chọn</div>
       <div className="flex flex-col gap-0.5">
-        {canBotDemo && (
-          <OptionRow
-            icon={<Sparkles className="h-4 w-4" />}
-            label="Demo gửi tin nhắn vui"
-            onClick={onBotDemo}
-          />
-        )}
         <OptionRow
           icon={<Palette className="h-4 w-4" />}
           label="Đổi chủ đề & hình nền"

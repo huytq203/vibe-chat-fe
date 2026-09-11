@@ -13,6 +13,8 @@ type NotesUiState = {
   toggleSidePanel: () => void;
   sidePanelTab: SidePanelTab;
   setSidePanelTab: (tab: SidePanelTab) => void;
+  aiComposerDraft: string | null;
+  setAiComposerDraft: (draft: string | null) => void;
   activeCommentBlockId: string | null;
   openCommentThread: (blockId: string) => void;
   /** ID các node đang mở, tách theo workspace để đổi workspace không lẫn trạng thái. */
@@ -23,8 +25,17 @@ type NotesUiState = {
   setAiConversation: (workspaceId: string, conversationId: string | null) => void;
 };
 
+type NotesUiPersistedState = Pick<NotesUiState,
+  | 'activeWorkspaceId'
+  | 'isSidePanelOpen'
+  | 'sidePanelTab'
+  | 'activeCommentBlockId'
+  | 'expandedByWorkspace'
+  | 'aiConversationByWorkspace'
+>;
+
 export const useNotesUiStore = create<NotesUiState>()(
-  persist(
+  persist<NotesUiState, [], [], NotesUiPersistedState>(
     (set) => ({
       activeWorkspaceId: null,
       setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
@@ -33,6 +44,8 @@ export const useNotesUiStore = create<NotesUiState>()(
       toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
       sidePanelTab: 'comments',
       setSidePanelTab: (sidePanelTab) => set({ sidePanelTab }),
+      aiComposerDraft: null,
+      setAiComposerDraft: (aiComposerDraft) => set({ aiComposerDraft }),
       activeCommentBlockId: null,
       openCommentThread: (activeCommentBlockId) => set({
         activeCommentBlockId,
@@ -63,6 +76,16 @@ export const useNotesUiStore = create<NotesUiState>()(
           },
         })),
     }),
-    { name: 'halo-notes-ui' },
+    {
+      name: 'halo-notes-ui',
+      partialize: (state) => ({
+        activeWorkspaceId: state.activeWorkspaceId,
+        isSidePanelOpen: state.isSidePanelOpen,
+        sidePanelTab: state.sidePanelTab,
+        activeCommentBlockId: state.activeCommentBlockId,
+        expandedByWorkspace: state.expandedByWorkspace,
+        aiConversationByWorkspace: state.aiConversationByWorkspace,
+      }),
+    },
   ),
 );

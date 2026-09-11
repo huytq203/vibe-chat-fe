@@ -17,6 +17,25 @@ import {
 type PublicPage = z.infer<typeof publicPageSchema>;
 
 const PUBLIC_CONTENT_STYLES = `
+  :root {
+    --note-text-gray: #45556c;
+    --note-text-orange: #f54900;
+    --note-text-yellow: #e17100;
+    --note-text-green: #009966;
+    --note-text-blue: #0084d1;
+    --note-text-purple: #7f22fe;
+    --note-text-pink: #e60076;
+    --note-text-red: #e7000b;
+    --note-hl-gray: #90a1b938;
+    --note-hl-orange: #ff890438;
+    --note-hl-yellow: #ffb90040;
+    --note-hl-green: #00d49238;
+    --note-hl-blue: #00bcff38;
+    --note-hl-purple: #a684ff38;
+    --note-hl-pink: #fb64b638;
+    --note-hl-red: #ff646738;
+  }
+
   body {
     margin: 0;
     color: #18181b;
@@ -27,64 +46,63 @@ const PUBLIC_CONTENT_STYLES = `
     overflow-wrap: anywhere;
   }
 
-  .bn-block-outer {
-    margin-block: 0.125rem;
-  }
+  p, ul, ol { margin-block: 0.125rem; }
 
-  h1, h2, h3, h4, h5, h6,
-  [data-content-type="heading"] {
+  h1, h2, h3, h4, h5, h6 {
     margin: 0;
     padding-top: 0.75rem;
     font-weight: 700;
     line-height: 1.3;
   }
 
-  h1, [data-content-type="heading"][data-level="1"] { font-size: 1.75rem; }
-  h2, [data-content-type="heading"][data-level="2"] { font-size: 1.375rem; }
-  h3, [data-content-type="heading"][data-level="3"] { font-size: 1.125rem; }
-  h4, [data-content-type="heading"][data-level="4"] { font-size: 1rem; }
-  h5, [data-content-type="heading"][data-level="5"] { font-size: 0.9375rem; }
-  h6, [data-content-type="heading"][data-level="6"] { font-size: 0.875rem; }
+  h1 { font-size: 1.75rem; } h2 { font-size: 1.375rem; }
+  h3 { font-size: 1.125rem; } h4 { font-size: 1rem; }
+  h5 { font-size: 0.9375rem; } h6 { font-size: 0.875rem; }
 
-  [data-content-type="heading"] > :is(h1, h2, h3, h4, h5, h6) {
-    margin: 0;
-    padding: 0;
-    font: inherit;
-  }
-
-  [data-content-type="bulletListItem"],
-  [data-content-type="numberedListItem"] {
-    position: relative;
+  ul, ol {
     padding-inline-start: 1.5rem;
   }
 
-  [data-content-type="bulletListItem"]::before,
-  [data-content-type="numberedListItem"]::before {
-    position: absolute;
-    inset-inline-start: 0.25rem;
+  li > p { margin: 0; }
+
+  ul[data-type="taskList"] {
+    list-style: none;
+    padding-inline-start: 0;
   }
 
-  [data-content-type="bulletListItem"]::before { content: "•"; }
-  [data-content-type="numberedListItem"]::before { content: attr(data-index) "."; }
-
-  [data-content-type="checkListItem"] {
+  li[data-type="taskItem"] {
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
   }
 
-  [data-content-type="checkListItem"] input[type="checkbox"] {
-    flex: none;
-    margin-block-start: 0.35rem;
+  li[data-type="taskItem"] > label {
+    display: flex;
+    height: 1.65rem;
+    align-items: center;
   }
 
-  [data-content-type="codeBlock"] {
+  li[data-type="taskItem"] input[type="checkbox"] {
+    flex: none;
+    width: 1rem; height: 1rem;
+    margin: 0;
+    accent-color: #7c3aed;
+  }
+
+  li[data-type="taskItem"] > div { min-width: 0; flex: 1; }
+
+  blockquote {
+    margin: 0.5rem 0;
+    border-inline-start: 1px solid #d4d4d8;
+    padding: 0.5rem 1rem;
+    color: #3f3f46;
+  }
+
+  blockquote p { margin: 0; }
+
+  pre {
     position: relative;
     margin-block: 0.5rem;
-  }
-
-  [data-content-type="codeBlock"] pre {
-    margin: 0;
     overflow-x: auto;
     border: 1px solid #e4e4e7;
     border-radius: 0.75rem;
@@ -97,11 +115,82 @@ const PUBLIC_CONTENT_STYLES = `
     tab-size: 2;
   }
 
-  [data-content-type="codeBlock"] pre code {
+  pre code {
     border-radius: 0;
     background: none;
     padding: 0;
     font: inherit;
+  }
+
+  table {
+    width: 100%;
+    margin-block: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #e4e4e7;
+    border-radius: 0.75rem;
+    border-spacing: 0;
+    border-collapse: separate;
+    table-layout: fixed;
+  }
+
+  th, td {
+    border-inline-end: 1px solid #e4e4e7;
+    border-block-end: 1px solid #e4e4e7;
+    padding: 0.5rem 0.75rem;
+    text-align: start;
+    vertical-align: top;
+  }
+
+  th { background: #f4f4f5; font-weight: 700; }
+  tr:last-child > * { border-block-end: 0; }
+  tr > *:last-child { border-inline-end: 0; }
+
+  hr {
+    margin-block: 1.5rem;
+    border: 0;
+    border-top: 1px solid #e4e4e7;
+  }
+
+  a { color: #7c3aed; text-decoration-thickness: 1px; text-underline-offset: 0.1875rem; }
+  a:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+  mark[data-color="gray"] { background: var(--note-hl-gray) !important; }
+  mark[data-color="orange"] { background: var(--note-hl-orange) !important; }
+  mark[data-color="yellow"] { background: var(--note-hl-yellow) !important; }
+  mark[data-color="green"] { background: var(--note-hl-green) !important; }
+  mark[data-color="blue"] { background: var(--note-hl-blue) !important; }
+  mark[data-color="purple"] { background: var(--note-hl-purple) !important; }
+  mark[data-color="pink"] { background: var(--note-hl-pink) !important; }
+  mark[data-color="red"] { background: var(--note-hl-red) !important; }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto; margin: 1rem auto;
+    border-radius: 0.75rem;
+  }
+
+  figure[data-embed] {
+    position: relative;
+    width: 100%;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border: 1px solid #e4e4e7;
+    border-radius: 0.75rem;
+    background: #f4f4f5;
+    aspect-ratio: 16 / 9;
+  }
+
+  figure[data-embed][data-aspect="4:3"] { aspect-ratio: 4 / 3; }
+  figure[data-embed][data-aspect="1:1"] { aspect-ratio: 1; }
+  figure[data-embed][data-aspect="auto"] { height: 24rem; aspect-ratio: auto; }
+
+  figure[data-embed] iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
   }
 
   .shiki, .shiki span { color: var(--shiki-light); }
@@ -152,9 +241,7 @@ const PUBLIC_CONTENT_STYLES = `
 `;
 
 function languageFrom(code: HTMLElement, source: string) {
-  const blockLanguage = code
-    .closest<HTMLElement>('[data-content-type="codeBlock"]')
-    ?.dataset.language;
+  const blockLanguage = code.closest<HTMLPreElement>('pre')?.dataset.language;
   const classLanguage = Array.from(code.classList)
     .find((className) => className.startsWith('language-'))
     ?.slice('language-'.length);
@@ -168,9 +255,7 @@ async function enhanceCodeBlocks(frame: HTMLIFrameElement) {
   const frameDocument = frame.contentDocument;
   if (!frameDocument) return;
 
-  const blocks = Array.from(
-    frameDocument.querySelectorAll<HTMLElement>('[data-content-type="codeBlock"]'),
-  );
+  const blocks = Array.from(frameDocument.querySelectorAll<HTMLPreElement>('pre'));
   const highlightTargets: Array<{
     code: HTMLElement;
     language: ReturnType<typeof languageFrom>;
@@ -178,27 +263,26 @@ async function enhanceCodeBlocks(frame: HTMLIFrameElement) {
     source: string;
   }> = [];
 
-  for (const block of blocks) {
-    const pre = block.querySelector<HTMLPreElement>('pre');
-    const code = pre?.querySelector<HTMLElement>('code');
-    if (!pre || !code) continue;
+  for (const pre of blocks) {
+    const code = pre.querySelector<HTMLElement>(':scope > code');
+    if (!code) continue;
 
     const source = code.textContent ?? '';
     const language = languageFrom(code, source);
     if (isHighlightableLanguage(language)
-      && !block.querySelector(':scope > .public-code-language')) {
+      && !pre.querySelector(':scope > .public-code-language')) {
       const languageLabel = frameDocument.createElement('span');
       languageLabel.className = 'public-code-language';
       languageLabel.textContent = CODE_BLOCK_LANGUAGES[language].name;
-      block.appendChild(languageLabel);
+      pre.appendChild(languageLabel);
     }
-    if (!block.querySelector(':scope > .public-code-copy')) {
+    if (!pre.querySelector(':scope > .public-code-copy')) {
       const copyControl = createCodeCopyButton(
         frameDocument,
         () => source,
         'public-code-copy',
       );
-      block.appendChild(copyControl.button);
+      pre.appendChild(copyControl.button);
     }
     highlightTargets.push({ code, language, pre, source });
   }

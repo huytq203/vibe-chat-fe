@@ -187,7 +187,7 @@ vi.mock('sonner', () => ({
 }));
 ```
 
-Now edit `src/features/bots/hooks/use-mutations.ts`. Add these imports after the existing `import { sendBotDemoMessage } from '@/lib/bot-demo';` line:
+Now edit `src/features/bots/hooks/use-mutations.ts`. Add these imports near the existing service imports:
 
 ```ts
 import { toast } from 'sonner';
@@ -561,13 +561,13 @@ export function useCreateBot() {
 Change the type-only import line from:
 
 ```ts
-import type { CreateBotInput, UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
+import type { CreateBotInput, UpdateBotInput, IssueTokenInput } from '../schemas';
 ```
 
 to:
 
 ```ts
-import type { UpdateBotInput, IssueTokenInput, BotDemoCommand } from '../schemas';
+import type { UpdateBotInput, IssueTokenInput } from '../schemas';
 ```
 
 - [ ] **Step 3: Remove `useCreateBot`'s test coverage from `use-mutations.test.ts`**

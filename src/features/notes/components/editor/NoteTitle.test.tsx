@@ -83,11 +83,13 @@ describe('tiêu đề ghi chú cộng tác', () => {
       'resize-none',
       'overflow-hidden',
       'whitespace-pre-wrap',
-      'text-[32px]',
-      'md:text-[36px]',
+      'min-h-14',
+      'text-[48px]',
+      'leading-14',
       '[field-sizing:content]',
       '[overflow-wrap:anywhere]',
     );
+    expect(title).not.toHaveClass('md:text-[36px]', 'md:leading-11');
   });
 
   it('chuyển xuống thân bài bằng cả Enter và Tab', async () => {

@@ -30,7 +30,7 @@ export function AiChatMain({
   const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
-  const { loading, streaming, send, resend, regenerate, stop, recall, discard } =
+  const { loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard } =
     useAiConversation({
       streamKey: `chat:${session?.id ?? ''}`,
       session,
@@ -76,6 +76,7 @@ export function AiChatMain({
         <AiMessageList
           messages={messages}
           loading={loading}
+          pendingUser={pendingUser}
           streaming={streaming}
           variant="page"
           onRegenerate={regenerate}

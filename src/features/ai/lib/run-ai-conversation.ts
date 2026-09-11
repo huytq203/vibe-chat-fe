@@ -81,6 +81,7 @@ export async function runAiConversation(options: RunAiConversationOptions): Prom
     pendingTurns.set(options.key, { user: options.pendingUser, persistence });
   }
   await startStream(options.key, {
+    pendingUser: options.pendingUser,
     run: (onDelta, signal) => send(
       options.history,
       options.history[options.history.length - 1]?.attachments,

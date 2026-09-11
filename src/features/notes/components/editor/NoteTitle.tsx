@@ -87,7 +87,7 @@ export function NoteTitle({ doc, editable, onMoveToBody, page }: NoteTitleProps)
     <textarea
       ref={titleRef}
       aria-label="Tiêu đề trang"
-      className="block min-h-10 w-full resize-none overflow-hidden whitespace-pre-wrap border-0 bg-transparent px-[var(--note-content-gutter)] py-0 font-display text-[32px] font-bold leading-10 tracking-[-0.02em] text-foreground outline-none [field-sizing:content] [overflow-wrap:anywhere] placeholder:text-muted-foreground focus-visible:ring-0 md:min-h-11 md:text-[36px] md:leading-11"
+      className="block min-h-14 w-full resize-none overflow-hidden whitespace-pre-wrap border-0 bg-transparent px-[var(--note-content-gutter)] py-0 font-display text-[48px] font-bold leading-14 tracking-[-0.02em] text-foreground outline-none [field-sizing:content] [overflow-wrap:anywhere] placeholder:text-muted-foreground focus-visible:ring-0"
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       placeholder="Không có tiêu đề"

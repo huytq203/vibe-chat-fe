@@ -126,4 +126,36 @@ describe('ai-stream-runner', () => {
 
     expect(getSnapshot(streamKey)).toBe(first);
   });
+
+  it('nên xoá pendingUser khỏi snapshot khi luồng kết thúc', async () => {
+    const streamKey = key('pending-finished');
+    const pendingUser = { role: 'user' as const, content: 'Câu hỏi đang chờ' };
+    const stream = deferred<string>();
+    const running = startStream(streamKey, {
+      pendingUser,
+      run: () => stream.promise,
+      onFinish: vi.fn(),
+    });
+
+    expect(getSnapshot(streamKey)).toMatchObject({ status: 'streaming', pendingUser });
+    stream.resolve('Đã xong');
+    await running;
+
+    expect(getSnapshot(streamKey).pendingUser).toBeUndefined();
+  });
+
+  it('nên xoá pendingUser khỏi snapshot khi clear luồng', () => {
+    const streamKey = key('pending-cleared');
+    void startStream(streamKey, {
+      pendingUser: { role: 'user', content: 'Sẽ bị xoá' },
+      run: (_onDelta, signal) => new Promise<string>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('Đã xoá')));
+      }),
+      onFinish: vi.fn(),
+    });
+
+    clearStream(streamKey);
+
+    expect(getSnapshot(streamKey)).toEqual({ text: '', status: 'idle' });
+  });
 });

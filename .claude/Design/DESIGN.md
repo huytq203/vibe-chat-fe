@@ -174,6 +174,24 @@ Cả 8 đều ở mức 400 của thang Tailwind: độ sáng đồng đều, đ
 `#0d1017`. Không dùng đúng hex của token semantic (`--success`, `--warning`, `--danger`,
 `--info`) để màu con trỏ không bị đọc nhầm thành trạng thái.
 
+### 9.4. Màu văn bản & highlight
+
+Editor lưu **tên màu / biến CSS**, không lưu hex, để nội dung tự đổi bậc khi đổi theme và
+không cần migration nếu hệ màu thay đổi. Các mã hex dưới đây lấy từ đúng bảng Tailwind v4
+đang cài trong `node_modules/tailwindcss`; highlight dùng bậc 400 có alpha để chữ phía trên
+vẫn đọc được.
+
+| Tên | Họ | Chữ (sáng) | Chữ (tối) | Highlight (nền) |
+|---|---|---|---|---|
+| Xám | slate | slate-600 `#45556c` | slate-400 `#90a1b9` | slate-400 `#90a1b9` / alpha 0.22 |
+| Cam | orange | orange-600 `#f54900` | orange-400 `#ff8904` | orange-400 `#ff8904` / alpha 0.22 |
+| Vàng | amber | amber-600 `#e17100` | amber-400 `#ffb900` | amber-400 `#ffb900` / alpha 0.25 |
+| Lục | emerald | emerald-600 `#009966` | emerald-400 `#00d492` | emerald-400 `#00d492` / alpha 0.22 |
+| Lam | sky | sky-600 `#0084d1` | sky-400 `#00bcff` | sky-400 `#00bcff` / alpha 0.22 |
+| Tím | violet | violet-600 `#7f22fe` | violet-400 `#a684ff` | violet-400 `#a684ff` / alpha 0.22 |
+| Hồng | pink | pink-600 `#e60076` | pink-400 `#fb64b6` | pink-400 `#fb64b6` / alpha 0.22 |
+| Đỏ | red | red-600 `#e7000b` | red-400 `#ff6467` | red-400 `#ff6467` / alpha 0.22 |
+
 ---
 
 ## 10. Agent Prompt Guide

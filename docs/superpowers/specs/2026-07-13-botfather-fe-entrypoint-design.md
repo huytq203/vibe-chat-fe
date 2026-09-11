@@ -20,7 +20,7 @@
 
 ## 2. Data flow
 
-Hook mới `useOpenBotFatherChat()` (đặt cạnh các hook bot-demo hiện có trong `src/features/bots/hooks/use-mutations.ts`):
+Hook mới `useOpenBotFatherChat()` (đặt trong `src/features/bots/hooks/use-mutations.ts`):
 
 1. `usersApi.search({ q: '@botfather', limit: 5 })` — prefix `@` buộc backend match CHÍNH XÁC theo username (đã có comment ở `users.api.ts`), không phải prefix-search mờ.
 2. Lọc phòng thủ `items.find((u) => u.username === 'botfather')` trước khi tin — không lấy đại `items[0]`.

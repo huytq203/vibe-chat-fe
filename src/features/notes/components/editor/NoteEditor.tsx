@@ -34,15 +34,15 @@ import { toast } from 'sonner';
 import type { Awareness } from 'y-protocols/awareness';
 
 import { ErrorState } from '@/components/common/ErrorState';
-import { Skeleton } from '@/components/ui/skeleton/Skeleton';
-import {
-  type CollabPerson,
-  useAwareness,
-} from '@/features/notes/hooks/useAwareness';
-import { useCollabDoc } from '@/features/notes/hooks/useCollabDoc';
-import type { UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
+import { type CollabPerson, useAwareness } from '@/features/notes/hooks/useAwareness';
+import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
+import { useEditorOutline } from '@/features/notes/hooks/useEditorOutline';
 import { usePage } from '@/features/notes/hooks/use-query';
 import { useFileUpload } from '@/features/notes/hooks/useFileUpload';
+import { createCodeCopyButton } from '@/features/notes/lib/code-copy-button';
+import {
+  CODE_BLOCK_LANGUAGES, getCodeHighlighter, resolveCodeLanguage,
+} from '@/features/notes/lib/code-highlighting';
 import { resolveAttachmentFileUrl } from '@/features/notes/lib/resolve-file-url';
 import type { Page } from '@/features/notes/types';
 import {
@@ -54,15 +54,11 @@ import {
   type CollabProvider,
   type YDoc,
 } from '@/lib/collab';
+import type { OutlineItem } from '@/lib/editor/heading-outline';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
+import { NoteEditorSkeleton } from './NoteEditorSkeleton';
 import { NoteTitle } from './NoteTitle';
-import { createCodeCopyButton } from '@/features/notes/lib/code-copy-button';
-import {
-  CODE_BLOCK_LANGUAGES,
-  getCodeHighlighter,
-  resolveCodeLanguage,
-} from '@/features/notes/lib/code-highlighting';
 
 export function createNoteCodeBlockSpec() {
   const baseSpec = createCodeBlockSpec({
@@ -127,6 +123,7 @@ interface NoteEditorProps {
   pageId: string;
   collab?: UseCollabDocResult;
   people?: CollabPerson[];
+  onOutlineChange?: (items: OutlineItem[]) => void;
 }
 
 interface ConnectedEditorProps {
@@ -136,6 +133,7 @@ interface ConnectedEditorProps {
   pageId: string;
   person: CollabPerson;
   provider: CollabProvider;
+  onOutlineChange?: (items: OutlineItem[]) => void;
 }
 
 type NoteBlockEditor = ReturnType<typeof useCreateBlockNote>;
@@ -192,30 +190,20 @@ function selectAllEditorContent(editor: NoteBlockEditor): void {
   editor.focus();
 }
 
-export function NoteEditorSkeleton() {
-  return (
-    <div className="space-y-4" data-testid="note-editor-loading">
-      <Skeleton rounded="sm" className="h-9 w-full" />
-      {Array.from({ length: 3 }, (_, index) => (
-        <Skeleton key={index} rounded="sm" className="h-6 w-full" />
-      ))}
-    </div>
-  );
-}
-
-function ConnectedEditor({ doc, editable, page, pageId, person, provider }: ConnectedEditorProps) {
-  const { currentTheme } = useTheme();
+function useConnectedBlockNote(
+  doc: YDoc,
+  pageId: string,
+  person: CollabPerson,
+  provider: CollabProvider,
+): NoteBlockEditor {
   const uploadFile = useFileUpload(pageId);
   const user = useMemo(() => ({
-    color: person.color,
-    id: person.userId,
-    name: person.name,
+    color: person.color, id: person.userId, name: person.name,
   }), [person]);
-  const editor = useCreateBlockNote(withCollaboration({
+  return useCreateBlockNote(withCollaboration({
     collaboration: {
       fragment: doc.getXmlFragment(COLLAB_FRAGMENT_NAME),
-      // HocuspocusProvider.awareness kiểu Awareness | null (thư viện), BlockNote đòi
-      // Awareness | undefined — provider luôn có awareness khi tới đây, ép kiểu an toàn.
+      // Provider luôn có awareness ở đây; BlockNote chỉ chấp nhận undefined thay null.
       provider: provider as unknown as { awareness?: Awareness },
       renderCursor: createCollabCursorElement,
       showCursorLabels: 'always',
@@ -227,6 +215,14 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
     schema: noteEditorSchema,
     uploadFile,
   }), [doc, provider, user, uploadFile]);
+}
+
+function ConnectedEditor({
+  doc, editable, onOutlineChange, page, pageId, person, provider,
+}: ConnectedEditorProps) {
+  const { currentTheme } = useTheme();
+  const editor = useConnectedBlockNote(doc, pageId, person, provider);
+  useEditorOutline(editor, onOutlineChange);
   const moveToBody = useCallback(() => {
     const firstBlock = editor.document[0] ?? editor.insertBlocks(
       [{ type: 'paragraph' }], editor.getTextCursorPosition().block, 'before',
@@ -253,7 +249,7 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
       <NoteTitle doc={doc} editable={editable} onMoveToBody={moveToBody} page={page} />
       <div onKeyDownCapture={handleSelectAll}>
         <BlockNoteView
-          className="notes-editor mt-3"
+          className="notes-editor mt-3 [&_[data-node-type=blockOuter]]:scroll-mt-16"
           editable={editable}
           editor={editor}
           theme={currentTheme.isDark ? 'dark' : 'light'}
@@ -265,7 +261,9 @@ function ConnectedEditor({ doc, editable, page, pageId, person, provider }: Conn
   );
 }
 
-export function NoteEditor({ pageId, collab: sharedCollab, people }: NoteEditorProps) {
+export function NoteEditor({
+  pageId, collab: sharedCollab, people, onOutlineChange,
+}: NoteEditorProps) {
   const pageQuery = usePage(pageId);
   const localCollab = useCollabDoc(pageId, {
     enabled: !sharedCollab && Boolean(pageQuery.data),
@@ -296,6 +294,7 @@ export function NoteEditor({ pageId, collab: sharedCollab, people }: NoteEditorP
       pageId={pageId}
       person={self}
       provider={collab.provider}
+      onOutlineChange={onOutlineChange}
     />
   );
 }

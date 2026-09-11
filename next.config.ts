@@ -130,7 +130,7 @@ function buildContentSecurityPolicy(): string {
     "worker-src 'self' blob:",
     `connect-src 'self' blob: wss: https://www.gstatic.com https://api.giphy.com https://media.giphy.com ${connectOrigins.join(' ')}`,
     // Mini-app của bot chạy trong iframe, domain do bên thứ ba tự chọn.
-    "frame-src 'self' https:",
+    "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.loom.com https://maps.google.com https://embed.figma.com https://codepen.io https://gist.github.com https://open.spotify.com https://w.soundcloud.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

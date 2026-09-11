@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notionAiApi } from '@/services/notion-ai.api';
 import { AiTab } from '@/features/notes/components/panel/AiTab';
+import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 
 vi.mock('@/services/ai.api', () => ({
   aiApi: { chat: vi.fn().mockResolvedValue('Tiêu đề') },
@@ -69,9 +70,19 @@ function renderAiTab(pageId = 'page-1') {
 afterEach(() => {
   chatStream.mockReset();
   notionMocks.listVersions.mockReset().mockResolvedValue([]);
+  useNotesUiStore.getState().setAiComposerDraft(null);
 });
 
 describe('tab AI của ghi chú', () => {
+  it('nên xoá aiComposerDraft khỏi store sau khi AiTab đã đổ vào input', async () => {
+    useNotesUiStore.getState().setAiComposerDraft('> Nội dung khối\n\n');
+    expect(localStorage.getItem('halo-notes-ui')).not.toContain('aiComposerDraft');
+    renderAiTab();
+
+    expect(await screen.findByRole('textbox')).toHaveValue('> Nội dung khối\n\n');
+    await waitFor(() => expect(useNotesUiStore.getState().aiComposerDraft).toBeNull());
+  });
+
   it('nên hiện gợi ý mở đầu khi chưa có tin nhắn nào', () => {
     renderAiTab();
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe2, KeyRound, MoreVertical, Pencil, Search, Sparkles } from 'lucide-react';
+import { Globe2, KeyRound, MoreVertical, Pencil, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dropdown-menu/DropdownMenu';
 import { EditBotDialog } from './EditBotDialog';
 import { DeleteBotAlertDialog } from './DeleteBotAlertDialog';
-import { BotDemoDialog } from './BotDemoDialog';
 import { BotInlineDialog } from './BotInlineDialog';
 import { BotWebappDialog } from './BotWebappDialog';
 import type { Bot } from '../types';
@@ -25,7 +24,6 @@ export function BotRow({
   onManageTokens: (bot: Bot) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
   const [inlineOpen, setInlineOpen] = useState(false);
   const [webappOpen, setWebappOpen] = useState(false);
 
@@ -73,10 +71,6 @@ export function BotRow({
             <Pencil className="h-4 w-4" />
             Sửa thông tin
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDemoOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            Demo gửi tin nhắn vui
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setInlineOpen(true)}>
             <Search className="h-4 w-4" />
             Inline mode
@@ -91,7 +85,6 @@ export function BotRow({
       <DeleteBotAlertDialog bot={bot} />
 
       <EditBotDialog bot={bot} open={editOpen} onOpenChange={setEditOpen} />
-      <BotDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
       <BotInlineDialog bot={bot} open={inlineOpen} onOpenChange={setInlineOpen} />
       <BotWebappDialog bot={bot} open={webappOpen} onOpenChange={setWebappOpen} />
     </li>

@@ -19,7 +19,7 @@ export function FloatingAiButton() {
   return (
     <Button
       size="icon"
-      className="fixed bottom-6 right-6 z-10 hidden size-11 rounded-xl shadow-subtle md:inline-flex"
+      className="absolute bottom-6 right-6 z-10 hidden size-11 rounded-xl shadow-subtle md:inline-flex"
       aria-controls="notes-side-panel"
       aria-expanded="false"
       aria-label="Mở trợ lý AI"

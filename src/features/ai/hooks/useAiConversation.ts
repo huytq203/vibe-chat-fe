@@ -28,6 +28,8 @@ interface UseAiConversationReturn {
   loading: boolean;
   /** Chữ AI đã phát ra ở lượt đang chạy; `null` khi chưa có mẩu nào. */
   streaming: string | null;
+  /** Tin user của lượt đang chạy, được runner giữ qua vòng đời component. */
+  pendingUser?: AiMessage;
   send: (text: string, attachments: AiAttachment[]) => Promise<void>;
   resend: (index: number) => void;
   regenerate: () => void;
@@ -48,28 +50,28 @@ function toMeta({
   return { name, mimeType, size, previewUrl, data: base64Data };
 }
 
+function useStreamSnapshot(streamKey: string) {
+  const subscribeToStream = useCallback(
+    (callback: () => void) => subscribe(streamKey, callback), [streamKey],
+  );
+  const readSnapshot = useCallback(() => getSnapshot(streamKey), [streamKey]);
+  return useSyncExternalStore(subscribeToStream, readSnapshot, readSnapshot);
+}
+
 /**
  * Một lượt hỏi–đáp với Halo AI, chữ hiện dần theo token.
  * Lỗi trước mẩu chữ đầu tiên gắn vào tin cuối của user (gửi lại được, không phải
  * gõ lại); đứt giữa chừng thì giữ phần đã nhận và đánh dấu `incomplete`.
  */
-export function useAiConversation({
-  streamKey,
-  session,
-  actions,
-  onSettled,
-  stream,
-  onTool,
-}: UseAiConversationOptions): UseAiConversationReturn {
+export function useAiConversation(
+  { streamKey, session, actions, onSettled, stream, onTool }: UseAiConversationOptions,
+): UseAiConversationReturn {
   const activeStreamKeyRef = useRef(streamKey);
   useEffect(() => { activeStreamKeyRef.current = streamKey; }, [streamKey]);
-  const subscribeToStream = useCallback(
-    (callback: () => void) => subscribe(streamKey, callback), [streamKey],
-  );
-  const readSnapshot = useCallback(() => getSnapshot(streamKey), [streamKey]);
-  const snapshot = useSyncExternalStore(subscribeToStream, readSnapshot, readSnapshot);
+  const snapshot = useStreamSnapshot(streamKey);
   const loading = snapshot.status === 'streaming';
   const streaming = loading && snapshot.text ? snapshot.text : null;
+  const pendingUser = loading ? snapshot.pendingUser : undefined;
 
   const run = useCallback(
     (sessionId: string, history: AiMessage[], key = streamKey, pendingUser?: AiMessage) =>
@@ -134,5 +136,5 @@ export function useAiConversation({
     [session, actions, loading],
   );
 
-  return { loading, streaming, send, resend, regenerate, stop, recall, discard };
+  return { loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard };
 }

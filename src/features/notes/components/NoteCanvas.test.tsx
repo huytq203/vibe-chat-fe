@@ -62,7 +62,8 @@ describe('nút AI nổi trên khung soạn thảo', () => {
 
     const button = screen.getByRole('button', { name: 'Mở trợ lý AI' });
     expect(button).toHaveAttribute('title', 'Mở trợ lý AI');
-    expect(button).toHaveClass('hidden', 'md:inline-flex');
+    expect(button).toHaveClass('absolute', 'hidden', 'md:inline-flex');
+    expect(button).not.toHaveClass('fixed');
   });
 
   it('nên ẩn nút AI nổi khi bảng bên đang mở', () => {
@@ -91,6 +92,14 @@ describe('nút AI nổi trên khung soạn thảo', () => {
 });
 
 describe('khung soạn thảo ghi chú', () => {
+  it('nên đặt vùng cuộn trong khung định vị tương đối', () => {
+    const { container } = renderNoteCanvas();
+    const main = container.querySelector('main');
+
+    expect(main?.parentElement).toHaveClass('relative', 'flex', 'min-w-0', 'flex-1');
+    expect(main).toHaveClass('overflow-y-auto');
+  });
+
   it('nên dính thanh tiêu đề lên đầu khi cuộn nội dung', () => {
     const { container } = renderNoteCanvas();
 

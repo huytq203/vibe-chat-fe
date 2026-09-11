@@ -1,9 +1,12 @@
+import type { AiMessage } from '@/features/ai/types';
+
 export type AiStreamStatus = 'streaming' | 'idle';
 
 export interface AiStreamSnapshot {
   text: string;
   status: AiStreamStatus;
   error?: string;
+  pendingUser?: AiMessage;
 }
 
 export interface AiStreamResult {
@@ -13,6 +16,7 @@ export interface AiStreamResult {
 }
 
 interface StartStreamOptions {
+  pendingUser?: AiMessage;
   run: (onDelta: (text: string) => void, signal: AbortSignal) => Promise<string>;
   onFinish: (result: AiStreamResult) => void;
 }
@@ -22,6 +26,7 @@ interface StreamEntry {
   text: string;
   status: AiStreamStatus;
   error?: string;
+  pendingUser?: AiMessage;
   subscribers: Set<() => void>;
   snapshot: AiStreamSnapshot;
   frameId: number | null;
@@ -59,6 +64,7 @@ function publish(key: string, entry: StreamEntry): void {
     text: entry.text,
     status: entry.status,
     ...(entry.error ? { error: entry.error } : {}),
+    ...(entry.pendingUser ? { pendingUser: entry.pendingUser } : {}),
   };
   entry.subscribers.forEach((subscriber) => subscriber());
 }
@@ -78,12 +84,13 @@ function schedulePublish(key: string, entry: StreamEntry): void {
   });
 }
 
-function replaceEntry(key: string): StreamEntry {
+function replaceEntry(key: string, pendingUser?: AiMessage): StreamEntry {
   const previous = registry.get(key);
   if (previous?.status === 'streaming') previous.controller.abort();
   if (previous) cancelPendingFrame(previous);
   const entry = createEntry(previous?.subscribers);
   entry.status = 'streaming';
+  entry.pendingUser = pendingUser;
   registry.set(key, entry);
   publish(key, entry);
   return entry;
@@ -93,11 +100,12 @@ function finishEntry(key: string, entry: StreamEntry, result: AiStreamResult): v
   cancelPendingFrame(entry);
   entry.status = 'idle';
   entry.error = result.status === 'error' ? errorMessage(result.error) : undefined;
+  entry.pendingUser = undefined;
   publish(key, entry);
 }
 
 export async function startStream(key: string, options: StartStreamOptions): Promise<void> {
-  const entry = replaceEntry(key);
+  const entry = replaceEntry(key, options.pendingUser);
   let result: AiStreamResult = { text: '', status: 'done' };
 
   try {

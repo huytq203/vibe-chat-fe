@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
@@ -12,6 +12,7 @@ import { useAiConversationTitle } from '@/features/notes/hooks/useAiConversation
 import { useAiPageChange } from '@/features/notes/hooks/useAiPageChange';
 import { useNoteAiConversation } from '@/features/notes/hooks/useNoteAiConversation';
 import { usePage } from '@/features/notes/hooks/use-query';
+import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import { notionKeys } from '@/services/keys';
 import { notionAiApi } from '@/services/notion-ai.api';
 
@@ -74,6 +75,8 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(DEFAULT_STATUS);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const aiComposerDraft = useNotesUiStore((state) => state.aiComposerDraft);
+  const setAiComposerDraft = useNotesUiStore((state) => state.setAiComposerDraft);
   const queryClient = useQueryClient();
   const {
     conversations, activeId, session, actions, isLoading, isError, select, startNew,
@@ -102,6 +105,16 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
     onTool,
     onSettled,
   });
+
+  useEffect(() => {
+    if (aiComposerDraft === null) return;
+    const draft = aiComposerDraft;
+    setAiComposerDraft(null);
+    queueMicrotask(() => {
+      setInput(draft);
+      textareaRef.current?.focus();
+    });
+  }, [aiComposerDraft, setAiComposerDraft]);
 
   async function handleSend(text: string) {
     if (isLoading || conversation.loading || !text.trim()) return;
@@ -143,6 +156,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
         <AiMessageList
           messages={messages}
           loading={conversation.loading}
+          pendingUser={conversation.pendingUser}
           streaming={conversation.streaming}
           onRegenerate={conversation.regenerate}
           onResend={conversation.resend}

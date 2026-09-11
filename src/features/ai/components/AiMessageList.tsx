@@ -14,6 +14,8 @@ import { AiAuthorLabel, AiMessageRow, type AiMessageVariant } from './AiMessageR
 interface AiMessageListProps {
   messages: AiMessage[];
   loading: boolean;
+  /** Tin user đang chờ server lưu; chỉ nối nếu lịch sử chưa có tin này. */
+  pendingUser?: AiMessage;
   /** Chữ AI đang phát ra ở lượt hiện tại; `null` khi chưa có mẩu nào. */
   streaming?: string | null;
   variant?: AiMessageVariant;
@@ -24,6 +26,20 @@ interface AiMessageListProps {
   /** Gỡ tin và đổ nội dung về ô nhập để sửa. */
   onEdit: (index: number) => void;
   onDiscard: (index: number) => void;
+}
+
+function includesPendingUser(messages: AiMessage[], pendingUser: AiMessage): boolean {
+  const last = messages.at(-1);
+  return last?.role === pendingUser.role && last.content === pendingUser.content;
+}
+
+export function withPendingUser(
+  messages: AiMessage[],
+  pendingUser: AiMessage | undefined,
+  loading: boolean,
+): AiMessage[] {
+  if (!loading || !pendingUser || includesPendingUser(messages, pendingUser)) return messages;
+  return [...messages, pendingUser];
 }
 
 /** Cùng nhịp chấm với TypingBubble ở màn chat, hoà vào chất liệu của từng khung. */
@@ -90,6 +106,7 @@ function StreamingReply({ content, variant }: { content: string; variant: AiMess
 export function AiMessageList({
   messages,
   loading,
+  pendingUser,
   streaming = null,
   variant = 'window',
   onRegenerate,
@@ -97,12 +114,13 @@ export function AiMessageList({
   onEdit,
   onDiscard,
 }: AiMessageListProps) {
+  const visibleMessages = withPendingUser(messages, pendingUser, loading);
   const isPage = variant === 'page';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const virtualizer = useVirtualizer({
-    count: messages.length,
+    count: visibleMessages.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => (isPage ? 96 : 72),
     overscan: 5,
@@ -113,9 +131,9 @@ export function AiMessageList({
   });
 
   useEffect(() => {
-    if (messages.length === 0) return;
-    virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-  }, [messages.length, virtualizer]);
+    if (visibleMessages.length === 0) return;
+    virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
+  }, [visibleMessages.length, virtualizer]);
 
   // Chỉ báo đang soạn nằm ngoài vùng ảo hoá nên scrollToIndex không với tới nó —
   // đẩy hẳn xuống đáy container để nó luôn trong tầm nhìn như ở màn chat.
@@ -149,7 +167,7 @@ export function AiMessageList({
     setShowScrollBtn(false);
   }, []);
 
-  const lastIndex = messages.length - 1;
+  const lastIndex = visibleMessages.length - 1;
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -159,7 +177,7 @@ export function AiMessageList({
         className={cn('h-full overflow-y-auto', isPage ? 'px-1 py-2' : 'px-4 py-3')}
       >
         <div className={cn(isPage && 'mx-auto w-full max-w-[680px]')}>
-          {messages.length === 0 && !loading && !isPage && (
+          {visibleMessages.length === 0 && !loading && !isPage && (
             <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center">
               <AiMascot className="h-24 w-28 drop-shadow-[0_12px_20px_rgb(61_31_91/0.16)]" />
               <p className="text-[13px] text-muted-foreground">Bắt đầu cuộc trò chuyện với AI</p>
@@ -168,11 +186,11 @@ export function AiMessageList({
 
           <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
             {virtualizer.getVirtualItems().map((virtualItem) => {
-              const message = messages[virtualItem.index];
+              const message = visibleMessages[virtualItem.index];
               if (!message) return null;
 
-              const groupedWithPrev = messages[virtualItem.index - 1]?.role === message.role;
-              const groupedWithNext = messages[virtualItem.index + 1]?.role === message.role;
+              const groupedWithPrev = visibleMessages[virtualItem.index - 1]?.role === message.role;
+              const groupedWithNext = visibleMessages[virtualItem.index + 1]?.role === message.role;
               // Chạy lại chỉ có nghĩa ở câu trả lời cuối. Cửa sổ nổi không có hàng
               // hành động cho tin bình thường, nhưng tin đứt dở thì vẫn cần "Gửi lại".
               const isLastAssistant =

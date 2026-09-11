@@ -31,7 +31,9 @@ export function AiChatWindow() {
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
 
-  const { loading, streaming, send, resend, regenerate, stop, recall, discard } = useAiConversation({
+  const {
+    loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard,
+  } = useAiConversation({
     streamKey: `chat:${activeSession?.id ?? ''}`,
     session: activeSession,
     actions,
@@ -120,6 +122,7 @@ export function AiChatWindow() {
           <AiMessageList
             messages={messages}
             loading={loading}
+            pendingUser={pendingUser}
             streaming={streaming}
             onRegenerate={regenerate}
             onResend={resend}

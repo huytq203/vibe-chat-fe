@@ -12,6 +12,7 @@ import { createNoteCodeBlockSpec, NoteEditor } from './NoteEditor';
 type BeforeChangeCallback = (
   context: { getChanges: () => BlocksChanged },
 ) => boolean | void;
+type ChangeCallback = () => void;
 
 const mocks = vi.hoisted(() => ({
   blockNoteView: vi.fn(({
@@ -41,6 +42,7 @@ const mocks = vi.hoisted(() => ({
     </div>
   )),
   beforeChange: null as BeforeChangeCallback | null,
+  change: null as ChangeCallback | null,
   documentBytes: vi.fn(() => 0),
   markCursorMoved: vi.fn(),
   readAwareness: vi.fn(() => []),
@@ -109,13 +111,18 @@ const doc = {
   getXmlFragment: vi.fn(() => fragment),
 } as unknown as YDoc;
 const provider = { awareness: {} } as unknown as CollabProvider;
+const editorDocument: unknown[] = [{ id: 'block-1' }];
 const editor = {
-  document: [{ id: 'block-1' }],
+  document: editorDocument,
   focus: vi.fn(),
   getTextCursorPosition: vi.fn(),
   insertBlocks: vi.fn(),
   onBeforeChange: vi.fn((callback: BeforeChangeCallback) => {
     mocks.beforeChange = callback;
+    return vi.fn();
+  }),
+  onChange: vi.fn((callback: ChangeCallback) => {
+    mocks.change = callback;
     return vi.fn();
   }),
   setTextCursorPosition: vi.fn(),
@@ -159,7 +166,9 @@ function renderCodeBlock(language: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.beforeChange = null;
+  mocks.change = null;
   mocks.documentBytes.mockReturnValue(0);
+  editorDocument.splice(0, editorDocument.length, { id: 'block-1' });
   setRole('EDIT');
   setCollabError();
   mocks.useCreateBlockNote.mockReturnValue(editor);
@@ -239,7 +248,26 @@ describe('trình soạn thảo ghi chú', () => {
   it('gắn typography scale riêng cho nội dung ghi chú', () => {
     render(<NoteEditor pageId="page-1" />);
 
-    expect(screen.getByTestId('blocknote-view')).toHaveClass('notes-editor', 'mt-3');
+    expect(screen.getByTestId('blocknote-view')).toHaveClass(
+      'notes-editor', 'mt-3', '[&_[data-node-type=blockOuter]]:scroll-mt-16',
+    );
+  });
+
+  it('nên báo mục lục khi tài liệu thay đổi', () => {
+    editorDocument.splice(0, editorDocument.length, {
+      content: [{ styles: {}, text: 'Mục mới', type: 'text' }],
+      id: 'heading-1',
+      props: { level: 2 },
+      type: 'heading',
+    });
+    const onOutlineChange = vi.fn();
+    render(<NoteEditor pageId="page-1" onOutlineChange={onOutlineChange} />);
+
+    expect(onOutlineChange).toHaveBeenLastCalledWith([
+      { id: 'heading-1', level: 2, text: 'Mục mới' },
+    ]);
+    act(() => mocks.change?.());
+    expect(onOutlineChange).toHaveBeenCalledTimes(2);
   });
 
   it('Ctrl+A chọn toàn bộ nội dung BlockNote ở capture phase', () => {
