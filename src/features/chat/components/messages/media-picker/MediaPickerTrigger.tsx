@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Smile } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Keyboard, Smile } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer/Drawer';
 import { prefetchEmojiPicker } from '@/components/common/EmojiPicker';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useSendSticker } from '@/features/chat/hooks/use-stickers';
 import { useSendGif } from '@/features/chat/hooks/use-giphy';
 import type { GiphyItem } from '@/features/chat/types/gif';
 import type { Sticker } from '@/features/chat/types/sticker';
+import { cn } from '@/lib/utils/cn';
 import { MediaPickerPanel } from './MediaPickerPanel';
 
 interface MediaPickerTriggerProps {
@@ -19,6 +20,10 @@ interface MediaPickerTriggerProps {
   disabled?: boolean;
   emojiOnly?: boolean;
   onEmojiSelect: (emoji: string) => void;
+  mobilePanelHost?: HTMLElement | null;
+  onRequestEditorFocus?: () => void;
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
 }
 
 export function MediaPickerTrigger({
@@ -26,13 +31,28 @@ export function MediaPickerTrigger({
   disabled,
   emojiOnly,
   onEmojiSelect,
+  mobilePanelHost,
+  onRequestEditorFocus,
+  mobileOpen,
+  onMobileOpenChange,
 }: MediaPickerTriggerProps) {
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isMobile && mobileOpen !== undefined ? mobileOpen : internalOpen;
   const [sendingGifId, setSendingGifId] = useState<string | null>(null);
   const [sendingStickerId, setSendingStickerId] = useState<string | null>(null);
   const sendSticker = useSendSticker(conversationId);
   const sendGif = useSendGif(conversationId);
+
+  function setOpen(nextOpen: boolean): void {
+    if (isMobile) {
+      if (mobileOpen === undefined) setInternalOpen(nextOpen);
+      onMobileOpenChange?.(nextOpen);
+      return;
+    }
+    setInternalOpen(nextOpen);
+  }
 
   // Mobile không có hover để kích hoạt prefetch. Nạp chunk sau khi composer ổn định để
   // lần chạm đầu tiên không phải vừa mở drawer vừa tải/parse toàn bộ emoji picker.
@@ -79,26 +99,57 @@ export function MediaPickerTrigger({
       variant="ghost"
       size="icon-sm"
       disabled={disabled}
-      title="Emoji, GIF và sticker"
-      aria-label="Emoji, GIF và sticker"
-      className="h-11 w-11 text-muted-foreground hover:text-primary md:h-8 md:w-8"
+      title={isMobile && open ? 'Mở bàn phím' : 'Emoji, GIF và sticker'}
+      aria-label={isMobile && open ? 'Mở bàn phím' : 'Emoji, GIF và sticker'}
+      aria-expanded={open}
+      aria-controls={isMobile && open ? panelId : undefined}
+      className={cn(
+        'h-11 w-11 text-muted-foreground hover:text-primary md:h-8 md:w-8',
+        open && 'bg-primary/10 text-primary',
+      )}
       onMouseEnter={prefetchEmojiPicker}
-      onPointerDown={prefetchEmojiPicker}
+      onPointerDown={() => {
+        prefetchEmojiPicker();
+        if (isMobile && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      }}
       onFocus={prefetchEmojiPicker}
+      onClick={isMobile
+        ? () => {
+            if (open) {
+              setOpen(false);
+              onRequestEditorFocus?.();
+              return;
+            }
+            setOpen(true);
+          }
+        : undefined}
     >
-      <Smile className="h-[18px] w-[18px]" />
+      {isMobile && open
+        ? <Keyboard className="h-[18px] w-[18px]" />
+        : <Smile className="h-[18px] w-[18px]" />}
     </Button>
   );
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger>{triggerButton}</DrawerTrigger>
-        <DrawerContent direction="bottom" className="h-[70dvh] rounded-t-2xl">
-          <DrawerTitle className="sr-only">Emoji, GIF và sticker</DrawerTitle>
-          {panel}
-        </DrawerContent>
-      </Drawer>
+      <>
+        {triggerButton}
+        {open && mobilePanelHost
+          ? createPortal(
+              <section
+                id={panelId}
+                aria-label="Emoji, GIF và sticker"
+                data-mobile-media-picker
+                className="mt-2 h-[min(52dvh,26rem)] min-h-64 overflow-hidden border-t border-border bg-background pt-1"
+              >
+                {panel}
+              </section>,
+              mobilePanelHost,
+            )
+          : null}
+      </>
     );
   }
 

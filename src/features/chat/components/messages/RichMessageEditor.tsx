@@ -1,12 +1,16 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import type { SuggestionOptions } from "@tiptap/suggestion";
 import { splitBlock } from "@tiptap/pm/commands";
 import { baseEditorExtensions } from "@/lib/editor/extensions";
 import { createMentionExtension } from "@/lib/editor/mention-extension";
-import { jsonToMessage, type SerializedMessage } from "@/lib/editor/serializer";
+import {
+  jsonToMessage,
+  messageToJson,
+  type SerializedMessage,
+} from "@/lib/editor/serializer";
 import { MAX_LENGTH } from "@/features/chat/components/messages/composer-utils";
 import { cn } from "@/lib/utils/cn";
 
@@ -45,15 +49,19 @@ const EMPTY: SerializedMessage = {
 
 export type EditorHandle = {
   editor: Editor | null;
+  isFocused: () => boolean;
   serialize: () => SerializedMessage;
   clear: () => void;
   focus: () => void;
   insertText: (text: string) => void;
   setPlainText: (text: string) => void;
+  setSerialized: (message: SerializedMessage) => void;
 };
 
 type RichMessageEditorProps = {
   placeholder: string;
+  initialValue?: SerializedMessage;
+  focusOnMount?: boolean;
   disabled?: boolean;
   /** Mở rộng vùng soạn (cao hơn, thoáng) — toggle từ toolbar. */
   expanded?: boolean;
@@ -66,6 +74,7 @@ type RichMessageEditorProps = {
   onPasteFiles: (files: File[]) => boolean;
   /** Phát instance editor lên cha (toolbar cần reactive, ref không đủ). */
   onEditor?: (editor: Editor | null) => void;
+  onFocusRequest?: () => void;
 };
 
 export const RichMessageEditor = forwardRef<
@@ -74,6 +83,8 @@ export const RichMessageEditor = forwardRef<
 >(function RichMessageEditor(
   {
     placeholder,
+    initialValue,
+    focusOnMount,
     disabled,
     expanded,
     mentionSuggestion,
@@ -84,9 +95,29 @@ export const RichMessageEditor = forwardRef<
     onCommandKeyDown,
     onPasteFiles,
     onEditor,
+    onFocusRequest,
   },
   ref,
 ) {
+  const revealTimerRef = useRef<number | null>(null);
+  const initializedRef = useRef(false);
+
+  const revealAboveKeyboard = (ed: Editor) => {
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    if (revealTimerRef.current !== null) {
+      window.clearTimeout(revealTimerRef.current);
+    }
+    // Lần đầu giữ phản hồi chạm tức thì; lần sau chạy khi animation keyboard iOS
+    // đã kết thúc. Chỉ chạy lúc focus, không chạy theo input/visualViewport.
+    ed.view.dom.scrollIntoView({ block: "end", inline: "nearest" });
+    revealTimerRef.current = window.setTimeout(() => {
+      revealTimerRef.current = null;
+      if (ed.isFocused) {
+        ed.view.dom.scrollIntoView({ block: "end", inline: "nearest" });
+      }
+    }, 280);
+  };
+
   const editor = useEditor({
     immediatelyRender: false,
     editable: !disabled,
@@ -145,12 +176,17 @@ export const RichMessageEditor = forwardRef<
       }
       onUpdate(plaintext.trim().length > 0, plaintext);
     },
+    onFocus: ({ editor: focusedEditor }) => {
+      onFocusRequest?.();
+      revealAboveKeyboard(focusedEditor);
+    },
   });
 
   useImperativeHandle(
     ref,
     () => ({
       editor,
+      isFocused: () => Boolean(editor?.isFocused),
       serialize: () => (editor ? jsonToMessage(editor.getJSON()) : EMPTY),
       clear: () => editor?.commands.clearContent(true),
       focus: () => editor?.commands.focus("end"),
@@ -165,17 +201,50 @@ export const RichMessageEditor = forwardRef<
             },
           ],
         }),
+      setSerialized: (message: SerializedMessage) => {
+        if (!editor) return;
+        const richText = message.richText ?? { v: 1 as const, marks: [], blocks: [] };
+        editor.commands.setContent(messageToJson(message.plaintext, message.mentions, richText));
+      },
     }),
     [editor],
   );
 
   useEffect(() => {
     onEditor?.(editor);
+    return () => onEditor?.(null);
   }, [editor, onEditor]);
+
+  useEffect(() => {
+    if (!editor || initializedRef.current) return;
+    initializedRef.current = true;
+    if (initialValue) {
+      const richText = initialValue.richText ?? { v: 1 as const, marks: [], blocks: [] };
+      editor.commands.setContent(
+        messageToJson(initialValue.plaintext, initialValue.mentions, richText),
+      );
+    }
+    if (focusOnMount) editor.commands.focus("end");
+  }, [editor, focusOnMount, initialValue]);
+
+  useEffect(() => () => {
+    if (revealTimerRef.current !== null) {
+      window.clearTimeout(revealTimerRef.current);
+    }
+  }, []);
 
   return (
     <EditorContent
       editor={editor}
+      onPointerDown={() => {
+        // iOS chỉ mở bàn phím tin cậy khi focus xảy ra ngay trong touch gesture.
+        // Không preventDefault để WebKit vẫn đặt caret đúng vị trí người dùng chạm.
+        if (editor && !editor.isFocused && !disabled) editor.view.focus();
+      }}
+      onClick={() => {
+        // Fallback cho trình duyệt không phát pointer event.
+        if (editor && !editor.isFocused && !disabled) editor.view.focus();
+      }}
       className={cn(
         "flex-1 overflow-y-auto transition-[max-height] duration-200",
         expanded ? "min-h-[240px] max-h-[55vh]" : "min-h-[32px] max-h-32",

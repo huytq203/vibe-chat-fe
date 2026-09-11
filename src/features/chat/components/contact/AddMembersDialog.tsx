@@ -80,7 +80,7 @@ export function AddMembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-md overflow-hidden p-0">
         <DialogTitle className="sr-only">Thêm thành viên</DialogTitle>
 
         <div className="px-4 pb-2 pt-4">

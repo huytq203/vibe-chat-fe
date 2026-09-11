@@ -60,7 +60,7 @@ export function SettingsPage({ onBack }: Props) {
         })}
       </nav>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 max-md:pb-[calc(var(--safe-bottom)+1.25rem)]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 max-md:pb-[max(var(--safe-bottom),1.25rem)]">
         <div className="mx-auto w-full max-w-3xl">
           <ActiveTab onClose={onBack} />
         </div>

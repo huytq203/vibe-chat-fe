@@ -70,7 +70,7 @@ export function AiChatInput({
     <div
       className={cn(
         isPage
-          ? 'border-t bg-sidebar px-2.5 py-2 max-md:pb-[calc(var(--safe-bottom)+0.5rem)] md:rounded-2xl md:border md:bg-sidebar/90 md:shadow-subtle md:backdrop-blur-md'
+          ? 'border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:bg-sidebar/90 md:shadow-subtle md:backdrop-blur-md'
           : 'border-t border-border p-3',
       )}
     >

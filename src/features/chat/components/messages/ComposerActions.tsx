@@ -48,6 +48,10 @@ interface ComposerActionsProps {
   onAiClick?: () => void;
   onPollClick?: () => void;
   stickerBotConversation?: boolean;
+  mobilePickerHost?: HTMLElement | null;
+  onRequestEditorFocus?: () => void;
+  mobilePickerOpen?: boolean;
+  onMobilePickerOpenChange?: (open: boolean) => void;
 }
 export function ComposerActions({
   conversationId,
@@ -65,6 +69,10 @@ export function ComposerActions({
   onAiClick,
   onPollClick,
   stickerBotConversation,
+  mobilePickerHost,
+  onRequestEditorFocus,
+  mobilePickerOpen,
+  onMobilePickerOpenChange,
 }: ComposerActionsProps) {
   const isMobile = useIsMobile();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -86,6 +94,10 @@ export function ComposerActions({
         disabled={disabled}
         emojiOnly={isEditing}
         onEmojiSelect={onEmojiSelect}
+        mobilePanelHost={mobilePickerHost}
+        onRequestEditorFocus={onRequestEditorFocus}
+        mobileOpen={mobilePickerOpen}
+        onMobileOpenChange={onMobilePickerOpenChange}
       />
       {!isEditing && (
         <Popover open={moreOpen} onOpenChange={setMoreOpen}>

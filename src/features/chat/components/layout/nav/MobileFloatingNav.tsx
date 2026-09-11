@@ -159,7 +159,7 @@ export function MobileFloatingNav({
           <motion.button
             type="button"
             aria-label="Đóng menu khi chạm bên ngoài"
-            className="pointer-events-auto fixed inset-0 bg-background/20 backdrop-blur-[2px]"
+            className="pointer-events-auto fixed inset-0 bg-background/55"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -227,14 +227,14 @@ export function MobileFloatingNav({
                     aria-current={isActive ? 'page' : undefined}
                     onClick={() => selectSection(section)}
                     className={cn(
-                      'absolute -left-6 -top-6 flex h-12 w-12 items-center justify-center rounded-full outline-none shadow-[0_10px_28px_rgba(0,0,0,0.34)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                      'absolute -left-6 -top-6 flex h-12 w-12 items-center justify-center rounded-full outline-none shadow-[0_4px_12px_rgba(0,0,0,0.28)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                       isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'border border-sidebar-border bg-sidebar text-sidebar-foreground',
                     )}
                     variants={{
-                      closed: { x: 0, y: 0, opacity: 0, scale: 0.35, filter: 'blur(4px)' },
-                      open: { x: itemX, y: itemY, opacity: 1, scale: 1, filter: 'blur(0px)' },
+                      closed: { x: 0, y: 0, opacity: 0, scale: 0.35 },
+                      open: { x: itemX, y: itemY, opacity: 1, scale: 1 },
                     }}
                     transition={{
                       type: 'spring',
@@ -260,7 +260,7 @@ export function MobileFloatingNav({
           aria-controls="mobile-radial-navigation"
           onPointerDown={(event) => dragControls.start(event)}
           onClick={toggleMenu}
-          className="relative z-10 flex h-[58px] w-[58px] items-center justify-center rounded-full bg-primary text-primary-foreground outline-none shadow-[0_14px_36px_rgba(0,0,0,0.42)] ring-1 ring-white/15 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="relative z-10 flex h-[58px] w-[58px] items-center justify-center rounded-full bg-primary text-primary-foreground outline-none shadow-[0_4px_14px_rgba(0,0,0,0.30)] ring-1 ring-white/15 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           animate={{ rotate: isOpen ? 90 : 0, scale: isOpen ? 1.04 : 1 }}
           transition={{ type: 'spring', stiffness: 500, damping: 32 }}
           whileTap={{ scale: 0.92 }}

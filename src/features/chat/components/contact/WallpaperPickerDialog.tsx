@@ -129,7 +129,7 @@ export function WallpaperPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="max-w-[680px] gap-0 overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-[680px] gap-0 overflow-hidden p-0">
         <div className="border-b border-border px-5 py-3.5">
           <DialogTitle className="text-[15px] font-semibold">
             Xem trước và chọn chủ đề

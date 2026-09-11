@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Sticker } from '@/features/chat/types/sticker';
 import { MediaPickerTrigger } from './MediaPickerTrigger';
 
 const sendSticker = vi.fn();
 const toastError = vi.fn();
+let isMobile = false;
 
 const sticker: Sticker = {
   id: 'sticker-1',
@@ -18,7 +19,7 @@ const sticker: Sticker = {
   isAnimated: false,
 };
 
-vi.mock('@/lib/hooks/useIsMobile', () => ({ useIsMobile: () => false }));
+vi.mock('@/lib/hooks/useIsMobile', () => ({ useIsMobile: () => isMobile }));
 vi.mock('@/components/common/EmojiPicker', () => ({ prefetchEmojiPicker: vi.fn() }));
 vi.mock('@/features/chat/hooks/use-stickers', () => ({
   useSendSticker: () => ({ mutate: sendSticker }),
@@ -61,6 +62,11 @@ interface MutationCallbacks {
 }
 
 describe('MediaPickerTrigger', () => {
+  beforeEach(() => {
+    isMobile = false;
+    vi.clearAllMocks();
+  });
+
   it('cho phép chọn liên tiếp nhiều emoji', async () => {
     const user = userEvent.setup();
     const onEmojiSelect = vi.fn();
@@ -102,5 +108,34 @@ describe('MediaPickerTrigger', () => {
 
     expect(toastError).toHaveBeenCalledWith('Gửi sticker thất bại. Bạn thử lại nhé.');
     expect(button).toBeEnabled();
+  });
+
+  it('mobile: mở panel nội tuyến ngay lần chạm đầu và không dùng modal', async () => {
+    isMobile = true;
+    const user = userEvent.setup();
+    const onRequestEditorFocus = vi.fn();
+    const host = document.createElement('div');
+    document.body.append(host);
+
+    render(
+      <MediaPickerTrigger
+        conversationId="conv-1"
+        onEmojiSelect={vi.fn()}
+        mobilePanelHost={host}
+        onRequestEditorFocus={onRequestEditorFocus}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Emoji, GIF và sticker' });
+    await user.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(host.querySelector('[data-mobile-media-picker]')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(trigger);
+    expect(host.querySelector('[data-mobile-media-picker]')).not.toBeInTheDocument();
+    expect(onRequestEditorFocus).toHaveBeenCalledOnce();
+    host.remove();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, MessageSquare, Users } from 'lucide-react';
+import { Toolbar } from '@/components/pwa/framework7';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { chatApi } from '@/services/chat.api';
@@ -96,62 +97,68 @@ export function ConversationDock({ variant = 'embedded' }: ConversationDockProps
     setActiveTab('chat');
   }
 
+  const navigation = (
+    <nav
+      aria-label="Điều hướng trò chuyện"
+      className={cn(
+        'flex items-center justify-center py-1 pl-[max(var(--safe-left),0.25rem)] pr-[max(var(--safe-right),0.25rem)]',
+        variant === 'card' && 'rounded-xl',
+      )}
+    >
+      <TabButton
+        icon={<MessageSquare className="h-5 w-5" />}
+        label="Chat"
+        active={
+          activeTab === 'chat' && (mobilePanel === 'list' || mobilePanel === 'chat')
+        }
+        onClick={() => {
+          setActiveTab('chat');
+          // Bấm tab Chat khi đang ở chat → về list; nếu đã ở list thì giữ.
+          if (mobilePanel === 'contact') setMobilePanel('chat');
+        }}
+      />
+      <TabButton
+        icon={<Users className="h-5 w-5" />}
+        label="Bạn bè"
+        active={activeTab === 'friends'}
+        badge={incomingCount}
+        onClick={() => {
+          setActiveTab('friends');
+          setFriendsOpen(true);
+        }}
+      />
+      <TabButton
+        icon={<Bell className="h-5 w-5" />}
+        label="Thông báo"
+        active={activeTab === 'notifications'}
+        badge={unreadNotiCount}
+        onClick={() => {
+          setActiveTab('notifications');
+          setNotiOpen(true);
+        }}
+      />
+      <div className="min-w-0 flex-1">
+        <UserMenu variant="dock" />
+      </div>
+    </nav>
+  );
+
   return (
     <>
-      <div
-        className={cn(
-          'shrink-0',
-          variant === 'card'
-            ? 'rounded-2xl border bg-sidebar/75 p-2 shadow-subtle backdrop-blur-md'
-            : 'mobile-conversation-dock px-2 pt-2',
-        )}
-      >
-        <nav
-          aria-label="Điều hướng trò chuyện"
-          className={cn(
-            'flex items-center justify-center p-1',
-            variant === 'card'
-              ? 'rounded-xl'
-              : 'rounded-2xl bg-sidebar/95 shadow-[0_-8px_24px_rgba(15,23,42,0.10)]',
-          )}
+      {variant === 'card' ? (
+        <div className="shrink-0 rounded-2xl border bg-sidebar/75 p-2 shadow-subtle backdrop-blur-md">
+          {navigation}
+        </div>
+      ) : (
+        <Toolbar
+          bottom
+          inner={false}
+          outline={false}
+          className="halo-conversation-toolbar shrink-0"
         >
-          <TabButton
-            icon={<MessageSquare className="h-5 w-5" />}
-            label="Chat"
-            active={
-              activeTab === 'chat' && (mobilePanel === 'list' || mobilePanel === 'chat')
-            }
-            onClick={() => {
-              setActiveTab('chat');
-              // Bấm tab Chat khi đang ở chat → về list; nếu đã ở list thì giữ.
-              if (mobilePanel === 'contact') setMobilePanel('chat');
-            }}
-          />
-          <TabButton
-            icon={<Users className="h-5 w-5" />}
-            label="Bạn bè"
-            active={activeTab === 'friends'}
-            badge={incomingCount}
-            onClick={() => {
-              setActiveTab('friends');
-              setFriendsOpen(true);
-            }}
-          />
-          <TabButton
-            icon={<Bell className="h-5 w-5" />}
-            label="Thông báo"
-            active={activeTab === 'notifications'}
-            badge={unreadNotiCount}
-            onClick={() => {
-              setActiveTab('notifications');
-              setNotiOpen(true);
-            }}
-          />
-          <div className="min-w-0 flex-1">
-            <UserMenu variant="dock" />
-          </div>
-        </nav>
-      </div>
+          {navigation}
+        </Toolbar>
+      )}
 
       <FindFriendsPanel
         open={friendsOpen}

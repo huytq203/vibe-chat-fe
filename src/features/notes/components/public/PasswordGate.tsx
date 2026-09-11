@@ -38,7 +38,7 @@ export function PasswordGate({ token }: PasswordGateProps) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-5 py-12 text-foreground">
       <Card className="w-full max-w-[400px]" padding="none">
         <CardHeader className="items-center text-center">
           <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">

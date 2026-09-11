@@ -29,7 +29,7 @@ export function MediaPickerPanel({
 
   if (emojiOnly) {
     return (
-      <div className="h-[70dvh] w-full overflow-hidden md:h-[440px] md:w-[352px]">
+      <div className="h-full w-full overflow-hidden md:h-[440px] md:w-[352px]">
         <EmojiPicker onSelect={onEmojiSelect} width="100%" height="100%" />
       </div>
     );
@@ -40,7 +40,7 @@ export function MediaPickerPanel({
   }
 
   return (
-    <Tabs value={tab} onValueChange={handleTabChange} className="h-[70dvh] w-full md:h-[440px] md:w-[352px]">
+    <Tabs value={tab} onValueChange={handleTabChange} className="h-full w-full md:h-[440px] md:w-[352px]">
       <TabsList className="m-2 w-[calc(100%-1rem)] shrink-0 justify-around">
         <TabsTrigger value="emoji" className="flex-1">Emoji</TabsTrigger>
         <TabsTrigger value="gif" className="flex-1">GIF</TabsTrigger>

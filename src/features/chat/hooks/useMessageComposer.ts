@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { apiAuth } from '@/lib/api/client';
 import { emitEvent, getSocket } from '@/lib/ws/socket';
-import { messageToJson } from '@/lib/editor/serializer';
 import { useEditMessage, useSendMessage } from './use-mutations';
 import { useMessageEditStore } from '@/features/chat/stores/message-edit.store';
 import { useMessageReplyStore } from '@/features/chat/stores/message-reply.store';
@@ -92,10 +91,11 @@ export function useMessageComposer(
     if (isEditing && editing) {
       if (prefilledIdRef.current === editing.messageId) return;
       prefilledIdRef.current = editing.messageId;
-      const rt = editing.richText ?? { v: 1 as const, marks: [], blocks: [] };
-      editorRef.current?.editor?.commands.setContent(
-        messageToJson(editing.text, editing.mentions ?? [], rt),
-      );
+      editorRef.current?.setSerialized({
+        plaintext: editing.text,
+        mentions: editing.mentions ?? [],
+        richText: editing.richText ?? null,
+      });
       editorRef.current?.focus();
       setHasContent(editing.text.trim().length > 0);
     } else if (!isEditing && prefilledIdRef.current) {

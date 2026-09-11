@@ -229,7 +229,7 @@ function ActiveNotesFrame({ workspaceId, pageId, workspaceSwitcher,
         </section>
       </div>
 
-      <footer className="shrink-0 border-t border-border px-2 pb-[calc(var(--safe-bottom)+0.5rem)] pt-2 md:pb-2">
+      <footer className="shrink-0 border-t border-border px-2 pb-[max(var(--safe-bottom),0.5rem)] pt-2 md:pb-2">
         <TrashLink />
       </footer>
     </div>

@@ -55,7 +55,7 @@ export function ReactionViewerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-sm overflow-hidden p-0">
         <DialogTitle className="px-5 pb-2 pt-4 text-sm font-bold">Cảm xúc</DialogTitle>
 
         <div className="px-3">

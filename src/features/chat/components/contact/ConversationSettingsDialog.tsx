@@ -44,7 +44,7 @@ export function ConversationSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-sm p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-sm p-0">
         <div className="p-4">
           <div className="mb-4 flex items-center gap-2">
             {view !== 'menu' && (

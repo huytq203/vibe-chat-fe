@@ -23,7 +23,7 @@ export function SettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[760px] overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="w-full max-w-[760px] overflow-hidden p-0">
         <DialogTitle className="sr-only">Cài đặt</DialogTitle>
         <div className="flex h-[520px] max-h-[85vh]">
           <nav className="flex w-[56px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border bg-sidebar p-2 sm:w-[210px]">

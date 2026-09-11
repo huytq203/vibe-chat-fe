@@ -20,7 +20,7 @@ export function PollVotersDialog({ open, onOpenChange, poll, members }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm gap-0 p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-sm gap-0 p-0">
         {/* Header */}
         <div className="flex items-start gap-2.5 border-b border-border px-4 py-3.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15">

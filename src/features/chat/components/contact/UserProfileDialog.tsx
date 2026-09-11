@@ -78,7 +78,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-sm overflow-hidden p-0">
+        <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-sm overflow-hidden p-0">
           <DialogTitle className="sr-only">Thông tin người dùng</DialogTitle>
 
           {isError ? (

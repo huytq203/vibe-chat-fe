@@ -22,13 +22,13 @@ export function LoginPageShell({ children }: LoginPageShellProps) {
             đầu nên vết cắt bị panel (nền đục) che, các mép còn lại tràn ra ngoài
             viewport. Root đã `overflow-hidden` nên không sinh thêm vùng cuộn. */}
         <BrandWatermark className="right-0 lg:right-[42%]" />
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -left-24 -top-24 hidden h-96 w-96 rounded-full bg-primary/5 blur-3xl lg:block" />
+        <div className="absolute -bottom-24 -right-24 hidden h-96 w-96 rounded-full bg-primary/5 blur-3xl lg:block" />
       </div>
 
       {/* Cột form là vùng cuộn duy nhất. `my-auto` căn giữa khi còn dư chiều cao,
           tự về 0 khi nội dung cao hơn viewport để không mất phần đầu form. */}
-      <div className="relative z-10 flex min-w-0 flex-1 justify-center overflow-y-auto overflow-x-hidden px-5 pt-[calc(var(--safe-top)+2rem)] pb-[calc(var(--safe-bottom)+2rem)] sm:px-6 md:p-8 lg:px-12 lg:py-8">
+      <div className="relative z-10 flex min-w-0 flex-1 justify-center overflow-y-auto overflow-x-hidden px-5 pb-[max(var(--safe-bottom),1rem)] pt-[calc(var(--safe-top)+1rem)] sm:px-6 sm:pb-[max(var(--safe-bottom),1.5rem)] sm:pt-[calc(var(--safe-top)+1.5rem)] md:p-8 lg:px-12 lg:py-8">
         <div className="my-auto w-full max-w-md">{children}</div>
       </div>
 

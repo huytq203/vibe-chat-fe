@@ -79,7 +79,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         {/* max-h + cuộn dọc: khi zoom to / màn thấp, nội dung không bị cắt mất.
             overflow-x-hidden vẫn clip panel trượt ngang. */}
-        <DialogContent className="max-w-sm max-h-[85vh] overflow-x-hidden overflow-y-auto p-0 transition-[height] duration-300">
+        <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-sm max-h-[85vh] overflow-x-hidden overflow-y-auto p-0 transition-[height] duration-300">
           <DialogTitle className="sr-only">
             {view === 'info' ? 'Thông tin tài khoản' : 'Cập nhật thông tin cá nhân'}
           </DialogTitle>

@@ -118,7 +118,7 @@ export function CreateGroupDialog({ open, onOpenChange, preselected }: CreateGro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="max-w-2xl overflow-hidden p-0">
         <DialogTitle className="sr-only">Tạo nhóm</DialogTitle>
 
         <div className="px-4 pb-2 pt-4">

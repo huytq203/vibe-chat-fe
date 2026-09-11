@@ -19,7 +19,7 @@ import { CallMiniPill } from './CallMiniPill';
 const SIZE_CLASS: Record<WindowMode, string> = {
   mini: 'h-[112px] w-[230px]',
   normal: 'h-[520px] w-[360px]',
-  fullscreen: 'inset-0 h-screen w-screen rounded-none',
+  fullscreen: 'inset-0 w-screen rounded-none',
 };
 
 export function CallWindow(props: CallWindowProps) {

@@ -18,6 +18,7 @@ import { VoiceRecorderBar } from "./VoiceRecorderBar";
 import { MentionSuggestPopup } from "./MentionSuggestPopup";
 import { InlineModePopup } from "./InlineModePopup";
 import { RichMessageEditor } from "./RichMessageEditor";
+import { PlainMessageEditor } from "./PlainMessageEditor";
 import { MessageToolbar } from "./MessageToolbar";
 import { ComposerActions } from "./ComposerActions";
 import { ScheduleMessageDialog } from "./ScheduleMessageDialog";
@@ -36,6 +37,7 @@ import { CreatePollDialog } from "@/features/chat/components/polls/CreatePollDia
 import { useAiWindowStore } from "@/features/chat/stores/ai-window.store";
 import { useMessageDraftCommandStore } from "@/features/chat/stores/message-draft-command.store";
 import { cn } from "@/lib/utils/cn";
+import type { SerializedMessage } from "@/lib/editor/serializer";
 
 type MessageInputProps = {
   conversationId: string;
@@ -94,7 +96,10 @@ export function MessageInput({
   const [checklistOpen, setChecklistOpen] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
+  const [mobilePickerHost, setMobilePickerHost] = useState<HTMLDivElement | null>(null);
+  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
   const [plaintext, setPlaintext] = useState("");
+  const [switchValue, setSwitchValue] = useState<SerializedMessage | null>(null);
   const [commandItems, setCommandItems] = useState<BotFatherCommand[]>([]);
   const [commandActiveIndex, setCommandActiveIndex] = useState(0);
   const draftCommand = useMessageDraftCommandStore((s) => s.byConv[conversationId]);
@@ -199,6 +204,21 @@ export function MessageInput({
     sendInlineResult(selection);
   }
 
+  function toggleExpandedEditor() {
+    setSwitchValue(editorRef.current?.serialize() ?? {
+      plaintext,
+      mentions: [],
+      richText: null,
+    });
+    setExpanded((value) => !value);
+  }
+
+  useEffect(() => {
+    if (switchValue === null) return;
+    editorRef.current?.setSerialized(switchValue);
+    editorRef.current?.focus();
+  }, [expanded, editorRef, switchValue]);
+
   const actions = (
     <ComposerActions
       conversationId={conversationId}
@@ -211,24 +231,33 @@ export function MessageInput({
       onScheduleClick={() => setScheduleOpen(true)}
       onContactClick={() => setContactOpen(true)}
       onEmojiSelect={handleEmojiSelect}
-      onToggleExpanded={() => setExpanded((v) => !v)}
+      onToggleExpanded={toggleExpandedEditor}
       onWebappClick={onWebappMenuClick}
       onAiClick={() => useAiWindowStore.getState().open()}
       onPollClick={isGroup ? () => setPollOpen(true) : undefined}
       stickerBotConversation={stickerBotConversation}
+      mobilePickerHost={mobilePickerHost}
+      onRequestEditorFocus={() => editorRef.current?.focus()}
+      mobilePickerOpen={mobilePickerOpen}
+      onMobilePickerOpenChange={setMobilePickerOpen}
     />
   );
 
-  const editorEl = (
+  const editorPlaceholder = isEditing
+    ? "Chỉnh sửa tin nhắn (Enter để lưu, Esc để huỷ)..."
+    : "Nhập tin nhắn...";
+  const editorEl = expanded ? (
     <RichMessageEditor
       ref={editorRef}
-      placeholder={
-        isEditing
-          ? "Chỉnh sửa tin nhắn (Enter để lưu, Esc để huỷ)..."
-          : "Nhập tin nhắn..."
-      }
+      placeholder={editorPlaceholder}
+      initialValue={switchValue ?? {
+        plaintext,
+        mentions: [],
+        richText: null,
+      }}
+      focusOnMount
       disabled={disabled}
-      expanded={expanded}
+      expanded
       mentionSuggestion={mention.suggestion}
       isMentionOpen={mention.isMentionOpen}
       onUpdate={handleEditorUpdate}
@@ -237,6 +266,20 @@ export function MessageInput({
       onCommandKeyDown={handleCommandKeyDown}
       onPasteFiles={handlePasteFiles}
       onEditor={setEditor}
+      onFocusRequest={() => setMobilePickerOpen(false)}
+    />
+  ) : (
+    <PlainMessageEditor
+      ref={editorRef}
+      value={plaintext}
+      placeholder={editorPlaceholder}
+      disabled={disabled}
+      onUpdate={handleEditorUpdate}
+      onEnter={() => void submit()}
+      onEscape={isEditing ? exitEdit : undefined}
+      onCommandKeyDown={handleCommandKeyDown}
+      onPasteFiles={handlePasteFiles}
+      onFocusRequest={() => setMobilePickerOpen(false)}
     />
   );
 
@@ -245,7 +288,16 @@ export function MessageInput({
       <Button
         variant="outline"
         size="icon-sm"
-        onClick={() => void submit()}
+        onPointerDown={(event) => {
+          // Chỉ chặn button lấy focus khi người dùng đang gõ. Nếu keyboard đang
+          // đóng (ví dụ gửi attachment), button hoạt động mà không tự mở keyboard.
+          if (editorRef.current?.isFocused()) event.preventDefault();
+        }}
+        onClick={() => {
+          const shouldKeepKeyboard = Boolean(editorRef.current?.isFocused());
+          void submit();
+          if (shouldKeepKeyboard) editorRef.current?.focus();
+        }}
         isLoading={isEditing ? isSavingEdit : isUploading}
         disabled={disabled}
         aria-label={isEditing ? "Lưu chỉnh sửa" : "Gửi"}
@@ -273,9 +325,10 @@ export function MessageInput({
   return (
     <div
       className={cn(
-        "shrink-0 border-t px-4 py-2 max-md:pb-[calc(var(--safe-bottom)+0.5rem)] md:rounded-2xl md:border md:shadow-subtle",
+        "shrink-0 border-t py-2 pl-[max(var(--safe-left),0.75rem)] pr-[max(var(--safe-right),0.75rem)] max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:px-4 md:shadow-subtle",
         wallpaperActive ? "bg-sidebar" : "bg-sidebar",
       )}
+      data-message-composer
     >
       {isEditing && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
@@ -370,6 +423,7 @@ export function MessageInput({
           </>
         )}
       </div>
+      <div ref={setMobilePickerHost} className="empty:hidden md:hidden" />
       <ScheduleMessageDialog
         conversationId={conversationId}
         open={scheduleOpen}
@@ -390,7 +444,7 @@ export function MessageInput({
       {selfConv && (
         <>
           <div className="mt-2 flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground mr-1">Tạo:</span>
+            <span className="mr-1 text-xs text-muted-foreground">Tạo:</span>
             <button
               type="button"
               onClick={() => setReminderOpen(true)}

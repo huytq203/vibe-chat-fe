@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils/cn';
 
 const toggleVariants = tv({
   base: [
-    'inline-flex items-center justify-center gap-1.5 rounded-md font-medium text-sm',
+    'inline-flex items-center justify-center gap-1.5 rounded-md font-medium text-sm max-md:min-h-11',
     'transition-all duration-150 cursor-pointer select-none',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
@@ -38,7 +38,7 @@ const toggleVariants = tv({
       sm: 'h-7 px-2 text-xs',
       md: 'h-9 px-3 text-sm',
       lg: 'h-11 px-4 text-base',
-      icon: 'h-9 w-9',
+      icon: 'h-9 w-9 max-md:min-w-11',
     },
   },
   defaultVariants: {

@@ -7,7 +7,7 @@ import { Toggle } from '@/components/ui/toggle/Toggle';
 import { Eye, EyeOff } from 'lucide-react';
 
 const inputVariants = tv({
-  base: 'flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-shadow',
+  base: 'flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-shadow max-md:min-h-11',
   variants: {
     variant: {
       default: '',
@@ -93,12 +93,12 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
           ) : null}
         </div>
         {description && !error && (
-          <BaseField.Description className="text-[0.8rem] text-muted-foreground">
+          <BaseField.Description className="text-[13px] text-muted-foreground">
             {description}
           </BaseField.Description>
         )}
         {error && (
-          <p className="text-[0.8rem] font-medium text-danger">
+          <p className="text-[13px] font-medium text-danger">
             {error}
           </p>
         )}

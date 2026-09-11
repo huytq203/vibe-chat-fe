@@ -100,7 +100,7 @@ export function CallMobileFullscreen(props: CallWindowProps) {
         onToggleCam={props.onToggleCam}
         onHangup={props.onHangup}
         onRequestUpgrade={props.onRequestUpgrade}
-        className="gap-2.5 px-3 pb-[calc(var(--safe-bottom)+0.875rem)] pt-3.5"
+        className="gap-2.5 px-3 pb-[max(var(--safe-bottom),0.875rem)] pt-3.5"
       />
     </div>
   );

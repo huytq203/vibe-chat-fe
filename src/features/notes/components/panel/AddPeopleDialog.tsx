@@ -49,7 +49,7 @@ export function AddPeopleDialog({ grantedIds, onOpenChange, open, pageId }: AddP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] w-[calc(100%-2rem)] max-w-md flex-col gap-0 p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="flex max-h-[85vh] w-[calc(100%-2rem)] max-w-md flex-col gap-0 p-0">
         <DialogHeader className="px-5 pb-3 pe-12 pt-5 text-start">
           <DialogTitle className="text-base">Thêm người vào trang</DialogTitle>
           <DialogDescription className="text-xs">

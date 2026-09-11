@@ -179,7 +179,7 @@ export function QuickSearchDialog({ workspaceId, open, onOpenChange, onSelectPag
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[15vh] max-w-[640px] translate-y-0 gap-0 overflow-hidden p-0">
+      <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="top-[15vh] max-w-[640px] translate-y-0 gap-0 overflow-hidden p-0">
         <DialogTitle className="sr-only">Tìm nhanh</DialogTitle>
         <div className="flex items-center gap-3 border-b border-border px-4">
           <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />

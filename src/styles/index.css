@@ -1,3 +1,8 @@
+/* Framework7 ships broad element resets (`button`, `input`, `p`, ...). Keep the
+   library in its own low-priority cascade layer so Halo's Tailwind utilities and
+   component contracts remain authoritative. An unlayered import makes every
+   button 100% wide and visibly breaks auth, editor and toolbar screens. */
+@import "framework7/css" layer(framework7);
 @import "tailwindcss";
 @import "highlight.js/styles/atom-one-dark.css";
 @plugin "tailwindcss-animate";
@@ -310,21 +315,38 @@
         border-color: var(--border);
     }
 
+    /* Framework7's element reset makes every native button full width. Halo's
+       buttons are content-sized by default; explicit `w-full` remains available
+       for primary form actions. */
+    button {
+        width: auto;
+    }
+
     :root {
-        /* Safe-area iOS thành token: bar tự hấp thụ inset thay vì chừa lề quanh app.
-           Bàn phím mở → home indicator bị che, không cần chừa chỗ nữa. */
-        --safe-top: env(safe-area-inset-top, 0px);
-        --safe-right: env(safe-area-inset-right, 0px);
-        --safe-left: env(safe-area-inset-left, 0px);
-        /* Giá trị gốc của hệ điều hành, không bao giờ bị ghi đè — ViewportSync đo nó
-           để biết máy có thật sự cần chừa chỗ hay không. */
-        --safe-bottom-raw: env(safe-area-inset-bottom, 0px);
+        /* Framework7 là nguồn safe-area duy nhất; alias cũ giữ feature hiện tại hoạt
+           động trong lúc chuyển đổi tăng dần sang Page/Navbar/Toolbar. */
+        --f7-safe-area-top: env(safe-area-inset-top, 0px);
+        --f7-safe-area-right: env(safe-area-inset-right, 0px);
+        --f7-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+        --f7-safe-area-left: env(safe-area-inset-left, 0px);
+        --safe-top: var(--f7-safe-area-top);
+        --safe-right: var(--f7-safe-area-right);
+        --safe-left: var(--f7-safe-area-left);
+        /* Giữ giá trị gốc của hệ điều hành làm alias cho các control cần inset. */
+        --safe-bottom-raw: var(--f7-safe-area-bottom);
         --safe-bottom: var(--safe-bottom-raw);
     }
 
     /* Bàn phím ảo che home indicator nên không cần giữ safe-area đáy. */
     html[data-keyboard='open'] {
+        --f7-safe-area-bottom: 0px;
         --safe-bottom: 0px;
+    }
+
+    @media (max-width: 767px) {
+        html[data-keyboard='open'] [data-message-composer] {
+            padding-bottom: 0.25rem;
+        }
     }
 
     html, body {
@@ -351,34 +373,55 @@
         background-color: var(--sidebar);
     }
 
-    /* Standalone iOS có thể cho fixed containing block thấp hơn màn hình đúng vùng
-       home-indicator. 100lvh phủ tới mép vật lý; --app-height chỉ được ViewportSync
-       đặt khi chạy trong browser hoặc khi bàn phím mở. */
-    body {
-        position: fixed;
-        inset: 0;
-        box-sizing: border-box;
+    /* Không đặt position/height custom lên body. Framework7 giữ html, body và
+       .framework7-root ở 100%; đây là geometry đã hoạt động đúng trên iOS thật.
+       Khóa body bằng fixed/dvh/lvh sẽ cắt root ngay trước home indicator. */
+    .halo-framework7-shell {
         width: 100%;
-        height: var(--app-height, 100lvh);
-        min-height: var(--app-height, 100lvh);
+        height: 100%;
+        min-height: 0;
+        background: var(--background);
+        color: var(--foreground);
+        --f7-theme-color: var(--primary);
+        --f7-page-bg-color: var(--background);
+        --f7-bars-bg-color: var(--sidebar);
+        --f7-bars-text-color: var(--foreground);
     }
 
-    @supports not (height: 100lvh) {
-        body {
-            height: var(--app-height, 100%);
-            min-height: var(--app-height, 100%);
-        }
-    }
-
-    /* App tràn viền màn hình: chỉ lùi theo notch ngang (landscape). Inset trên/dưới
-       do chính header và ô nhập hấp thụ → nền bar liền mạch tới mép thiết bị. */
+    /* Shell và bar được tô edge-to-edge. Chỉ control cụ thể mới dùng safe-area,
+       vì padding cả shell tạo đúng dải màu thừa mà PWA trước đây gặp phải. */
     .mobile-app-shell {
-        padding-right: var(--safe-right);
-        padding-left: var(--safe-left);
+        width: 100%;
+        min-width: 0;
     }
 
-    .mobile-conversation-dock {
-        padding-bottom: calc(var(--safe-bottom) + 0.5rem);
+    .safe-area-controls {
+        padding-right: var(--f7-safe-area-right);
+        padding-left: var(--f7-safe-area-left);
+    }
+
+    .halo-conversation-toolbar {
+        /* Framework7 tính tổng toolbar + safe-area và giữ control ở ngoài vùng
+           home indicator. Surface liền mép nên không còn khoảng đáy "chết". */
+        --f7-toolbar-height: 4rem;
+        --f7-toolbar-bg-color: var(--sidebar);
+        --f7-toolbar-text-color: var(--sidebar-foreground);
+        border-top: 1px solid var(--border);
+        background: var(--sidebar);
+        z-index: 20;
+    }
+
+    .halo-conversation-toolbar > nav {
+        height: var(--f7-toolbar-height);
+    }
+
+    /* Framework7 iOS mặc định phủ glass blur/gradient lên toolbar. Halo dùng
+       surface đặc để icon và chữ giữ nét trên nền tối. */
+    .ios .halo-conversation-toolbar::before,
+    .ios .halo-conversation-toolbar::after {
+        content: none;
+        backdrop-filter: none;
+        background: none;
     }
 
     /* App-like touch: vẫn cho phép cuộn theo hai trục nhưng loại pinch/double-tap zoom. */
@@ -415,7 +458,6 @@
     .base-ui-backdrop,
     [role="presentation"] > div[style*="fixed"] {
         width: 100vw !important;
-        height: 100vh !important;
         left: 0 !important;
         top: 0 !important;
         right: 0 !important;

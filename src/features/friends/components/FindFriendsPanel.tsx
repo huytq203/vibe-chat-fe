@@ -40,7 +40,7 @@ export function FindFriendsPanel({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex h-[88vh] max-h-[720px] max-w-2xl flex-col overflow-hidden p-0">
+        <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="flex h-[88vh] max-h-[720px] max-w-2xl flex-col overflow-hidden p-0">
           <DialogHeader className="flex shrink-0 flex-row items-center gap-3 border-b border-border px-5 py-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/15">
               <UserPlus className="h-5 w-5 text-primary" />

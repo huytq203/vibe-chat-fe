@@ -31,12 +31,16 @@ function Wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('ConversationDock', () => {
-  it('render dock nổi với active state rõ và trigger tài khoản đồng bộ', () => {
+  it('render Framework7 bottom toolbar với active state rõ và trigger tài khoản đồng bộ', () => {
     render(<ConversationDock />, { wrapper: Wrapper });
 
     const nav = screen.getByRole('navigation', { name: 'Điều hướng trò chuyện' });
-    expect(nav).toHaveClass('rounded-2xl', 'shadow-[0_-8px_24px_rgba(15,23,42,0.10)]');
-    expect(nav).not.toHaveClass('border-t');
+    expect(nav.parentElement).toHaveClass(
+      'toolbar',
+      'toolbar-bottom',
+      'halo-conversation-toolbar',
+    );
+    expect(nav).not.toHaveClass('rounded-2xl');
     expect(screen.getByRole('button', { name: 'Chat' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -57,9 +61,8 @@ describe('ConversationDock', () => {
       'bg-sidebar/75',
       'shadow-subtle',
     );
-    expect(nav.parentElement).not.toHaveClass('mobile-conversation-dock');
+    expect(nav.parentElement).not.toHaveClass('toolbar', 'toolbar-bottom');
     expect(nav).toHaveClass('rounded-xl');
-    expect(nav).not.toHaveClass('shadow-[0_-8px_24px_rgba(15,23,42,0.10)]');
   });
 
   it('chỉ giữ các tab hội thoại, không lặp lại menu khu vực của radial hub', () => {

@@ -62,7 +62,7 @@ export function PublicPageView({ page, token }: PublicPageViewProps) {
   const title = page.title || 'Trang không có tiêu đề';
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-dvh bg-background text-foreground">
       <article className="mx-auto w-full max-w-[720px] px-5 pb-10 pt-14 md:px-6 md:pt-20">
         {/* Icon đặt trên tiêu đề (không đứng cạnh) để mép trái của tiêu đề trùng
             mép trái nội dung trong iframe — nội dung bắt đầu ở x=0. */}
@@ -94,7 +94,7 @@ export function PublicPageView({ page, token }: PublicPageViewProps) {
 
 export function PublicPageUnavailable() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-5 text-foreground">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-5 text-foreground">
       {/* Không phân biệt link sai, hết hạn, bị thu hồi hay không tồn tại: khác biệt đó
           sẽ tiết lộ một token từng tồn tại. */}
       <p role="alert" className="max-w-md text-center text-sm text-muted-foreground">

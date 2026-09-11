@@ -6,7 +6,7 @@ import { Spinner } from '@/components/ui/spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 
 const buttonVariants = tv({
-  base: 'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-30 data-open:bg-muted cursor-pointer disabled:cursor-not-allowed data-loading:opacity-50 data-loading:cursor-not-allowed data-loading:pointer-events-none',
+  base: 'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-30 data-open:bg-muted cursor-pointer disabled:cursor-not-allowed data-loading:opacity-50 data-loading:cursor-not-allowed data-loading:pointer-events-none max-md:min-h-11',
   variants: {
     variant: {
       // Kraken Primary Purple
@@ -53,8 +53,8 @@ const buttonVariants = tv({
       sm: "h-8 px-3 text-sm",
       md: "h-10 px-4 py-2",
       lg: "h-11 px-8",
-      icon: "h-10 w-10",
-      "icon-sm": "h-8 w-8",
+      icon: "h-10 w-10 max-md:min-w-11",
+      "icon-sm": "h-8 w-8 max-md:min-w-11",
     },
   },
   defaultVariants: {

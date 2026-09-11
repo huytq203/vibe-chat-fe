@@ -29,7 +29,7 @@ export function InviteProfileModal() {
     <BaseDialog.Root open onOpenChange={(open) => { if (!open) handleClose(); }}>
       <BaseDialog.Portal>
         <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-        <BaseDialog.Popup className="fixed left-1/2 top-1/2 z-50 flex h-[calc(100vh-32px)] max-h-[820px] w-[calc(100%-32px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border bg-muted shadow-[0_32px_80px_rgba(0,0,0,0.7)] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+        <BaseDialog.Popup className="fixed inset-0 z-50 flex w-full flex-col overflow-hidden bg-muted data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-right-4 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-right-4 md:left-1/2 md:top-1/2 md:h-[calc(100dvh-32px)] md:max-h-[820px] md:w-[calc(100%-32px)] md:max-w-[420px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:border-border md:shadow-[0_32px_80px_rgba(0,0,0,0.7)] md:data-open:zoom-in-95 md:data-closed:zoom-out-95">
           <InviteCard code={code} modal onClose={handleClose} />
         </BaseDialog.Popup>
       </BaseDialog.Portal>

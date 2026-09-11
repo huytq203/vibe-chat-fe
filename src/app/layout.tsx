@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "@/styles/index.css";
+import { Framework7Shell } from '@/components/pwa/Framework7Shell';
 import { ThemeProvider } from '@/lib/theme/ThemeProvider';
 import { Toaster } from '@/components/ui/toast/Toaster';
 import { Providers } from './providers';
@@ -53,12 +54,13 @@ export default function RootLayout({
       lang="vi"
       className={`${beVietnamPro.variable} antialiased`}
     >
-      {/* Chiều cao html/body do globals.css đặt theo --app-height (visualViewport):
-          h-full/min-h-full ở đây sẽ đo theo large viewport của iOS và thừa ra một
-          dải nền dưới đáy app. */}
+      {/* Framework7 sở hữu geometry của html/body/root. Không đặt chiều cao
+          viewport custom ở đây vì iOS có thể cắt mất vùng home indicator. */}
       <body className="flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
-          <Providers>{children}</Providers>
+          <Framework7Shell>
+            <Providers>{children}</Providers>
+          </Framework7Shell>
         </ThemeProvider>
         <Toaster position="top-center" expand richColors />
         <ServiceWorkerRegister />

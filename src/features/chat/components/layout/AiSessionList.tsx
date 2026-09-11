@@ -98,7 +98,7 @@ export function AiSessionList({
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 max-md:pb-[calc(var(--safe-bottom)+0.75rem)]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 max-md:pb-[max(var(--safe-bottom),0.75rem)]">
         {isEmpty && (
           <div className="flex flex-col items-center gap-3 px-4 pt-12 text-center">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
