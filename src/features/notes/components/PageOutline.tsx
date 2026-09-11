@@ -32,15 +32,9 @@ function findHeadingElement(id: string): HTMLElement | null {
   if (!editor) return null;
 
   const match = /^heading-(\d+)$/.exec(id);
-  if (match) {
-    const index = Number(match[1]);
-    const heading = editor.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6').item(index);
-    if (heading) return heading;
-  }
-
-  // Giữ đường lui cho BlockNote tới khi editor cũ được gỡ hoàn toàn.
-  return [...editor.querySelectorAll<HTMLElement>('[data-id]')]
-    .find((element) => element.dataset.id === id) ?? null;
+  if (!match) return null;
+  const index = Number(match[1]);
+  return editor.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6').item(index);
 }
 
 function navigateToHeading(id: string, headerHeight: number): void {

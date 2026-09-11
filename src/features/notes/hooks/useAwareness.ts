@@ -25,7 +25,7 @@ type AwarenessSnapshot = { owner: CollabProvider | null; entries: CollabAwarenes
  *
  * Awareness bắn 'change' cho MỌI field, kể cả `cursorMovedAt` mà chính ta ghi ở mỗi
  * `pointerup`. Nếu cứ thế `setSnapshot` object mới thì React re-render cả cây editor
- * ngay giữa `pointerup` và `mouseup`, menu nổi của BlockNote bị dựng lại, `mouseup`
+ * ngay giữa `pointerup` và `mouseup`, menu nổi của editor bị dựng lại, `mouseup`
  * rơi sang node khác nên trình duyệt KHÔNG sinh `click` — bảng màu bấm chuột không ăn
  * còn bàn phím vẫn chạy. Đã đo trên trình duyệt: mousedown vào `.mantine-Menu-itemLabel`
  * nhưng mouseup vào `.mantine-Menu-dropdown`, cách nhau 45ms và 45 mutation.

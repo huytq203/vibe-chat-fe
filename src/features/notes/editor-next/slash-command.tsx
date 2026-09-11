@@ -1,8 +1,10 @@
 "use client";
 
-import { type Editor, Extension, type Range } from "@tiptap/core";
+import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 
+import type { UploadFile } from "./attachment-upload";
+import type { SlashCommandStorage } from "./slash-command-storage";
 import { filterSlashItems } from "./slash-items";
 import { makeSuggestionRender, type SuggestionItem } from "./suggestion-popup";
 
@@ -10,23 +12,15 @@ import { makeSuggestionRender, type SuggestionItem } from "./suggestion-popup";
  * Menu lệnh `/` kiểu Notion: nhập `/` rồi nhập từ khóa để chèn một khối.
  * Mỗi mục xóa vùng `/truy-vấn` đã nhập trước rồi mới chạy thao tác chèn.
  */
-/** Khe cầu nối để editor đang chạy cho phép mục `/` kích hoạt overlay React
- *  bộ chọn kích thước bảng nằm ngoài extension. */
-export interface SlashCommandStorage {
-  openTableGrid: ((range: Range) => void) | null;
+interface SlashCommandOptions {
+  uploadFile: UploadFile | null;
 }
 
-/** Đọc storage của extension này từ editor mà không xung đột với kiểu chỉ mục
- *  `Storage` của TipTap (storage của extension không nằm trong interface toàn cục). */
-export function slashCommandStorage(editor: Editor): SlashCommandStorage | undefined {
-  return (editor.storage as unknown as Record<string, SlashCommandStorage | undefined>)
-    .slashCommand;
-}
-
-export const SlashCommand = Extension.create({
+export const SlashCommand = Extension.create<SlashCommandOptions, SlashCommandStorage>({
   name: "slashCommand",
+  addOptions: () => ({ uploadFile: null }),
   addStorage(): SlashCommandStorage {
-    return { openTableGrid: null };
+    return { openTableGrid: null, uploadFile: this.options.uploadFile };
   },
   addProseMirrorPlugins() {
     return [

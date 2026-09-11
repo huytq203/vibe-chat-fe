@@ -33,41 +33,6 @@ function extractInlineText(content: unknown): string {
     .join('');
 }
 
-export function extractHeadingOutline(blocks: readonly unknown[]): OutlineItem[] {
-  if (!Array.isArray(blocks)) return [];
-
-  const outline: OutlineItem[] = [];
-
-  function visit(items: readonly unknown[]): void {
-    for (const item of items) {
-      if (!isRecord(item)) continue;
-
-      if (item.type === 'heading' && isRecord(item.props)) {
-        const text = extractInlineText(item.content).trim();
-        const level = item.props.level;
-
-        if (
-          text
-          && typeof item.id === 'string'
-          && typeof level === 'number'
-          && Number.isInteger(level)
-          && level >= 1
-          && level <= 6
-        ) {
-          outline.push({ id: item.id, level, text });
-        }
-      }
-
-      if (Array.isArray(item.children)) {
-        visit(item.children);
-      }
-    }
-  }
-
-  visit(blocks);
-  return outline;
-}
-
 export function extractTiptapOutline(json: JSONContent): OutlineItem[] {
   const outline: OutlineItem[] = [];
   let headingIndex = 0;

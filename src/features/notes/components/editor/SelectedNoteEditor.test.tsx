@@ -1,18 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  NOTE_EDITOR_KIND,
-  SELECTED_NOTE_EDITOR,
-} from '@/features/notes/constants';
 import type { UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import type { CollabProvider, YDoc } from '@/lib/collab';
 
 import { SelectedNoteEditor } from './SelectedNoteEditor';
-
-vi.mock('./NoteEditor', () => ({
-  NoteEditor: () => <div data-testid="blocknote-editor" />,
-}));
 
 vi.mock('../../editor-next/NoteEditorNext', () => ({
   NoteEditorNext: () => <div data-testid="tiptap-editor" />,
@@ -27,11 +19,10 @@ const readyCollab: UseCollabDocResult = {
   error: null,
 };
 
-function renderEditor(editorKind: (typeof NOTE_EDITOR_KIND)[keyof typeof NOTE_EDITOR_KIND]) {
+function renderEditor(collab: UseCollabDocResult = readyCollab) {
   return render(
     <SelectedNoteEditor
-      collab={readyCollab}
-      editorKind={editorKind}
+      collab={collab}
       onOutlineChange={vi.fn()}
       page={{ id: 'page-1', workspaceId: 'workspace-1', parentId: null, myRole: 'EDIT' }}
       pageId="page-1"
@@ -40,22 +31,17 @@ function renderEditor(editorKind: (typeof NOTE_EDITOR_KIND)[keyof typeof NOTE_ED
   );
 }
 
-describe('công tắc trình soạn thảo ghi chú', () => {
-  it('nên dùng Tiptap khi công tắc để mặc định', () => {
-    expect(SELECTED_NOTE_EDITOR).toBe(NOTE_EDITOR_KIND.TIPTAP);
-  });
-
-  it('nên dựng editor Tiptap khi editorKind là tiptap', async () => {
-    renderEditor(NOTE_EDITOR_KIND.TIPTAP);
+describe('trình soạn thảo ghi chú', () => {
+  it('nên dựng editor Tiptap khi tài liệu cộng tác đã sẵn sàng', async () => {
+    renderEditor();
 
     expect(await screen.findByTestId('tiptap-editor')).toBeInTheDocument();
-    expect(screen.queryByTestId('blocknote-editor')).not.toBeInTheDocument();
   });
 
-  it('nên dựng BlockNote khi editorKind là blocknote', async () => {
-    renderEditor(NOTE_EDITOR_KIND.BLOCK_NOTE);
+  it('nên dựng skeleton khi tài liệu cộng tác chưa sẵn sàng', () => {
+    renderEditor({ ...readyCollab, isLocalReady: false });
 
-    expect(await screen.findByTestId('blocknote-editor')).toBeInTheDocument();
     expect(screen.queryByTestId('tiptap-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('note-editor-next-loading')).toBeInTheDocument();
   });
 });

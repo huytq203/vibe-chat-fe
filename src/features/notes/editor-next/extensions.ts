@@ -38,6 +38,7 @@ import { EMBED_ASPECTS, resolveEmbed, type EmbedAspect } from "@/lib/editor/embe
 import { EmbedView } from "./EmbedView";
 import { CodeBlockView } from "./CodeBlockView";
 import { CodeBlockHighlight } from "./code-block-highlight";
+import { ImageView } from "./ImageView";
 
 const DEFAULT_PLACEHOLDER = "Nhấn `/` để chèn khối";
 
@@ -55,6 +56,12 @@ const NoteCodeBlock = CodeBlock.extend({
     return ReactNodeViewRenderer(CodeBlockView);
   },
 }).configure({ defaultLanguage: "text" });
+
+const NoteImage = Image.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
+});
 
 const NamedHighlight = Highlight.extend({
   addAttributes() {
@@ -159,7 +166,7 @@ export const NOTE_EDITOR_BASE_EXTENSIONS: Extensions = [
   ListItem,
   TaskList,
   TaskItem.configure({ nested: true }),
-  Image,
+  NoteImage,
   Embed,
   TextStyle,
   Color,

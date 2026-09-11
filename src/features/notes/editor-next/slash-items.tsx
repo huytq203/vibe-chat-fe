@@ -134,7 +134,7 @@ export const SLASH_ITEMS: readonly SuggestionItem[] = [
     else e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   } },
   { id: "table-quick", title: "Bảng nhanh 3×3", subtitle: "Chèn ngay bảng 3 cột × 3 hàng", keywords: ["bang nhanh", "grid 3x3", "quick table"], group: INSERT, icon: <TableIcon />, run: (e, r) => e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  { id: "image", title: "Ảnh", subtitle: "Chèn ảnh theo URL", keywords: ["image", "img", "anh", "picture", "photo"], group: INSERT, icon: <ImageIcon />, prompt: "image", run: (e, r, url) => { if (url) e.chain().focus().deleteRange(r).setImage({ src: url }).run(); } },
+  { id: "image", title: "Ảnh", subtitle: "Tải lên từ máy hoặc chèn URL", keywords: ["image", "img", "anh", "picture", "photo"], group: INSERT, icon: <ImageIcon />, prompt: "image", run: (e, r, url) => { if (url) e.chain().focus().deleteRange(r).setImage({ src: url }).run(); } },
   { id: "link", title: "Liên kết", subtitle: "Chèn liên kết theo URL", keywords: ["link", "url", "lien ket"], group: INSERT, icon: <Link2 />, prompt: "link", run: (e, r, href) => { if (href) e.chain().focus().deleteRange(r).insertContent({ type: "text", text: href, marks: [{ type: "link", attrs: { href } }] }).run(); } },
   { id: "embed", title: "Nhúng", subtitle: "Nhúng URL từ dịch vụ hỗ trợ", keywords: ["embed", "nhung", "video", "audio", "url"], group: INSERT, icon: <PanelsTopLeft />, prompt: "embed", run: insertEmbed },
   ...EMBED_ITEM_META.map(embedItem),

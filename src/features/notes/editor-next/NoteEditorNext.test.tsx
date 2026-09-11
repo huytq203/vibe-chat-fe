@@ -35,7 +35,7 @@ vi.mock('./extensions', () => ({
   createCollaborativeNoteEditorExtensions: () => [],
 }));
 
-vi.mock('./slash-command', () => ({ SlashCommand: {} }));
+vi.mock('./slash-command', () => ({ SlashCommand: { configure: () => ({}) } }));
 vi.mock('./BubbleToolbar', () => ({ BubbleToolbar: () => null }));
 
 const props = {

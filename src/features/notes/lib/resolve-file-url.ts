@@ -13,7 +13,7 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 
 /**
- * Hook `resolveFileUrl` của BlockNote — nhận giá trị đã lưu trong block
+ * Nhận giá trị tệp đã lưu trong tài liệu
  * (`attachment://<id>`, xem D2/G1 của plan) và trả URL thật để hiển thị.
  * URL khác dạng `attachment://` (ảnh ngoài, sẵn có) trả nguyên văn.
  */

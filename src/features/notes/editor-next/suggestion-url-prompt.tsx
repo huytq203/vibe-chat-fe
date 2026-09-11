@@ -5,58 +5,12 @@ import { useState, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button/Button";
 import { Input } from "@/components/ui/input/Input";
-import { sanitizeLinkUrl } from "@/lib/editor/rich-presets";
 import { resolveEmbed } from "@/lib/editor/embed-providers";
 
+import { ImageInsertPrompt } from "./ImageInsertPrompt";
 import { LinkEditor } from "./LinkEditor";
+import { slashCommandStorage } from "./slash-command-storage";
 import type { SuggestionItem } from "./suggestion-popup";
-
-interface ImageUrlEditorProps {
-  onApply: (url: string) => void;
-  onClose: () => void;
-}
-
-function ImageUrlEditor({ onApply, onClose }: ImageUrlEditorProps) {
-  const [invalid, setInvalid] = useState(false);
-  const [url, setUrl] = useState("");
-  const apply = () => {
-    const safeUrl = sanitizeLinkUrl(url);
-    if (!safeUrl || !/^https?:/i.test(safeUrl)) {
-      setInvalid(true);
-      return;
-    }
-    onApply(safeUrl);
-  };
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      apply();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-    }
-  };
-  return (
-    <div className="flex items-center gap-1 p-1" role="group" aria-label="Chèn ảnh theo URL">
-      <Input
-        aria-invalid={invalid}
-        aria-label="URL ảnh"
-        autoFocus
-        className="h-8 w-64 rounded-md bg-background px-2"
-        placeholder="https://..."
-        value={url}
-        onChange={(event) => {
-          setInvalid(false);
-          setUrl(event.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-      />
-      <Button size="sm" variant="ghost" onClick={apply}>Chèn</Button>
-      <Button size="sm" variant="ghost" onClick={onClose}>Huỷ</Button>
-    </div>
-  );
-}
 
 interface EmbedUrlEditorProps {
   item: SuggestionItem;
@@ -147,7 +101,13 @@ export function SuggestionUrlPrompt({
         />
       ) : item.prompt === "embed" ? (
         <EmbedUrlEditor item={item} onApply={apply} onClose={onClose} />
-      ) : <ImageUrlEditor onApply={apply} onClose={onClose} />}
+      ) : (
+        <ImageInsertPrompt
+          onApply={apply}
+          onClose={onClose}
+          uploadFile={slashCommandStorage(editor)?.uploadFile ?? undefined}
+        />
+      )}
     </div>
   );
 }

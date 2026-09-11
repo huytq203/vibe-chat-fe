@@ -260,22 +260,4 @@ describe('mục lục trang', () => {
     expect(scrollTo).toHaveBeenCalledWith({ behavior: 'smooth', top: 292 });
   });
 
-  it('nên dùng data-id khi mục lục đến từ BlockNote', async () => {
-    render(
-      <main>
-        <header />
-        <div className="notes-editor"><div data-id="block-stable-id" /></div>
-        <PageOutline items={[{ id: 'block-stable-id', level: 2, text: 'Khối cũ' }]} />
-      </main>,
-    );
-    const target = document.querySelector<HTMLElement>('[data-id="block-stable-id"]');
-    const main = screen.getByRole('main');
-    const scrollTo = vi.fn();
-    main.scrollTo = scrollTo;
-    if (target) vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 300));
-
-    await userEvent.click(screen.getByRole('button', { name: 'Khối cũ' }));
-
-    expect(scrollTo).toHaveBeenCalledWith({ behavior: 'smooth', top: 292 });
-  });
 });

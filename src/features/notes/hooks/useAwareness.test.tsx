@@ -81,7 +81,7 @@ describe('awareness của trang ghi chú', () => {
 
     // `cursorMovedAt` là thứ `onPointerUp` của editor ghi vào awareness mỗi lần nhả chuột.
     // Nếu nó kéo theo re-render thì cây editor dựng lại NGAY GIỮA mousedown và mouseup,
-    // menu nổi của BlockNote đổi node nên trình duyệt không sinh `click` — bảng màu bấm
+    // Menu nổi đổi node nên trình duyệt không sinh `click` — bảng màu bấm
     // chuột không ăn còn bàn phím vẫn chạy. Đã đo thật trên trình duyệt trước khi sửa.
     act(() => mocks.listener?.([
       { ...remoteEntry, state: { ...remoteEntry.state, cursorMovedAt: Date.now() } },

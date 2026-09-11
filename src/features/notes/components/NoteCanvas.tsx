@@ -5,7 +5,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
-import { SELECTED_NOTE_EDITOR } from '@/features/notes/constants';
 import { useAwareness, type CollabPerson } from '@/features/notes/hooks/useAwareness';
 import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { usePage } from '@/features/notes/hooks/use-query';
@@ -57,7 +56,6 @@ function SelectedPage({ collab, onOutlineChange, pageId, pageQuery, people }: Se
         pageId={pageId}
         page={data}
         collab={collab}
-        editorKind={SELECTED_NOTE_EDITOR}
         onOutlineChange={onOutlineChange}
         people={people}
       />

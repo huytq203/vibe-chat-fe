@@ -64,7 +64,7 @@ describe('hạ tầng cộng tác thời gian thực', () => {
     expect(collabDocumentName('abc')).toBe('page:abc');
   });
 
-  it('giữ nguyên fragment prosemirror mà BlockNote và BE cùng đọc', () => {
+  it('giữ nguyên fragment prosemirror mà Tiptap và BE cùng đọc', () => {
     expect(COLLAB_FRAGMENT_NAME).toBe('prosemirror');
   });
 

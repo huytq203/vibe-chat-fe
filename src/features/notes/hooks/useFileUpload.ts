@@ -8,7 +8,7 @@ import { attachmentsApi } from '@/services/notion-attachments.api';
 const MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024;
 
 /**
- * Trả về hàm `uploadFile` để gắn thẳng vào `useCreateBlockNote({ uploadFile })`.
+ * Trả về hàm tải tệp dùng chung cho các node đính kèm của editor.
  * Giá trị trả về LUÔN là `attachment://<id>` — không phải URL thật — đúng dạng
  * mà BE-G-T1 (`document-content.service.ts`) giải khi dựng HTML/PDF/trang công
  * khai. Xem `resolveAttachmentFileUrl` để hiển thị URL thật lúc soạn thảo.

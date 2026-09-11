@@ -15,7 +15,10 @@ export {
   markLocalCollabCursorMoved,
   startCollabCursorLabels,
 } from './cursor-labels';
-export { collabDocumentStateVectorBytes } from './document-size';
+export {
+  collabDocumentStateVectorBytes,
+  collabDocumentUpdateBytes,
+} from './document-size';
 export { attachCollabPersistence } from './persistence';
 export type { CollabPersistence } from './persistence';
 export { createCollabProvider, destroyCollabProvider } from './provider';

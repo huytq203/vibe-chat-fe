@@ -41,6 +41,12 @@ describe('nhãn cạnh con trỏ cộng tác', () => {
     document.body.append(cursor);
     const stop = startCollabCursorLabels(provider);
 
+    expect(cursor).toHaveClass('notes-collaboration-cursor__base');
+    expect(cursor.querySelector('.notes-collaboration-cursor__caret')).toBeInTheDocument();
+    expect(cursor.querySelector('.notes-collaboration-cursor__label')).toHaveTextContent(
+      'Bạn cộng tác',
+    );
+
     states.set(2, {
       user: { id: 'user-remote', name: 'Bạn cộng tác' },
       cursorMovedAt: 1,

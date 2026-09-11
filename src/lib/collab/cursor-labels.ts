@@ -77,18 +77,18 @@ export function startCollabCursorLabels(provider: CollabProvider): () => void {
   };
 }
 
-/** Tạo DOM con trỏ tương thích BlockNote nhưng để app tự điều khiển nhãn 2 giây. */
+/** Tạo DOM con trỏ cộng tác và để app tự điều khiển nhãn 2 giây. */
 export function createCollabCursorElement(user: CollabCursorUser): HTMLElement {
   const root = document.createElement('span');
   const caret = document.createElement('span');
   const label = document.createElement('span');
-  root.className = 'bn-collaboration-cursor__base';
+  root.className = 'notes-collaboration-cursor__base';
   root.dataset.collabUserId = user.id ?? user.name;
   root.setAttribute('aria-hidden', 'true');
-  caret.className = 'bn-collaboration-cursor__caret';
+  caret.className = 'notes-collaboration-cursor__caret';
   caret.contentEditable = 'false';
   caret.style.backgroundColor = user.color;
-  label.className = 'bn-collaboration-cursor__label motion-reduce:transition-none';
+  label.className = 'notes-collaboration-cursor__label motion-reduce:transition-none';
   label.style.backgroundColor = user.color;
   label.style.color = 'var(--background)';
   label.textContent = user.name;

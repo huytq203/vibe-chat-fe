@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import type { Doc as YDoc } from "yjs";
 
 import { NoteTitle } from "@/features/notes/components/editor/NoteTitle";
+import { useFileUpload } from "@/features/notes/hooks/useFileUpload";
 import type { PageDetail } from "@/features/notes/types";
 import {
   markLocalCollabCursorMoved,
@@ -14,7 +15,13 @@ import {
 import { extractTiptapOutline, type OutlineItem } from "@/lib/editor/heading-outline";
 
 import { BlockGutter } from "./BlockGutter";
+import {
+  AttachmentUploadPlaceholder,
+  handleFileDrop,
+  handleFilePaste,
+} from "./attachment-upload";
 import { BubbleToolbar } from "./BubbleToolbar";
+import { DocumentSizeLimit } from "./document-size-limit";
 import { handleEmbedPaste, type EmbedPasteSuggestion } from "./embed-paste";
 import { createCollaborativeNoteEditorExtensions } from "./extensions";
 import { PasteEmbedPrompt } from "./PasteEmbedPrompt";
@@ -71,6 +78,7 @@ function useTiptapOutline(
 /** Editor Tiptap cộng tác chạy song song, chưa được nối vào luồng ghi chú hiện tại. */
 export function NoteEditorNext({ doc, onOutlineChange, page, provider }: NoteEditorNextProps) {
   const editable = page.myRole !== "VIEW" && page.myRole !== "COMMENT";
+  const uploadFile = useFileUpload(page.id);
   const [pasteSuggestion, setPasteSuggestion] = useState<EmbedPasteSuggestion | null>(null);
   const closePasteSuggestion = useCallback(() => setPasteSuggestion(null), []);
   const editor = useEditor(
@@ -79,7 +87,9 @@ export function NoteEditorNext({ doc, onOutlineChange, page, provider }: NoteEdi
       immediatelyRender: false,
       extensions: [
         ...createCollaborativeNoteEditorExtensions({ doc, provider }),
-        SlashCommand,
+        AttachmentUploadPlaceholder,
+        DocumentSizeLimit.configure({ doc }),
+        SlashCommand.configure({ uploadFile }),
       ],
       editorProps: {
         attributes: {
@@ -87,15 +97,17 @@ export function NoteEditorNext({ doc, onOutlineChange, page, provider }: NoteEdi
         },
         handlePaste: (view, event) => {
           closePasteSuggestion();
+          if (handleFilePaste(view, event, uploadFile)) return true;
           return handleEmbedPaste(view, event, setPasteSuggestion);
         },
+        handleDrop: (view, event) => handleFileDrop(view, event, uploadFile),
         handleTextInput: () => {
           closePasteSuggestion();
           return false;
         },
       },
     },
-    [doc, editable, provider],
+    [doc, editable, provider, uploadFile],
   );
   const { handleCursorKey, markCursorMoved } = useCursorActivity(provider);
   useTiptapOutline(editor, onOutlineChange);
