@@ -108,6 +108,7 @@ export const tasksApi = {
       description?: string | null;
       dueDate?: string | null;
       priority?: TaskPriority | null;
+      gem?: number | null;
       isPinned?: boolean;
       version?: number;
     },

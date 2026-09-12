@@ -28,6 +28,7 @@ const TOOL_LABELS: Record<string, string> = {
   create_task: 'Đang tạo task…', update_task: 'Đang cập nhật task…',
   my_tasks: 'Đang lấy việc của bạn…', project_stats: 'Đang tính tiến độ…',
   project_leaderboard: 'Đang xếp hạng…',
+  my_performance: 'Đang tính hiệu suất…',
   search_pages: 'Đang tìm ghi chú…', read_page: 'Đang đọc ghi chú…',
 };
 

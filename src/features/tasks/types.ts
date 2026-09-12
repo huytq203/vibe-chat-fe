@@ -53,6 +53,8 @@ export interface BoardTask {
   position: number;
   isPinned: boolean;
   priority: 'P1' | 'P2' | 'P3' | null;
+  gem?: number | null;
+  gemSource?: GemSource;
   dueDate: string | null;
   tags: BoardTaskTag[];
   assignees: BoardTaskAssignee[];
@@ -82,6 +84,7 @@ export interface Board {
 }
 
 export type TaskPriority = 'P1' | 'P2' | 'P3';
+export type GemSource = 'AI' | 'USER' | null;
 
 export interface Tag {
   id: string;
@@ -187,6 +190,8 @@ export interface TaskDetail {
   description: string | null;
   dueDate: string | null;
   priority: TaskPriority | null;
+  gem: number | null;
+  gemSource: GemSource;
   isPinned: boolean;
   position: number;
   assigneeCount: number;
@@ -242,6 +247,8 @@ export interface MyTask {
   columnId: string;
   columnName: string;
   priority: TaskPriority | null;
+  gem?: number | null;
+  gemSource?: GemSource;
   dueDate: string | null;
   isPinned: boolean;
   updatedAt: string;
@@ -276,10 +283,29 @@ export interface LeaderboardEntry {
   displayName: string;
   completedTasks: number;
   totalAssigned: number;
+  gems: number;
+  onTimeRate: number | null;
 }
 
 export interface Leaderboard {
   entries: LeaderboardEntry[];
+}
+
+export type ReportPeriod = 'week' | 'month' | 'all';
+
+export interface MyPerformanceProject {
+  projectId: string;
+  projectName: string;
+  completedTasks: number;
+  gems: number;
+}
+
+export interface MyPerformance {
+  period: ReportPeriod;
+  completedTasks: number;
+  gems: number;
+  onTimeRate: number | null;
+  byProject: MyPerformanceProject[];
 }
 
 /** User từ directory chung (tìm để mời vào project) — khác Member (đã thuộc project) */

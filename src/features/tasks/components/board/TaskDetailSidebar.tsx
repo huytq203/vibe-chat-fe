@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar/Avatar";
 import { Button } from "@/components/ui/button/Button";
 import {
@@ -7,6 +8,7 @@ import {
   CheckCircle2,
   Eye,
   Flag,
+  Gem,
   Hash,
   Tag as TagIcon,
   UserPlus,
@@ -33,6 +35,7 @@ import {
 } from "../../hooks/useTaskTags";
 import { useMembers } from "../../hooks/useMembers";
 import { toast } from "sonner";
+import { aiApi } from "@/services/ai.api";
 import { getCurrentUser } from "../../lib/current-user";
 import type { TaskDetail, TaskPriority } from "../../types";
 
@@ -95,6 +98,11 @@ export function TaskDetailSidebar({
   task,
 }: TaskDetailSidebarProps) {
   const updateTask = useUpdateTask(projectId, taskId);
+  const [gemDraft, setGemDraft] = useState(
+    task.gem === null ? "" : String(task.gem),
+  );
+  const [gemReason, setGemReason] = useState("");
+  const [isEstimatingGem, setIsEstimatingGem] = useState(false);
   const { data: projectTags = [] } = useProjectTags(projectId);
   const { data: members = [] } = useMembers(projectId);
 
@@ -160,6 +168,33 @@ export function TaskDetailSidebar({
     updateTask.mutate({ dueDate: date ? date.toISOString() : null });
   };
 
+  const parsedGem = gemDraft === "" ? null : Number(gemDraft);
+  const isGemValid =
+    parsedGem === null ||
+    (Number.isInteger(parsedGem) && parsedGem >= 1 && parsedGem <= 100);
+  const hasGemChanged = parsedGem !== task.gem;
+
+  const handleEstimateGem = async (): Promise<void> => {
+    setIsEstimatingGem(true);
+    try {
+      const result = await aiApi.estimateGem({
+        title: task.title,
+        ...(task.description ? { description: task.description } : {}),
+      });
+      setGemDraft(result.gem === null ? "" : String(result.gem));
+      setGemReason(result.reason);
+    } catch {
+      toast.error("AI chưa thể chấm gem. Vui lòng thử lại.");
+    } finally {
+      setIsEstimatingGem(false);
+    }
+  };
+
+  const handleSaveGem = (): void => {
+    if (!isGemValid || !hasGemChanged) return;
+    updateTask.mutate({ gem: parsedGem });
+  };
+
   return (
     <div className="flex max-h-[45%] w-full shrink-0 flex-col overflow-y-auto border-t border-border bg-muted/30 md:max-h-none md:w-72 md:border-l md:border-t-0">
       {/* Due date */}
@@ -206,6 +241,54 @@ export function TaskDetailSidebar({
               </button>
             );
           })}
+        </div>
+      </SidebarSection>
+
+      <SidebarSection icon={<Gem className="h-4 w-4" />} title="Gem">
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            value={gemDraft}
+            title={gemReason || undefined}
+            aria-label="Điểm gem"
+            placeholder="1–100"
+            onChange={(event) => setGemDraft(event.target.value)}
+            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/30"
+          />
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => void handleEstimateGem()}
+            isLoading={isEstimatingGem}
+            aria-label="AI chấm gem"
+          >
+            AI chấm gem
+          </Button>
+        </div>
+        <div className="mt-2 flex min-h-7 items-center gap-2">
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={handleSaveGem}
+            disabled={!isGemValid || !hasGemChanged || updateTask.isPending}
+            aria-label="Lưu gem"
+          >
+            Lưu
+          </Button>
+          {task.gemSource === "AI" && (
+            <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+              AI chấm
+            </span>
+          )}
+          {!isGemValid && (
+            <span className="text-xs text-danger">Nhập số từ 1 đến 100</span>
+          )}
         </div>
       </SidebarSection>
 

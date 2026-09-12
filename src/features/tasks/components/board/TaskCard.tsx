@@ -2,7 +2,7 @@
 
 import { forwardRef, type HTMLAttributes } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { CheckCircle2, CheckSquare, Clock, MessageSquare, Pin } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Clock, Gem, MessageSquare, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { BoardTask } from '../../types';
@@ -84,7 +84,7 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
           </span>
         </div>
 
-        {(priorityConfig || isInReview) && (
+        {(priorityConfig || isInReview || task.gem != null) && (
           <div className="mb-2 flex flex-wrap gap-1">
             {priorityConfig && (
               <div
@@ -106,6 +106,16 @@ export const TaskCardView = forwardRef<HTMLDivElement, TaskCardViewProps>(
               <div className="flex w-fit items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-foreground">
                 <Clock className="h-3 w-3" />
                 Chờ duyệt
+              </div>
+            )}
+
+            {task.gem != null && (
+              <div
+                className="flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary"
+                aria-label={`${task.gem} gem`}
+              >
+                <Gem className="h-3 w-3" />
+                {task.gem}
               </div>
             )}
           </div>

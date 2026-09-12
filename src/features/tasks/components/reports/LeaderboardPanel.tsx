@@ -1,21 +1,27 @@
 'use client';
 
 import { Avatar } from '@/components/ui/avatar/Avatar';
-import { Progress } from '@/components/ui/progress/Progress';
 import { useReports } from '../../hooks/useReports';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { Panel, PanelState } from '../common';
+import type { ReportPeriod } from '../../types';
 
 interface LeaderboardPanelProps {
   projectName?: string;
   className?: string;
+  period: ReportPeriod;
 }
 
-export function LeaderboardPanel({ projectName, className }: LeaderboardPanelProps) {
+const LEADERBOARD_GRID =
+  'grid min-w-[430px] grid-cols-[minmax(140px,1fr)_72px_72px_84px] items-center gap-3';
+
+export function LeaderboardPanel({ projectName, className, period }: LeaderboardPanelProps) {
   // Leaderboard theo project đang chọn trong store; chưa chọn → query không chạy
   const selectedProjectId = useTasksUIStore((s) => s.selectedProjectId);
-  const { leaderboard } = useReports(selectedProjectId);
-  const entries = leaderboard.data?.entries ?? [];
+  const { leaderboard } = useReports(selectedProjectId, period);
+  const entries = [...(leaderboard.data?.entries ?? [])].sort(
+    (left, right) => right.gems - left.gems,
+  );
 
   return (
     <Panel
@@ -40,26 +46,37 @@ export function LeaderboardPanel({ projectName, className }: LeaderboardPanelPro
         <PanelState>Chưa có dữ liệu thành viên cho dự án này.</PanelState>
       )}
 
-      {selectedProjectId &&
-        entries.map((entry) => {
-          // % hoàn thành trên tổng việc được gán của từng thành viên
-          const pct =
-            entry.totalAssigned > 0
-              ? Math.round((entry.completedTasks / entry.totalAssigned) * 100)
-              : 0;
-          return (
-            <div key={entry.userId} className="flex items-center gap-3 px-2 py-2">
-              <Avatar fallback={entry.displayName.charAt(0).toUpperCase()} size="sm" />
-              <span className="w-28 shrink-0 truncate text-[12.5px] font-medium text-foreground">
-                {entry.displayName}
+      {selectedProjectId && entries.length > 0 && (
+        <div className="overflow-x-auto px-2 pb-1">
+          <div
+            className={`${LEADERBOARD_GRID} border-b border-border/60 pb-2 text-xs font-semibold text-muted-foreground`}
+          >
+            <span>Thành viên</span>
+            <span className="text-right">Gem</span>
+            <span className="text-right">Đúng hạn</span>
+            <span className="text-right">Task xong</span>
+          </div>
+          {entries.map((entry) => (
+            <div key={entry.userId} className={`${LEADERBOARD_GRID} py-2.5`}>
+              <span className="flex min-w-0 items-center gap-2">
+                <Avatar fallback={entry.displayName.charAt(0).toUpperCase()} size="sm" />
+                <span className="truncate text-[12.5px] font-medium text-foreground">
+                  {entry.displayName}
+                </span>
               </span>
-              <Progress value={pct} size="sm" variant="gradient" className="flex-1" />
-              <span className="w-20 shrink-0 text-right text-[11.5px] tabular-nums text-muted-foreground">
-                {entry.completedTasks}/{entry.totalAssigned} việc
+              <span className="text-right text-sm font-bold tabular-nums text-primary">
+                {entry.gems}
+              </span>
+              <span className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                {entry.onTimeRate === null ? '—' : `${entry.onTimeRate}%`}
+              </span>
+              <span className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                {entry.completedTasks}
               </span>
             </div>
-          );
-        })}
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }

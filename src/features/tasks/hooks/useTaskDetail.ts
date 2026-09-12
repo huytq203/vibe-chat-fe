@@ -19,6 +19,7 @@ export function useUpdateTask(projectId: string, taskId: string) {
       description?: string | null;
       dueDate?: string | null;
       priority?: TaskPriority | null;
+      gem?: number | null;
       isPinned?: boolean;
     }) => {
       const detail = qc.getQueryData<TaskDetail>([

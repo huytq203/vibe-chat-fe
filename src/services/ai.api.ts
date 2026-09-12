@@ -30,6 +30,16 @@ export type AiStreamOptions = {
   signal?: AbortSignal;
 };
 
+export type EstimateGemInput = {
+  title: string;
+  description?: string;
+};
+
+export type EstimateGemResult = {
+  gem: number | null;
+  reason: string;
+};
+
 /**
  * BE chưa có endpoint stream / proxy nuốt SSE. Chỉ những status này mới đáng
  * fallback về endpoint JSON — 429 hay 503 là lỗi thật, gọi lại chỉ tốn thêm lượt.
@@ -131,6 +141,12 @@ async function consume(
  */
 export const aiApi = {
   chat,
+
+  estimateGem: (input: EstimateGemInput) =>
+    apiClient.post<EstimateGemResult>('/api/v1/ai/tasks/estimate-gem', {
+      body: input,
+      service: 'ai' as never,
+    }),
 
   /**
    * Bản streaming: bắn từng mẩu chữ qua `onDelta`, trả về nội dung đầy đủ khi xong.
