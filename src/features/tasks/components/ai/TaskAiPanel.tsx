@@ -1,16 +1,18 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import type { AiStreamFn } from '@/features/ai';
-import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
+import { AiConversationBar } from '@/features/ai/components/AiConversationBar';
+import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
+import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
+import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { aiApi } from '@/services/ai.api';
-import { useTaskAiConversation } from '../../hooks/useTaskAiConversation';
-import { useTaskAiConversationTitle } from '../../hooks/useTaskAiConversationTitle';
+import { useProjects } from '../../hooks/useProjects';
 import { taskKeys } from '../../services/keys';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { buildTaskAiContext } from '../../lib/ai-context';
@@ -32,23 +34,20 @@ const TOOL_LABELS: Record<string, string> = {
   search_pages: 'Đang tìm ghi chú…', read_page: 'Đang đọc ghi chú…',
 };
 
-function handleInputKeyDown(
-  event: React.KeyboardEvent<HTMLTextAreaElement>,
-  onSend: () => void,
-  disabled: boolean,
-): void {
-  if (event.key !== 'Enter' || event.shiftKey) return;
-  event.preventDefault();
-  if (!disabled) onSend();
-}
-
 export function TaskAiPanel() {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(DEFAULT_STATUS);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasMutationRef = useRef(false);
+  const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
+  const { attachments, error, addFiles, removeAttachment, clearAttachments } =
+    useAiAttachments();
   const selectedProjectId = useTasksUIStore((state) => state.selectedProjectId);
+  const activeView = useTasksUIStore((state) => state.activeView);
   const toggleAiPanel = useTasksUIStore((state) => state.toggleAiPanel);
+  const { data: projects = [] } = useProjects();
+  const currentProject = activeView === 'board'
+    ? projects.find(({ id }) => id === selectedProjectId)
+    : undefined;
   const queryClient = useQueryClient();
   const {
     conversations,
@@ -59,25 +58,27 @@ export function TaskAiPanel() {
     isError,
     select,
     startNew,
+    remember,
     refetch,
-  } = useTaskAiConversation(selectedProjectId);
-  const generatedTitle = useTaskAiConversationTitle({
-    activeId,
-    conversations,
-    messages: session.messages,
+  } = useAiConversations({
+    scope: selectedProjectId ?? 'tasks:all',
   });
 
   const stream = useCallback<AiStreamFn>((messages, attachments, options) =>
     aiApi.chatStream(
-      messages, attachments, options, buildTaskAiContext(selectedProjectId),
-    ), [selectedProjectId]);
+      messages,
+      attachments,
+      { ...options, onDone: ({ conversationId }) => remember(conversationId) },
+      buildTaskAiContext(selectedProjectId),
+      activeId ?? undefined,
+    ), [activeId, remember, selectedProjectId]);
   const onTool = useCallback((name: string): void => {
     setStatus(TOOL_LABELS[name] ?? DEFAULT_STATUS);
     if (MUTATING_TOOLS.has(name)) hasMutationRef.current = true;
   }, []);
   const onSettled = useCallback((): void => {
     setStatus(DEFAULT_STATUS);
-    textareaRef.current?.focus();
+    focusInput();
     if (!hasMutationRef.current) return;
     hasMutationRef.current = false;
     void queryClient.invalidateQueries({ queryKey: taskKeys.projects() });
@@ -85,7 +86,7 @@ export function TaskAiPanel() {
     if (selectedProjectId) {
       void queryClient.invalidateQueries({ queryKey: taskKeys.board(selectedProjectId) });
     }
-  }, [queryClient, selectedProjectId]);
+  }, [focusInput, queryClient, selectedProjectId]);
   const conversation = useAiConversation({
     streamKey: `tasks:assistant:${selectedProjectId ?? 'all'}`,
     session,
@@ -95,17 +96,25 @@ export function TaskAiPanel() {
     onSettled,
   });
 
+  useEffect(() => { resize(); }, [input, resize]);
+
   async function handleSend(prompt: string): Promise<void> {
-    if (isLoading || conversation.loading || !prompt.trim()) return;
+    const capturedAttachments = attachments;
+    if (
+      isLoading
+      || conversation.loading
+      || (!prompt.trim() && capturedAttachments.length === 0)
+    ) return;
     setInput('');
+    clearAttachments();
     setStatus(DEFAULT_STATUS);
     hasMutationRef.current = false;
-    await conversation.send(prompt, []);
+    await conversation.send(prompt, capturedAttachments);
   }
 
   function handleEdit(index: number): void {
     setInput(conversation.recall(index));
-    textareaRef.current?.focus();
+    focusInput();
   }
 
   function prepareRetry(action: () => void): void {
@@ -115,7 +124,7 @@ export function TaskAiPanel() {
   }
 
   const activeSummary = conversations.find(({ id }) => id === activeId);
-  const activeTitle = generatedTitle ?? activeSummary?.title ?? (activeId ? session.title : null);
+  const activeTitle = activeSummary?.title ?? (activeId ? session.title : null);
 
   return (
     <aside
@@ -146,6 +155,7 @@ export function TaskAiPanel() {
         conversations={conversations}
         activeId={activeId}
         activeTitle={activeTitle}
+        currentOrigin="TASKS"
         isLoading={isLoading}
         isError={isError}
         onSelect={select}
@@ -197,12 +207,19 @@ export function TaskAiPanel() {
         variant="panel"
         input={input}
         loading={isLoading || conversation.loading}
+        context={currentProject?.name.trim()
+          ? { kind: 'project', label: currentProject.name }
+          : undefined}
+        attachments={attachments}
+        attachmentError={error}
         textareaRef={textareaRef}
         onInputChange={setInput}
-        onResize={() => undefined}
-        onKeyDown={handleInputKeyDown}
+        onResize={resize}
+        onKeyDown={handleKeyDown}
         onSend={() => void handleSend(input)}
         onStop={conversation.stop}
+        onAddFiles={addFiles}
+        onRemoveAttachment={removeAttachment}
       />
     </aside>
   );

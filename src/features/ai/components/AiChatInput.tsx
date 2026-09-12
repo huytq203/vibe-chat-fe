@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { Paperclip, Send, Square } from 'lucide-react';
+import { ArrowUp, FileText, FolderKanban, Paperclip, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { cn } from '@/lib/utils/cn';
@@ -17,6 +17,10 @@ interface AiChatInputProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
   variant?: AiMessageVariant | 'panel';
+  context?: {
+    kind: 'page' | 'project';
+    label: string;
+  };
   onInputChange: (value: string) => void;
   onResize: () => void;
   onKeyDown: (
@@ -42,6 +46,7 @@ export function AiChatInput({
   textareaRef,
   disabled = false,
   variant = 'window',
+  context,
   onInputChange,
   onResize,
   onKeyDown,
@@ -67,60 +72,61 @@ export function AiChatInput({
     }
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    if (!attachmentControls) return;
+
+    const itemFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    const imageFiles = itemFiles.length > 0
+      ? itemFiles
+      : Array.from(e.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) return;
+    e.preventDefault();
+    void attachmentControls.onAddFiles(imageFiles);
+  }
+
   const composer = (
-    <div
-      className={cn(
-        isPage
-          ? 'border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:bg-sidebar/90 md:shadow-subtle md:backdrop-blur-md'
-          : isPanel
-            ? 'rounded-xl border border-border bg-muted/35 p-2'
-            : 'border-t border-border p-3',
-      )}
-    >
-      {attachmentControls && (
-        <div className={cn(isPage && 'px-1')}>
-          <AiAttachmentTray
-            attachments={attachmentControls.attachments}
-            error={attachmentControls.attachmentError}
-            onRemove={attachmentControls.onRemoveAttachment}
-          />
+    <div>
+      {context?.label.trim() && (
+        <div className="flex min-w-0 items-center gap-2 px-1 pb-2 text-xs">
+          {context.kind === 'page' ? (
+            <FileText className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+          ) : (
+            <FolderKanban className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+          )}
+          <span className="truncate font-semibold text-foreground/75">{context.label}</span>
         </div>
       )}
 
-      <div className="flex items-end gap-2">
-        {attachmentControls && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ACCEPTED_FILES}
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
-              type="button"
-              aria-label="Đính kèm file"
-              title="Đính kèm file"
-              disabled={disabled}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-          </>
+      <div
+        className={cn(
+          'overflow-hidden rounded-2xl border border-border bg-muted/35',
+          'transition-colors focus-within:border-primary/55',
+          isPage && 'bg-sidebar/95',
         )}
+      >
+        {attachmentControls && (
+          <div className="px-3 pt-2">
+            <AiAttachmentTray
+              attachments={attachmentControls.attachments}
+              error={attachmentControls.attachmentError}
+              onRemove={attachmentControls.onRemoveAttachment}
+            />
+          </div>
+        )}
+
         <Textarea
           ref={textareaRef}
-          variant={isPage ? 'default' : 'filled'}
           rows={1}
           className={cn(
-            'resize-none overflow-y-auto',
+            'resize-none overflow-y-auto rounded-none border-0 bg-transparent px-3',
+            'focus:border-transparent focus-visible:border-transparent',
             isPage
-              ? 'min-h-9 max-h-40 border-transparent bg-transparent px-1 py-2 text-[13.5px] leading-relaxed focus:border-transparent'
-              : 'min-h-10 max-h-24 py-2 text-[13px]',
+              ? 'min-h-16 max-h-40 py-3 text-sm leading-relaxed'
+              : 'min-h-16 max-h-32 py-3 text-[13px] leading-relaxed',
           )}
           placeholder={isPage ? 'Hỏi Halo AI bất cứ điều gì...' : 'Nhắn tin với AI...'}
           value={input}
@@ -129,36 +135,55 @@ export function AiChatInput({
             onInputChange(e.target.value);
             onResize();
           }}
+          onPaste={handlePaste}
           onKeyDown={(e) => onKeyDown(e, onSend, loading || disabled)}
         />
-        <Button
-          size="icon"
-          variant="solid"
-          type="button"
-          onClick={canStop ? onStop : onSend}
-          disabled={canStop ? false : cannotSend || loading}
-          className="h-9 w-9 shrink-0"
-          aria-label={canStop ? 'Dừng trả lời' : 'Gửi'}
-          title={canStop ? 'Dừng trả lời' : 'Gửi (Enter)'}
-        >
-          {canStop ? <Square className="h-3.5 w-3.5 fill-current" /> : <Send className="h-4 w-4" />}
-        </Button>
-      </div>
 
-      {/* Bàn phím ảo không có Shift+Enter → hint chỉ có nghĩa khi gõ bằng bàn phím cứng. */}
-      {isPage && (
-        <p className="hidden items-center justify-end gap-1.5 px-1 pt-1.5 text-xs text-muted-foreground md:flex">
-          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-xs font-medium text-foreground/70">
-            Enter
-          </kbd>
-          để gửi
-          <span aria-hidden="true">·</span>
-          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-xs font-medium text-foreground/70">
-            Shift + Enter
-          </kbd>
-          để xuống dòng
-        </p>
-      )}
+        <div className="flex min-h-11 items-center justify-between gap-2 px-2 pb-2">
+          <div className="flex min-w-0 items-center">
+            {attachmentControls && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept={ACCEPTED_FILES}
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-9 shrink-0 rounded-xl text-muted-foreground hover:text-primary"
+                  type="button"
+                  aria-label="Đính kèm file"
+                  title="Đính kèm file"
+                  disabled={disabled}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="size-4" />
+                </Button>
+              </>
+            )}
+          </div>
+          <Button
+            size="icon"
+            variant="solid"
+            type="button"
+            onClick={canStop ? onStop : onSend}
+            disabled={canStop ? false : cannotSend || loading}
+            className="size-9 shrink-0 rounded-full"
+            aria-label={canStop ? 'Dừng trả lời' : 'Gửi'}
+            title={canStop ? 'Dừng trả lời' : 'Gửi (Enter)'}
+          >
+            {canStop ? (
+              <Square className="size-3.5 fill-current" />
+            ) : (
+              <ArrowUp className="size-4" />
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
@@ -170,12 +195,14 @@ export function AiChatInput({
     );
   }
 
-  if (!isPage) return <div className="shrink-0">{composer}</div>;
+  if (!isPage) {
+    return <div className="shrink-0 border-t border-border bg-background p-3">{composer}</div>;
+  }
 
   // Mobile: full-bleed, viền chỉ ở cạnh trên (giống MessageInput bên chat). Khe hở 4px
   // hai bên trước đây để lọt nền wallpaper thành một sọc mỏng, trông như lỗi render.
   return (
-    <div className="shrink-0 md:px-1">
+    <div className="shrink-0 border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:border-0 md:px-1">
       <div className="mx-auto w-full max-w-170">{composer}</div>
     </div>
   );

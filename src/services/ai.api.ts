@@ -27,8 +27,11 @@ export type AiStreamOptions = {
   /** Gọi mỗi khi có thêm chữ — dùng để vẽ dần lên UI. */
   onDelta: (text: string) => void;
   onTool?: (name: string) => void;
+  onDone?: (result: { conversationId: string }) => void;
   signal?: AbortSignal;
 };
+
+export type AiChatResult = { content: string; conversationId: string };
 
 export type EstimateGemInput = {
   title: string;
@@ -55,6 +58,7 @@ function buildBody(
   messages: AiChatMessage[],
   attachments?: readonly AiAttachmentPayload[],
   context?: AiChatContext,
+  conversationId?: string,
 ): Record<string, unknown> {
   return {
     // Strip field thừa của AiMessage (vd `attachments` dạng meta của UI, `status`)
@@ -71,6 +75,7 @@ function buildBody(
         }
       : {}),
     ...(context ? { context } : {}),
+    ...(conversationId ? { conversationId } : {}),
   };
 }
 
@@ -84,21 +89,44 @@ function readField(data: string, field: string): string {
   }
 }
 
+async function requestChat(
+  messages: AiChatMessage[],
+  attachments?: readonly AiAttachmentPayload[],
+  context?: AiChatContext,
+  conversationId?: string,
+): Promise<AiChatResult> {
+  return apiClient.post<AiChatResult>('/api/v1/ai/chat', {
+    body: buildBody(messages, attachments, context, conversationId),
+    service: 'ai' as never,
+  });
+}
+
+function chat(
+  messages: AiChatMessage[],
+  attachments: readonly AiAttachmentPayload[] | undefined,
+  context: AiChatContext | undefined,
+  conversationId: string | undefined,
+): Promise<AiChatResult>;
+function chat(
+  messages: AiChatMessage[],
+  attachments?: readonly AiAttachmentPayload[],
+  context?: AiChatContext,
+): Promise<string>;
 async function chat(
   messages: AiChatMessage[],
   attachments?: readonly AiAttachmentPayload[],
   context?: AiChatContext,
-): Promise<string> {
-  const { content } = await apiClient.post<{ content: string }>('/api/v1/ai/chat', {
-    body: buildBody(messages, attachments, context),
-  });
-  return content;
+  conversationId?: string,
+): Promise<string | AiChatResult> {
+  const result = await requestChat(messages, attachments, context, conversationId);
+  return arguments.length >= 4 ? result : result.content;
 }
 
 async function consume(
   response: Response,
   onDelta: (text: string) => void,
   onTool?: (name: string) => void,
+  onDone?: (result: { conversationId: string }) => void,
 ): Promise<string> {
   const body = response.body;
   if (!body) throw new ApiError(502, 'AI_STREAM_FAILED', 'Trợ lý AI không trả về nội dung');
@@ -117,7 +145,11 @@ async function consume(
       if (name) onTool?.(name);
       continue;
     }
-    if (event === 'done') return content;
+    if (event === 'done') {
+      const conversationId = readField(data, 'conversationId');
+      if (conversationId) onDone?.({ conversationId });
+      return content;
+    }
     if (event === 'error') {
       throw new ApiError(
         502,
@@ -156,24 +188,27 @@ export const aiApi = {
   chatStream: async (
     messages: AiChatMessage[],
     attachments: readonly AiAttachmentPayload[] | undefined,
-    { onDelta, onTool, signal }: AiStreamOptions,
+    { onDelta, onTool, onDone, signal }: AiStreamOptions,
     context?: AiChatContext,
+    conversationId?: string,
   ): Promise<string> => {
     let response: Response;
     try {
       response = await apiClient.postStream('/api/v1/ai/chat/stream', {
-        body: buildBody(messages, attachments, context),
+        body: buildBody(messages, attachments, context, conversationId),
         headers: { Accept: 'text/event-stream' },
         signal,
+        service: 'ai' as never,
       });
     } catch (error) {
       if (!(error instanceof ApiError) || !FALLBACK_STATUSES.has(error.status)) throw error;
-      const content = await chat(messages, attachments, context);
-      onDelta(content);
-      return content;
+      const result = await requestChat(messages, attachments, context, conversationId);
+      onDelta(result.content);
+      onDone?.({ conversationId: result.conversationId });
+      return result.content;
     }
 
-    return consume(response, onDelta, onTool);
+    return consume(response, onDelta, onTool, onDone);
   },
 
   getConfig: () => apiClient.get<{ model: string }>('/api/v1/ai/config'),

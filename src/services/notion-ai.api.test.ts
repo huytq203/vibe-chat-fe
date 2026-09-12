@@ -27,7 +27,7 @@ describe('Notion AI API streaming transport', () => {
     postStream.mockReset();
   });
 
-  it('nên gửi đúng ngữ cảnh và lược field UI khi gọi hội thoại notion', async () => {
+  it('nên gửi attachment, đúng ngữ cảnh và lược field UI khi gọi hội thoại notion', async () => {
     postStream.mockResolvedValue(createStreamResponse('event: done\ndata: {}\n\n'));
     const messages: AiMessage[] = [
       {
@@ -41,6 +41,12 @@ describe('Notion AI API streaming transport', () => {
 
     await notionAiApi.chatStream(
       messages,
+      [{
+        name: 'ghi-chu.txt',
+        mimeType: 'text/plain',
+        size: 8,
+        data: 'VEVYVA==',
+      }],
       { workspaceId: 'workspace-1', pageId: 'page-1' },
       { onDelta: vi.fn() },
     );
@@ -48,6 +54,12 @@ describe('Notion AI API streaming transport', () => {
     expect(postStream).toHaveBeenCalledWith('/api/v1/ai/notion/chat/stream', {
       body: {
         messages: [{ role: 'user', content: 'Đọc trang' }],
+        attachments: [{
+          name: 'ghi-chu.txt',
+          mimeType: 'text/plain',
+          size: 8,
+          data: 'VEVYVA==',
+        }],
         workspaceId: 'workspace-1',
         pageId: 'page-1',
       },
@@ -66,6 +78,7 @@ describe('Notion AI API streaming transport', () => {
 
     const content = await notionAiApi.chatStream(
       [{ role: 'user', content: 'Chào' }],
+      undefined,
       { workspaceId: 'workspace-1' },
       { onDelta },
     );
@@ -83,6 +96,7 @@ describe('Notion AI API streaming transport', () => {
 
     await notionAiApi.chatStream(
       [{ role: 'user', content: 'Đọc trang' }],
+      undefined,
       { workspaceId: 'workspace-1' },
       { onDelta: vi.fn(), onTool },
     );
@@ -99,6 +113,7 @@ describe('Notion AI API streaming transport', () => {
     await expect(
       notionAiApi.chatStream(
         [{ role: 'user', content: 'Đọc trang' }],
+        undefined,
         { workspaceId: 'workspace-1' },
         { onDelta: vi.fn() },
       ),
@@ -117,6 +132,7 @@ describe('Notion AI API streaming transport', () => {
     await expect(
       notionAiApi.chatStream(
         [{ role: 'user', content: 'Đọc trang' }],
+        undefined,
         { workspaceId: 'workspace-1' },
         { onDelta: vi.fn() },
       ),

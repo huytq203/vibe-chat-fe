@@ -1,6 +1,10 @@
 import { ApiError, apiClient } from '@/lib/api/client';
 import { readSseEvents } from '@/lib/api/sse';
-import type { AiChatMessage, AiStreamOptions } from '@/services/ai.api';
+import type {
+  AiAttachmentPayload,
+  AiChatMessage,
+  AiStreamOptions,
+} from '@/services/ai.api';
 
 type NotionAiContext = {
   workspaceId: string;
@@ -9,11 +13,22 @@ type NotionAiContext = {
 
 function buildBody(
   messages: AiChatMessage[],
+  attachments: readonly AiAttachmentPayload[] | undefined,
   { workspaceId, pageId }: NotionAiContext,
 ): Record<string, unknown> {
   return {
     // Lược field chỉ thuộc UI vì backend từ chối thuộc tính ngoài DTO.
     messages: messages.map(({ role, content }) => ({ role, content })),
+    ...(attachments?.length
+      ? {
+          attachments: attachments.map(({ name, mimeType, size, data }) => ({
+            name,
+            mimeType,
+            size,
+            ...(data ? { data } : {}),
+          })),
+        }
+      : {}),
     workspaceId,
     ...(pageId ? { pageId } : {}),
   };
@@ -67,11 +82,12 @@ async function consume(response: Response, options: AiStreamOptions): Promise<st
 export const notionAiApi = {
   chatStream: async (
     messages: AiChatMessage[],
+    attachments: readonly AiAttachmentPayload[] | undefined,
     context: NotionAiContext,
     options: AiStreamOptions,
   ): Promise<string> => {
     const response = await apiClient.postStream('/api/v1/ai/notion/chat/stream', {
-      body: buildBody(messages, context),
+      body: buildBody(messages, attachments, context),
       headers: { Accept: 'text/event-stream' },
       signal: options.signal,
     });
