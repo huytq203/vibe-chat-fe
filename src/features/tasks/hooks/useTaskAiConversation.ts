@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  useCallback, useEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type Dispatch, type SetStateAction,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -51,7 +51,7 @@ function useStableActions(
   const scopeRef = useRef({ scope, activeId });
   const loadingRef = useRef(isActiveConversationLoading);
   const settersRef = useRef({ setLocal, setActiveId });
-  useEffect(() => {
+  useLayoutEffect(() => {
     sessionRef.current = session;
     scopeRef.current = { scope, activeId };
     loadingRef.current = isActiveConversationLoading;
