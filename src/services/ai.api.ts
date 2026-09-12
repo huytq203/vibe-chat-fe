@@ -3,6 +3,14 @@ import { readSseEvents } from '@/lib/api/sse';
 
 export type AiChatMessage = { role: 'user' | 'assistant'; content: string };
 
+export type AiChatContext = {
+  today: string;
+  timezone: string;
+  projectId?: string;
+  workspaceId?: string;
+  pageId?: string;
+};
+
 /**
  * Phần duy nhất của attachment mà BE nhận. Nhận cả `AiAttachment` (còn base64,
  * lượt gửi đầu) lẫn `AiAttachmentMeta` đã lưu trong phiên (lượt gửi lại).
@@ -36,6 +44,7 @@ const FALLBACK_STATUSES = new Set([404, 405, 501, 502, 504]);
 function buildBody(
   messages: AiChatMessage[],
   attachments?: readonly AiAttachmentPayload[],
+  context?: AiChatContext,
 ): Record<string, unknown> {
   return {
     // Strip field thừa của AiMessage (vd `attachments` dạng meta của UI, `status`)
@@ -51,6 +60,7 @@ function buildBody(
           })),
         }
       : {}),
+    ...(context ? { context } : {}),
   };
 }
 
@@ -67,9 +77,10 @@ function readField(data: string, field: string): string {
 async function chat(
   messages: AiChatMessage[],
   attachments?: readonly AiAttachmentPayload[],
+  context?: AiChatContext,
 ): Promise<string> {
   const { content } = await apiClient.post<{ content: string }>('/api/v1/ai/chat', {
-    body: buildBody(messages, attachments),
+    body: buildBody(messages, attachments, context),
   });
   return content;
 }
@@ -130,17 +141,18 @@ export const aiApi = {
     messages: AiChatMessage[],
     attachments: readonly AiAttachmentPayload[] | undefined,
     { onDelta, onTool, signal }: AiStreamOptions,
+    context?: AiChatContext,
   ): Promise<string> => {
     let response: Response;
     try {
       response = await apiClient.postStream('/api/v1/ai/chat/stream', {
-        body: buildBody(messages, attachments),
+        body: buildBody(messages, attachments, context),
         headers: { Accept: 'text/event-stream' },
         signal,
       });
     } catch (error) {
       if (!(error instanceof ApiError) || !FALLBACK_STATUSES.has(error.status)) throw error;
-      const content = await chat(messages, attachments);
+      const content = await chat(messages, attachments, context);
       onDelta(content);
       return content;
     }

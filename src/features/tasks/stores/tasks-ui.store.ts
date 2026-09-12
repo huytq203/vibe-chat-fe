@@ -14,6 +14,8 @@ type TasksUIState = {
   setProjectSearch: (q: string) => void;
   selectedProjectId: string | null;
   setSelectedProjectId: (id: string | null) => void;
+  isAiPanelOpen: boolean;
+  toggleAiPanel: () => void;
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
@@ -36,6 +38,8 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   selectedProjectId: null,
   setSelectedProjectId: (id) =>
     set({ selectedProjectId: id, activeView: id ? 'board' : 'home' }),
+  isAiPanelOpen: false,
+  toggleAiPanel: () => set((state) => ({ isAiPanelOpen: !state.isAiPanelOpen })),
   selectedTaskId: null,
   openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
   closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),

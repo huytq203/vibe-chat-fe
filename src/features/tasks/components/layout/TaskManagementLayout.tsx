@@ -6,6 +6,7 @@ import { Dashboard } from '../dashboard';
 import { ReportsView } from '../reports';
 import { ProjectsPage, ProjectSettingsModal, NewProjectModal } from '../projects';
 import { BoardHeader, KanbanBoard, ListView, ProjectSwitcher, TaskDetailModal } from '../board';
+import { TaskAiPanel } from '../ai';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useProjects } from '../../hooks/useProjects';
 import { useTaskRealtime, useTaskSocketWarmup } from '../../hooks/useTaskRealtime';
@@ -16,6 +17,7 @@ export function TaskManagementLayout() {
   const activeView = useTasksUIStore((s) => s.activeView);
   const selectedId = useTasksUIStore((s) => s.selectedProjectId);
   const boardView = useTasksUIStore((s) => s.boardView);
+  const isAiPanelOpen = useTasksUIStore((s) => s.isAiPanelOpen);
   // Sửa/duy trì UserSnapshot chuẩn trước khi hiển thị tên trong task-service.
   useCurrentUserSnapshotSync();
   // Kết nối socket ngay khi vào /work — board mở lần đầu không tốn handshake
@@ -32,7 +34,7 @@ export function TaskManagementLayout() {
     <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden md:gap-3">
       <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <main className="relative min-h-0 flex-1 overflow-hidden bg-background md:rounded-2xl md:border">
           {activeView === 'home' && <Dashboard />}
           {activeView === 'projects' && <ProjectsPage />}
@@ -63,6 +65,7 @@ export function TaskManagementLayout() {
               </div>
             ))}
         </main>
+        {isAiPanelOpen && <TaskAiPanel />}
       </div>
 
       <NewProjectModal open={newProjectOpen} onOpenChange={setNewProjectOpen} />

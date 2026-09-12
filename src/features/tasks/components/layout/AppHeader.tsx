@@ -1,8 +1,10 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
+import { AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip/Tooltip';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useProjectsInfinite } from '../../hooks/useProjectsInfinite';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -20,6 +22,8 @@ export function AppHeader({ onCreateProject }: AppHeaderProps) {
   const setProjectSearch = useTasksUIStore((s) => s.setProjectSearch);
   const setActiveView = useTasksUIStore((s) => s.setActiveView);
   const setSelected = useTasksUIStore((s) => s.setSelectedProjectId);
+  const isAiPanelOpen = useTasksUIStore((s) => s.isAiPanelOpen);
+  const toggleAiPanel = useTasksUIStore((s) => s.toggleAiPanel);
 
   // Cùng query key với Dashboard/ProjectsPage → dùng chung cache, không gọi thừa.
   const debounced = useDebouncedValue(projectSearch, 300);
@@ -65,6 +69,24 @@ export function AppHeader({ onCreateProject }: AppHeaderProps) {
       </div>
 
       <ActivityNotifications />
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon-sm"
+              variant={isAiPanelOpen ? 'secondary' : 'ghost'}
+              onClick={toggleAiPanel}
+              aria-label="Trợ lý AI"
+              aria-controls="task-ai-panel"
+              aria-expanded={isAiPanelOpen}
+            >
+              <AiMascot className="size-7" alt="" />
+            </Button>
+          }
+        />
+        <TooltipContent side="bottom">Trợ lý AI</TooltipContent>
+      </Tooltip>
 
       <Button
         size="sm"
