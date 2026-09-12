@@ -103,6 +103,14 @@ export function TaskDetailSidebar({
   );
   const [gemReason, setGemReason] = useState("");
   const [isEstimatingGem, setIsEstimatingGem] = useState(false);
+  // Modal dùng chung khi đi từ task con về task cha: reset ô gem theo task đang mở ngay
+  // trong lúc render (mẫu "adjust state on prop change" của React), tránh giữ gem của task trước.
+  const [syncedTaskId, setSyncedTaskId] = useState(taskId);
+  if (syncedTaskId !== taskId) {
+    setSyncedTaskId(taskId);
+    setGemDraft(task.gem == null ? "" : String(task.gem));
+    setGemReason("");
+  }
   const { data: projectTags = [] } = useProjectTags(projectId);
   const { data: members = [] } = useMembers(projectId);
 
