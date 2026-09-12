@@ -1,13 +1,16 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { AiMascot } from '@/components/common/BrandAssets';
+import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
-import type { AiMessage, AiSession, AiSessionActions, AiStreamFn } from '@/features/ai';
+import type { AiStreamFn } from '@/features/ai';
+import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
 import { aiApi } from '@/services/ai.api';
+import { useTaskAiConversation } from '../../hooks/useTaskAiConversation';
+import { useTaskAiConversationTitle } from '../../hooks/useTaskAiConversationTitle';
 import { taskKeys } from '../../services/keys';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { buildTaskAiContext } from '../../lib/ai-context';
@@ -28,67 +31,6 @@ const TOOL_LABELS: Record<string, string> = {
   search_pages: 'Đang tìm ghi chú…', read_page: 'Đang đọc ghi chú…',
 };
 
-function createSession(): AiSession {
-  return { id: 'task-ai', title: 'Trợ lý công việc', messages: [], updatedAt: Date.now() };
-}
-
-function lastUserIndex(messages: AiMessage[]): number {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'user') return index;
-  }
-  return -1;
-}
-
-function clearFailure(message: AiMessage): AiMessage {
-  const next = { ...message };
-  delete next.status;
-  delete next.errorMessage;
-  return next;
-}
-
-function useTaskAiSession(): { session: AiSession; actions: AiSessionActions } {
-  const [session, setSession] = useState(createSession);
-  const sessionRef = useRef(session);
-  const commit = useCallback((messages: AiMessage[]): void => {
-    const next = { ...sessionRef.current, messages, updatedAt: Date.now() };
-    sessionRef.current = next;
-    setSession(next);
-  }, []);
-
-  const actions = useMemo<AiSessionActions>(() => ({
-    createSession: () => sessionRef.current.id,
-    pushMessage: (_sessionId, message) => commit([...sessionRef.current.messages, message]),
-    dropLastAssistant: () => {
-      const messages = sessionRef.current.messages;
-      const next = messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages;
-      commit(next);
-      return next;
-    },
-    markLastUserFailed: (_sessionId, reason) => {
-      const index = lastUserIndex(sessionRef.current.messages);
-      if (index < 0) return;
-      commit(sessionRef.current.messages.map((message, currentIndex) =>
-        currentIndex === index ? { ...message, status: 'failed', errorMessage: reason } : message));
-    },
-    prepareResend: (_sessionId, index) => {
-      const target = sessionRef.current.messages[index];
-      if (!target) return [];
-      const history = sessionRef.current.messages.slice(0, index + 1)
-        .map((message, currentIndex) => currentIndex === index ? clearFailure(message) : message);
-      commit(history);
-      return history;
-    },
-    removeMessage: (_sessionId, index) => {
-      const target = sessionRef.current.messages[index];
-      if (!target) return null;
-      commit(sessionRef.current.messages.filter((_, currentIndex) => currentIndex !== index));
-      return target;
-    },
-  }), [commit]);
-
-  return { session, actions };
-}
-
 function handleInputKeyDown(
   event: React.KeyboardEvent<HTMLTextAreaElement>,
   onSend: () => void,
@@ -107,7 +49,22 @@ export function TaskAiPanel() {
   const selectedProjectId = useTasksUIStore((state) => state.selectedProjectId);
   const toggleAiPanel = useTasksUIStore((state) => state.toggleAiPanel);
   const queryClient = useQueryClient();
-  const { session, actions } = useTaskAiSession();
+  const {
+    conversations,
+    activeId,
+    session,
+    actions,
+    isLoading,
+    isError,
+    select,
+    startNew,
+    refetch,
+  } = useTaskAiConversation(selectedProjectId);
+  const generatedTitle = useTaskAiConversationTitle({
+    activeId,
+    conversations,
+    messages: session.messages,
+  });
 
   const stream = useCallback<AiStreamFn>((messages, attachments, options) =>
     aiApi.chatStream(
@@ -129,11 +86,16 @@ export function TaskAiPanel() {
     }
   }, [queryClient, selectedProjectId]);
   const conversation = useAiConversation({
-    streamKey: 'tasks:assistant', session, actions, stream, onTool, onSettled,
+    streamKey: `tasks:assistant:${selectedProjectId ?? 'all'}`,
+    session,
+    actions,
+    stream,
+    onTool,
+    onSettled,
   });
 
   async function handleSend(prompt: string): Promise<void> {
-    if (conversation.loading || !prompt.trim()) return;
+    if (isLoading || conversation.loading || !prompt.trim()) return;
     setInput('');
     setStatus(DEFAULT_STATUS);
     hasMutationRef.current = false;
@@ -151,34 +113,63 @@ export function TaskAiPanel() {
     action();
   }
 
+  const activeSummary = conversations.find(({ id }) => id === activeId);
+  const activeTitle = generatedTitle ?? activeSummary?.title ?? (activeId ? session.title : null);
+
   return (
     <aside
       id="task-ai-panel"
       aria-label="Trợ lý AI"
-      className="absolute inset-0 z-20 flex min-h-0 flex-col overflow-hidden border-l bg-background md:relative md:inset-auto md:w-[360px] md:shrink-0"
+      className="absolute inset-y-0 right-0 z-30 flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-xl md:max-w-[420px] md:rounded-l-2xl xl:relative xl:inset-auto xl:z-auto xl:w-[390px] xl:max-w-none xl:shrink-0 xl:rounded-2xl xl:border xl:shadow-subtle"
     >
-      <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
-        <div className="flex items-center gap-2">
-          <AiMascot className="size-8" alt="" />
-          <h2 className="text-sm font-bold text-foreground">Trợ lý công việc</h2>
+      <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <AiAvatar className="size-9 shadow-micro ring-1 ring-primary/15" />
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-bold text-foreground">Trợ lý công việc</h2>
+            <p className="truncate text-xs text-muted-foreground">Hỏi, tạo và cập nhật công việc</p>
+          </div>
         </div>
-        <Button size="icon-sm" variant="ghost" onClick={toggleAiPanel} aria-label="Đóng trợ lý AI">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="size-11 shrink-0 rounded-xl"
+          onClick={toggleAiPanel}
+          aria-label="Đóng trợ lý AI"
+        >
           <X className="size-4" />
         </Button>
       </header>
 
+      <AiConversationBar
+        conversations={conversations}
+        activeId={activeId}
+        activeTitle={activeTitle}
+        isLoading={isLoading}
+        isError={isError}
+        onSelect={select}
+        onStartNew={startNew}
+        onRetry={refetch}
+      />
+
       {session.messages.length === 0 && !conversation.loading ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-5 text-center">
-          <AiMascot className="size-24" alt="" />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-8 text-center">
+          <AiMascot className="size-28 drop-shadow-[0_14px_22px_rgb(61_31_91/0.14)]" alt="" />
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">Bạn muốn xử lý việc gì?</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
               Chọn một gợi ý hoặc nhập yêu cầu cho Halo AI.
             </p>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex w-full max-w-[260px] flex-col gap-2">
             {SUGGESTIONS.map((prompt) => (
-              <Button key={prompt} size="sm" variant="outline" onClick={() => void handleSend(prompt)}>
+              <Button
+                key={prompt}
+                size="sm"
+                variant="secondary"
+                className="h-auto min-h-10 w-full justify-start whitespace-normal rounded-xl px-4 py-2.5 text-left leading-snug"
+                onClick={() => void handleSend(prompt)}
+              >
                 {prompt}
               </Button>
             ))}
@@ -202,8 +193,9 @@ export function TaskAiPanel() {
         </p>
       )}
       <AiChatInput
+        variant="panel"
         input={input}
-        loading={conversation.loading}
+        loading={isLoading || conversation.loading}
         textareaRef={textareaRef}
         onInputChange={setInput}
         onResize={() => undefined}

@@ -19,6 +19,8 @@ type TasksUIState = {
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
+  aiConversationByProjectId: Record<string, string | null>;
+  setAiConversation: (projectId: string, conversationId: string | null) => void;
   /** Ngăn xếp drill-down subtask (id các task con dưới task gốc đang mở). */
   subtaskPath: string[];
   openSubtask: (id: string) => void;
@@ -43,6 +45,14 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   selectedTaskId: null,
   openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
   closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),
+  aiConversationByProjectId: {},
+  setAiConversation: (projectId, conversationId) =>
+    set((state) => ({
+      aiConversationByProjectId: {
+        ...state.aiConversationByProjectId,
+        [projectId]: conversationId,
+      },
+    })),
   subtaskPath: [],
   openSubtask: (id) => set((s) => ({ subtaskPath: [...s.subtaskPath, id] })),
   navigateSubtaskBack: () => set((s) => ({ subtaskPath: s.subtaskPath.slice(0, -1) })),

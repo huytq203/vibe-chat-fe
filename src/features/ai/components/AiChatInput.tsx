@@ -16,7 +16,7 @@ interface AiChatInputProps {
   attachmentError?: string | null;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
-  variant?: AiMessageVariant;
+  variant?: AiMessageVariant | 'panel';
   onInputChange: (value: string) => void;
   onResize: () => void;
   onKeyDown: (
@@ -52,6 +52,7 @@ export function AiChatInput({
 }: AiChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPage = variant === 'page';
+  const isPanel = variant === 'panel';
   const attachmentControls =
     attachments && attachmentError !== undefined && onAddFiles && onRemoveAttachment
       ? { attachments, attachmentError, onAddFiles, onRemoveAttachment }
@@ -71,7 +72,9 @@ export function AiChatInput({
       className={cn(
         isPage
           ? 'border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:bg-sidebar/90 md:shadow-subtle md:backdrop-blur-md'
-          : 'border-t border-border p-3',
+          : isPanel
+            ? 'rounded-xl border border-border bg-muted/35 p-2'
+            : 'border-t border-border p-3',
       )}
     >
       {attachmentControls && (
@@ -144,13 +147,13 @@ export function AiChatInput({
 
       {/* Bàn phím ảo không có Shift+Enter → hint chỉ có nghĩa khi gõ bằng bàn phím cứng. */}
       {isPage && (
-        <p className="hidden items-center justify-end gap-1.5 px-1 pt-1.5 text-[11px] text-muted-foreground md:flex">
-          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground/70">
+        <p className="hidden items-center justify-end gap-1.5 px-1 pt-1.5 text-xs text-muted-foreground md:flex">
+          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-xs font-medium text-foreground/70">
             Enter
           </kbd>
           để gửi
           <span aria-hidden="true">·</span>
-          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground/70">
+          <kbd className="rounded-md bg-muted px-1.5 py-0.5 font-sans text-xs font-medium text-foreground/70">
             Shift + Enter
           </kbd>
           để xuống dòng
@@ -158,6 +161,14 @@ export function AiChatInput({
       )}
     </div>
   );
+
+  if (isPanel) {
+    return (
+      <div className="shrink-0 px-3 pb-[max(var(--safe-bottom),0.75rem)] pt-2">
+        {composer}
+      </div>
+    );
+  }
 
   if (!isPage) return <div className="shrink-0">{composer}</div>;
 

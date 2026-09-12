@@ -4,6 +4,38 @@ import { aiApi } from '@/services/ai.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { TaskAiPanel } from './TaskAiPanel';
 
+const sessionActions = {
+  createSession: vi.fn(() => 'task-ai'),
+  pushMessage: vi.fn(),
+  dropLastAssistant: vi.fn(() => []),
+  markLastUserFailed: vi.fn(),
+  prepareResend: vi.fn(() => []),
+  removeMessage: vi.fn(() => null),
+};
+
+vi.mock('@/features/tasks/hooks/useTaskAiConversation', () => ({
+  useTaskAiConversation: () => ({
+    conversations: [],
+    activeId: null,
+    session: {
+      id: 'task-ai',
+      title: 'Cuộc trò chuyện mới',
+      messages: [],
+      updatedAt: 0,
+    },
+    actions: sessionActions,
+    isLoading: false,
+    isError: false,
+    select: vi.fn(),
+    startNew: vi.fn(),
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/tasks/hooks/useTaskAiConversationTitle', () => ({
+  useTaskAiConversationTitle: () => null,
+}));
+
 vi.mock('@/services/ai.api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/ai.api')>();
   return {
@@ -15,7 +47,7 @@ vi.mock('@/services/ai.api', async (importOriginal) => {
   };
 });
 
-describe('TaskAiPanel', () => {
+describe('panel trợ lý AI cho công việc', () => {
   beforeEach(() => {
     vi.mocked(aiApi.chatStream).mockReset().mockResolvedValue('Đã xong');
     useTasksUIStore.setState({ selectedProjectId: 'project-1', isAiPanelOpen: true });
@@ -24,6 +56,10 @@ describe('TaskAiPanel', () => {
   it('hiển thị đủ ba gợi ý khi chưa có hội thoại', () => {
     renderWithProviders(<TaskAiPanel />);
 
+    expect(screen.getByRole('button', {
+      name: 'Cuộc trò chuyện mới, mở lịch sử hội thoại',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tạo hội thoại mới' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Việc của tôi đang mở' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tiến độ project này' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo task mới giao cho…' })).toBeInTheDocument();

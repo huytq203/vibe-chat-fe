@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
-import { AiMascot } from '@/components/common/BrandAssets';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip/Tooltip';
@@ -81,7 +81,7 @@ export function AppHeader({ onCreateProject }: AppHeaderProps) {
               aria-controls="task-ai-panel"
               aria-expanded={isAiPanelOpen}
             >
-              <AiMascot className="size-7" alt="" />
+              <AiAvatar className="size-7 bg-transparent" />
             </Button>
           }
         />

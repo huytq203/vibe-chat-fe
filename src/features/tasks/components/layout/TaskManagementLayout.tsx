@@ -34,7 +34,7 @@ export function TaskManagementLayout() {
     <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden md:gap-3">
       <AppHeader onCreateProject={() => setNewProjectOpen(true)} />
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden xl:gap-3">
         <main className="relative min-h-0 flex-1 overflow-hidden bg-background md:rounded-2xl md:border">
           {activeView === 'home' && <Dashboard />}
           {activeView === 'projects' && <ProjectsPage />}
