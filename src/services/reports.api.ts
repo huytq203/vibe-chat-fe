@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client';
+import { taskClient } from '@/features/tasks/lib/task-client';
 import type { CreateReportInput } from '@/features/reports/types';
 import type {
   Leaderboard,
@@ -10,13 +11,11 @@ import type {
 export const reportsApi = {
   create: (input: CreateReportInput) =>
     apiClient.post<{ id: string }>('/api/v1/reports', { body: input }),
+  // Hai API này thuộc task-service → phải đi qua taskClient (proxy /task-proxy), không phải apiClient của chat.
   leaderboard: (projectId: string, period: ReportPeriod) =>
-    apiClient.get<Leaderboard>(
-      `/api/v1/projects/${projectId}/stats/leaderboard`,
-      { query: { period } },
+    taskClient.get<Leaderboard>(
+      `/api/v1/projects/${projectId}/stats/leaderboard?period=${period}`,
     ),
   myPerformance: (period: ReportPeriod) =>
-    apiClient.get<MyPerformance>('/api/v1/stats/my-performance', {
-      query: { period },
-    }),
+    taskClient.get<MyPerformance>(`/api/v1/stats/my-performance?period=${period}`),
 };
