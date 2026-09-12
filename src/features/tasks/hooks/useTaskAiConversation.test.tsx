@@ -2,6 +2,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAiConversation } from '@/features/ai';
+import { clearStream } from '@/features/ai/lib/ai-stream-runner';
 import { useTasksUIStore } from '@/features/tasks/stores/tasks-ui.store';
 import { taskAiHistoryApi } from '@/services/task-ai-history.api';
 import { useTaskAiConversation } from './useTaskAiConversation';
@@ -32,6 +34,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  clearStream('tasks:project-1');
   vi.clearAllMocks();
 });
 
@@ -80,6 +83,48 @@ describe('lịch sử hội thoại AI của công việc', () => {
       expect.objectContaining({ role: 'user', content: 'Dự án đang tiến triển thế nào?' }),
     ]));
     expect(detail).toHaveBeenCalledWith('conversation-1');
+  });
+
+  it('nên giữ lịch sử cũ khi gửi thêm một lượt vào hội thoại đã chọn', async () => {
+    detail.mockResolvedValue({
+      id: 'conversation-1',
+      title: 'Tiến độ dự án',
+      messages: [{
+        id: 'message-1',
+        role: 'user',
+        content: 'Câu hỏi cũ',
+        createdAt: '2026-09-12T08:00:00.000Z',
+      }, {
+        id: 'message-2',
+        role: 'assistant',
+        content: 'Câu trả lời cũ',
+        createdAt: '2026-09-12T08:00:01.000Z',
+      }],
+    });
+    vi.mocked(taskAiHistoryApi.appendTurn).mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => {
+      const task = useTaskAiConversation('project-1');
+      const conversation = useAiConversation({
+        streamKey: 'tasks:project-1',
+        session: task.session,
+        actions: task.actions,
+        stream: async () => 'Câu trả lời mới',
+        onSettled: vi.fn(),
+      });
+      return { task, conversation };
+    }, { wrapper: createWrapper() });
+
+    act(() => result.current.task.select('conversation-1'));
+    await waitFor(() => expect(result.current.task.session.messages).toHaveLength(2));
+
+    await act(async () => result.current.conversation.send('Câu hỏi mới', []));
+
+    await waitFor(() => expect(result.current.task.session.messages).toEqual([
+      expect.objectContaining({ role: 'user', content: 'Câu hỏi cũ' }),
+      expect.objectContaining({ role: 'assistant', content: 'Câu trả lời cũ' }),
+      expect.objectContaining({ role: 'user', content: 'Câu hỏi mới' }),
+      expect.objectContaining({ role: 'assistant', content: 'Câu trả lời mới' }),
+    ]));
   });
 
   it('nên tạo lại phiên nháp mà chưa ghi lên máy chủ', async () => {

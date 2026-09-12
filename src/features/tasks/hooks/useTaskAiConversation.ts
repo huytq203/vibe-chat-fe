@@ -64,7 +64,9 @@ function useStableActions(
       update: (updater) => settersRef.current.setLocal((previous) => {
         if (loadingRef.current) return previous;
         const current = scopeRef.current;
-        const source = previous.scope === current.scope && previous.activeId === current.activeId
+        const source = previous.scope === current.scope
+          && previous.activeId === current.activeId
+          && previous.dirty
           ? previous.value
           : sessionRef.current;
         return {
