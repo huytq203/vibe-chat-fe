@@ -37,7 +37,7 @@ async function generateTitle({ id, question }: TitleInput): Promise<{ id: string
   const fallback = fallbackTitle(question);
   let title = fallback;
   try {
-    const answer = await aiApi.chat([{
+    const answer = await aiApi.completeOnce([{
       role: 'user',
       content: `Đặt tiêu đề tiếng Việt tối đa 6 từ. Chỉ trả về tiêu đề:\n${question}`,
     }]);

@@ -6,12 +6,12 @@ import { useAiConversationTitle } from '@/features/notes/hooks/useAiConversation
 import { aiApi } from '@/services/ai.api';
 import { notionAiHistoryApi } from '@/services/notion-ai-history.api';
 
-vi.mock('@/services/ai.api', () => ({ aiApi: { chat: vi.fn() } }));
+vi.mock('@/services/ai.api', () => ({ aiApi: { completeOnce: vi.fn() } }));
 vi.mock('@/services/notion-ai-history.api', () => ({
   notionAiHistoryApi: { rename: vi.fn() },
 }));
 
-const chat = vi.mocked(aiApi.chat);
+const chat = vi.mocked(aiApi.completeOnce);
 const rename = vi.mocked(notionAiHistoryApi.rename);
 
 function wrapper() {

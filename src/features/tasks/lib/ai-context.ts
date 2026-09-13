@@ -1,20 +1,9 @@
 import type { AiChatContext } from '@/services/ai.api';
-
-function padDatePart(value: number): string {
-  return String(value).padStart(2, '0');
-}
+import { buildAiContext } from '@/features/ai/lib/build-ai-context';
 
 export function buildTaskAiContext(
   projectId: string | null,
   now = new Date(),
 ): AiChatContext & Required<Pick<AiChatContext, 'today' | 'timezone'>> {
-  const year = now.getFullYear();
-  const month = padDatePart(now.getMonth() + 1);
-  const day = padDatePart(now.getDate());
-
-  return {
-    today: `${year}-${month}-${day}`,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    ...(projectId ? { projectId } : {}),
-  };
+  return buildAiContext(projectId ? { projectId } : {}, now);
 }

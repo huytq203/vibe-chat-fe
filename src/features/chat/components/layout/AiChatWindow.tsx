@@ -1,5 +1,6 @@
 'use client';
 
+import { buildAiContext } from '@/features/ai/lib/build-ai-context';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { type DraggableData } from 'react-draggable';
@@ -41,7 +42,7 @@ export function AiChatWindow() {
       history,
       sentAttachments,
       { ...options, onDone: ({ conversationId }) => remember(conversationId) },
-      {},
+      buildAiContext(),
       activeId ?? undefined,
     ), [activeId, remember]);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { buildAiContext } from '@/features/ai/lib/build-ai-context';
 import { useCallback, useEffect, useState } from 'react';
 import { AiChatHeader } from './AiChatHeader';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
@@ -42,7 +43,7 @@ export function AiChatMain({
       messages,
       sentAttachments,
       { ...options, onDone: ({ conversationId }) => remember(conversationId) },
-      {},
+      buildAiContext(),
       activeId ?? undefined,
     ), [activeId, remember]);
   const { loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard } =

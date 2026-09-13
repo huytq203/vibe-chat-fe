@@ -133,7 +133,8 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
       expect.arrayContaining([expect.objectContaining({ content: 'Tóm tắt giúp tôi' })]),
       undefined,
       expect.objectContaining({ onDelta: expect.any(Function) }),
-      {},
+      // BE bắt buộc today/timezone — gửi {} sẽ bị 400
+      expect.objectContaining({ today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), timezone: expect.any(String) }),
       RECENT_ID,
     );
   });

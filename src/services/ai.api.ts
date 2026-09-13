@@ -122,6 +122,18 @@ async function chat(
   return arguments.length >= 4 ? result : result.content;
 }
 
+/**
+ * Lượt tiện ích một lần (sinh tiêu đề, tóm tắt nhanh…) — `persist:false` để BE
+ * không tạo hội thoại "ma" trong lịch sử người dùng.
+ */
+async function completeOnce(messages: AiChatMessage[]): Promise<string> {
+  const result = await apiClient.post<AiChatResult>('/api/v1/ai/chat', {
+    body: { ...buildBody(messages), persist: false },
+    service: 'ai' as never,
+  });
+  return result.content;
+}
+
 async function consume(
   response: Response,
   onDelta: (text: string) => void,
@@ -173,6 +185,7 @@ async function consume(
  */
 export const aiApi = {
   chat,
+  completeOnce,
 
   estimateGem: (input: EstimateGemInput) =>
     apiClient.post<EstimateGemResult>('/api/v1/ai/tasks/estimate-gem', {
