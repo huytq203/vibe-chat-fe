@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import { isToday } from 'date-fns';
-import { Check, ChevronDown, MessageSquarePlus } from 'lucide-react';
+import { Check, ChevronDown, MessageSquarePlus, Trash2 } from 'lucide-react';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -11,16 +11,17 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover/Popover';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
-import { NEW_CONVERSATION_TITLE } from '@/features/notes/lib/note-ai-history';
 import { cn } from '@/lib/utils/cn';
-import type { ConversationSummary } from '@/services/notion-ai-history.api';
+import type { AiConversationSummary } from '@/services/ai-conversations.api';
+
+const NEW_CONVERSATION_TITLE = 'Cuộc trò chuyện mới';
 
 interface ConversationGroups {
-  today: ConversationSummary[];
-  older: ConversationSummary[];
+  today: AiConversationSummary[];
+  older: AiConversationSummary[];
 }
 
-function groupConversations(conversations: ConversationSummary[]): ConversationGroups {
+function groupConversations(conversations: AiConversationSummary[]): ConversationGroups {
   const sorted = [...conversations].sort(
     (left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
   );
@@ -30,11 +31,13 @@ function groupConversations(conversations: ConversationSummary[]): ConversationG
   };
 }
 
-function ConversationGroup({ label, items, activeId, onSelect }: {
+function ConversationGroup({ label, items, activeId, onSelect, onDelete, isDeleting }: {
   label: string;
-  items: ConversationSummary[];
+  items: AiConversationSummary[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  isDeleting: (id: string) => boolean;
 }) {
   if (items.length === 0) return null;
   return (
@@ -46,24 +49,40 @@ function ConversationGroup({ label, items, activeId, onSelect }: {
         {label}
       </h2>
       <div className="space-y-0.5">
-        {items.map((conversation) => (
-          <Button
-            key={conversation.id}
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'h-8 w-full justify-start px-2 text-start font-normal',
-              conversation.id === activeId && 'bg-accent text-foreground',
-            )}
-            onClick={() => onSelect(conversation.id)}
-          >
-            <span className="min-w-0 flex-1 truncate">
-              {conversation.title?.trim() || NEW_CONVERSATION_TITLE}
-            </span>
-            {conversation.id === activeId && <Check className="size-3.5 shrink-0" aria-hidden="true" />}
-          </Button>
-        ))}
+        {items.map((conversation) => {
+          const title = conversation.title?.trim() || NEW_CONVERSATION_TITLE;
+          return (
+            <div key={conversation.id} className="group flex items-center gap-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-8 min-w-0 flex-1 justify-start px-2 text-start font-normal',
+                  conversation.id === activeId && 'bg-accent text-foreground',
+                )}
+                onClick={() => onSelect(conversation.id)}
+              >
+                <span className="min-w-0 flex-1 truncate">{title}</span>
+                {conversation.id === activeId && (
+                  <Check className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={`Xoá ${title}`}
+                title={`Xoá ${title}`}
+                disabled={isDeleting(conversation.id)}
+                onClick={() => onDelete(conversation.id)}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -75,6 +94,8 @@ function ConversationListState({
   isLoading,
   isError,
   onSelect,
+  onDelete,
+  isDeleting,
   onRetry,
 }: Omit<AiConversationBarProps, 'activeTitle' | 'onStartNew'>): ReactNode {
   const groups = useMemo(() => groupConversations(conversations), [conversations]);
@@ -85,8 +106,22 @@ function ConversationListState({
   }
   return (
     <div className="max-h-72 overflow-y-auto pb-1">
-      <ConversationGroup label="Hôm nay" items={groups.today} activeId={activeId} onSelect={onSelect} />
-      <ConversationGroup label="Cũ hơn" items={groups.older} activeId={activeId} onSelect={onSelect} />
+      <ConversationGroup
+        label="Hôm nay"
+        items={groups.today}
+        activeId={activeId}
+        onSelect={onSelect}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+      />
+      <ConversationGroup
+        label="Cũ hơn"
+        items={groups.older}
+        activeId={activeId}
+        onSelect={onSelect}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
@@ -102,13 +137,15 @@ function ConversationListSkeleton() {
 }
 
 interface AiConversationBarProps {
-  conversations: ConversationSummary[];
+  conversations: AiConversationSummary[];
   activeId: string | null;
   activeTitle: string | null;
   isLoading: boolean;
   isError: boolean;
   onSelect: (id: string) => void;
   onStartNew: () => void;
+  onDelete: (id: string) => void;
+  isDeleting: (id: string) => boolean;
   onRetry: () => void;
 }
 
@@ -123,6 +160,8 @@ function ConversationPopover({
   isLoading,
   isError,
   onSelect,
+  onDelete,
+  isDeleting,
   onRetry,
 }: ConversationPopoverProps) {
   const [open, setOpen] = useState(false);
@@ -157,6 +196,8 @@ function ConversationPopover({
           isLoading={isLoading}
           isError={isError}
           onSelect={selectAndClose}
+          onDelete={onDelete}
+          isDeleting={isDeleting}
           onRetry={onRetry}
         />
       </PopoverContent>

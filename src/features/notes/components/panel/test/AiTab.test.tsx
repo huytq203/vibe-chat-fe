@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { aiConversationsApi } from '@/services/ai-conversations.api';
+import { aiApi } from '@/services/ai.api';
 import { notionAiApi } from '@/services/notion-ai.api';
 import { AiTab } from '@/features/notes/components/panel/AiTab';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
@@ -17,8 +19,17 @@ class MockFileReader {
   }
 }
 
+const aiConversationMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  detail: vi.fn(),
+  remove: vi.fn(),
+}));
+
 vi.mock('@/services/ai.api', () => ({
-  aiApi: { chat: vi.fn().mockResolvedValue('Tiêu đề') },
+  aiApi: { chatStream: vi.fn() },
+}));
+vi.mock('@/services/ai-conversations.api', () => ({
+  aiConversationsApi: aiConversationMocks,
 }));
 
 const notionMocks = vi.hoisted(() => ({
@@ -43,17 +54,6 @@ vi.mock('@/services/notion.api', () => ({
 vi.mock('@/services/notion-export.api', () => ({
   exportApi: { markdown: exportMocks.markdown },
 }));
-vi.mock('@/services/notion-ai-history.api', () => ({
-  notionAiHistoryApi: {
-    list: vi.fn().mockResolvedValue([]),
-    create: vi.fn().mockResolvedValue({ id: 'conversation-1' }),
-    detail: vi.fn(),
-    appendTurn: vi.fn().mockResolvedValue({ ok: true }),
-    rename: vi.fn(),
-    remove: vi.fn(),
-    uploadAttachment: vi.fn(),
-  },
-}));
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getTotalSize: () => count * 72,
@@ -67,7 +67,8 @@ vi.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
-const chatStream = vi.mocked(notionAiApi.chatStream);
+const chatStream = vi.mocked(aiApi.chatStream);
+const notionChatStream = vi.mocked(notionAiApi.chatStream);
 
 function renderAiTab(pageId = 'page-1') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -78,9 +79,16 @@ function renderAiTab(pageId = 'page-1') {
   );
 }
 
-afterEach(() => {
+beforeEach(() => {
   chatStream.mockReset();
+  notionChatStream.mockReset();
+  aiConversationMocks.list.mockReset().mockResolvedValue([]);
+  aiConversationMocks.detail.mockReset();
+  aiConversationMocks.remove.mockReset().mockResolvedValue(undefined);
   notionMocks.listVersions.mockReset().mockResolvedValue([]);
+});
+
+afterEach(() => {
   useNotesUiStore.getState().setAiComposerDraft(null);
   useNotesUiStore.getState().setAiConversation('workspace-1', null);
   vi.unstubAllGlobals();
@@ -113,7 +121,7 @@ describe('tab AI của ghi chú', () => {
 
   it('nên hiện "Đang đọc trang…" khi luồng phát công cụ read_page', async () => {
     let finishStream: ((value: string) => void) | undefined;
-    chatStream.mockImplementation((_messages, _attachments, _context, options) => {
+    chatStream.mockImplementation((_messages, _attachments, options) => {
       options.onTool?.('read_page');
       return new Promise((resolve) => { finishStream = resolve; });
     });
@@ -127,19 +135,93 @@ describe('tab AI của ghi chú', () => {
     await act(async () => finishStream?.('Đã đọc'));
   });
 
-  it('nên gửi pageId của trang đang mở khi người dùng đặt câu hỏi', async () => {
-    chatStream.mockResolvedValue('Đã xong');
+  it('nên lấy danh sách NOTES và chỉ hiện hội thoại của trang đang mở', async () => {
+    aiConversationMocks.list.mockResolvedValue([
+      {
+        id: 'conversation-page-1', title: 'Trang đang mở', origin: 'NOTES',
+        context: { workspaceId: 'workspace-1', pageId: 'page-1' },
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'conversation-page-2', title: 'Trang khác', origin: 'NOTES',
+        context: { workspaceId: 'workspace-1', pageId: 'page-2' },
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    const user = userEvent.setup();
+    renderAiTab();
+
+    await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalledWith({ origin: 'NOTES' }));
+    await user.click(screen.getByRole('button', { name: /Cuộc trò chuyện mới/ }));
+
+    expect(screen.getByRole('button', { name: 'Trang đang mở' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Trang khác' })).not.toBeInTheDocument();
+  });
+
+  it('nên gửi conversationId và context đầy đủ qua ai-service', async () => {
+    aiConversationMocks.list.mockResolvedValue([{
+      id: 'conversation-page-42', title: 'Trao đổi trang', origin: 'NOTES',
+      context: { workspaceId: 'workspace-1', pageId: 'page-42' },
+      updatedAt: new Date().toISOString(),
+    }]);
+    aiConversationMocks.detail.mockResolvedValue({
+      id: 'conversation-page-42', title: 'Trao đổi trang', origin: 'NOTES',
+      context: { workspaceId: 'workspace-1', pageId: 'page-42' }, messages: [],
+    });
+    chatStream.mockImplementation(async (_messages, _attachments, options) => {
+      options.onDelta('Đã xong');
+      options.onDone?.({ conversationId: 'conversation-page-42' });
+      return 'Đã xong';
+    });
     const user = userEvent.setup();
     renderAiTab('page-42');
+
+    await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalled());
+    await user.click(screen.getByRole('button', { name: /Cuộc trò chuyện mới/ }));
+    await user.click(screen.getByRole('button', { name: 'Trao đổi trang' }));
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith('conversation-page-42'));
 
     await user.type(screen.getByRole('textbox'), 'Trang này nói gì?');
     await user.click(screen.getByRole('button', { name: 'Gửi' }));
 
     await waitFor(() => expect(chatStream).toHaveBeenCalled());
-    expect(chatStream.mock.calls[0]?.[2]).toEqual({
-      workspaceId: 'workspace-1',
-      pageId: 'page-42',
+    expect(chatStream.mock.calls[0]?.[3]).toEqual(expect.objectContaining({
+      workspaceId: 'workspace-1', pageId: 'page-42',
+      today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      timezone: expect.any(String),
+    }));
+    expect(chatStream.mock.calls[0]?.[4]).toBe('conversation-page-42');
+    expect(notionChatStream).not.toHaveBeenCalled();
+  });
+
+  it('nên tạo hội thoại mới và xoá hội thoại qua ai-service', async () => {
+    aiConversationMocks.list.mockResolvedValue([{
+      id: 'conversation-old', title: 'Hội thoại cần xoá', origin: 'NOTES',
+      context: { workspaceId: 'workspace-1', pageId: 'page-1' },
+      updatedAt: new Date().toISOString(),
+    }]);
+    aiConversationMocks.detail.mockResolvedValue({
+      id: 'conversation-new', title: 'Bắt đầu mới', origin: 'NOTES',
+      context: { workspaceId: 'workspace-1', pageId: 'page-1' }, messages: [],
     });
+    chatStream.mockImplementation(async (_messages, _attachments, options) => {
+      options.onDelta('Đã tạo');
+      options.onDone?.({ conversationId: 'conversation-new' });
+      return 'Đã tạo';
+    });
+    const user = userEvent.setup();
+    renderAiTab();
+
+    await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalled());
+    await user.type(screen.getByRole('textbox'), 'Bắt đầu mới');
+    await user.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(chatStream).toHaveBeenCalled());
+    expect(chatStream.mock.calls[0]?.[4]).toBeUndefined();
+
+    await user.click(screen.getByRole('button', { name: /Bắt đầu mới|Cuộc trò chuyện mới/ }));
+    await user.click(screen.getByRole('button', { name: 'Xoá Hội thoại cần xoá' }));
+    await waitFor(() => expect(aiConversationsApi.remove).toHaveBeenCalledWith('conversation-old'));
+    expect(notionChatStream).not.toHaveBeenCalled();
   });
 
   it('nên hiện thông báo lỗi khi lượt trả lời thất bại', async () => {

@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
@@ -10,13 +9,13 @@ import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
 import { AiPageChangeCard } from '@/features/notes/components/panel/AiPageChangeCard';
-import { useAiConversationTitle } from '@/features/notes/hooks/useAiConversationTitle';
+import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
+import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
+import { buildAiContext } from '@/features/ai/lib/build-ai-context';
 import { useAiPageChange } from '@/features/notes/hooks/useAiPageChange';
-import { useNoteAiConversation } from '@/features/notes/hooks/useNoteAiConversation';
 import { usePage } from '@/features/notes/hooks/use-query';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
-import { notionKeys } from '@/services/keys';
-import { notionAiApi } from '@/services/notion-ai.api';
+import { aiApi } from '@/services/ai.api';
 
 const DEFAULT_STATUS = 'Đang xử lý…';
 const SUGGESTIONS = ['Tóm tắt trang này', 'Chuẩn hoá định dạng'] as const;
@@ -72,19 +71,38 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
     useAiAttachments();
   const aiComposerDraft = useNotesUiStore((state) => state.aiComposerDraft);
   const setAiComposerDraft = useNotesUiStore((state) => state.setAiComposerDraft);
-  const queryClient = useQueryClient();
   const {
-    conversations, activeId, session, actions, isLoading, isError, select, startNew,
-  } = useNoteAiConversation(workspaceId, pageId);
-  const generatedTitle = useAiConversationTitle({
-    workspaceId, activeId, conversations, messages: session.messages,
+    conversations: allConversations,
+    activeId,
+    session,
+    actions,
+    isLoading,
+    isError,
+    select,
+    startNew,
+    remember,
+    refetch,
+  } = useAiConversations({
+    origin: 'NOTES',
+    // Scope theo trang: đổi trang là đổi hội thoại đang mở (không dính phiên của trang trước).
+    scope: `${workspaceId}:${pageId}`,
   });
+  const conversations = useMemo(() => allConversations.filter(({ context }) =>
+    context?.workspaceId === workspaceId && context.pageId === pageId),
+  [allConversations, pageId, workspaceId]);
+  const { remove, isDeleting } = useDeleteAiConversation('NOTES');
   const pageQuery = usePage(pageId);
   const { changedVersion, checkForChange, dismissChange } = useAiPageChange(pageId);
   const stream = useCallback<AiStreamFn>(
     (messages, messageAttachments, options) =>
-      notionAiApi.chatStream(messages, messageAttachments, { workspaceId, pageId }, options),
-    [workspaceId, pageId],
+      aiApi.chatStream(
+        messages,
+        messageAttachments,
+        { ...options, onDone: ({ conversationId }) => remember(conversationId) },
+        buildAiContext({ workspaceId, pageId }),
+        activeId ?? undefined,
+      ),
+    [activeId, pageId, remember, workspaceId],
   );
   const onSettled = useCallback(() => {
     setStatus(DEFAULT_STATUS);
@@ -93,7 +111,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   }, [checkForChange, focusInput]);
   const onTool = useCallback((name: string) => setStatus(toolLabel(name)), []);
   const conversation = useAiConversation({
-    streamKey: `notes:${workspaceId}`,
+    streamKey: `notes:${workspaceId}:${pageId}`,
     session,
     actions,
     stream,
@@ -128,16 +146,14 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
     focusInput();
   }
 
-  const retryHistory = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: notionKeys.aiConversations(workspaceId) });
-    if (activeId) {
-      void queryClient.invalidateQueries({ queryKey: notionKeys.aiConversation(activeId) });
-    }
-  }, [activeId, queryClient, workspaceId]);
+  async function handleDelete(id: string): Promise<void> {
+    if (activeId === id) startNew();
+    await remove(id);
+  }
 
   const messages = session.messages;
   const activeSummary = conversations.find(({ id }) => id === activeId);
-  const activeTitle = generatedTitle ?? activeSummary?.title ?? (activeId ? session.title : null);
+  const activeTitle = activeSummary?.title ?? (activeId ? session.title : null);
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden" aria-label="Trợ lý AI">
       <AiConversationBar
@@ -148,7 +164,9 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
         isError={isError}
         onSelect={select}
         onStartNew={startNew}
-        onRetry={retryHistory}
+        onDelete={(id) => void handleDelete(id)}
+        isDeleting={isDeleting}
+        onRetry={refetch}
       />
       {messages.length === 0 && !conversation.loading ? (
         <AiEmptyState onPick={(prompt) => void handleSend(prompt)} />

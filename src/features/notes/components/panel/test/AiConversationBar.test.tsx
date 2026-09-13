@@ -2,14 +2,20 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
-import type { ConversationSummary } from '@/services/notion-ai-history.api';
+import type { AiConversationSummary } from '@/services/ai-conversations.api';
 
 const TODAY = new Date().toISOString();
 const OLDER = new Date(Date.now() - 2 * 24 * 60 * 60 * 1_000).toISOString();
 
-const conversations: ConversationSummary[] = [
-  { id: 'today', title: 'Kế hoạch hôm nay', updatedAt: TODAY },
-  { id: 'older', title: 'Ghi chú cũ', updatedAt: OLDER },
+const conversations: AiConversationSummary[] = [
+  {
+    id: 'today', title: 'Kế hoạch hôm nay', origin: 'NOTES',
+    context: { workspaceId: 'workspace-1', pageId: 'page-1' }, updatedAt: TODAY,
+  },
+  {
+    id: 'older', title: 'Ghi chú cũ', origin: 'NOTES',
+    context: { workspaceId: 'workspace-1', pageId: 'page-1' }, updatedAt: OLDER,
+  },
 ];
 
 function renderBar(overrides: Partial<React.ComponentProps<typeof AiConversationBar>> = {}) {
@@ -21,6 +27,8 @@ function renderBar(overrides: Partial<React.ComponentProps<typeof AiConversation
     isError: false,
     onSelect: vi.fn(),
     onStartNew: vi.fn(),
+    onDelete: vi.fn(),
+    isDeleting: vi.fn(() => false),
     onRetry: vi.fn(),
     ...overrides,
   };
@@ -53,6 +61,16 @@ describe('thanh hội thoại AI của ghi chú', () => {
     await user.click(screen.getByRole('button', { name: 'Tạo hội thoại mới' }));
 
     expect(props.onStartNew).toHaveBeenCalledOnce();
+  });
+
+  it('nên xoá đúng hội thoại khi bấm nút thùng rác', async () => {
+    const user = userEvent.setup();
+    const props = renderBar();
+
+    await user.click(screen.getByRole('button', { name: /Kế hoạch hôm nay/ }));
+    await user.click(screen.getByRole('button', { name: 'Xoá Ghi chú cũ' }));
+
+    expect(props.onDelete).toHaveBeenCalledWith('older');
   });
 
   it('nên cho thử lại khi tải danh sách hội thoại thất bại', async () => {
