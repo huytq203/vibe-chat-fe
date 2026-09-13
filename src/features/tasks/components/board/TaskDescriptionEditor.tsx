@@ -147,7 +147,9 @@ export function TaskDescriptionEditor({
   };
 
   const exitEdit = (): void => {
-    onSave(normalize(editor.getHTML()));
+    const html = normalize(editor.getHTML());
+    // Không có gì thay đổi thì không PATCH — tránh lưu đè nội dung vừa được người/AI khác cập nhật.
+    if (html !== normalize(value || "")) onSave(html);
     editor.setEditable(false);
     setEditing(false);
   };

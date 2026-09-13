@@ -154,7 +154,12 @@ function writeTaskPayload(
   allowInvalidate = true,
 ): void {
   boardDelta(qc, projectId, (board) => applyTaskPayload(board, task), allowInvalidate);
-  qc.setQueryData(subKey(projectId, task.id, 'detail'), task);
+  // Payload sự kiện là thẻ board (không có description…) — chỉ MERGE lên detail đã có,
+  // không thay thế: thay thế sẽ làm editor mô tả thấy rỗng rồi lưu đè mất nội dung.
+  // Thẻ board không mang description có thẩm quyền — chỉ nhận description qua `changes`.
+  qc.setQueryData<RealtimeTask>(subKey(projectId, task.id, 'detail'), (previous) =>
+    previous ? { ...previous, ...task, description: previous.description } : previous,
+  );
 }
 
 function toSubtaskItem(task: RealtimeTask): SubtaskItem {
@@ -278,7 +283,14 @@ const EVENT_HANDLERS: Record<string, Handler> = {
     if (task) writeTaskPayload(qc, projectId, task, !local);
     else boardDelta(qc, projectId, (b) => applyTaskUpdated(b, ev), !local);
     if (local) return;
-    if (!task) invalidateDetail(qc, projectId, taskId);
+    // description không nằm trong thẻ board → ghi thẳng từ `changes` rồi tải lại detail cho chắc.
+    const description = ev.changes?.description;
+    if (description !== undefined) {
+      qc.setQueryData<RealtimeTask>(subKey(projectId, taskId, 'detail'), (previous) =>
+        previous ? { ...previous, description } : previous,
+      );
+    }
+    if (!task || description !== undefined) invalidateDetail(qc, projectId, taskId);
     invalidateSubtaskLists(qc, projectId);
     invalidateHistory(qc, projectId);
     invalidateFeed(qc);

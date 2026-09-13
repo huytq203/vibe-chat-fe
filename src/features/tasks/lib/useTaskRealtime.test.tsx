@@ -146,7 +146,10 @@ describe('realtime task chống bão request', () => {
   it('vá board và detail từ payload task mà không invalidate hai cache này', async () => {
     const client = new QueryClient();
     client.setQueryData(taskKeys.board(projectId), createBoard());
-    const setQueryData = vi.spyOn(client, 'setQueryData');
+    // Detail đã có sẵn kèm mô tả — payload là thẻ board không có description nên phải MERGE, giữ mô tả.
+    client.setQueryData(['tasks', projectId, taskId, 'detail'], {
+      ...createTask(), title: 'Việc cũ', description: '<p>Mô tả AI vừa ghi</p>',
+    });
     const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
     renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
 
@@ -159,9 +162,8 @@ describe('realtime task chống bão request', () => {
     });
     await act(() => vi.advanceTimersByTimeAsync(400));
 
-    expect(setQueryData).toHaveBeenCalledWith(
-      ['tasks', projectId, taskId, 'detail'],
-      expect.objectContaining({ id: taskId, title: 'Việc đã cập nhật' }),
+    expect(client.getQueryData(['tasks', projectId, taskId, 'detail'])).toEqual(
+      expect.objectContaining({ id: taskId, title: 'Việc đã cập nhật', description: '<p>Mô tả AI vừa ghi</p>' }),
     );
     const protectedCalls = invalidateQueries.mock.calls.filter(([filters]) => {
       const key = JSON.stringify(filters?.queryKey);
@@ -169,5 +171,30 @@ describe('realtime task chống bão request', () => {
         || key === JSON.stringify(['tasks', projectId, taskId, 'detail']);
     });
     expect(protectedCalls).toHaveLength(0);
+  });
+
+  it('ghi description từ changes vào detail rồi tải lại detail (thẻ board không mang mô tả)', async () => {
+    const client = new QueryClient();
+    client.setQueryData(taskKeys.board(projectId), createBoard());
+    client.setQueryData(['tasks', projectId, taskId, 'detail'], { ...createTask(), description: null });
+    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
+    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+
+    act(() => {
+      socketHandlers.get('task:updated')?.({
+        taskId,
+        changes: { description: '<p>Mô tả mới từ AI</p>' },
+        task: createTask(),
+      });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(400));
+
+    expect(client.getQueryData(['tasks', projectId, taskId, 'detail'])).toEqual(
+      expect.objectContaining({ description: '<p>Mô tả mới từ AI</p>' }),
+    );
+    expect(invalidateQueries).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['tasks', projectId, taskId, 'detail'] }),
+      expect.anything(),
+    );
   });
 });
