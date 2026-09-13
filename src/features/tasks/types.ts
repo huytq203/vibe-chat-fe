@@ -308,6 +308,67 @@ export interface MyPerformance {
   byProject: MyPerformanceProject[];
 }
 
+export interface Insights {
+  period: ReportPeriod;
+  from: string;
+  to: string;
+  timeline: {
+    date: string;
+    created: number;
+    completed: number;
+    gems: number;
+    open: number;
+  }[];
+  byPriority: {
+    priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+    total: number;
+    completed: number;
+    overdue: number;
+  }[];
+  byTag: {
+    tagId: string;
+    name: string;
+    color: string;
+    total: number;
+    completed: number;
+  }[];
+  byColumn: {
+    columnId: string;
+    name: string;
+    position: number;
+    count: number;
+  }[];
+  gemBuckets: {
+    bucket: '1-20' | '21-40' | '41-60' | '61-80' | '81-100' | 'none';
+    total: number;
+    completed: number;
+  }[];
+  avgGem: number | null;
+  dueBuckets: {
+    bucket: 'overdue' | 'today' | 'thisWeek' | 'later' | 'none';
+    count: number;
+  }[];
+  cycleTime: {
+    taskId: string;
+    title: string;
+    gem: number | null;
+    days: number;
+    onTime: boolean | null;
+    projectName: string;
+  }[];
+  workload: {
+    userId: string;
+    displayName: string;
+    open: number;
+    overdue: number;
+    gemsOpen: number;
+    completed: number;
+    gems: number;
+    onTimeRate: number | null;
+  }[];
+  weekdayHeat: { date: string; completed: number }[];
+}
+
 /** User từ directory chung (tìm để mời vào project) — khác Member (đã thuộc project) */
 export interface DirectoryUser {
   userId: string;

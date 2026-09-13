@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress/Progress';
 import { cn } from '@/lib/utils/cn';
 import { Panel, PanelState, StatBar, type StatBarItem } from '../common';
 import type { StatsOverview } from '../../types';
+import { ProjectProgressChart } from './insights/ProjectProgressChart';
 
 /** Số liệu dẫn xuất từ overview cho chart trạng thái (donut CSS thuần) */
 function deriveStatusBreakdown(data: StatsOverview) {
@@ -46,28 +47,7 @@ export function ReportsOverview({ data }: { data: StatsOverview }) {
       <StatBar items={buildStatItems(data, inProgress, donePct, progressPct)} />
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <Panel title="Tiến độ hoàn thành theo dự án">
-          {data.projects.length === 0 ? (
-            <PanelState>Chưa có dự án nào để thống kê.</PanelState>
-          ) : (
-            <div className="flex h-[190px] items-end gap-4 px-2 pb-1">
-              {data.projects.map((p) => (
-                <div key={p.projectId} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {p.completionRate}%
-                  </span>
-                  <div
-                    className="w-full rounded-t-md bg-gradient-to-t from-primary/40 to-primary"
-                    style={{ height: `${Math.max(p.completionRate, 3)}%` }}
-                  />
-                  <span className="w-full truncate text-center text-[11px] text-muted-foreground">
-                    {p.projectName}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
+        <ProjectProgressChart data={data} />
 
         <Panel title="Phân bổ trạng thái">
           <div className="grid place-items-center py-2">

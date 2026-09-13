@@ -26,4 +26,14 @@ describe('API báo cáo', () => {
       '/api/v1/stats/leaderboard?period=week&projectId=project+%2F+01',
     );
   });
+
+  it('nên gọi endpoint insights với kỳ và project đã chọn', async () => {
+    vi.mocked(taskClient.get).mockResolvedValue({ period: 'week' });
+
+    await reportsApi.insights('week', 'project-1');
+
+    expect(taskClient.get).toHaveBeenCalledWith(
+      '/api/v1/stats/insights?period=week&projectId=project-1',
+    );
+  });
 });

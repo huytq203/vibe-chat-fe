@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api/client';
 import { taskClient } from '@/features/tasks/lib/task-client';
 import type { CreateReportInput } from '@/features/reports/types';
 import type {
+  Insights,
   Leaderboard,
   MyPerformance,
   ReportPeriod,
@@ -25,4 +26,9 @@ export const reportsApi = {
   },
   myPerformance: (period: ReportPeriod) =>
     taskClient.get<MyPerformance>(`/api/v1/stats/my-performance?period=${period}`),
+  insights: (period: ReportPeriod, projectId?: string) => {
+    const query = new URLSearchParams({ period });
+    if (projectId) query.set('projectId', projectId);
+    return taskClient.get<Insights>(`/api/v1/stats/insights?${query.toString()}`);
+  },
 };

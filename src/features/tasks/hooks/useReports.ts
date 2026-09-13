@@ -33,3 +33,12 @@ export function useStatsOverview() {
     staleTime: 60_000,
   });
 }
+
+/** Truy vấn dữ liệu cho bộ biểu đồ insights theo bộ lọc báo cáo. */
+export function useInsights({ period, projectId }: UseReportsParams) {
+  return useQuery({
+    queryKey: ['reports', 'insights', period, projectId],
+    queryFn: () => reportsApi.insights(period, projectId),
+    staleTime: 60_000,
+  });
+}

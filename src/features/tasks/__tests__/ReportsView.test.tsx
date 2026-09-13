@@ -38,6 +38,7 @@ vi.mock('@/services/reports.api', () => ({
   reportsApi: {
     leaderboardAll: vi.fn(),
     myPerformance: vi.fn(),
+    insights: vi.fn(),
   },
 }));
 
@@ -79,11 +80,28 @@ const leaderboardData = {
   ],
 };
 
+const insightsData = {
+  period: 'month' as const,
+  from: '2026-08-01',
+  to: '2026-08-31',
+  timeline: [],
+  byPriority: [],
+  byTag: [],
+  byColumn: [],
+  gemBuckets: [],
+  avgGem: null,
+  dueBuckets: [],
+  cycleTime: [],
+  workload: [],
+  weekdayHeat: [],
+};
+
 describe('màn hình Báo cáo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(reportsApi.leaderboardAll).mockResolvedValue(leaderboardData);
     vi.mocked(reportsApi.myPerformance).mockResolvedValue(performanceData);
+    vi.mocked(reportsApi.insights).mockResolvedValue(insightsData);
   });
 
   it('gọi đúng API khi đổi kỳ và project', async () => {

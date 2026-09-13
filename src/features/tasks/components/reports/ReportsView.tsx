@@ -13,6 +13,7 @@ import { LeaderboardPanel } from './LeaderboardPanel';
 import { MyPerformancePanel } from './MyPerformancePanel';
 import { ReportsFilters } from './ReportsFilters';
 import { ReportsOverview } from './ReportsOverview';
+import { InsightsGrid } from './insights/InsightsGrid';
 
 export function ReportsView() {
   const [period, setPeriod] = useState<ReportPeriod>('month');
@@ -62,6 +63,13 @@ export function ReportsView() {
               <ReportsOverview data={overview.data} />
             ) : null}
           </section>
+
+          <InsightsGrid
+            period={period}
+            projectId={projectId}
+            overview={overview.data}
+            isOverviewPending={overview.isPending}
+          />
         </div>
       </div>
     </ScrollArea>
