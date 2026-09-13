@@ -58,4 +58,55 @@ describe('thanh lịch sử hội thoại AI hợp nhất', () => {
     expect(screen.getByText('📋 TASKS Tiến độ')).toBeInTheDocument();
     expect(screen.queryByText('📝 NOTES Tóm tắt')).not.toBeInTheDocument();
   });
+
+  it('gọi xoá đúng hội thoại khi bấm nút thùng rác', async () => {
+    const onDelete = vi.fn();
+    render(<AiConversationBar
+      conversations={conversations}
+      activeId={null}
+      activeTitle={null}
+      currentOrigin="TASKS"
+      isLoading={false}
+      isError={false}
+      onSelect={vi.fn()}
+      onStartNew={vi.fn()}
+      onDelete={onDelete}
+      isDeleting={() => false}
+      onRetry={vi.fn()}
+    />);
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Cuộc trò chuyện mới, mở lịch sử hội thoại',
+    }));
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'Xoá cuộc trò chuyện Tiến độ',
+    }));
+
+    expect(onDelete).toHaveBeenCalledWith('tasks-1');
+  });
+
+  it('khoá nút xoá và hiện trạng thái tải khi hội thoại đang được xoá', async () => {
+    render(<AiConversationBar
+      conversations={conversations}
+      activeId={null}
+      activeTitle={null}
+      currentOrigin="TASKS"
+      isLoading={false}
+      isError={false}
+      onSelect={vi.fn()}
+      onStartNew={vi.fn()}
+      onDelete={vi.fn()}
+      isDeleting={(id) => id === 'tasks-1'}
+      onRetry={vi.fn()}
+    />);
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Cuộc trò chuyện mới, mở lịch sử hội thoại',
+    }));
+
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Xoá cuộc trò chuyện Tiến độ',
+    });
+    expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toContainElement(screen.getByRole('status', { name: 'Loading' }));
+  });
 });

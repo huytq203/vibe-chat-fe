@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import type { AiStreamFn } from '@/features/ai';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
-import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
+import { AiConversationBar } from '@/features/ai/components/AiConversationBar';
 import { AiPageChangeCard } from '@/features/notes/components/panel/AiPageChangeCard';
 import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
 import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
@@ -72,7 +72,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   const aiComposerDraft = useNotesUiStore((state) => state.aiComposerDraft);
   const setAiComposerDraft = useNotesUiStore((state) => state.setAiComposerDraft);
   const {
-    conversations: allConversations,
+    conversations,
     activeId,
     session,
     actions,
@@ -83,13 +83,8 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
     remember,
     refetch,
   } = useAiConversations({
-    origin: 'NOTES',
-    // Scope theo trang: đổi trang là đổi hội thoại đang mở (không dính phiên của trang trước).
     scope: `${workspaceId}:${pageId}`,
   });
-  const conversations = useMemo(() => allConversations.filter(({ context }) =>
-    context?.workspaceId === workspaceId && context.pageId === pageId),
-  [allConversations, pageId, workspaceId]);
   const { remove, isDeleting } = useDeleteAiConversation('NOTES');
   const pageQuery = usePage(pageId);
   const { changedVersion, checkForChange, dismissChange } = useAiPageChange(pageId);
@@ -160,6 +155,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
         conversations={conversations}
         activeId={activeId}
         activeTitle={activeTitle}
+        currentOrigin="NOTES"
         isLoading={isLoading}
         isError={isError}
         onSelect={select}

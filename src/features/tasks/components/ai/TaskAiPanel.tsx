@@ -9,6 +9,7 @@ import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import type { AiStreamFn } from '@/features/ai';
 import { AiConversationBar } from '@/features/ai/components/AiConversationBar';
 import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
+import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { aiApi } from '@/services/ai.api';
@@ -63,6 +64,7 @@ export function TaskAiPanel() {
   } = useAiConversations({
     scope: selectedProjectId ?? 'tasks:all',
   });
+  const { remove, isDeleting } = useDeleteAiConversation('TASKS');
 
   const stream = useCallback<AiStreamFn>((messages, attachments, options) =>
     aiApi.chatStream(
@@ -117,6 +119,11 @@ export function TaskAiPanel() {
     focusInput();
   }
 
+  async function handleDelete(id: string): Promise<void> {
+    if (activeId === id) startNew();
+    await remove(id);
+  }
+
   function prepareRetry(action: () => void): void {
     hasMutationRef.current = false;
     setStatus(DEFAULT_STATUS);
@@ -160,6 +167,8 @@ export function TaskAiPanel() {
         isError={isError}
         onSelect={select}
         onStartNew={startNew}
+        onDelete={(id) => void handleDelete(id)}
+        isDeleting={isDeleting}
         onRetry={refetch}
       />
 

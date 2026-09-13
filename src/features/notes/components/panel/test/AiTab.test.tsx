@@ -135,27 +135,39 @@ describe('tab AI của ghi chú', () => {
     await act(async () => finishStream?.('Đã đọc'));
   });
 
-  it('nên lấy danh sách NOTES và chỉ hiện hội thoại của trang đang mở', async () => {
+  it('nên lấy mọi hội thoại và chỉ lọc NOTES khi bật tuỳ chọn', async () => {
     aiConversationMocks.list.mockResolvedValue([
       {
-        id: 'conversation-page-1', title: 'Trang đang mở', origin: 'NOTES',
+        id: 'conversation-notes', title: 'Ghi chú đang mở', origin: 'NOTES',
         context: { workspaceId: 'workspace-1', pageId: 'page-1' },
         updatedAt: new Date().toISOString(),
       },
       {
-        id: 'conversation-page-2', title: 'Trang khác', origin: 'NOTES',
-        context: { workspaceId: 'workspace-1', pageId: 'page-2' },
+        id: 'conversation-chat', title: 'Trao đổi chung', origin: 'CHAT',
+        context: {},
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'conversation-tasks', title: 'Tiến độ công việc', origin: 'TASKS',
+        context: { projectId: 'project-1' },
         updatedAt: new Date().toISOString(),
       },
     ]);
     const user = userEvent.setup();
     renderAiTab();
 
-    await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalledWith({ origin: 'NOTES' }));
+    await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalledWith({ origin: undefined }));
     await user.click(screen.getByRole('button', { name: /Cuộc trò chuyện mới/ }));
 
-    expect(screen.getByRole('button', { name: 'Trang đang mở' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Trang khác' })).not.toBeInTheDocument();
+    expect(screen.getByText('📝 NOTES Ghi chú đang mở')).toBeInTheDocument();
+    expect(screen.getByText('💬 CHAT Trao đổi chung')).toBeInTheDocument();
+    expect(screen.getByText('📋 TASKS Tiến độ công việc')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Chỉ app này' }));
+
+    expect(screen.getByText('📝 NOTES Ghi chú đang mở')).toBeInTheDocument();
+    expect(screen.queryByText('💬 CHAT Trao đổi chung')).not.toBeInTheDocument();
+    expect(screen.queryByText('📋 TASKS Tiến độ công việc')).not.toBeInTheDocument();
   });
 
   it('nên gửi conversationId và context đầy đủ qua ai-service', async () => {
@@ -178,7 +190,7 @@ describe('tab AI của ghi chú', () => {
 
     await waitFor(() => expect(aiConversationsApi.list).toHaveBeenCalled());
     await user.click(screen.getByRole('button', { name: /Cuộc trò chuyện mới/ }));
-    await user.click(screen.getByRole('button', { name: 'Trao đổi trang' }));
+    await user.click(screen.getByRole('button', { name: '📝 NOTES Trao đổi trang' }));
     await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith('conversation-page-42'));
 
     await user.type(screen.getByRole('textbox'), 'Trang này nói gì?');
@@ -219,7 +231,9 @@ describe('tab AI của ghi chú', () => {
     expect(chatStream.mock.calls[0]?.[4]).toBeUndefined();
 
     await user.click(screen.getByRole('button', { name: /Bắt đầu mới|Cuộc trò chuyện mới/ }));
-    await user.click(screen.getByRole('button', { name: 'Xoá Hội thoại cần xoá' }));
+    await user.click(screen.getByRole('button', {
+      name: 'Xoá cuộc trò chuyện Hội thoại cần xoá',
+    }));
     await waitFor(() => expect(aiConversationsApi.remove).toHaveBeenCalledWith('conversation-old'));
     expect(notionChatStream).not.toHaveBeenCalled();
   });

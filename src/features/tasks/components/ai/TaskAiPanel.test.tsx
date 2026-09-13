@@ -26,11 +26,19 @@ const sessionActions = {
 const projectsMock = vi.hoisted(() => ({ name: 'Dự án Beam' }));
 
 const remember = vi.fn();
+const removeConversation = vi.fn();
 let activeConversationId: string | null = null;
+let conversations = [] as Array<{
+  id: string;
+  title: string;
+  origin: 'TASKS';
+  context: { projectId: string };
+  updatedAt: string;
+}>;
 
 vi.mock('@/features/ai/hooks/useAiConversations', () => ({
   useAiConversations: () => ({
-    conversations: [],
+    conversations,
     activeId: activeConversationId,
     session: {
       id: activeConversationId ?? 'task-ai:project-1',
@@ -45,6 +53,13 @@ vi.mock('@/features/ai/hooks/useAiConversations', () => ({
     startNew: vi.fn(),
     remember,
     refetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/ai/hooks/useDeleteAiConversation', () => ({
+  useDeleteAiConversation: () => ({
+    remove: removeConversation,
+    isDeleting: (id: string) => id === 'conversation-deleting',
   }),
 }));
 
@@ -68,8 +83,10 @@ vi.mock('@/services/ai.api', async (importOriginal) => {
 describe('panel trợ lý AI cho công việc', () => {
   beforeEach(() => {
     activeConversationId = null;
+    conversations = [];
     projectsMock.name = 'Dự án Beam';
     remember.mockReset();
+    removeConversation.mockReset().mockResolvedValue(true);
     vi.mocked(aiApi.chatStream).mockReset().mockResolvedValue('Đã xong');
     useTasksUIStore.setState({
       activeView: 'board',
@@ -94,6 +111,32 @@ describe('panel trợ lý AI cho công việc', () => {
     expect(screen.getByRole('button', { name: 'Việc của tôi đang mở' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tiến độ project này' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo task mới giao cho…' })).toBeInTheDocument();
+  });
+
+  it('xoá hội thoại công việc và khoá hội thoại đang xoá', async () => {
+    conversations = [
+      {
+        id: 'conversation-old', title: 'Công việc cũ', origin: 'TASKS',
+        context: { projectId: 'project-1' }, updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'conversation-deleting', title: 'Đang xoá', origin: 'TASKS',
+        context: { projectId: 'project-1' }, updatedAt: new Date().toISOString(),
+      },
+    ];
+    renderWithProviders(<TaskAiPanel />);
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Cuộc trò chuyện mới, mở lịch sử hội thoại',
+    }));
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'Xoá cuộc trò chuyện Công việc cũ',
+    }));
+
+    expect(removeConversation).toHaveBeenCalledWith('conversation-old');
+    expect(screen.getByRole('button', {
+      name: 'Xoá cuộc trò chuyện Đang xoá',
+    })).toBeDisabled();
   });
 
   it('hiển thị tên project đang đứng bên ngoài composer và ẩn khi về home', async () => {

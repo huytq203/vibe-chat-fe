@@ -2,12 +2,13 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import { isToday } from 'date-fns';
-import { Check, ChevronDown, MessageSquarePlus } from 'lucide-react';
+import { Check, ChevronDown, MessageSquarePlus, Trash2 } from 'lucide-react';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button/Button';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover/Popover';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import { Spinner } from '@/components/ui/spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 import type {
   AiConversationOrigin,
@@ -36,11 +37,13 @@ function groupConversations(conversations: AiConversationSummary[]): Conversatio
   };
 }
 
-function ConversationGroup({ label, items, activeId, onSelect }: {
+function ConversationGroup({ label, items, activeId, onSelect, onDelete, isDeleting }: {
   label: string;
   items: AiConversationSummary[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  onDelete?: (id: string) => void;
+  isDeleting?: (id: string) => boolean;
 }) {
   if (items.length === 0) return null;
   return (
@@ -52,27 +55,47 @@ function ConversationGroup({ label, items, activeId, onSelect }: {
         {label}
       </h2>
       <div className="space-y-0.5">
-        {items.map((conversation) => (
-          <Button
-            key={conversation.id}
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'h-8 w-full justify-start px-2 text-start font-normal',
-              conversation.id === activeId && 'bg-accent text-foreground',
-            )}
-            onClick={() => onSelect(conversation.id)}
-          >
-            <span className="min-w-0 flex-1 truncate">
-              {ORIGIN_LABELS[conversation.origin]}{' '}
-              {conversation.title?.trim() || NEW_CONVERSATION_TITLE}
-            </span>
-            {conversation.id === activeId && (
-              <Check className="size-3.5 shrink-0" aria-hidden="true" />
-            )}
-          </Button>
-        ))}
+        {items.map((conversation) => {
+          const title = conversation.title?.trim() || NEW_CONVERSATION_TITLE;
+          const deleting = isDeleting?.(conversation.id) ?? false;
+          return (
+            <div key={conversation.id} className="group flex items-center gap-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-8 min-w-0 flex-1 justify-start px-2 text-start font-normal',
+                  conversation.id === activeId && 'bg-accent text-foreground',
+                )}
+                onClick={() => onSelect(conversation.id)}
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {ORIGIN_LABELS[conversation.origin]} {title}
+                </span>
+                {conversation.id === activeId && (
+                  <Check className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+              </Button>
+              {onDelete && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label={`Xoá cuộc trò chuyện ${title}`}
+                  title={`Xoá cuộc trò chuyện ${title}`}
+                  disabled={deleting}
+                  onClick={() => onDelete(conversation.id)}
+                >
+                  {deleting
+                    ? <Spinner size="xs" />
+                    : <Trash2 className="size-3.5" aria-hidden="true" />}
+                </Button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -97,6 +120,8 @@ export interface AiConversationBarProps {
   isError: boolean;
   onSelect: (id: string) => void;
   onStartNew: () => void;
+  onDelete?: (id: string) => void;
+  isDeleting?: (id: string) => boolean;
   onRetry: () => void;
 }
 
@@ -108,6 +133,8 @@ function ConversationListState({
   isLoading,
   isError,
   onSelect,
+  onDelete,
+  isDeleting,
   onRetry,
 }: Omit<AiConversationBarProps, 'activeTitle' | 'onStartNew'> & {
   onlyCurrentOrigin: boolean;
@@ -146,12 +173,16 @@ function ConversationListState({
         items={groups.today}
         activeId={activeId}
         onSelect={onSelect}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
       />
       <ConversationGroup
         label="Cũ hơn"
         items={groups.older}
         activeId={activeId}
         onSelect={onSelect}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
       />
     </div>
   );
@@ -165,6 +196,8 @@ function ConversationPopover({
   isLoading,
   isError,
   onSelect,
+  onDelete,
+  isDeleting,
   onRetry,
 }: Omit<AiConversationBarProps, 'activeTitle' | 'onStartNew'> & { title: string }) {
   const [open, setOpen] = useState(false);
@@ -210,6 +243,8 @@ function ConversationPopover({
           isLoading={isLoading}
           isError={isError}
           onSelect={selectAndClose}
+          onDelete={onDelete}
+          isDeleting={isDeleting}
           onRetry={onRetry}
         />
       </PopoverContent>
