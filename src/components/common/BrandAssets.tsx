@@ -31,10 +31,10 @@ export function AiAvatar({ className, alt = '' }: BrandAssetProps) {
 export function AiMascot({ className, alt = '' }: BrandAssetProps) {
   return (
     <Image
-      src="/asset/logo/logo3-nobg.png"
+      src="/asset/logo/logo3-transparent-v2.png"
       alt={alt}
       width={420}
-      height={365}
+      height={420}
       className={cn('object-contain', className)}
     />
   );
@@ -54,8 +54,8 @@ export interface BrandWatermarkProps {
  * mép. Ở shell, mọi mép cắt đều rơi ra ngoài viewport hoặc nấp sau panel minh
  * hoạ (panel đục và vẽ đè lên), nên không còn cạnh cứng.
  *
- * Tô bằng `bg-primary` rồi cắt theo alpha của logo (mask) thay vì đặt thẳng thẻ
- * `<img>`: mực trong file PNG là tím cố định, trong khi 7 theme của dự án đổi cả
+ * Tô bằng `bg-primary` rồi cắt theo alpha của logo (mask) thay vì đặt thẳng ảnh:
+ * mực trong file PNG là tím cố định, trong khi 7 theme của dự án đổi cả
  * nền lẫn primary bằng CSS var. Không dùng biến thể `dark:` vì `applyTheme` ghi
  * vào `:root:not(.dark)` chứ không bật class `.dark` — theme tối mặc định
  * (indigo) sẽ không khớp biến thể đó.

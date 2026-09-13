@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Sparkles } from 'lucide-react';
+import { AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import type { AiStreamFn } from '@/features/ai';
+import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
+import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { AiConversationBar } from '@/features/notes/components/panel/AiConversationBar';
 import { AiPageChangeCard } from '@/features/notes/components/panel/AiPageChangeCard';
 import { useAiConversationTitle } from '@/features/notes/hooks/useAiConversationTitle';
@@ -36,9 +38,10 @@ interface AiEmptyStateProps {
 function AiEmptyState({ onPick }: AiEmptyStateProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-5 text-center">
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Sparkles className="h-5 w-5" aria-hidden="true" />
-      </span>
+      <AiMascot
+        className="h-24 w-24 drop-shadow-[0_12px_20px_rgb(61_31_91/0.16)]"
+        alt=""
+      />
       <div className="space-y-1">
         <p className="text-sm font-semibold text-foreground">Hỏi AI về trang này</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
@@ -56,16 +59,6 @@ function AiEmptyState({ onPick }: AiEmptyStateProps) {
   );
 }
 
-function handleInputKeyDown(
-  event: React.KeyboardEvent<HTMLTextAreaElement>,
-  onSend: () => void,
-  disabled: boolean,
-) {
-  if (event.key !== 'Enter' || event.shiftKey) return;
-  event.preventDefault();
-  if (!disabled) onSend();
-}
-
 interface AiTabProps {
   pageId: string;
   workspaceId: string;
@@ -74,7 +67,9 @@ interface AiTabProps {
 export function AiTab({ pageId, workspaceId }: AiTabProps) {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(DEFAULT_STATUS);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
+  const { attachments, error, addFiles, removeAttachment, clearAttachments } =
+    useAiAttachments();
   const aiComposerDraft = useNotesUiStore((state) => state.aiComposerDraft);
   const setAiComposerDraft = useNotesUiStore((state) => state.setAiComposerDraft);
   const queryClient = useQueryClient();
@@ -87,15 +82,15 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   const pageQuery = usePage(pageId);
   const { changedVersion, checkForChange, dismissChange } = useAiPageChange(pageId);
   const stream = useCallback<AiStreamFn>(
-    (messages, _attachments, options) =>
-      notionAiApi.chatStream(messages, { workspaceId, pageId }, options),
+    (messages, messageAttachments, options) =>
+      notionAiApi.chatStream(messages, messageAttachments, { workspaceId, pageId }, options),
     [workspaceId, pageId],
   );
   const onSettled = useCallback(() => {
     setStatus(DEFAULT_STATUS);
-    textareaRef.current?.focus();
+    focusInput();
     void checkForChange();
-  }, [checkForChange]);
+  }, [checkForChange, focusInput]);
   const onTool = useCallback((name: string) => setStatus(toolLabel(name)), []);
   const conversation = useAiConversation({
     streamKey: `notes:${workspaceId}`,
@@ -112,20 +107,25 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
     setAiComposerDraft(null);
     queueMicrotask(() => {
       setInput(draft);
-      textareaRef.current?.focus();
+      focusInput();
     });
-  }, [aiComposerDraft, setAiComposerDraft]);
+  }, [aiComposerDraft, focusInput, setAiComposerDraft]);
+
+  useEffect(() => { resize(); }, [input, resize]);
 
   async function handleSend(text: string) {
-    if (isLoading || conversation.loading || !text.trim()) return;
+    const capturedAttachments = attachments;
+    if (isLoading || conversation.loading
+      || (!text.trim() && capturedAttachments.length === 0)) return;
     setInput('');
+    clearAttachments();
     setStatus(DEFAULT_STATUS);
-    await conversation.send(text, []);
+    await conversation.send(text, capturedAttachments);
   }
 
   function handleEdit(index: number) {
     setInput(conversation.recall(index));
-    textareaRef.current?.focus();
+    focusInput();
   }
 
   const retryHistory = useCallback(() => {
@@ -183,12 +183,19 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
       <AiChatInput
         input={input}
         loading={isLoading || conversation.loading}
+        context={pageQuery.data?.title.trim()
+          ? { kind: 'page', label: pageQuery.data.title }
+          : undefined}
+        attachments={attachments}
+        attachmentError={error}
         textareaRef={textareaRef}
         onInputChange={setInput}
-        onResize={() => undefined}
-        onKeyDown={handleInputKeyDown}
+        onResize={resize}
+        onKeyDown={handleKeyDown}
         onSend={() => void handleSend(input)}
         onStop={conversation.stop}
+        onAddFiles={addFiles}
+        onRemoveAttachment={removeAttachment}
       />
     </section>
   );

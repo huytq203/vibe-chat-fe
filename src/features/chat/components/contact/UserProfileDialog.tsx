@@ -101,7 +101,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
                 )}
               </button>
 
-              <div className="-mt-10 flex flex-col items-center px-6">
+              <div className="relative z-10 -mt-10 flex flex-col items-center px-6">
                 {isLoading ? (
                   <Skeleton rounded="full" className="h-[72px] w-[72px]" />
                 ) : (
@@ -124,7 +124,7 @@ export function UserProfileDialog({ open, onOpenChange, userId }: UserProfileDia
                   {isLoading ? (
                     <Skeleton className="mx-auto h-5 w-40" />
                   ) : (
-                    <p className="text-[17px] font-bold text-foreground">{name}</p>
+                    <p className="text-lg font-bold text-foreground">{name}</p>
                   )}
                   {!isBot && friendshipText && (
                     <Badge variant="secondary" size="sm" className="mt-1.5">

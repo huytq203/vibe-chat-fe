@@ -54,7 +54,7 @@ export function ProfileInfoView({ me, isLoading, onEdit, isActive, onPreview }: 
             <img src={me.coverUrl} alt="" className="h-full w-full object-cover" />
           )}
         </button>
-        <div className="-mt-10 flex flex-col items-center px-6 pb-2">
+        <div className="relative z-10 -mt-10 flex flex-col items-center px-6 pb-2">
           {isLoading ? (
             <Skeleton rounded="full" className="h-[72px] w-[72px]" />
           ) : (
@@ -78,7 +78,7 @@ export function ProfileInfoView({ me, isLoading, onEdit, isActive, onPreview }: 
               <Skeleton className="mx-auto h-5 w-40" />
             ) : (
               <div className="flex items-center justify-center gap-2">
-                <p className="text-[17px] font-bold text-foreground">
+                <p className="text-lg font-bold text-foreground">
                   {me?.displayName ?? me?.username ?? '—'}
                 </p>
                 <button

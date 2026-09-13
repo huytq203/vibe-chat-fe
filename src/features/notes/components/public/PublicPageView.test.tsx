@@ -52,6 +52,12 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('trang ghi chú công khai', () => {
+  it('dùng vùng cuộn riêng vì app shell khóa scroll của body', () => {
+    render(<PublicPageView page={buildPublicPage()} token="public-token" />);
+
+    expect(screen.getByRole('main')).toHaveClass('h-full', 'min-h-0', 'overflow-y-auto');
+  });
+
   it('cô lập HTML người dùng trong iframe sandbox thay vì DOM chính', () => {
     const html = '<h2>Nội dung lạ</h2><script>document.body.dataset.xss="true"</script>';
     render(<PublicPageView page={buildPublicPage({ html })} token="public-token" />);

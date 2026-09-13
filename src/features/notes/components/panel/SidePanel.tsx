@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { History, MessageSquareText, PanelRightClose, Share2, Sparkles } from 'lucide-react';
+import { History, MessageSquareText, PanelRightClose, Share2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { AiAvatar } from '@/components/common/BrandAssets';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button/Button';
 import {
@@ -43,7 +44,7 @@ const emptyIconByTab: Record<SidePanelTab, ReactNode> = {
   comments: <MessageSquareText aria-hidden="true" />,
   versions: <History aria-hidden="true" />,
   share: <Share2 aria-hidden="true" />,
-  ai: <Sparkles aria-hidden="true" />,
+  ai: <AiAvatar className="size-9 bg-transparent" />,
 };
 
 function PanelContent({ pageId, tab, workspaceId }: {

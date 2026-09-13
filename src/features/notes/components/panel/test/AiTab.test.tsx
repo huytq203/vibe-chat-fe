@@ -1,10 +1,21 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notionAiApi } from '@/services/notion-ai.api';
 import { AiTab } from '@/features/notes/components/panel/AiTab';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
+
+class MockFileReader {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  result: string | null = null;
+
+  readAsDataURL(file: File) {
+    this.result = `data:${file.type};base64,NOTION_IMAGE`;
+    setTimeout(() => this.onload?.(), 0);
+  }
+}
 
 vi.mock('@/services/ai.api', () => ({
   aiApi: { chat: vi.fn().mockResolvedValue('Tiêu đề') },
@@ -71,6 +82,8 @@ afterEach(() => {
   chatStream.mockReset();
   notionMocks.listVersions.mockReset().mockResolvedValue([]);
   useNotesUiStore.getState().setAiComposerDraft(null);
+  useNotesUiStore.getState().setAiConversation('workspace-1', null);
+  vi.unstubAllGlobals();
 });
 
 describe('tab AI của ghi chú', () => {
@@ -90,9 +103,17 @@ describe('tab AI của ghi chú', () => {
     expect(screen.getByRole('button', { name: 'Chuẩn hoá định dạng' })).toBeInTheDocument();
   });
 
+  it('nên hiện tên page đang mở phía trên ô nhập', async () => {
+    renderAiTab();
+
+    const pageName = await screen.findByText('Kế hoạch quý');
+    expect(pageName).toBeInTheDocument();
+    expect(pageName.closest('.rounded-2xl')).toBeNull();
+  });
+
   it('nên hiện "Đang đọc trang…" khi luồng phát công cụ read_page', async () => {
     let finishStream: ((value: string) => void) | undefined;
-    chatStream.mockImplementation((_messages, _context, options) => {
+    chatStream.mockImplementation((_messages, _attachments, _context, options) => {
       options.onTool?.('read_page');
       return new Promise((resolve) => { finishStream = resolve; });
     });
@@ -115,7 +136,7 @@ describe('tab AI của ghi chú', () => {
     await user.click(screen.getByRole('button', { name: 'Gửi' }));
 
     await waitFor(() => expect(chatStream).toHaveBeenCalled());
-    expect(chatStream.mock.calls[0]?.[1]).toEqual({
+    expect(chatStream.mock.calls[0]?.[2]).toEqual({
       workspaceId: 'workspace-1',
       pageId: 'page-42',
     });
@@ -133,10 +154,64 @@ describe('tab AI của ghi chú', () => {
     expect(screen.getByRole('button', { name: 'Gửi lại' })).toBeInTheDocument();
   });
 
-  it('nên ẩn nút kẹp giấy khi không truyền prop đính kèm', () => {
+  it('nên hiện nút kẹp giấy để đính kèm nội dung', () => {
     renderAiTab();
 
-    expect(screen.queryByRole('button', { name: 'Đính kèm file' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đính kèm file' })).toBeInTheDocument();
+  });
+
+  it('nên tự mở rộng và giữ Shift + Enter để xuống dòng', async () => {
+    chatStream.mockResolvedValue('Đã xong');
+    renderAiTab();
+    const textarea = screen.getByRole('textbox');
+    await waitFor(() => expect(textarea).toBeEnabled());
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, value: 96 });
+
+    fireEvent.change(textarea, { target: { value: 'Dòng một\nDòng hai' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+
+    expect(textarea).toHaveStyle({ height: '96px' });
+    expect(textarea).toHaveValue('Dòng một\nDòng hai');
+    expect(chatStream).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+    await waitFor(() => expect(chatStream).toHaveBeenCalledOnce());
+  });
+
+  it('nên preview và gửi ảnh được paste vào Notion AI', async () => {
+    const NativeURL = URL;
+    vi.stubGlobal('FileReader', MockFileReader);
+    vi.stubGlobal('URL', class extends NativeURL {
+      static createObjectURL = vi.fn(() => 'blob:notion-image');
+      static revokeObjectURL = vi.fn();
+    });
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'notion-image-id') });
+    chatStream.mockResolvedValue('Đã xem ảnh');
+    renderAiTab();
+    const image = new File(['image'], 'ghi-chu.png', { type: 'image/png' });
+
+    fireEvent.paste(screen.getByRole('textbox'), {
+      clipboardData: {
+        items: [{
+          kind: 'file',
+          type: 'image/png',
+          getAsFile: () => image,
+        }],
+        files: [image],
+      },
+    });
+
+    expect(await screen.findByAltText('ghi-chu.png')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+
+    await waitFor(() => expect(chatStream).toHaveBeenCalledOnce());
+    expect(chatStream.mock.calls[0]?.[1]).toEqual([
+      expect.objectContaining({
+        name: 'ghi-chu.png',
+        mimeType: 'image/png',
+        data: 'NOTION_IMAGE',
+      }),
+    ]);
   });
 
   it('nên giữ danh sách tin nhắn trong vùng cuộn có chiều cao xác định khi nội dung dài', async () => {

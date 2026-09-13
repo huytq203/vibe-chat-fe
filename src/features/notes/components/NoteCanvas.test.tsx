@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
@@ -88,6 +88,38 @@ describe('nút AI nổi trên khung soạn thảo', () => {
       isSidePanelOpen: true,
       sidePanelTab: 'ai',
     });
+  });
+
+  it('không tự nói và chỉ hiện lời chào ngẫu nhiên khi hover', async () => {
+    const random = vi.spyOn(Math, 'random')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.4);
+    const user = userEvent.setup();
+    render(<FloatingAiButton />);
+    const button = screen.getByRole('button', { name: 'Mở trợ lý AI' });
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    await user.hover(button);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Bạn có gì cần hỗ trợ không?');
+
+    await user.unhover(button);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+
+    await user.hover(button);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Chào bạn đến với Halo Notion.');
+    expect(random).toHaveBeenCalledTimes(2);
+  });
+
+  it('có thể chọn câu cuối cùng trong danh sách lời chào', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.999);
+    const user = userEvent.setup();
+    render(<FloatingAiButton />);
+
+    await user.hover(screen.getByRole('button', { name: 'Mở trợ lý AI' }));
+
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Sàng tiền minh nguyệt quang');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Tác Giả: Lý Bạch');
   });
 });
 

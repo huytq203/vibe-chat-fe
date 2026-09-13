@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { z } from 'zod';
 
 import type { publicPageSchema } from '@/features/notes/schemas';
@@ -18,6 +18,13 @@ type PublicPage = z.infer<typeof publicPageSchema>;
 
 const PUBLIC_CONTENT_STYLES = `
   :root {
+    --public-background: #111318;
+    --public-foreground: #e2e8f0;
+    --public-muted: #161820;
+    --public-muted-foreground: #64748b;
+    --public-border: #1e2129;
+    --public-primary: #06b6d4;
+    --public-danger: #ef4444;
     --note-text-gray: #45556c;
     --note-text-orange: #f54900;
     --note-text-yellow: #e17100;
@@ -38,26 +45,30 @@ const PUBLIC_CONTENT_STYLES = `
 
   body {
     margin: 0;
-    color: #18181b;
-    color-scheme: light;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--public-background);
+    color: var(--public-foreground);
+    font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 1rem;
-    line-height: 1.65;
+    line-height: 1.72;
     overflow-wrap: anywhere;
+    overflow: hidden;
   }
 
-  p, ul, ol { margin-block: 0.125rem; }
+  ::selection { background: color-mix(in srgb, var(--public-primary) 24%, transparent); }
+
+  p, ul, ol { margin-block: 0.35rem; }
 
   h1, h2, h3, h4, h5, h6 {
     margin: 0;
-    padding-top: 0.75rem;
+    padding-top: 1.5rem;
     font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.28;
+    letter-spacing: -0.02em;
   }
 
   h1 { font-size: 1.75rem; } h2 { font-size: 1.375rem; }
   h3 { font-size: 1.125rem; } h4 { font-size: 1rem; }
-  h5 { font-size: 0.9375rem; } h6 { font-size: 0.875rem; }
+  h5 { font-size: 0.875rem; } h6 { font-size: 0.75rem; }
 
   ul, ol {
     padding-inline-start: 1.5rem;
@@ -86,16 +97,16 @@ const PUBLIC_CONTENT_STYLES = `
     flex: none;
     width: 1rem; height: 1rem;
     margin: 0;
-    accent-color: #7c3aed;
+    accent-color: var(--public-primary);
   }
 
   li[data-type="taskItem"] > div { min-width: 0; flex: 1; }
 
   blockquote {
     margin: 0.5rem 0;
-    border-inline-start: 1px solid #d4d4d8;
-    padding: 0.5rem 1rem;
-    color: #3f3f46;
+    border-inline-start: 2px solid var(--public-primary);
+    padding: 0.65rem 1.1rem;
+    color: var(--public-muted-foreground);
   }
 
   blockquote p { margin: 0; }
@@ -104,9 +115,9 @@ const PUBLIC_CONTENT_STYLES = `
     position: relative;
     margin-block: 0.5rem;
     overflow-x: auto;
-    border: 1px solid #e4e4e7;
+    border: 1px solid var(--public-border);
     border-radius: 0.75rem;
-    background: #f4f4f5;
+    background: var(--public-muted);
     padding: 2.75rem 1rem 1rem;
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     font-size: 0.875rem;
@@ -126,7 +137,7 @@ const PUBLIC_CONTENT_STYLES = `
     width: 100%;
     margin-block: 0.5rem;
     overflow: hidden;
-    border: 1px solid #e4e4e7;
+    border: 1px solid var(--public-border);
     border-radius: 0.75rem;
     border-spacing: 0;
     border-collapse: separate;
@@ -134,25 +145,25 @@ const PUBLIC_CONTENT_STYLES = `
   }
 
   th, td {
-    border-inline-end: 1px solid #e4e4e7;
-    border-block-end: 1px solid #e4e4e7;
+    border-inline-end: 1px solid var(--public-border);
+    border-block-end: 1px solid var(--public-border);
     padding: 0.5rem 0.75rem;
     text-align: start;
     vertical-align: top;
   }
 
-  th { background: #f4f4f5; font-weight: 700; }
+  th { background: var(--public-muted); font-weight: 700; }
   tr:last-child > * { border-block-end: 0; }
   tr > *:last-child { border-inline-end: 0; }
 
   hr {
     margin-block: 1.5rem;
     border: 0;
-    border-top: 1px solid #e4e4e7;
+    border-top: 1px solid var(--public-border);
   }
 
-  a { color: #7c3aed; text-decoration-thickness: 1px; text-underline-offset: 0.1875rem; }
-  a:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+  a { color: var(--public-primary); text-decoration-thickness: 1px; text-underline-offset: 0.1875rem; }
+  a:focus-visible { outline: 2px solid var(--public-primary); outline-offset: 2px; }
 
   mark[data-color="gray"] { background: var(--note-hl-gray) !important; }
   mark[data-color="orange"] { background: var(--note-hl-orange) !important; }
@@ -175,9 +186,9 @@ const PUBLIC_CONTENT_STYLES = `
     width: 100%;
     margin: 0.5rem 0;
     overflow: hidden;
-    border: 1px solid #e4e4e7;
+    border: 1px solid var(--public-border);
     border-radius: 0.75rem;
-    background: #f4f4f5;
+    background: var(--public-muted);
     aspect-ratio: 16 / 9;
   }
 
@@ -193,7 +204,7 @@ const PUBLIC_CONTENT_STYLES = `
     border: 0;
   }
 
-  .shiki, .shiki span { color: var(--shiki-light); }
+  .shiki, .shiki span { color: light-dark(var(--shiki-light), var(--shiki-dark)); }
 
   .public-code-language {
     position: absolute;
@@ -205,7 +216,7 @@ const PUBLIC_CONTENT_STYLES = `
     max-width: calc(100% - 7rem);
     align-items: center;
     overflow: hidden;
-    color: #52525b;
+    color: var(--public-muted-foreground);
     font: 600 0.75rem/1 ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -217,23 +228,23 @@ const PUBLIC_CONTENT_STYLES = `
     inset-block-start: 0.5rem;
     inset-inline-end: 0.625rem;
     height: 1.75rem;
-    border: 1px solid #d4d4d8;
+    border: 1px solid var(--public-border);
     border-radius: 0.375rem;
-    background: #ffffff;
+    background: var(--public-background);
     padding-inline: 0.625rem;
-    color: #3f3f46;
+    color: var(--public-foreground);
     font: 500 0.75rem/1 ui-sans-serif, system-ui, sans-serif;
     cursor: pointer;
   }
 
-  .public-code-copy:hover { background: #e4e4e7; color: #18181b; }
-  .public-code-copy:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
-  .public-code-copy[data-state="copied"] { color: #15803d; }
-  .public-code-copy[data-state="error"] { color: #b91c1c; }
+  .public-code-copy:hover { background: var(--public-border); color: var(--public-foreground); }
+  .public-code-copy:focus-visible { outline: 2px solid var(--public-primary); outline-offset: 2px; }
+  .public-code-copy[data-state="copied"] { color: var(--public-primary); }
+  .public-code-copy[data-state="error"] { color: var(--public-danger); }
 
   code:not(pre code) {
     border-radius: 0.375rem;
-    background: #f4f4f5;
+    background: var(--public-muted);
     padding: 0.1em 0.35em;
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     font-size: 0.875em;
@@ -316,24 +327,81 @@ async function enhanceCodeBlocks(frame: HTMLIFrameElement) {
 
 export function PublicPageBody({ page }: { page: PublicPage }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  const prepareFrame = useCallback((frame: HTMLIFrameElement) => {
+    const resize = () => {
+      const frameDocument = frame.contentDocument;
+      if (!frameDocument) return;
+      const height = Math.max(
+        frameDocument.body.scrollHeight,
+        frameDocument.documentElement.scrollHeight,
+      );
+      frame.style.height = `${Math.ceil(height)}px`;
+    };
+
+    const frameDocument = frame.contentDocument;
+    if (!frameDocument) return;
+
+    const parentStyles = window.getComputedStyle(frame);
+    const rootStyles = frameDocument.documentElement.style;
+    const semanticColors = [
+      'background',
+      'foreground',
+      'muted',
+      'muted-foreground',
+      'border',
+      'primary',
+      'danger',
+    ];
+    for (const token of semanticColors) {
+      rootStyles.setProperty(`--public-${token}`, parentStyles.getPropertyValue(`--${token}`));
+    }
+    rootStyles.colorScheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+
+    resizeObserverRef.current?.disconnect();
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserverRef.current = new ResizeObserver(resize);
+      resizeObserverRef.current.observe(frameDocument.body);
+      resizeObserverRef.current.observe(frameDocument.documentElement);
+    }
+    resize();
+    void enhanceCodeBlocks(frame).finally(resize);
+  }, []);
 
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
 
-    const enhance = () => void enhanceCodeBlocks(frame);
+    const resize = () => {
+      const frameDocument = frame.contentDocument;
+      if (!frameDocument) return;
+      const height = Math.max(
+        frameDocument.body.scrollHeight,
+        frameDocument.documentElement.scrollHeight,
+      );
+      frame.style.height = `${Math.ceil(height)}px`;
+    };
+
     // `srcDoc` có thể tải xong trước hydration nên onLoad đơn lẻ sẽ bị bỏ lỡ.
-    enhance();
-    frame.addEventListener('load', enhance);
-    return () => frame.removeEventListener('load', enhance);
-  }, [page.html]);
+    prepareFrame(frame);
+    const hydrationChecks = [0, 120, 500].map((delay) =>
+      window.setTimeout(() => prepareFrame(frame), delay),
+    );
+    window.addEventListener('resize', resize);
+    return () => {
+      hydrationChecks.forEach((timer) => window.clearTimeout(timer));
+      resizeObserverRef.current?.disconnect();
+      window.removeEventListener('resize', resize);
+    };
+  }, [page.html, prepareFrame]);
 
   if (!page.html.trim()) {
     return <p className="py-8 text-sm text-muted-foreground">Trang này chưa có nội dung.</p>;
   }
 
   return (
-    <div className="pb-8 pt-2">
+    <div className="pt-8 md:pt-10">
       {/* HTML người dùng vẫn chạy trong iframe không có allow-scripts. Chỉ parent
           cùng origin gắn hành vi copy và syntax spans vào DOM đã bị sandbox. */}
       <iframe
@@ -342,7 +410,8 @@ export function PublicPageBody({ page }: { page: PublicPage }) {
         sandbox="allow-same-origin"
         referrerPolicy="no-referrer"
         srcDoc={`<style>${PUBLIC_CONTENT_STYLES}</style>${page.html}`}
-        className="block h-[70vh] min-h-[360px] w-full border-0 bg-background"
+        onLoad={(event) => prepareFrame(event.currentTarget)}
+        className="block h-40 min-h-40 w-full overflow-hidden border-0 bg-transparent"
       />
     </div>
   );

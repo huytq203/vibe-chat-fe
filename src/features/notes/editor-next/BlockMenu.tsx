@@ -13,12 +13,12 @@ import {
   ListOrdered,
   Palette,
   Quote,
-  Sparkles,
   Text,
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { AiAvatar } from "@/components/common/BrandAssets";
 import { Button } from "@/components/ui/button/Button";
 import {
   DropdownMenu,
@@ -204,7 +204,7 @@ export function BlockMenu({ block, children, editor, open, onOpenChange }: Block
         </DropdownMenuSub>
         <BlockColorMenu block={block} editor={editor} />
         <DropdownMenuItem onClick={askAi}>
-          <Sparkles className="text-muted-foreground" />
+          <AiAvatar className="size-4 bg-transparent" />
           Hỏi AI
         </DropdownMenuItem>
         <DropdownMenuSeparator />
