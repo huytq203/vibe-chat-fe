@@ -16,6 +16,13 @@ export const reportsApi = {
     taskClient.get<Leaderboard>(
       `/api/v1/projects/${projectId}/stats/leaderboard?period=${period}`,
     ),
+  leaderboardAll: (period: ReportPeriod, projectId?: string) => {
+    const query = new URLSearchParams({ period });
+    if (projectId) query.set('projectId', projectId);
+    return taskClient.get<Leaderboard & { period: ReportPeriod }>(
+      `/api/v1/stats/leaderboard?${query.toString()}`,
+    );
+  },
   myPerformance: (period: ReportPeriod) =>
     taskClient.get<MyPerformance>(`/api/v1/stats/my-performance?period=${period}`),
 };

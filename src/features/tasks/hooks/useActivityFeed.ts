@@ -11,7 +11,8 @@ export function useActivityFeed(page = 1, limit = 20) {
     queryKey: ['tasks', 'feed', page, limit],
     queryFn: () => tasksApi.getActivityFeed(page, limit),
     enabled: isAuthed,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
   });
 }

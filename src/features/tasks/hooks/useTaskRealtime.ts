@@ -5,6 +5,8 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { logger } from '@/lib/logger';
 import { getTaskSocket } from '../lib/task-socket';
 import { getCurrentUser } from '../lib/current-user';
+import { scheduleInvalidate } from '../lib/invalidate-scheduler';
+import { isLocal } from '../lib/local-mutations';
 import { taskKeys } from '../services/keys';
 import { tasksApi } from '../services/tasks.api';
 import {
@@ -29,7 +31,15 @@ import type {
   ColumnCreatedEvent,
   ColumnUpdatedEvent,
 } from '../lib/board-cache';
-import type { Board, Comment, ChecklistItem, Attachment } from '../types';
+import type {
+  Attachment,
+  Board,
+  BoardTask,
+  ChecklistItem,
+  Comment,
+  SubtaskItem,
+  TaskDetail,
+} from '../types';
 
 /**
  * Chiến lược realtime: payload event được ÁP THẲNG vào cache (setQueryData)
@@ -45,13 +55,14 @@ function boardDelta(
   qc: QueryClient,
   projectId: string,
   delta: (board: Board) => Board | null,
+  allowInvalidate = true,
 ): void {
   const key = taskKeys.board(projectId);
   const prev = qc.getQueryData<Board>(key);
   if (!prev) return; // board chưa fetch → query sẽ lấy bản mới khi mount
   const next = delta(prev);
   if (next) qc.setQueryData(key, next);
-  else void qc.invalidateQueries({ queryKey: key });
+  else if (allowInvalidate) scheduleInvalidate(qc, key);
 }
 
 /**
@@ -76,7 +87,7 @@ function listDelta<T>(
   if (!prev) return;
   const next = delta(prev);
   if (next) qc.setQueryData(key, next);
-  else void qc.invalidateQueries({ queryKey: key });
+  else scheduleInvalidate(qc, key);
 }
 
 const subKey = (projectId: string, taskId: string, sub: string): readonly unknown[] =>
@@ -88,10 +99,92 @@ const byCreatedAt = (a: { createdAt: string }, b: { createdAt: string }): number
 const byPosition = (a: { position: number }, b: { position: number }): number =>
   a.position - b.position;
 
+type RealtimeTask = TaskDetail & Partial<Pick<BoardTask, 'assignees' | 'checklistCount'>>;
+
+function taskFromPayload(payload: unknown): RealtimeTask | undefined {
+  if (typeof payload !== 'object' || payload === null || !('task' in payload)) return undefined;
+  const task = (payload as { task?: unknown }).task;
+  return typeof task === 'object' && task !== null && 'id' in task
+    ? (task as RealtimeTask)
+    : undefined;
+}
+
+/** Ghi task đầy đủ từ socket vào board, kể cả khi task vừa chuyển cột. */
+function applyTaskPayload(board: Board, task: RealtimeTask): Board | null {
+  const current = board.columns.flatMap((column) => column.tasks).find((item) => item.id === task.id);
+  if (task.parentId) return applyTaskDeleted(board, { taskId: task.id });
+  const targetColumn = board.columns.find((column) => column.id === task.columnId);
+  if (!targetColumn) return null;
+
+  const nextTask: BoardTask = {
+    id: task.id,
+    version: task.version,
+    columnId: task.columnId,
+    title: task.title,
+    position: task.position,
+    isPinned: task.isPinned,
+    priority: task.priority,
+    gem: task.gem,
+    gemSource: task.gemSource,
+    dueDate: task.dueDate,
+    tags: task.tags.map(({ id, name, color }) => ({ id, name, color })),
+    assignees: task.assignees ?? current?.assignees ?? [],
+    checklistCount: task.checklistCount ?? task.checklistTotal,
+    commentCount: task.commentCount,
+    completedAt: task.completedAt,
+    reviewRequestedAt: task.reviewRequestedAt,
+    status: task.status,
+  };
+
+  return {
+    ...board,
+    columns: board.columns.map((column) => ({
+      ...column,
+      tasks: column.id === task.columnId
+        ? [...column.tasks.filter((item) => item.id !== task.id), nextTask].sort(byPosition)
+        : column.tasks.filter((item) => item.id !== task.id),
+    })),
+  };
+}
+
+function writeTaskPayload(
+  qc: QueryClient,
+  projectId: string,
+  task: RealtimeTask,
+  allowInvalidate = true,
+): void {
+  boardDelta(qc, projectId, (board) => applyTaskPayload(board, task), allowInvalidate);
+  qc.setQueryData(subKey(projectId, task.id, 'detail'), task);
+}
+
+function toSubtaskItem(task: RealtimeTask): SubtaskItem {
+  return {
+    id: task.id,
+    title: task.title,
+    columnId: task.columnId,
+    priority: task.priority,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    status: task.status,
+    isPinned: task.isPinned,
+    subtaskCount: task.subtaskCount,
+    assignees: task.assignees ?? [],
+    tags: task.tags.map(({ id, name, color }) => ({ id, name, color })),
+  };
+}
+
+function writeSubtaskPayload(qc: QueryClient, projectId: string, task: RealtimeTask): void {
+  writeTaskPayload(qc, projectId, task);
+  if (!task.parentId) return;
+  listDelta<SubtaskItem>(qc, subKey(projectId, task.parentId, 'subtasks'), (list) =>
+    [...list.filter((item) => item.id !== task.id), toSubtaskItem(task)],
+  );
+}
+
 // ── Invalidators cho query không delta được từ payload ──────────────────────
 
 function invalidateDetail(qc: QueryClient, projectId: string, taskId: string): void {
-  void qc.invalidateQueries({ queryKey: subKey(projectId, taskId, 'detail') });
+  scheduleInvalidate(qc, subKey(projectId, taskId, 'detail'));
 }
 
 /**
@@ -100,32 +193,35 @@ function invalidateDetail(qc: QueryClient, projectId: string, taskId: string): v
  * nên invalidate MỌI subtask-list của project (rẻ, chỉ list nhỏ).
  */
 function invalidateSubtaskLists(qc: QueryClient, projectId: string): void {
-  void qc.invalidateQueries({
-    predicate: (q) =>
-      q.queryKey[0] === 'tasks' && q.queryKey[1] === projectId && q.queryKey[3] === 'subtasks',
-  });
+  void qc.invalidateQueries(
+    {
+      predicate: (q) =>
+        q.queryKey[0] === 'tasks' && q.queryKey[1] === projectId && q.queryKey[3] === 'subtasks',
+    },
+    { cancelRefetch: false },
+  );
 }
 
 /** History trong task detail: ['tasks', projectId, 'activities', taskId] (prefix match) */
 function invalidateHistory(qc: QueryClient, projectId: string): void {
-  void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities'] });
+  scheduleInvalidate(qc, ['tasks', projectId, 'activities']);
 }
 
 /** Feed hoạt động ở Dashboard: ['tasks','feed',page,limit] — KHÁC key history */
 function invalidateFeed(qc: QueryClient): void {
-  void qc.invalidateQueries({ queryKey: ['tasks', 'feed'] });
+  scheduleInvalidate(qc, ['tasks', 'feed']);
 }
 
 /** "Việc của tôi" ở Dashboard: ['tasks','my'] */
 function invalidateMyTasks(qc: QueryClient): void {
-  void qc.invalidateQueries({ queryKey: ['tasks', 'my'] });
+  scheduleInvalidate(qc, ['tasks', 'my']);
 }
 
 /** Reports/stats — inactive lúc thường, mark stale để mở tab là fresh */
 function invalidateReports(qc: QueryClient, projectId: string): void {
-  void qc.invalidateQueries({ queryKey: ['tasks', 'overview'] });
-  void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'stats'] });
-  void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'leaderboard'] });
+  scheduleInvalidate(qc, ['tasks', 'overview']);
+  scheduleInvalidate(qc, ['tasks', projectId, 'stats']);
+  scheduleInvalidate(qc, ['tasks', projectId, 'leaderboard']);
 }
 
 // ── Event payload types (khớp BE emit — xem task.gateway.ts + các service) ──
@@ -163,19 +259,26 @@ type Handler = (qc: QueryClient, projectId: string, payload: unknown) => void;
 const EVENT_HANDLERS: Record<string, Handler> = {
   // ── Task trên board: delta thẳng vào cache ──
   'task:created': (qc, projectId, p) => {
+    const payloadTask = taskFromPayload(p);
     // WS phát TaskResponseDto trực tiếp; chấp nhận cả wrapper của change-log cũ.
     const task =
       typeof p === 'object' && p !== null && 'task' in p
         ? (p as { task?: TaskCreatedEvent }).task
         : (p as TaskCreatedEvent | null | undefined);
-    boardDelta(qc, projectId, (b) => applyTaskCreated(b, task));
+    if (payloadTask) writeTaskPayload(qc, projectId, payloadTask);
+    else boardDelta(qc, projectId, (b) => applyTaskCreated(b, task));
     invalidateFeed(qc);
     invalidateReports(qc, projectId);
   },
   'task:updated': (qc, projectId, p) => {
     const ev = p as TaskUpdatedEvent;
-    boardDelta(qc, projectId, (b) => applyTaskUpdated(b, ev));
-    invalidateDetail(qc, projectId, ev.taskId);
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? ev.taskId;
+    const local = isLocal(taskId, 'task:updated');
+    if (task) writeTaskPayload(qc, projectId, task, !local);
+    else boardDelta(qc, projectId, (b) => applyTaskUpdated(b, ev), !local);
+    if (local) return;
+    if (!task) invalidateDetail(qc, projectId, taskId);
     invalidateSubtaskLists(qc, projectId);
     invalidateHistory(qc, projectId);
     invalidateFeed(qc);
@@ -186,19 +289,63 @@ const EVENT_HANDLERS: Record<string, Handler> = {
   },
   'task:moved': (qc, projectId, p) => {
     const ev = p as TaskMovedEvent;
-    boardDelta(qc, projectId, (b) => applyTaskMoved(b, ev));
-    invalidateDetail(qc, projectId, ev.taskId);
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? ev.taskId;
+    const local = isLocal(taskId, 'task:moved');
+    if (task) writeTaskPayload(qc, projectId, task, !local);
+    else boardDelta(qc, projectId, (b) => applyTaskMoved(b, ev), !local);
+    if (local) return;
+    if (!task) invalidateDetail(qc, projectId, taskId);
     invalidateMyTasks(qc); // MyTask hiển thị columnName
   },
   'task:deleted': (qc, projectId, p) => {
     const ev = p as { taskId: string };
-    boardDelta(qc, projectId, (b) => applyTaskDeleted(b, ev));
-    invalidateDetail(qc, projectId, ev.taskId);
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? ev.taskId;
+    boardDelta(qc, projectId, (b) => applyTaskDeleted(b, { taskId }));
+    qc.removeQueries({ queryKey: subKey(projectId, taskId, 'detail'), exact: true });
+    if (isLocal(taskId, 'task:deleted')) return;
+    if (!task) invalidateDetail(qc, projectId, taskId);
     invalidateSubtaskLists(qc, projectId);
     invalidateHistory(qc, projectId);
     invalidateFeed(qc);
     invalidateMyTasks(qc);
     invalidateReports(qc, projectId);
+  },
+
+  // ── Subtask: payload đầy đủ ghi thẳng vào detail + danh sách của task cha ──
+  'subtask:created': (qc, projectId, p) => {
+    const task = taskFromPayload(p);
+    if (task) writeSubtaskPayload(qc, projectId, task);
+    else invalidateSubtaskLists(qc, projectId);
+  },
+  'subtask:updated': (qc, projectId, p) => {
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? (p as { taskId?: string }).taskId;
+    if (task) writeSubtaskPayload(qc, projectId, task);
+    else {
+      invalidateSubtaskLists(qc, projectId);
+      if (taskId) invalidateDetail(qc, projectId, taskId);
+    }
+  },
+  'subtask:moved': (qc, projectId, p) => {
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? (p as { taskId?: string }).taskId;
+    if (task) writeSubtaskPayload(qc, projectId, task);
+    else {
+      invalidateSubtaskLists(qc, projectId);
+      if (taskId) invalidateDetail(qc, projectId, taskId);
+    }
+  },
+  'subtask:deleted': (qc, projectId, p) => {
+    const task = taskFromPayload(p);
+    const taskId = task?.id ?? (p as { taskId?: string }).taskId;
+    if (taskId) qc.removeQueries({ queryKey: subKey(projectId, taskId, 'detail'), exact: true });
+    if (task?.parentId) {
+      listDelta<SubtaskItem>(qc, subKey(projectId, task.parentId, 'subtasks'), (list) =>
+        removeById(list, task.id),
+      );
+    } else invalidateSubtaskLists(qc, projectId);
   },
 
   // ── Column ──
@@ -209,7 +356,7 @@ const EVENT_HANDLERS: Record<string, Handler> = {
         ? (p as { column?: ColumnCreatedEvent }).column
         : (p as ColumnCreatedEvent | null | undefined);
     if (column) boardDelta(qc, projectId, (b) => applyColumnCreated(b, column));
-    else void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    else scheduleInvalidate(qc, taskKeys.board(projectId));
   },
   'column:updated': (qc, projectId, p) => {
     boardDelta(qc, projectId, (b) => applyColumnUpdated(b, p as ColumnUpdatedEvent));
@@ -222,65 +369,68 @@ const EVENT_HANDLERS: Record<string, Handler> = {
 
   // ── Project / board lock ──
   'project:updated': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: taskKeys.projects() });
-    void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    scheduleInvalidate(qc, taskKeys.projects());
+    scheduleInvalidate(qc, taskKeys.board(projectId));
   },
   'project:deleted': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: taskKeys.projects() });
-    void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    scheduleInvalidate(qc, taskKeys.projects());
+    scheduleInvalidate(qc, taskKeys.board(projectId));
     invalidateMyTasks(qc);
     invalidateFeed(qc);
     invalidateReports(qc, projectId);
   },
   'board:locked': (qc, projectId) => {
     boardDelta(qc, projectId, (b) => ({ ...b, project: { ...b.project, isBoardLocked: true } }));
-    void qc.invalidateQueries({ queryKey: taskKeys.projects() });
+    scheduleInvalidate(qc, taskKeys.projects());
   },
   'board:unlocked': (qc, projectId) => {
     boardDelta(qc, projectId, (b) => ({ ...b, project: { ...b.project, isBoardLocked: false } }));
-    void qc.invalidateQueries({ queryKey: taskKeys.projects() });
+    scheduleInvalidate(qc, taskKeys.projects());
   },
 
   // ── Members ──
   'member:added': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'members'] });
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'leaderboard'] });
+    scheduleInvalidate(qc, ['tasks', projectId, 'members']);
+    scheduleInvalidate(qc, ['tasks', projectId, 'leaderboard']);
   },
   'member:removed': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'members'] });
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'leaderboard'] });
+    scheduleInvalidate(qc, ['tasks', projectId, 'members']);
+    scheduleInvalidate(qc, ['tasks', projectId, 'leaderboard']);
   },
 
   // ── Yêu cầu tham gia (chia sẻ project qua link) ──
   // accept còn bắn 'member:added' → members/board tự refresh.
   'join-request:created': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'join-requests'] });
+    scheduleInvalidate(qc, ['tasks', projectId, 'join-requests']);
   },
   'join-request:updated': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'join-requests'] });
+    scheduleInvalidate(qc, ['tasks', projectId, 'join-requests']);
   },
 
   // ── Tags của project (đổi tên/màu ảnh hưởng mọi card gắn tag → refetch board) ──
   'tag:created': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'tags'] });
+    scheduleInvalidate(qc, ['tasks', projectId, 'tags']);
   },
   'tag:updated': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'tags'] });
-    void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    scheduleInvalidate(qc, ['tasks', projectId, 'tags']);
+    scheduleInvalidate(qc, taskKeys.board(projectId));
   },
   'tag:deleted': (qc, projectId) => {
-    void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'tags'] });
-    void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    scheduleInvalidate(qc, ['tasks', projectId, 'tags']);
+    scheduleInvalidate(qc, taskKeys.board(projectId));
     // Nhãn đã xoá khỏi config → BE cascade gỡ nhãn khỏi mọi task. Phải dọn cache
     // nhãn của từng task đang mở (chip trong modal detail) — không biết task nào
     // từng gắn nên invalidate mọi per-task tags (['tasks', projectId, taskId, 'tags'])
     // của project. Kèm subtask lists vì subtask row cũng hiển thị nhãn.
-    void qc.invalidateQueries({
-      predicate: (q) =>
-        q.queryKey[0] === 'tasks' &&
-        q.queryKey[1] === projectId &&
-        q.queryKey[3] === 'tags',
-    });
+    void qc.invalidateQueries(
+      {
+        predicate: (q) =>
+          q.queryKey[0] === 'tasks' &&
+          q.queryKey[1] === projectId &&
+          q.queryKey[3] === 'tags',
+      },
+      { cancelRefetch: false },
+    );
     invalidateSubtaskLists(qc, projectId);
   },
 
@@ -288,13 +438,15 @@ const EVENT_HANDLERS: Record<string, Handler> = {
   'task:tag-attached': (qc, projectId, p) => {
     const ev = p as TagAttachedEvent;
     boardDeltaSoft(qc, projectId, (b) => applyTagAttached(b, ev));
-    void qc.invalidateQueries({ queryKey: subKey(projectId, ev.taskId, 'tags') });
+    if (isLocal(ev.taskId, 'task:tag-attached')) return;
+    scheduleInvalidate(qc, subKey(projectId, ev.taskId, 'tags'));
     invalidateSubtaskLists(qc, projectId);
   },
   'task:tag-detached': (qc, projectId, p) => {
     const ev = p as { taskId: string; tagId: string };
     boardDeltaSoft(qc, projectId, (b) => applyTagDetached(b, ev));
-    void qc.invalidateQueries({ queryKey: subKey(projectId, ev.taskId, 'tags') });
+    if (isLocal(ev.taskId, 'task:tag-detached')) return;
+    scheduleInvalidate(qc, subKey(projectId, ev.taskId, 'tags'));
     invalidateSubtaskLists(qc, projectId);
   },
 
@@ -329,10 +481,15 @@ const EVENT_HANDLERS: Record<string, Handler> = {
   // ── Checklist ──
   'checklist:added': (qc, projectId, p) => {
     const ev = p as ChecklistItem;
-    listDelta<ChecklistItem>(qc, subKey(projectId, ev.taskId, 'checklist'), (l) =>
+    const key = subKey(projectId, ev.taskId, 'checklist');
+    const alreadyCached = qc.getQueryData<ChecklistItem[]>(key)?.some((item) => item.id === ev.id);
+    listDelta<ChecklistItem>(qc, key, (l) =>
       upsertById(l, ev, byPosition),
     );
-    boardDeltaSoft(qc, projectId, (b) => bumpTaskCount(b, ev.taskId, 'checklistCount', 1));
+    if (!alreadyCached) {
+      boardDeltaSoft(qc, projectId, (b) => bumpTaskCount(b, ev.taskId, 'checklistCount', 1));
+    }
+    if (isLocal(ev.taskId, 'checklist:added')) return;
     invalidateDetail(qc, projectId, ev.taskId);
     invalidateFeed(qc);
   },
@@ -341,21 +498,28 @@ const EVENT_HANDLERS: Record<string, Handler> = {
     listDelta<ChecklistItem>(qc, subKey(projectId, ev.taskId, 'checklist'), (l) =>
       upsertById(l, ev, byPosition),
     );
+    if (isLocal(ev.taskId, 'checklist:updated')) return;
   },
   'checklist:toggled': (qc, projectId, p) => {
     const ev = p as ChecklistToggledEvent;
     listDelta<ChecklistItem>(qc, subKey(projectId, ev.taskId, 'checklist'), (l) =>
       patchById(l, ev.itemId, { isDone: ev.isDone }),
     );
+    if (isLocal(ev.taskId, 'checklist:toggled')) return;
     invalidateDetail(qc, projectId, ev.taskId); // checklistDone trên detail
     invalidateFeed(qc);
   },
   'checklist:deleted': (qc, projectId, p) => {
     const ev = p as { itemId: string; taskId: string };
-    listDelta<ChecklistItem>(qc, subKey(projectId, ev.taskId, 'checklist'), (l) =>
+    const key = subKey(projectId, ev.taskId, 'checklist');
+    const wasCached = qc.getQueryData<ChecklistItem[]>(key)?.some((item) => item.id === ev.itemId);
+    listDelta<ChecklistItem>(qc, key, (l) =>
       removeById(l, ev.itemId),
     );
-    boardDeltaSoft(qc, projectId, (b) => bumpTaskCount(b, ev.taskId, 'checklistCount', -1));
+    if (wasCached) {
+      boardDeltaSoft(qc, projectId, (b) => bumpTaskCount(b, ev.taskId, 'checklistCount', -1));
+    }
+    if (isLocal(ev.taskId, 'checklist:deleted')) return;
     invalidateDetail(qc, projectId, ev.taskId);
     invalidateFeed(qc);
   },
@@ -387,7 +551,8 @@ const EVENT_HANDLERS: Record<string, Handler> = {
         avatarUrl: ev.avatarUrl ?? null,
       }),
     );
-    void qc.invalidateQueries({ queryKey: subKey(projectId, ev.taskId, 'assignees') });
+    if (isLocal(ev.taskId, 'assignee:added')) return;
+    scheduleInvalidate(qc, subKey(projectId, ev.taskId, 'assignees'));
     invalidateDetail(qc, projectId, ev.taskId);
     invalidateFeed(qc);
     invalidateReports(qc, projectId);
@@ -396,7 +561,8 @@ const EVENT_HANDLERS: Record<string, Handler> = {
   'assignee:removed': (qc, projectId, p) => {
     const ev = p as AssigneeEvent;
     boardDeltaSoft(qc, projectId, (b) => applyAssigneeRemoved(b, ev));
-    void qc.invalidateQueries({ queryKey: subKey(projectId, ev.taskId, 'assignees') });
+    if (isLocal(ev.taskId, 'assignee:removed')) return;
+    scheduleInvalidate(qc, subKey(projectId, ev.taskId, 'assignees'));
     invalidateDetail(qc, projectId, ev.taskId);
     invalidateFeed(qc);
     invalidateReports(qc, projectId);
@@ -437,7 +603,7 @@ export function useTaskRealtime(projectId: string | null): void {
         const response = await tasksApi.getChangesSince(projectId, lastSeq);
         if (disposed) return;
         if (response.resync) {
-          await qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+          scheduleInvalidate(qc, taskKeys.board(projectId));
           return;
         }
         for (const change of response.changes) {
@@ -445,7 +611,7 @@ export function useTaskRealtime(projectId: string | null): void {
         }
       } catch (error) {
         logger.warn('Không thể resync task changes', { projectId, error });
-        await qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+        scheduleInvalidate(qc, taskKeys.board(projectId));
       }
     };
 

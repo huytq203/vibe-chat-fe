@@ -5,32 +5,24 @@ import { reportsApi } from '@/services/reports.api';
 import { tasksApi } from '../services/tasks.api';
 import type { ReportPeriod } from '../types';
 
-/**
- * Báo cáo theo project: stats + leaderboard.
- * Truyền `null` khi chưa chọn project — query sẽ không chạy.
- */
-export function useReports(projectId: string | null, period: ReportPeriod = 'month') {
-  const stats = useQuery({
-    queryKey: ['tasks', projectId, 'stats'],
-    queryFn: () => tasksApi.getProjectStats(projectId!),
-    enabled: !!projectId,
-    staleTime: 60_000,
-  });
-  const leaderboard = useQuery({
-    queryKey: ['tasks', projectId, 'leaderboard', period],
-    queryFn: () => reportsApi.leaderboard(projectId!, period),
-    enabled: !!projectId,
-    staleTime: 60_000,
-  });
-  return { stats, leaderboard };
+interface UseReportsParams {
+  period: ReportPeriod;
+  projectId?: string;
 }
 
-export function useMyPerformance(period: ReportPeriod) {
-  return useQuery({
-    queryKey: ['tasks', 'my-performance', period],
+/** Hai truy vấn chính của tab Báo cáo, cùng phụ thuộc vào bộ lọc hiện tại. */
+export function useReports({ period, projectId }: UseReportsParams) {
+  const leaderboard = useQuery({
+    queryKey: ['tasks', 'reports', 'leaderboard', period, projectId ?? null],
+    queryFn: () => reportsApi.leaderboardAll(period, projectId),
+    staleTime: 60_000,
+  });
+  const myPerformance = useQuery({
+    queryKey: ['tasks', 'reports', 'my-performance', period, projectId ?? null],
     queryFn: () => reportsApi.myPerformance(period),
     staleTime: 60_000,
   });
+  return { leaderboard, myPerformance };
 }
 
 /** Tổng quan stats mọi project của user (tab báo cáo, chưa chọn project). */

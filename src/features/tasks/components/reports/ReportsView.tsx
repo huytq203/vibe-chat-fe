@@ -1,62 +1,68 @@
 'use client';
 
 import { useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert/Alert';
+import { Button } from '@/components/ui/button/Button';
 import { ScrollArea } from '@/components/ui/scroll-area/ScrollArea';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
-import { useStatsOverview } from '../../hooks/useReports';
-import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import { ReportsOverview } from './ReportsOverview';
+import { getCurrentUser } from '../../lib/current-user';
+import { useProjects } from '../../hooks/useProjects';
+import { useReports, useStatsOverview } from '../../hooks/useReports';
+import type { ReportPeriod } from '../../types';
 import { LeaderboardPanel } from './LeaderboardPanel';
 import { MyPerformancePanel } from './MyPerformancePanel';
-import type { ReportPeriod } from '../../types';
+import { ReportsFilters } from './ReportsFilters';
+import { ReportsOverview } from './ReportsOverview';
 
 export function ReportsView() {
   const [period, setPeriod] = useState<ReportPeriod>('month');
+  const [projectId, setProjectId] = useState<string>();
+  const projects = useProjects();
+  const reports = useReports({ period, projectId });
   const overview = useStatsOverview();
-  const selectedProjectId = useTasksUIStore((s) => s.selectedProjectId);
-  const selectedProjectName = overview.data?.projects.find(
-    (p) => p.projectId === selectedProjectId,
-  )?.projectName;
+  const currentUser = getCurrentUser();
 
   return (
     <ScrollArea className="h-full w-full">
-      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
-        <div className="mb-4 flex justify-end">
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            Kỳ báo cáo
-            <select
-              aria-label="Kỳ báo cáo"
-              value={period}
-              onChange={(event) => setPeriod(event.target.value as ReportPeriod)}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/30 max-md:min-h-11"
-            >
-              <option value="week">Tuần</option>
-              <option value="month">Tháng</option>
-              <option value="all">Tất cả</option>
-            </select>
-          </label>
-        </div>
-        {overview.isPending && (
-          <div role="status" aria-label="Đang tải số liệu báo cáo">
-            <Skeleton className="h-[96px] w-full" rounded="lg" />
-            <p className="mt-3 text-center text-[12.5px] text-muted-foreground">
-              Đang tải số liệu báo cáo…
-            </p>
-          </div>
-        )}
-        {overview.isError && (
-          <p className="rounded-2xl border border-border bg-background px-4 py-6 text-center text-[12.5px] text-danger">
-            Không tải được số liệu báo cáo. Vui lòng thử lại sau.
-          </p>
-        )}
-        {overview.data && <ReportsOverview data={overview.data} />}
-
-        <MyPerformancePanel period={period} />
-        <LeaderboardPanel
-          projectName={selectedProjectName}
+      <div className="min-h-full w-full bg-muted/20 font-sans">
+        <ReportsFilters
           period={period}
-          className="mt-4"
+          projectId={projectId}
+          projects={projects.data ?? []}
+          isLoadingProjects={projects.isPending}
+          onPeriodChange={setPeriod}
+          onProjectChange={setProjectId}
         />
+
+        <div className="space-y-4 px-4 py-4 md:px-6 md:py-5">
+          <MyPerformancePanel
+            projectId={projectId}
+            query={reports.myPerformance}
+            currentUser={currentUser}
+          />
+          <LeaderboardPanel query={reports.leaderboard} currentUser={currentUser} />
+
+          <section aria-label="Tổng quan tiến độ project" className="pt-1">
+            {overview.isPending ? (
+              <div role="status" aria-label="Đang tải tổng quan tiến độ" className="space-y-3">
+                <Skeleton className="h-20 w-full" rounded="lg" />
+                <Skeleton className="h-48 w-full" rounded="lg" />
+              </div>
+            ) : overview.isError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Không tải được tổng quan tiến độ project.</AlertTitle>
+                <AlertDescription className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                  <span>Kiểm tra kết nối rồi thử tải lại báo cáo.</span>
+                  <Button variant="danger-outline" size="sm" onClick={() => void overview.refetch()}>
+                    Thử lại
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : overview.data ? (
+              <ReportsOverview data={overview.data} />
+            ) : null}
+          </section>
+        </div>
       </div>
     </ScrollArea>
   );

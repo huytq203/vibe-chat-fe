@@ -1,7 +1,38 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { tasksApi } from '../services/tasks.api';
 import { taskKeys } from '../services/keys';
-import type { TaskDetail, TaskPriority } from '../types';
+import { applyTaskDeleted, applyTaskMoved, applyTaskUpdated } from '../lib/board-cache';
+import { scheduleInvalidate } from '../lib/invalidate-scheduler';
+import { markLocal } from '../lib/local-mutations';
+import type { Board, TaskDetail, TaskPriority } from '../types';
+
+function writeTaskResponse(
+  qc: QueryClient,
+  projectId: string,
+  task: TaskDetail,
+): void {
+  qc.setQueryData(['tasks', projectId, task.id, 'detail'], task);
+  qc.setQueryData<Board>(taskKeys.board(projectId), (board) => {
+    if (!board) return board;
+    const moved = applyTaskMoved(board, {
+      taskId: task.id,
+      columnId: task.columnId,
+      position: task.position,
+    }) ?? board;
+    return applyTaskUpdated(moved, {
+      taskId: task.id,
+      changes: {
+        title: task.title,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        isPinned: task.isPinned,
+        completedAt: task.completedAt,
+        reviewRequestedAt: task.reviewRequestedAt,
+        status: task.status,
+      },
+    }) ?? moved;
+  });
+}
 
 export function useTaskDetail(projectId: string, taskId: string | null) {
   return useQuery({
@@ -22,6 +53,7 @@ export function useUpdateTask(projectId: string, taskId: string) {
       gem?: number | null;
       isPinned?: boolean;
     }) => {
+      markLocal(taskId, 'task:updated');
       const detail = qc.getQueryData<TaskDetail>([
         'tasks',
         projectId,
@@ -42,9 +74,8 @@ export function useUpdateTask(projectId: string, taskId: string) {
     onError: (_e, _input, ctx) => {
       if (ctx?.prev) qc.setQueryData(['tasks', projectId, taskId, 'detail'], ctx.prev);
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
-      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    onSuccess: (updated) => {
+      writeTaskResponse(qc, projectId, updated);
     },
   });
 }
@@ -60,16 +91,15 @@ function useWorkflowMutation(
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => fn(taskId),
-    onSuccess: (updated) => {
-      qc.setQueryData(['tasks', projectId, taskId, 'detail'], updated);
+    mutationFn: () => {
+      markLocal(taskId, 'task:updated');
+      return fn(taskId);
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
-      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    onSuccess: (updated) => {
+      writeTaskResponse(qc, projectId, updated);
       // History phản ánh action workflow vừa xảy ra
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, 'activities', taskId] });
-      void qc.invalidateQueries({ queryKey: ['tasks', 'feed'] });
+      scheduleInvalidate(qc, ['tasks', projectId, 'activities', taskId]);
+      scheduleInvalidate(qc, ['tasks', 'feed']);
     },
   });
 }
@@ -88,9 +118,15 @@ export function useReopenTask(projectId: string, taskId: string) {
 export function useDeleteTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (taskId: string) => tasksApi.deleteTask(taskId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
+    mutationFn: (taskId: string) => {
+      markLocal(taskId, 'task:deleted');
+      return tasksApi.deleteTask(taskId);
+    },
+    onSuccess: (_result, taskId) => {
+      qc.setQueryData<Board>(taskKeys.board(projectId), (board) =>
+        board ? applyTaskDeleted(board, { taskId }) : board,
+      );
+      qc.removeQueries({ queryKey: ['tasks', projectId, taskId, 'detail'], exact: true });
     },
   });
 }

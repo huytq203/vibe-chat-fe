@@ -2,7 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { tasksApi } from '../services/tasks.api';
 import { taskKeys } from '../services/keys';
-import type { Tag } from '../types';
+import { applyTagAttached, applyTagDetached } from '../lib/board-cache';
+import { markLocal } from '../lib/local-mutations';
+import type { Board, Tag } from '../types';
 
 function taskTagsKey(projectId: string, taskId: string) {
   return ['tasks', projectId, taskId, 'tags'] as const;
@@ -20,7 +22,6 @@ function tagMutationKey(projectId: string, taskId: string) {
 function settleTags(qc: QueryClient, projectId: string, taskId: string) {
   if (qc.isMutating({ mutationKey: tagMutationKey(projectId, taskId) }) <= 1) {
     void qc.invalidateQueries({ queryKey: taskTagsKey(projectId, taskId) });
-    void qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
   }
 }
 
@@ -46,7 +47,10 @@ export function useAttachTag(projectId: string, taskId: string) {
   return useMutation({
     mutationKey: tagMutationKey(projectId, taskId),
     // Nhận cả object Tag để optimistic hiển thị ngay trong modal.
-    mutationFn: (tag: Tag) => tasksApi.attachTag(taskId, tag.id),
+    mutationFn: (tag: Tag) => {
+      markLocal(taskId, 'task:tag-attached');
+      return tasksApi.attachTag(taskId, tag.id);
+    },
     onMutate: async (tag) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<Tag[]>(key);
@@ -58,6 +62,16 @@ export function useAttachTag(projectId: string, taskId: string) {
     onError: (_e, _tag, ctx) => {
       if (ctx?.prev) qc.setQueryData(key, ctx.prev);
     },
+    onSuccess: (_result, tag) => {
+      qc.setQueryData<Board>(taskKeys.board(projectId), (board) =>
+        board
+          ? (applyTagAttached(board, {
+              taskId,
+              tag: { id: tag.id, name: tag.name, color: tag.color },
+            }) ?? board)
+          : board,
+      );
+    },
     onSettled: () => settleTags(qc, projectId, taskId),
   });
 }
@@ -67,7 +81,10 @@ export function useDetachTag(projectId: string, taskId: string) {
   const key = taskTagsKey(projectId, taskId);
   return useMutation({
     mutationKey: tagMutationKey(projectId, taskId),
-    mutationFn: (tagId: string) => tasksApi.detachTag(taskId, tagId),
+    mutationFn: (tagId: string) => {
+      markLocal(taskId, 'task:tag-detached');
+      return tasksApi.detachTag(taskId, tagId);
+    },
     onMutate: async (tagId) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<Tag[]>(key);
@@ -76,6 +93,11 @@ export function useDetachTag(projectId: string, taskId: string) {
     },
     onError: (_e, _tagId, ctx) => {
       if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSuccess: (_result, tagId) => {
+      qc.setQueryData<Board>(taskKeys.board(projectId), (board) =>
+        board ? (applyTagDetached(board, { taskId, tagId }) ?? board) : board,
+      );
     },
     onSettled: () => settleTags(qc, projectId, taskId),
   });

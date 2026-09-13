@@ -3,7 +3,8 @@ import { tasksApi } from '../services/tasks.api';
 import { taskKeys } from '../services/keys';
 import { upsertById, patchById, removeById } from '../lib/list-cache';
 import { bumpTaskCount } from '../lib/board-cache';
-import type { Board, ChecklistItem } from '../types';
+import { markLocal } from '../lib/local-mutations';
+import type { Board, ChecklistItem, TaskDetail } from '../types';
 
 const checklistKey = (projectId: string, taskId: string | null) =>
   ['tasks', projectId, taskId, 'checklist'] as const;
@@ -22,6 +23,24 @@ function bumpBoardChecklistCount(
   );
 }
 
+function patchChecklistSummary(
+  qc: QueryClient,
+  projectId: string,
+  taskId: string,
+  totalDelta: number,
+  doneDelta: number,
+): void {
+  qc.setQueryData<TaskDetail>(['tasks', projectId, taskId, 'detail'], (detail) =>
+    detail
+      ? {
+          ...detail,
+          checklistTotal: Math.max(0, detail.checklistTotal + totalDelta),
+          checklistDone: Math.max(0, detail.checklistDone + doneDelta),
+        }
+      : detail,
+  );
+}
+
 export function useChecklist(projectId: string, taskId: string | null) {
   return useQuery({
     queryKey: checklistKey(projectId, taskId),
@@ -33,15 +52,23 @@ export function useChecklist(projectId: string, taskId: string | null) {
 export function useCreateChecklistItem(projectId: string, taskId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (content: string) =>
-      tasksApi.createChecklistItem(projectId, taskId, { content }),
+    mutationFn: (content: string) => {
+      markLocal(taskId, 'checklist:added');
+      return tasksApi.createChecklistItem(projectId, taskId, { content });
+    },
     // Write-through: item hiện ngay từ response (event realtime dedupe theo id)
     onSuccess: (created) => {
-      qc.setQueryData<ChecklistItem[]>(checklistKey(projectId, taskId), (old) =>
+      const key = checklistKey(projectId, taskId);
+      const alreadyCached = qc.getQueryData<ChecklistItem[]>(key)?.some(
+        (item) => item.id === created.id,
+      );
+      qc.setQueryData<ChecklistItem[]>(key, (old) =>
         old ? upsertById(old, created, byPosition) : old,
       );
-      bumpBoardChecklistCount(qc, projectId, taskId, 1);
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
+      if (!alreadyCached) {
+        bumpBoardChecklistCount(qc, projectId, taskId, 1);
+        patchChecklistSummary(qc, projectId, taskId, 1, created.isDone ? 1 : 0);
+      }
     },
   });
 }
@@ -49,8 +76,11 @@ export function useCreateChecklistItem(projectId: string, taskId: string) {
 export function useUpdateChecklistItem(projectId: string, taskId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, isDone, content }: { itemId: string; isDone?: boolean; content?: string }) =>
-      tasksApi.updateChecklistItem(projectId, taskId, itemId, { isDone, content }),
+    mutationFn: ({ itemId, isDone, content }: { itemId: string; isDone?: boolean; content?: string }) => {
+      if (isDone !== undefined) markLocal(taskId, 'checklist:toggled');
+      if (content !== undefined) markLocal(taskId, 'checklist:updated');
+      return tasksApi.updateChecklistItem(projectId, taskId, itemId, { isDone, content });
+    },
     // Optimistic: tick checkbox nhảy ngay, lỗi thì hoàn tác
     onMutate: async ({ itemId, isDone, content }) => {
       const key = checklistKey(projectId, taskId);
@@ -69,11 +99,14 @@ export function useUpdateChecklistItem(projectId: string, taskId: string) {
       if (ctx?.previous) qc.setQueryData(checklistKey(projectId, taskId), ctx.previous);
     },
     // Server là nguồn chuẩn — ghi đè item bằng response, không cần refetch list
-    onSuccess: (updated) => {
+    onSuccess: (updated, _vars, ctx) => {
       qc.setQueryData<ChecklistItem[]>(checklistKey(projectId, taskId), (old) =>
         old ? upsertById(old, updated, byPosition) : old,
       );
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
+      const previousItem = ctx?.previous?.find((item) => item.id === updated.id);
+      if (previousItem && previousItem.isDone !== updated.isDone) {
+        patchChecklistSummary(qc, projectId, taskId, 0, updated.isDone ? 1 : -1);
+      }
     },
   });
 }
@@ -81,7 +114,10 @@ export function useUpdateChecklistItem(projectId: string, taskId: string) {
 export function useDeleteChecklistItem(projectId: string, taskId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: string) => tasksApi.deleteChecklistItem(projectId, taskId, itemId),
+    mutationFn: (itemId: string) => {
+      markLocal(taskId, 'checklist:deleted');
+      return tasksApi.deleteChecklistItem(projectId, taskId, itemId);
+    },
     // Optimistic: gỡ ngay khỏi list, lỗi thì hoàn tác
     onMutate: async (itemId) => {
       const key = checklistKey(projectId, taskId);
@@ -95,8 +131,9 @@ export function useDeleteChecklistItem(projectId: string, taskId: string) {
       if (ctx?.previous) qc.setQueryData(checklistKey(projectId, taskId), ctx.previous);
       bumpBoardChecklistCount(qc, projectId, taskId, 1);
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks', projectId, taskId, 'detail'] });
+    onSuccess: (_result, itemId, ctx) => {
+      const deleted = ctx?.previous?.find((item) => item.id === itemId);
+      patchChecklistSummary(qc, projectId, taskId, -1, deleted?.isDone ? -1 : 0);
     },
   });
 }
