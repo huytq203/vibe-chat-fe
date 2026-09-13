@@ -89,6 +89,24 @@ describe('lịch sử hội thoại AI hợp nhất', () => {
     expect(result.current.activeId).toBe('conversation-new');
   });
 
+  it('vẫn nhận tin nhắn mới ngay sau lượt đầu khi chi tiết hội thoại còn đang tải', async () => {
+    let resolveDetail: ((value: never) => void) | undefined;
+    detail.mockImplementation(() => new Promise((resolve) => { resolveDetail = resolve as never; }));
+    const { result } = renderHook(
+      () => useAiConversations({ scope: 'project-1' }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.actions.pushMessage(result.current.session.id, { role: 'user', content: 'hi' }));
+    act(() => result.current.remember('conversation-new'));
+    // detail đang pending (chưa resolve) — câu trả lời stream xong phải được ghi vào phiên cục bộ
+    act(() => result.current.actions.pushMessage('conversation-new', { role: 'assistant', content: 'Chào bạn' }));
+
+    expect(result.current.session.messages.map((m) => m.content)).toEqual(['hi', 'Chào bạn']);
+    expect(resolveDetail).toBeDefined();
+  });
+
   it('giữ lịch sử cũ khi gửi thêm lượt vào hội thoại đã chọn', async () => {
     detail.mockResolvedValue({
       id: 'conversation-1', title: 'Tiến độ', origin: 'TASKS', context: null,

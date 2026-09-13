@@ -150,12 +150,13 @@ function useStableActions(
       sessionRef,
       update: (updater) => setLocal((previous) => {
         const current = stateRef.current;
-        if (current.isDetailLoading) return previous;
-        const source = previous.scope === current.scope
+        const hasLocalDraft = previous.scope === current.scope
           && previous.activeId === current.activeId
-          && previous.dirty
-          ? previous.value
-          : sessionRef.current;
+          && previous.dirty;
+        // Chỉ chặn khi KHÔNG có bản nháp cục bộ: ngay sau lượt đầu, activeId vừa được gán nên
+        // detail đang tải — nếu bỏ qua cập nhật lúc này thì câu trả lời/tin kế tiếp bị rơi.
+        if (current.isDetailLoading && !hasLocalDraft) return previous;
+        const source = hasLocalDraft ? previous.value : sessionRef.current;
         return {
           scope: current.scope,
           activeId: current.activeId,
@@ -185,6 +186,8 @@ function useStableActions(
     };
   }, [setLocal]);
 }
+
+const TITLE_REFRESH_DELAYS_MS = [2500, 7000] as const;
 
 export function useAiConversations({ origin, scope }: UseAiConversationsOptions): Result {
   const queryClient = useQueryClient();
@@ -252,6 +255,13 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
     }
     void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
     void queryClient.invalidateQueries({ queryKey: aiConversationKeys.detail(conversationId) });
+    // BE đặt tiêu đề bằng một lượt model riêng SAU khi trả `done` → tải lại danh sách thêm
+    // vài nhịp để tiêu đề xuất hiện ngay ở lượt đầu thay vì chờ tới lượt sau.
+    for (const delay of TITLE_REFRESH_DELAYS_MS) {
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
+      }, delay);
+    }
   }, [activeId, origin, queryClient, scope]);
   const refetch = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
