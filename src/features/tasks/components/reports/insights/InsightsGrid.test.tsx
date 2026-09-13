@@ -91,6 +91,17 @@ describe('bộ biểu đồ Insights', () => {
     expect(screen.getAllByTestId('insight-panel')).toHaveLength(10);
     expect(reportsApi.insights).toHaveBeenCalledWith('month', 'project-1');
   });
+
+  it('nên lấp đầy từng hàng của lưới desktop', async () => {
+    renderWithProviders(<InsightsGrid period="month" />);
+    await screen.findByRole('region', { name: 'Bộ biểu đồ insights' });
+
+    const expectedSpans = [2, 4, 2, 4, 3, 3, 6, 4, 2, 6];
+    screen.getAllByTestId('insight-panel').forEach((panel, index) => {
+      expect(panel).toHaveClass(`lg:col-span-${expectedSpans[index]}`);
+      expect(panel).toHaveClass('min-w-0');
+    });
+  });
 });
 
 describe('biểu đồ radar thành viên', () => {

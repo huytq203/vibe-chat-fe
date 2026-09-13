@@ -23,7 +23,18 @@ interface InsightsGridProps {
   isOverviewPending?: boolean;
 }
 
-const panelSpans = ['lg:col-span-2', 'lg:col-span-4', 'lg:col-span-2', 'lg:col-span-4', 'lg:col-span-2', 'lg:col-span-2', 'lg:col-span-4', 'lg:col-span-4', 'lg:col-span-2', 'lg:col-span-4'];
+const panelSpans = [
+  'lg:col-span-2',
+  'lg:col-span-4',
+  'lg:col-span-2',
+  'lg:col-span-4',
+  'lg:col-span-3',
+  'lg:col-span-3',
+  'lg:col-span-6',
+  'lg:col-span-4',
+  'lg:col-span-2',
+  'lg:col-span-6',
+] as const;
 
 export function InsightsGrid({ period, projectId, overview, isOverviewPending = false }: InsightsGridProps) {
   const query = useInsights({ period, projectId });
@@ -32,7 +43,7 @@ export function InsightsGrid({ period, projectId, overview, isOverviewPending = 
     return (
       <div role="status" aria-label="Đang tải biểu đồ insights" className="grid grid-cols-1 gap-4 lg:grid-cols-6">
         {panelSpans.map((span, index) => (
-          <Skeleton key={`${span}-${index}`} className={`h-72 w-full ${span}`} rounded="lg" />
+          <Skeleton key={`${span}-${index}`} className={`h-72 min-w-0 w-full ${span}`} rounded="lg" />
         ))}
       </div>
     );
@@ -71,7 +82,11 @@ export function InsightsGrid({ period, projectId, overview, isOverviewPending = 
   return (
     <section role="region" aria-label="Bộ biểu đồ insights" className="grid grid-cols-1 gap-4 lg:grid-cols-6">
       {panels.map((panel, index) => (
-        <div key={panel.key} data-testid="insight-panel" className={panelSpans[index]}>
+        <div
+          key={panel.key}
+          data-testid="insight-panel"
+          className={`min-w-0 [&>section]:h-full ${panelSpans[index]}`}
+        >
           {panel}
         </div>
       ))}
