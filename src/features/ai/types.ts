@@ -62,4 +62,6 @@ export type AiSessionActions = {
   markLastUserFailed: (sessionId: string, reason: string) => void;
   prepareResend: (sessionId: string, index: number) => AiMessage[];
   removeMessage: (sessionId: string, index: number) => AiMessage | null;
+  /** Ánh xạ id nháp → id hội thoại BE cấp, để action gọi bằng id cũ vẫn trúng phiên. */
+  alias?: (draftId: string, conversationId: string) => void;
 };

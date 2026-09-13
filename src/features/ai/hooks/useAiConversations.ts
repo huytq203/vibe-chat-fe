@@ -140,6 +140,9 @@ function useStableActions(
 ): AiSessionActions {
   const sessionRef = useRef(session);
   const stateRef = useRef({ scope, activeId, isDetailLoading, clearActive });
+  // id nháp → id BE cấp sau lượt đầu: luồng stream vẫn gọi action bằng id nháp cũ,
+  // nếu không ánh xạ thì câu trả lời bị bỏ qua (session.id đã đổi) và chỉ hiện sau khi tải lại.
+  const aliasRef = useRef(new Map<string, string>());
   useLayoutEffect(() => {
     sessionRef.current = session;
     stateRef.current = { scope, activeId, isDetailLoading, clearActive };
@@ -176,13 +179,15 @@ function useStableActions(
         return next;
       },
     });
+    const resolve = (id: string): string => aliasRef.current.get(id) ?? id;
     return {
       createSession: () => getActions().createSession(),
-      pushMessage: (id, message) => getActions().pushMessage(id, message),
-      dropLastAssistant: (id) => getActions().dropLastAssistant(id),
-      markLastUserFailed: (id, reason) => getActions().markLastUserFailed(id, reason),
-      prepareResend: (id, index) => getActions().prepareResend(id, index),
-      removeMessage: (id, index) => getActions().removeMessage(id, index),
+      pushMessage: (id, message) => getActions().pushMessage(resolve(id), message),
+      dropLastAssistant: (id) => getActions().dropLastAssistant(resolve(id)),
+      markLastUserFailed: (id, reason) => getActions().markLastUserFailed(resolve(id), reason),
+      prepareResend: (id, index) => getActions().prepareResend(resolve(id), index),
+      removeMessage: (id, index) => getActions().removeMessage(resolve(id), index),
+      alias: (draftId, conversationId) => { aliasRef.current.set(draftId, conversationId); },
     };
   }, [setLocal]);
 }
@@ -244,6 +249,7 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
   const remember = useCallback((conversationId: string) => {
     if (!activeId) {
       setActiveByScope((current) => ({ ...current, [scope]: conversationId }));
+      actions.alias?.(session.id, conversationId);
       setLocal((previous) => previous.scope === scope && previous.activeId === null
         ? {
             scope,
@@ -262,7 +268,7 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
         void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
       }, delay);
     }
-  }, [activeId, origin, queryClient, scope]);
+  }, [actions, activeId, origin, queryClient, scope, session.id]);
   const refetch = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
     if (activeId) {

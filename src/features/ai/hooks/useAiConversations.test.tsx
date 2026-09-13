@@ -98,10 +98,12 @@ describe('lịch sử hội thoại AI hợp nhất', () => {
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => result.current.actions.pushMessage(result.current.session.id, { role: 'user', content: 'hi' }));
+    const draftId = result.current.session.id;
+    act(() => result.current.actions.pushMessage(draftId, { role: 'user', content: 'hi' }));
     act(() => result.current.remember('conversation-new'));
-    // detail đang pending (chưa resolve) — câu trả lời stream xong phải được ghi vào phiên cục bộ
-    act(() => result.current.actions.pushMessage('conversation-new', { role: 'assistant', content: 'Chào bạn' }));
+    // detail đang pending (chưa resolve) và luồng stream vẫn dùng id nháp cũ —
+    // câu trả lời phải được ghi vào phiên cục bộ (id nháp được ánh xạ sang id BE cấp).
+    act(() => result.current.actions.pushMessage(draftId, { role: 'assistant', content: 'Chào bạn' }));
 
     expect(result.current.session.messages.map((m) => m.content)).toEqual(['hi', 'Chào bạn']);
     expect(resolveDetail).toBeDefined();
