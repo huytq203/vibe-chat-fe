@@ -15,7 +15,7 @@ export function AiChatPage() {
   const { activeId: routeActiveId, setActiveId: setRouteActiveId } = useSelectedAiSession();
   const [historyOpen, setHistoryOpen] = useState(true);
   const {
-    conversations, session, activeId, actions, select, startNew, remember,
+    conversations, session, activeId, actions, select, startNew, remember, isLoading,
   } = useAiConversations({
     origin: 'CHAT',
     scope: 'chat',
@@ -25,9 +25,11 @@ export function AiChatPage() {
   // (activeId về null) không được tự chọn lại — trước đây effect này "nuốt" nút tạo mới.
   const autoPickedRef = useRef(false);
 
+  // Sau lượt đầu, `remember` đã gán activeId rồi mới đổi URL — không được `select` lại
+  // (select tạo bản nháp rỗng chờ detail → màn hình nháy về trống một nhịp).
   useEffect(() => {
-    if (routeActiveId) select(routeActiveId);
-  }, [routeActiveId, select]);
+    if (routeActiveId && routeActiveId !== activeId) select(routeActiveId);
+  }, [routeActiveId, activeId, select]);
 
   const handleSelect = useCallback((id: string): void => {
     select(id);
@@ -82,6 +84,7 @@ export function AiChatPage() {
         <AiChatMain
           session={session}
           activeId={activeId}
+          isLoading={isLoading}
           actions={actions}
           remember={handleRemember}
           onStartNew={handleStartNew}

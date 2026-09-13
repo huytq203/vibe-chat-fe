@@ -13,6 +13,8 @@ import { aiApi } from '@/services/ai.api';
 interface AiChatMainProps {
   session: AiSession;
   activeId: string | null;
+  /** Đang tải danh sách/chi tiết hội thoại — không hiện màn chào để tránh nháy khi đổi hội thoại. */
+  isLoading?: boolean;
   actions: AiSessionActions;
   remember: (conversationId: string) => void;
   onStartNew: () => void;
@@ -26,6 +28,7 @@ interface AiChatMainProps {
 export function AiChatMain({
   session,
   activeId,
+  isLoading = false,
   actions,
   remember,
   onStartNew,
@@ -75,7 +78,7 @@ export function AiChatMain({
   }
 
   const messages = session.messages;
-  const showWelcome = messages.length === 0 && !loading;
+  const showWelcome = messages.length === 0 && !loading && !isLoading;
 
   return (
     <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden md:gap-3">

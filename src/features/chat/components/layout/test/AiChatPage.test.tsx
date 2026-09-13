@@ -177,6 +177,25 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: recentConversation.title })).not.toBeInTheDocument());
   });
 
+  it('nên không chọn lại (tải detail) khi URL đổi sang id vừa được BE cấp sau lượt đầu', async () => {
+    routeParams = { id: RECENT_ID };
+    vi.mocked(aiApi.chatStream).mockImplementation(async (_messages, _attachments, options) => {
+      options.onDelta('Đã ghi nhận');
+      options.onDone?.({ conversationId: NEW_ID });
+      return 'Đã ghi nhận';
+    });
+    render(<AiChatPage />);
+    const main = within(screen.getByRole('main'));
+    await userEvent.click(main.getByRole('button', { name: 'Trò chuyện mới' }));
+    await userEvent.type(main.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...'), 'Ý tưởng mới');
+    await userEvent.click(main.getByLabelText('Gửi'));
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith(`/ai/${NEW_ID}`, { scroll: false }));
+
+    // Câu trả lời vẫn hiển thị liên tục; không có lượt select → không gọi detail cho NEW_ID
+    expect(await main.findByText('Đã ghi nhận')).toBeInTheDocument();
+    expect(aiConversationsApi.detail).not.toHaveBeenCalledWith(NEW_ID);
+  });
+
   it('nên giữ trạng thái hội thoại mới sau khi bấm "+" — không tự chọn lại hội thoại gần nhất', async () => {
     render(<AiChatPage />);
     await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(RECENT_ID));
