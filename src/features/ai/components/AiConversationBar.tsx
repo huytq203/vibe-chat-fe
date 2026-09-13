@@ -65,7 +65,7 @@ function ConversationGroup({ label, items, activeId, onSelect, onDelete, isDelet
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-8 min-w-0 flex-1 justify-start px-2 text-start font-normal',
+                  'h-8 w-0 min-w-0 flex-1 justify-start overflow-hidden px-2 text-start font-normal',
                   conversation.id === activeId && 'bg-accent text-foreground',
                 )}
                 onClick={() => onSelect(conversation.id)}
@@ -167,7 +167,7 @@ function ConversationListState({
     );
   }
   return (
-    <div className="max-h-72 overflow-y-auto pb-1">
+    <div className="max-h-72 overflow-y-auto overflow-x-hidden pb-1">
       <ConversationGroup
         label="Hôm nay"
         items={groups.today}
