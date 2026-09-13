@@ -70,7 +70,7 @@ function ConversationGroup({ label, items, activeId, onSelect, onDelete, isDelet
                 )}
                 onClick={() => onSelect(conversation.id)}
               >
-                <span className="min-w-0 flex-1 truncate">
+                <span className="min-w-0 flex-1 truncate" title={title}>
                   {ORIGIN_LABELS[conversation.origin]} {title}
                 </span>
                 {conversation.id === activeId && (
@@ -225,7 +225,7 @@ function ConversationPopover({
         side="bottom"
         sideOffset={4}
         showArrow={false}
-        className="w-[316px] max-w-[calc(100vw-1.5rem)] p-2"
+        className="w-[316px] max-w-[calc(100vw-1.5rem)] overflow-x-hidden p-2"
       >
         <div className="flex min-h-11 items-center border-b border-border px-2">
           <Checkbox

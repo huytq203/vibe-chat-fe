@@ -9,6 +9,8 @@ export type AiChatContext = {
   projectId?: string;
   workspaceId?: string;
   pageId?: string;
+  /** App đang chat — BE ghi origin theo đây (app task chưa chọn project vẫn là TASKS). */
+  app?: 'TASKS' | 'NOTES' | 'CHAT';
 };
 
 /**

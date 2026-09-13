@@ -43,7 +43,7 @@ export function AiChatWindow() {
       history,
       sentAttachments,
       { ...options, onDone: ({ conversationId }) => remember(conversationId) },
-      buildAiContext(),
+      buildAiContext({ app: 'CHAT' }),
       activeId ?? undefined,
     ), [activeId, remember]);
 

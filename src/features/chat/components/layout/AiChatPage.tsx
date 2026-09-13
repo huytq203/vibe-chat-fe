@@ -25,24 +25,35 @@ export function AiChatPage() {
   // (activeId về null) không được tự chọn lại — trước đây effect này "nuốt" nút tạo mới.
   const autoPickedRef = useRef(false);
 
-  // Sau lượt đầu, `remember` đã gán activeId rồi mới đổi URL — không được `select` lại
-  // (select tạo bản nháp rỗng chờ detail → màn hình nháy về trống một nhịp).
+  // Chỉ phản ứng khi id TRÊN URL thực sự đổi (vào trang, back/forward, link) — không so
+  // với activeId: sau lượt đầu `remember` gán activeId trước rồi URL mới đổi theo (select
+  // lại sẽ nháy về trống), còn bấm "+" thì activeId về null trước khi URL kịp về /ai
+  // (so với activeId sẽ chọn lại hội thoại cũ → phải bấm hai lần).
+  const handledRouteIdRef = useRef<string | null | undefined>(undefined);
+  const activeIdRef = useRef(activeId);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
   useEffect(() => {
-    if (routeActiveId && routeActiveId !== activeId) select(routeActiveId);
-  }, [routeActiveId, activeId, select]);
+    if (handledRouteIdRef.current === routeActiveId) return;
+    handledRouteIdRef.current = routeActiveId;
+    if (routeActiveId && routeActiveId !== activeIdRef.current) select(routeActiveId);
+  }, [routeActiveId, select]);
 
   const handleSelect = useCallback((id: string): void => {
+    handledRouteIdRef.current = id;
     select(id);
     setRouteActiveId(id);
   }, [select, setRouteActiveId]);
 
   const handleStartNew = useCallback((): void => {
     autoPickedRef.current = true;
+    // Đánh dấu id đang có trên URL là "đã xử lý" để effect không chọn lại nó trước khi URL về /ai.
+    handledRouteIdRef.current = routeActiveId;
     startNew();
     setRouteActiveId(null);
-  }, [setRouteActiveId, startNew]);
+  }, [routeActiveId, setRouteActiveId, startNew]);
 
   const handleRemember = useCallback((conversationId: string): void => {
+    handledRouteIdRef.current = conversationId;
     remember(conversationId);
     setRouteActiveId(conversationId);
   }, [remember, setRouteActiveId]);

@@ -191,9 +191,13 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     await userEvent.click(main.getByLabelText('Gửi'));
     await waitFor(() => expect(routerReplace).toHaveBeenCalledWith(`/ai/${NEW_ID}`, { scroll: false }));
 
-    // Câu trả lời vẫn hiển thị liên tục; không có lượt select → không gọi detail cho NEW_ID
+    // Câu trả lời vẫn hiển thị; detail của NEW_ID chỉ tải đúng 1 lần (query thường),
+    // không có lượt `select` thứ hai khi URL đổi.
     expect(await main.findByText('Đã ghi nhận')).toBeInTheDocument();
-    expect(aiConversationsApi.detail).not.toHaveBeenCalledWith(NEW_ID);
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(NEW_ID));
+    const newIdCalls = vi.mocked(aiConversationsApi.detail).mock.calls.filter(([id]) => id === NEW_ID);
+    expect(newIdCalls).toHaveLength(1);
+    expect(main.queryByText('Bạn cần gì cứ nói')).not.toBeInTheDocument();
   });
 
   it('nên giữ trạng thái hội thoại mới sau khi bấm "+" — không tự chọn lại hội thoại gần nhất', async () => {
@@ -207,6 +211,20 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     await waitFor(() => expect(routerReplace).toHaveBeenCalledWith('/ai', { scroll: false }));
     expect(aiConversationsApi.detail).toHaveBeenCalledTimes(1);
     expect(main.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).toBeInTheDocument();
+  });
+
+  it('nên sang hội thoại mới ngay lần bấm "+" đầu tiên dù URL chưa kịp đổi', async () => {
+    routeParams = { id: RECENT_ID };
+    render(<AiChatPage />);
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(RECENT_ID));
+
+    const main = within(screen.getByRole('main'));
+    await userEvent.click(main.getByRole('button', { name: 'Trò chuyện mới' }));
+
+    // URL (mock) vẫn là RECENT_ID nhưng không được chọn lại hội thoại cũ
+    expect(routerReplace).toHaveBeenCalledWith('/ai', { scroll: false });
+    expect(aiConversationsApi.detail).toHaveBeenCalledTimes(1);
+    expect(main.queryByText(recentConversation.title ?? '')).not.toBeInTheDocument();
   });
 
   it('nên khoá nút xoá và chỉ gọi API một lần khi bấm đúp lúc đang xoá', async () => {

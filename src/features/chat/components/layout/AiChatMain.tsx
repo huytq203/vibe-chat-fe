@@ -46,7 +46,7 @@ export function AiChatMain({
       messages,
       sentAttachments,
       { ...options, onDone: ({ conversationId }) => remember(conversationId) },
-      buildAiContext(),
+      buildAiContext({ app: 'CHAT' }),
       activeId ?? undefined,
     ), [activeId, remember]);
   const { loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard } =

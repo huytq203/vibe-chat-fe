@@ -5,5 +5,5 @@ export function buildTaskAiContext(
   projectId: string | null,
   now = new Date(),
 ): AiChatContext & Required<Pick<AiChatContext, 'today' | 'timezone'>> {
-  return buildAiContext(projectId ? { projectId } : {}, now);
+  return buildAiContext({ app: 'TASKS', ...(projectId ? { projectId } : {}) }, now);
 }

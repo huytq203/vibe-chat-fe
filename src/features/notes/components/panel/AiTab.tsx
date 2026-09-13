@@ -94,7 +94,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
         messages,
         messageAttachments,
         { ...options, onDone: ({ conversationId }) => remember(conversationId) },
-        buildAiContext({ workspaceId, pageId }),
+        buildAiContext({ app: 'NOTES', workspaceId, pageId }),
         activeId ?? undefined,
       ),
     [activeId, pageId, remember, workspaceId],
