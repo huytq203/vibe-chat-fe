@@ -25,6 +25,7 @@ vi.mock("@/services/chat.api", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/chat",
   useParams: () => ({}),
 }));
 

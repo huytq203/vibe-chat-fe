@@ -1,13 +1,17 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 
 export function useSelectedConversation() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useParams<{ id?: string }>();
-  const routeConversationId = params.id ?? null;
+  // Nhiều section dùng segment động `[id]` (ví dụ `/ai/[id]`). Chỉ route `/chat`
+  // mới được phép biến param đó thành chat conversation ID.
+  const isChatRoute = pathname === '/chat' || pathname.startsWith('/chat/');
+  const routeConversationId = isChatRoute ? (params.id ?? null) : null;
   const pendingConversationId = useChatUIStore((s) => s.pendingConversationId);
   const pendingConversationRouteId = useChatUIStore((s) => s.pendingConversationRouteId);
   const setPendingConversation = useChatUIStore((s) => s.setPendingConversation);

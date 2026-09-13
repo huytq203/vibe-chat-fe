@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
-  route: { id: undefined as string | undefined },
+  route: { pathname: '/chat/conv-a', id: undefined as string | undefined },
 }));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
+  usePathname: () => mocks.route.pathname,
   useParams: () => ({ id: mocks.route.id }),
 }));
 
@@ -17,6 +18,7 @@ import { useSelectedConversation } from './useSelectedConversation';
 describe('useSelectedConversation', () => {
   beforeEach(() => {
     mocks.replace.mockClear();
+    mocks.route.pathname = '/chat/conv-a';
     mocks.route.id = 'conv-a';
     useChatUIStore.setState({
       pendingConversationId: undefined,
@@ -32,6 +34,15 @@ describe('useSelectedConversation', () => {
   it('trả về null khi route không có id', () => {
     mocks.route.id = undefined;
     const { result } = renderHook(() => useSelectedConversation());
+    expect(result.current.selectedConversationId).toBeNull();
+  });
+
+  it('không dùng id của route AI làm chat conversation id', () => {
+    mocks.route.pathname = '/ai/ai-conversation-a';
+    mocks.route.id = 'ai-conversation-a';
+
+    const { result } = renderHook(() => useSelectedConversation());
+
     expect(result.current.selectedConversationId).toBeNull();
   });
 
@@ -61,6 +72,7 @@ describe('useSelectedConversation', () => {
 
     act(() => result.current.setSelected('conv-b'));
     mocks.route.id = 'conv-b';
+    mocks.route.pathname = '/chat/conv-b';
     rerender();
 
     expect(result.current.selectedConversationId).toBe('conv-b');
@@ -75,6 +87,7 @@ describe('useSelectedConversation', () => {
 
     act(() => result.current.setSelected('conv-b'));
     mocks.route.id = 'conv-x';
+    mocks.route.pathname = '/chat/conv-x';
     rerender();
 
     expect(result.current.selectedConversationId).toBe('conv-x');

@@ -33,6 +33,7 @@ vi.mock('@/services/chat.api', () => ({
 const routerReplace = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: routerReplace }),
+  usePathname: () => '/chat',
   useParams: () => ({}),
 }));
 
