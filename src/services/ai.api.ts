@@ -4,8 +4,8 @@ import { readSseEvents } from '@/lib/api/sse';
 export type AiChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export type AiChatContext = {
-  today: string;
-  timezone: string;
+  today?: string;
+  timezone?: string;
   projectId?: string;
   workspaceId?: string;
   pageId?: string;

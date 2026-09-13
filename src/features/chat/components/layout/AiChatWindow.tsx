@@ -1,16 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import Draggable, { type DraggableData } from 'react-draggable';
 import { Clock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { AiAvatar } from '@/components/common/BrandAssets';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
+import type { AiStreamFn } from '@/features/ai';
+import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
-import { useAiSessions } from '@/features/chat/hooks/useAiSessions';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
+import { aiConversationsApi } from '@/services/ai-conversations.api';
+import { aiApi } from '@/services/ai.api';
 import { AiHistoryPanel } from './AiHistoryPanel';
 
 export function AiChatWindow() {
@@ -22,8 +25,10 @@ export function AiChatWindow() {
   const [input, setInput] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
-  const { sessions, activeSession, activeId, setActiveId, deleteSession, actions } = useAiSessions();
-  const messages = activeSession?.messages ?? [];
+  const {
+    conversations, session, activeId, actions, select, startNew, remember, refetch, isLoading,
+  } = useAiConversations({ origin: 'CHAT', scope: 'chat' });
+  const messages = session.messages;
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
     useAutoResizeTextarea();
@@ -31,12 +36,22 @@ export function AiChatWindow() {
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
 
+  const stream = useCallback<AiStreamFn>((history, sentAttachments, options) =>
+    aiApi.chatStream(
+      history,
+      sentAttachments,
+      { ...options, onDone: ({ conversationId }) => remember(conversationId) },
+      {},
+      activeId ?? undefined,
+    ), [activeId, remember]);
+
   const {
     loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard,
   } = useAiConversation({
-    streamKey: `chat:${activeSession?.id ?? ''}`,
-    session: activeSession,
+    streamKey: `chat:${session.id}`,
+    session,
     actions,
+    stream,
     onSettled: focusInput,
   });
 
@@ -46,10 +61,16 @@ export function AiChatWindow() {
   useEffect(() => { if (isOpen) focusInput(); }, [isOpen, focusInput]);
 
   function handleNewChat() {
-    setActiveId(null);
+    startNew();
     setInput('');
     clearAttachments();
     setShowHistory(false);
+  }
+
+  async function handleDelete(id: string): Promise<void> {
+    await aiConversationsApi.remove(id);
+    if (activeId === id) startNew();
+    refetch();
   }
 
   async function handleSend() {
@@ -112,16 +133,16 @@ export function AiChatWindow() {
 
       {showHistory ? (
         <AiHistoryPanel
-          sessions={sessions}
+          conversations={conversations}
           activeId={activeId}
-          onSelect={(id) => { setActiveId(id); setShowHistory(false); }}
-          onDelete={deleteSession}
+          onSelect={(id) => { select(id); setShowHistory(false); }}
+          onDelete={(id) => void handleDelete(id)}
         />
       ) : (
         <>
           <AiMessageList
             messages={messages}
-            loading={loading}
+            loading={isLoading || loading}
             pendingUser={pendingUser}
             streaming={streaming}
             onRegenerate={regenerate}

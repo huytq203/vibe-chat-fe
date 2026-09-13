@@ -3,7 +3,7 @@
 import { ArrowLeft, PanelLeftOpen, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { AiAvatar } from '@/components/common/BrandAssets';
-import type { AiSession } from '@/features/chat/hooks/useAiSessions';
+import type { AiSession } from '@/features/ai/types';
 
 interface AiChatHeaderProps {
   session: AiSession | null;

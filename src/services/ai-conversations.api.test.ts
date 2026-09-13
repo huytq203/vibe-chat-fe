@@ -35,4 +35,24 @@ describe('API lịch sử hội thoại AI hợp nhất', () => {
 
     expect(detail.messages.map(({ role }) => role)).toEqual(['user', 'assistant']);
   });
+
+  it('nên giữ downloadUrl của tệp đính kèm khi đọc chi tiết', async () => {
+    get.mockResolvedValue({
+      id: 'conversation-1', title: 'Ảnh tham khảo', origin: 'CHAT', context: null,
+      messages: [{
+        id: 'message-1', role: 'USER', content: 'Xem ảnh này', status: null,
+        toolNames: null,
+        attachments: [{
+          name: 'minh-hoa.png', mimeType: 'image/png', size: 2048,
+          downloadUrl: 'https://storage.test/minh-hoa.png',
+        }],
+        createdAt: '2026-09-12T08:00:00.000Z',
+      }],
+    });
+
+    const detail = await aiConversationsApi.detail('conversation-1');
+
+    expect(detail.messages[0]?.attachments?.[0]?.downloadUrl)
+      .toBe('https://storage.test/minh-hoa.png');
+  });
 });

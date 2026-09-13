@@ -119,6 +119,8 @@ export function AiMessageList({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
+  // TanStack Virtual trả các callback có chủ đích; React Compiler không được memo hoá chúng.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: visibleMessages.length,
     getScrollElement: () => scrollRef.current,

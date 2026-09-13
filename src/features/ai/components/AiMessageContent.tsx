@@ -84,14 +84,16 @@ function ImageActionCard({ prompt, thought }: ImageActionCardProps) {
             <ImageIcon className="h-3.5 w-3.5" /> Tạo ảnh
           </Button>
         )}
-        {genError && <p className="text-[11px] text-danger">{genError}</p>}
+        {genError && <p className="text-xs text-danger">{genError}</p>}
         {imageUrl && (
           <>
             {imgLoading && (
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" /> Đang tạo ảnh...
               </div>
             )}
+            {/* URL do dịch vụ tạo ảnh trả lúc chạy nên không thể khai báo loader tĩnh. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={prompt}

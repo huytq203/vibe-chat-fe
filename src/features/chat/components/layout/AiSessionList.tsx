@@ -5,12 +5,12 @@ import { ArrowLeft, MessagesSquare, PanelLeftClose, Plus, Search, SearchX } from
 import { Button } from '@/components/ui/button/Button';
 import { Input } from '@/components/ui/input/Input';
 import { cn } from '@/lib/utils/cn';
-import type { AiSession } from '@/features/chat/hooks/useAiSessions';
+import type { AiConversationSummary } from '@/services/ai-conversations.api';
 import { useAiSessionGroups } from '@/features/chat/hooks/useAiSessionGroups';
 import { AiSessionItem } from './AiSessionItem';
 
 interface AiSessionListProps {
-  sessions: AiSession[];
+  conversations: AiConversationSummary[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onCreate: () => void;
@@ -22,7 +22,7 @@ interface AiSessionListProps {
 }
 
 export function AiSessionList({
-  sessions,
+  conversations,
   activeId,
   onSelect,
   onCreate,
@@ -31,9 +31,9 @@ export function AiSessionList({
   onBack,
 }: AiSessionListProps) {
   const [query, setQuery] = useState('');
-  const groups = useAiSessionGroups(sessions, query);
+  const groups = useAiSessionGroups(conversations, query);
 
-  const isEmpty = sessions.length === 0;
+  const isEmpty = conversations.length === 0;
   const isNoResult = !isEmpty && groups.length === 0;
 
   return (
@@ -59,8 +59,8 @@ export function AiSessionList({
           </Button>
         )}
         <h2 className="flex-1 text-[13px] font-bold tracking-tight text-foreground">Lịch sử</h2>
-        {sessions.length > 0 && (
-          <span className="text-[11px] tabular-nums text-muted-foreground">{sessions.length}</span>
+        {conversations.length > 0 && (
+          <span className="text-xs tabular-nums text-muted-foreground">{conversations.length}</span>
         )}
         {onCollapse && (
           <Button
@@ -132,11 +132,11 @@ export function AiSessionList({
               {group.label}
             </h3>
             <div className="flex flex-col gap-0.5">
-              {group.sessions.map((session) => (
-                <AiSessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === activeId}
+            {group.conversations.map((conversation) => (
+              <AiSessionItem
+                key={conversation.id}
+                conversation={conversation}
+                isActive={conversation.id === activeId}
                   onSelect={onSelect}
                   onDelete={onDelete}
                 />

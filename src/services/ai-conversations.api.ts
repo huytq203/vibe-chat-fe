@@ -21,6 +21,7 @@ const attachmentSchema = z.object({
   name: z.string(),
   mimeType: z.string(),
   size: z.number(),
+  downloadUrl: z.string().optional(),
 });
 
 const messageSchema = z.object({

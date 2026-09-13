@@ -1,11 +1,12 @@
 'use client';
 
-import { File, FileJson, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { AiAvatar } from '@/components/common/BrandAssets';
 import { AiCopyButton } from '@/components/common/AiCopyButton';
-import type { AiAttachmentMeta, AiMessage } from '@/features/ai/types';
+import type { AiMessage } from '@/features/ai/types';
+import { AiMessageAttachment } from './AiMessageAttachment';
 import { AiMessageContent } from './AiMessageContent';
+import { AiResultChip } from './AiResultChip';
 import {
   AiAssistantActions,
   AiFailedActions,
@@ -15,40 +16,13 @@ import {
 /** `window` = cửa sổ AI nổi 360px (bubble 2 phía). `page` = trang /ai (cột đọc rộng). */
 export type AiMessageVariant = 'window' | 'page';
 
-function AttachmentDisplay({ attachment }: { attachment: AiAttachmentMeta }) {
-  if (attachment.mimeType.startsWith('image/')) {
-    if (attachment.previewUrl) {
-      return (
-        // previewUrl là blob URL — next/image không hỗ trợ blob scheme
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={attachment.previewUrl} alt={attachment.name} className="max-w-[200px] rounded-lg" />
-      );
-    }
-    return <span className="text-[11px] opacity-70">[Ảnh] {attachment.name}</span>;
-  }
-
-  const Icon =
-    attachment.mimeType === 'application/json'
-      ? FileJson
-      : attachment.mimeType.startsWith('text/')
-        ? FileText
-        : File;
-
-  return (
-    <span className="flex w-fit items-center gap-1.5 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-2 py-0.5 text-[11px]">
-      <Icon className="h-3 w-3" />
-      <span className="max-w-[140px] truncate">{attachment.name}</span>
-    </span>
-  );
-}
-
 function UserContent({ message }: { message: AiMessage }) {
   return (
     <div className="flex flex-col gap-1.5">
       {message.attachments && message.attachments.length > 0 && (
         <div className="flex flex-col gap-1">
           {message.attachments.map((attachment, index) => (
-            <AttachmentDisplay key={`${attachment.name}-${index}`} attachment={attachment} />
+            <AiMessageAttachment key={`${attachment.name}-${index}`} attachment={attachment} />
           ))}
         </div>
       )}
@@ -158,6 +132,7 @@ export function AiMessageRow(props: AiMessageRowProps) {
             )}
           >
             <AiMessageContent content={message.content} className="text-[14.5px] leading-[1.65]" />
+            <AiResultChip content={message.content} toolNames={message.toolNames} />
             {isIncomplete ? (
               incompleteActions
             ) : (
@@ -180,6 +155,7 @@ export function AiMessageRow(props: AiMessageRowProps) {
         )}
       >
         <AiMessageContent content={message.content} />
+        <AiResultChip content={message.content} toolNames={message.toolNames} />
         {isIncomplete && incompleteActions}
       </div>
       {!isIncomplete && <AiCopyButton content={message.content} />}

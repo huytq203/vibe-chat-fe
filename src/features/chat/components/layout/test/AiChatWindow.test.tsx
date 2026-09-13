@@ -1,8 +1,19 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
 import { AiChatWindow } from "../AiChatWindow";
 import { useAiWindowStore } from "@/features/chat/stores/ai-window.store";
+
+vi.mock("@/services/ai-conversations.api", () => ({
+  aiConversationsApi: {
+    list: vi.fn().mockResolvedValue([]),
+    detail: vi.fn(),
+    rename: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -23,10 +34,15 @@ vi.mock("@/services/ai.api", () => ({
 
 /** Cầm cương một lượt stream: tự quyết định lúc nào có chữ, lúc nào kết thúc. */
 function holdStream() {
-  const control = {
-    emit: (_text: string) => {},
-    finish: (_full: string) => {},
-    fail: (_error: Error) => {},
+  const control: {
+    emit: (text: string) => void;
+    finish: (full: string) => void;
+    fail: (error: Error) => void;
+    signal: AbortSignal | undefined;
+  } = {
+    emit: vi.fn(),
+    finish: vi.fn(),
+    fail: vi.fn(),
     signal: undefined as AbortSignal | undefined,
   };
   chat.mockImplementation(
@@ -43,6 +59,17 @@ function holdStream() {
     },
   );
   return control;
+}
+
+function render(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, staleTime: Infinity }, mutations: { retry: false },
+    },
+  });
+  return renderRtl(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
 }
 
 // AiMessageList dùng @tanstack/react-virtual (không sửa được — reuse unchanged).
@@ -67,32 +94,32 @@ describe("AiChatWindow", () => {
     chat.mockReset();
   });
 
-  it("renders nothing when the store is closed", () => {
+  it("nên không hiển thị khi cửa sổ đang đóng", () => {
     render(<AiChatWindow />);
     expect(screen.queryByText("Halo AI")).not.toBeInTheDocument();
   });
 
-  it("renders the popup when the store is open", () => {
+  it("nên hiển thị popup khi cửa sổ được mở", () => {
     useAiWindowStore.getState().open();
     render(<AiChatWindow />);
     expect(screen.getByText("Halo AI")).toBeInTheDocument();
   });
 
-  it('close button closes the store without a "back" navigation', async () => {
+  it('nên đóng cửa sổ mà không điều hướng quay lại', async () => {
     useAiWindowStore.getState().open();
     render(<AiChatWindow />);
     await userEvent.click(screen.getByLabelText("Đóng cửa sổ AI"));
     expect(useAiWindowStore.getState().isOpen).toBe(false);
   });
 
-  it("history toggle shows the empty history state", async () => {
+  it("nên hiển thị trạng thái lịch sử trống", async () => {
     useAiWindowStore.getState().open();
     render(<AiChatWindow />);
     await userEvent.click(screen.getByLabelText("Lịch sử hội thoại"));
     expect(screen.getByText("Chưa có cuộc trò chuyện nào")).toBeInTheDocument();
   });
 
-  it("sends a message and renders the AI reply", async () => {
+  it("nên gửi tin nhắn và hiển thị câu trả lời của AI", async () => {
     chat.mockResolvedValue("Xin chào");
     useAiWindowStore.getState().open();
     render(<AiChatWindow />);

@@ -2,23 +2,24 @@
 
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import type { AiSession } from '@/features/chat/hooks/useAiSessions';
-import { formatSessionTime, getSessionSnippet } from '@/features/chat/hooks/useAiSessionGroups';
+import type { AiConversationSummary } from '@/services/ai-conversations.api';
+import { formatSessionTime } from '@/features/chat/hooks/useAiSessionGroups';
 
 interface AiSessionItemProps {
-  session: AiSession;
+  conversation: AiConversationSummary;
   isActive: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function AiSessionItem({ session, isActive, onSelect, onDelete }: AiSessionItemProps) {
+export function AiSessionItem({ conversation, isActive, onSelect, onDelete }: AiSessionItemProps) {
+  const title = conversation.title ?? 'Cuộc trò chuyện mới';
   return (
     <div className="group relative">
       <button
         type="button"
-        onClick={() => onSelect(session.id)}
-        aria-label={session.title}
+        onClick={() => onSelect(conversation.id)}
+        aria-label={title}
         aria-current={isActive ? 'true' : undefined}
         className={cn(
           'flex w-full flex-col gap-0.5 rounded-xl py-2 pl-3 pr-9 text-left transition-colors',
@@ -35,22 +36,19 @@ export function AiSessionItem({ session, isActive, onSelect, onDelete }: AiSessi
               isActive ? 'font-semibold text-primary' : 'font-medium text-foreground',
             )}
           >
-            {session.title}
+            {title}
           </span>
           <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground">
-            {formatSessionTime(session.updatedAt)}
+            {formatSessionTime(conversation.updatedAt)}
           </span>
-        </span>
-        <span className="line-clamp-1 w-full text-[11.5px] leading-snug text-muted-foreground">
-          {getSessionSnippet(session)}
         </span>
       </button>
 
       <button
         type="button"
-        aria-label={`Xoá cuộc trò chuyện ${session.title}`}
+        aria-label={`Xoá cuộc trò chuyện ${title}`}
         title="Xoá cuộc trò chuyện"
-        onClick={() => onDelete(session.id)}
+        onClick={() => onDelete(conversation.id)}
         className={cn(
           'absolute right-1.5 top-2 flex h-6 w-6 items-center justify-center rounded-lg',
           'text-muted-foreground opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger',

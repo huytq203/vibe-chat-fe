@@ -3,17 +3,18 @@
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
-import type { AiSession } from '@/features/chat/hooks/useAiSessions';
+import { Button } from '@/components/ui/button/Button';
+import type { AiConversationSummary } from '@/services/ai-conversations.api';
 
 interface AiHistoryPanelProps {
-  sessions: AiSession[];
+  conversations: AiConversationSummary[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function AiHistoryPanel({ sessions, activeId, onSelect, onDelete }: AiHistoryPanelProps) {
-  if (sessions.length === 0) {
+export function AiHistoryPanel({ conversations, activeId, onSelect, onDelete }: AiHistoryPanelProps) {
+  if (conversations.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
         <AiMascot className="h-20 w-24 drop-shadow-[0_10px_18px_rgb(61_31_91/0.14)]" />
@@ -24,33 +25,36 @@ export function AiHistoryPanel({ sessions, activeId, onSelect, onDelete }: AiHis
 
   return (
     <div className="flex-1 overflow-y-auto px-2 pb-3">
-      {sessions.map((session) => (
-        <button
-          key={session.id}
-          type="button"
-          onClick={() => onSelect(session.id)}
-          className={cn(
-            'group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors',
-            session.id === activeId
-              ? 'bg-primary/10 text-primary'
-              : 'text-foreground hover:bg-muted',
-          )}
-        >
-          <AiAvatar className="h-5 w-5 ring-1 ring-primary/15" />
-          <span className="flex-1 truncate text-[13px]">{session.title}</span>
-          <span
-            role="button"
-            aria-label="Xoá cuộc trò chuyện"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(session.id);
-            }}
-            className="invisible flex h-5 w-5 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-danger group-hover:visible group-hover:opacity-100"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </span>
-        </button>
-      ))}
+      {conversations.map((conversation) => {
+        const title = conversation.title ?? 'Cuộc trò chuyện mới';
+        return (
+          <div key={conversation.id} className="group relative">
+            <button
+              type="button"
+              onClick={() => onSelect(conversation.id)}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-lg py-2 pl-3 pr-10 text-left transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                conversation.id === activeId
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground hover:bg-muted',
+              )}
+            >
+              <AiAvatar className="size-5 ring-1 ring-primary/15" />
+              <span className="flex-1 truncate text-[13px]">{title}</span>
+            </button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Xoá cuộc trò chuyện ${title}`}
+              onClick={() => onDelete(conversation.id)}
+              className="invisible absolute right-1 top-1 size-8 text-muted-foreground opacity-0 hover:text-danger focus-visible:visible focus-visible:opacity-100 group-hover:visible group-hover:opacity-100"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        );
+      })}
     </div>
   );
 }

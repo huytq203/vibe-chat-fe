@@ -7,7 +7,7 @@ function padDatePart(value: number): string {
 export function buildTaskAiContext(
   projectId: string | null,
   now = new Date(),
-): AiChatContext {
+): AiChatContext & Required<Pick<AiChatContext, 'today' | 'timezone'>> {
   const year = now.getFullYear();
   const month = padDatePart(now.getMonth() + 1);
   const day = padDatePart(now.getDate());

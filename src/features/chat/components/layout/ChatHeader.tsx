@@ -11,7 +11,6 @@ import { Avatar } from '@/features/chat/components/common/Avatar';
 import { useMessageJumpStore } from '@/features/chat/stores/message-jump.store';
 import { MessageSearchResults } from '@/features/chat/components/contact/MessageSearchResults';
 import { CallButtons, buildCallDirectory } from '@/features/call';
-import { Separator } from '@/components/ui/separator/Separator';
 
 type ChatHeaderProps = {
   conversation: Conversation;

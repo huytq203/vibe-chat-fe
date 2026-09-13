@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AiChatHeader } from './AiChatHeader';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import { AiWelcome } from './AiWelcome';
-import type { AiSession, AiSessionActions } from '@/features/chat/hooks/useAiSessions';
+import type { AiSession, AiSessionActions, AiStreamFn } from '@/features/ai/types';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
+import { aiApi } from '@/services/ai.api';
 
 interface AiChatMainProps {
-  session: AiSession | null;
+  session: AiSession;
+  activeId: string | null;
   actions: AiSessionActions;
+  remember: (conversationId: string) => void;
+  onStartNew: () => void;
   onDeleteSession: (id: string) => void;
   /** Mobile: quay lại danh sách lịch sử. */
   onBack?: () => void;
@@ -20,7 +24,10 @@ interface AiChatMainProps {
 
 export function AiChatMain({
   session,
+  activeId,
   actions,
+  remember,
+  onStartNew,
   onDeleteSession,
   onBack,
   onExpandSidebar,
@@ -30,16 +37,25 @@ export function AiChatMain({
   const { ref: textareaRef, resize, focusInput, handleKeyDown } = useAutoResizeTextarea();
   const { attachments, error: attachmentError, addFiles, removeAttachment, clearAttachments } =
     useAiAttachments();
+  const stream = useCallback<AiStreamFn>((messages, sentAttachments, options) =>
+    aiApi.chatStream(
+      messages,
+      sentAttachments,
+      { ...options, onDone: ({ conversationId }) => remember(conversationId) },
+      {},
+      activeId ?? undefined,
+    ), [activeId, remember]);
   const { loading, streaming, pendingUser, send, resend, regenerate, stop, recall, discard } =
     useAiConversation({
-      streamKey: `chat:${session?.id ?? ''}`,
+      streamKey: `chat:${session.id}`,
       session,
       actions,
+      stream,
       onSettled: focusInput,
     });
 
   useEffect(() => { resize(); }, [input, resize]);
-  useEffect(() => { focusInput(); }, [session?.id, focusInput]);
+  useEffect(() => { focusInput(); }, [session.id, focusInput]);
 
   // Dọn ô nhập ngay khi lượt gửi chắc chắn chạy — tránh xoá nhầm chữ đang gõ dở
   // nếu người dùng bấm Gửi lúc lượt trước còn chờ.
@@ -57,7 +73,7 @@ export function AiChatMain({
     focusInput();
   }
 
-  const messages = session?.messages ?? [];
+  const messages = session.messages;
   const showWelcome = messages.length === 0 && !loading;
 
   return (
@@ -66,8 +82,8 @@ export function AiChatMain({
         session={session}
         onBack={onBack}
         onExpandSidebar={onExpandSidebar}
-        onCreateSession={actions.createSession}
-        onDeleteSession={session ? () => onDeleteSession(session.id) : undefined}
+        onCreateSession={onStartNew}
+        onDeleteSession={activeId ? () => onDeleteSession(activeId) : undefined}
       />
 
       {showWelcome ? (

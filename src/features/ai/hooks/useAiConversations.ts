@@ -212,10 +212,11 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
     : {
         id: detail.data.id,
         title: detail.data.title ?? NEW_CONVERSATION_TITLE,
-        messages: detail.data.messages.map(({ role, content, status, attachments }) => ({
+        messages: detail.data.messages.map(({ role, content, status, toolNames, attachments }) => ({
           role,
           content,
           ...(status ? { status: status === 'FAILED' ? 'failed' as const : 'incomplete' as const } : {}),
+          ...(toolNames ? { toolNames } : {}),
           ...(attachments ? { attachments } : {}),
         })),
         updatedAt: summary ? Date.parse(summary.updatedAt) : 0,

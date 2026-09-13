@@ -1,11 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-// AiChatHeader dùng useAiConfig (TanStack Query) → cần QueryClientProvider.
 import { renderWithProviders as render } from '@/test/test-utils';
 import { AiChatPage } from '../AiChatPage';
+import { AiChatWindow } from '../AiChatWindow';
+import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
+import { aiConversationsApi } from '@/services/ai-conversations.api';
 import { aiApi } from '@/services/ai.api';
-import type { AiSession } from '@/features/chat/hooks/useAiSessions';
 
 const routerReplace = vi.fn();
 const routerPush = vi.fn();
@@ -22,6 +23,15 @@ vi.mock('@/lib/hooks/useIsMobile', () => ({
   useIsMobile: () => isMobile,
 }));
 
+vi.mock('@/services/ai-conversations.api', () => ({
+  aiConversationsApi: {
+    list: vi.fn(),
+    detail: vi.fn(),
+    rename: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
+
 vi.mock('@/services/ai.api', () => ({
   aiApi: {
     chat: vi.fn(),
@@ -30,172 +40,193 @@ vi.mock('@/services/ai.api', () => ({
   },
 }));
 
-const DAY = 24 * 60 * 60 * 1000;
-const RECENT_ID = 'session-recent';
-const OLD_ID = 'session-old';
+const RECENT_ID = 'conversation-recent';
+const OLD_ID = 'conversation-old';
+const NEW_ID = 'conversation-new';
+const recentConversation = {
+  id: RECENT_ID,
+  title: 'Kế hoạch tuần',
+  origin: 'CHAT' as const,
+  context: null,
+  updatedAt: new Date().toISOString(),
+};
+const oldConversation = {
+  id: OLD_ID,
+  title: 'Ghi chú cũ',
+  origin: 'CHAT' as const,
+  context: null,
+  updatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+};
 
-function seedSessions(): void {
-  const sessions: AiSession[] = [
-    {
-      id: RECENT_ID,
-      title: 'Kế hoạch tuần',
-      messages: [{ role: 'user', content: 'Lên kế hoạch giúp tôi' }],
-      updatedAt: Date.now(),
-    },
-    {
-      id: OLD_ID,
-      title: 'Ghi chú cũ',
-      messages: [{ role: 'assistant', content: 'Đây là ghi chú cũ' }],
-      updatedAt: Date.now() - 30 * DAY,
-    },
-  ];
-  localStorage.setItem('ai-sessions', JSON.stringify(sessions));
+function detailOf(id: string, content = 'Nội dung hội thoại đã lưu') {
+  return {
+    id,
+    title: id === OLD_ID ? oldConversation.title : recentConversation.title,
+    origin: 'CHAT' as const,
+    context: null,
+    messages: [{
+      id: `message-${id}`,
+      role: 'assistant' as const,
+      content,
+      status: null,
+      toolNames: null,
+      attachments: null,
+      createdAt: new Date().toISOString(),
+    }],
+  };
 }
 
-// AiMessageList dùng @tanstack/react-virtual: jsdom không layout thật nên
-// offsetHeight/offsetWidth luôn = 0 và virtualizer không render message nào.
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 600 });
   Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 800 });
 });
 
-describe('AiChatPage', () => {
+describe('trang Halo AI dùng hội thoại hợp nhất', () => {
   beforeEach(() => {
-    localStorage.clear();
-    routerReplace.mockReset();
-    routerPush.mockReset();
     routeParams = {};
     isMobile = false;
+    routerReplace.mockReset();
+    routerPush.mockReset();
+    useAiWindowStore.setState({ isOpen: false, position: { x: 0, y: 0 } });
+    vi.mocked(aiConversationsApi.list).mockReset();
+    vi.mocked(aiConversationsApi.detail).mockReset();
+    vi.mocked(aiConversationsApi.remove).mockReset();
     vi.mocked(aiApi.chatStream).mockReset();
-    seedSessions();
+    vi.mocked(aiConversationsApi.list).mockResolvedValue([recentConversation, oldConversation]);
+    vi.mocked(aiConversationsApi.detail).mockImplementation(async (id) => detailOf(id));
+    vi.mocked(aiConversationsApi.remove).mockResolvedValue();
   });
 
-  it('desktop hiển thị cả cột lịch sử lẫn khung hội thoại', () => {
-    routeParams = { id: RECENT_ID };
+  it('nên hiển thị danh sách hội thoại CHAT lấy từ API', async () => {
     render(<AiChatPage />);
 
-    expect(screen.getByLabelText('Lịch sử trò chuyện với AI')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: recentConversation.title })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: oldConversation.title })).toBeInTheDocument();
+    expect(aiConversationsApi.list).toHaveBeenCalledWith({ origin: 'CHAT' });
   });
 
-  it('nên chừa chỗ cho header để tin nhắn đầu không bị che', () => {
-    routeParams = { id: RECENT_ID };
-    render(<AiChatPage />);
-
-    const conversation = screen.getByRole('main');
-    const header = conversation.querySelector('header');
-    const messageScroller = conversation.querySelector('.h-full.overflow-y-auto');
-
-    expect(header).toHaveClass('shrink-0');
-    expect(messageScroller).toHaveClass('py-2');
-  });
-
-  it('nên hiện composer 1 dòng khi rỗng', () => {
-    routeParams = { id: RECENT_ID };
-    render(<AiChatPage />);
-
-    const textarea = screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...');
-
-    expect(textarea).toHaveAttribute('rows', '1');
-    expect(textarea).toHaveClass('min-h-11');
-    expect(textarea).not.toHaveClass('min-h-16');
-  });
-
-  it('gom nhóm lịch sử theo mốc thời gian', () => {
-    render(<AiChatPage />);
-
-    expect(screen.getByRole('heading', { name: 'Hôm nay' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Cũ hơn' })).toBeInTheDocument();
-  });
-
-  it('desktop tự mở session gần nhất khi vào /ai trống', () => {
-    render(<AiChatPage />);
-    expect(routerReplace).toHaveBeenCalledWith(`/ai/${RECENT_ID}`, { scroll: false });
-  });
-
-  it('ô tìm kiếm lọc lịch sử theo tiêu đề', async () => {
-    render(<AiChatPage />);
-
-    await userEvent.type(screen.getByLabelText('Tìm trong lịch sử'), 'ghi chú');
-
-    expect(screen.getByRole('button', { name: 'Ghi chú cũ' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Kế hoạch tuần' })).not.toBeInTheDocument();
-  });
-
-  it('mobile chưa chọn session thì chỉ hiện danh sách', () => {
+  it('nên tải chi tiết khi chọn một hội thoại', async () => {
     isMobile = true;
     render(<AiChatPage />);
 
-    expect(screen.getByLabelText('Lịch sử trò chuyện với AI')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).not.toBeInTheDocument();
-    expect(routerReplace).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole('button', { name: oldConversation.title }));
+
+    expect(aiConversationsApi.detail).toHaveBeenCalledWith(OLD_ID);
+    expect(await screen.findByText('Nội dung hội thoại đã lưu')).toBeInTheDocument();
+    expect(routerReplace).toHaveBeenCalledWith(`/ai/${OLD_ID}`, { scroll: false });
   });
 
-  it('mobile có nút rời khu vực AI về tin nhắn', async () => {
-    isMobile = true;
-    render(<AiChatPage />);
-
-    await userEvent.click(screen.getByLabelText('Quay lại tin nhắn'));
-    expect(routerPush).toHaveBeenCalledWith('/chat');
-  });
-
-  it('mobile đã chọn session thì chỉ hiện khung hội thoại', () => {
-    isMobile = true;
+  it('nên gửi lượt mới kèm conversationId đang mở', async () => {
     routeParams = { id: RECENT_ID };
+    vi.mocked(aiApi.chatStream).mockImplementation(async (_messages, _attachments, options) => {
+      options.onDelta('Đây là câu trả lời mới');
+      return 'Đây là câu trả lời mới';
+    });
     render(<AiChatPage />);
 
-    expect(screen.queryByLabelText('Lịch sử trò chuyện với AI')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).toBeInTheDocument();
-    expect(screen.getByLabelText('Quay lại')).toBeInTheDocument();
-  });
-
-  it('desktop thu gọn rồi mở lại cột lịch sử', async () => {
-    routeParams = { id: RECENT_ID };
-    render(<AiChatPage />);
-
-    await userEvent.click(screen.getByLabelText('Thu gọn lịch sử'));
-    expect(screen.queryByLabelText('Lịch sử trò chuyện với AI')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByLabelText('Hiện lịch sử'));
-    expect(screen.getByLabelText('Lịch sử trò chuyện với AI')).toBeInTheDocument();
-  });
-
-  it('session trống hiện màn hình chào kèm gợi ý bấm được', () => {
-    localStorage.setItem(
-      'ai-sessions',
-      JSON.stringify([{ id: RECENT_ID, title: 'Mới', messages: [], updatedAt: Date.now() }]),
-    );
-    routeParams = { id: RECENT_ID };
-    render(<AiChatPage />);
-
-    expect(screen.getByText('Halo AI có thể giúp gì cho bạn?')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Soạn giúp tôi tin nhắn xin nghỉ phép lịch sự' }),
-    ).toBeInTheDocument();
-  });
-
-  it('tin gửi hỏng nêu lý do ngay dưới bong bóng và gửi lại được', async () => {
-    routeParams = { id: RECENT_ID };
-    const chat = vi.mocked(aiApi.chatStream);
-    chat.mockRejectedValueOnce(new Error('Hết hạn mức truy vấn'));
-    render(<AiChatPage />);
-
-    await userEvent.type(
-      screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...'),
-      'Tóm tắt giúp tôi',
-    );
+    const textarea = await screen.findByPlaceholderText('Hỏi Halo AI bất cứ điều gì...');
+    await userEvent.type(textarea, 'Tóm tắt giúp tôi');
     await userEvent.click(screen.getByLabelText('Gửi'));
 
-    // Cột lịch sử cũng hiện tin cuối làm preview → chỉ tìm trong khung hội thoại.
-    const conversation = within(screen.getByRole('main'));
+    expect(await screen.findByText('Đây là câu trả lời mới')).toBeInTheDocument();
+    expect(aiApi.chatStream).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ content: 'Tóm tắt giúp tôi' })]),
+      undefined,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      {},
+      RECENT_ID,
+    );
+  });
 
-    expect(await conversation.findByText('Hết hạn mức truy vấn')).toBeInTheDocument();
-    expect(conversation.getByText('Tóm tắt giúp tôi')).toBeInTheDocument();
+  it('nên tạo hội thoại mới và làm mới danh sách sau lượt gửi đầu tiên', async () => {
+    routeParams = { id: RECENT_ID };
+    vi.mocked(aiConversationsApi.list)
+      .mockResolvedValueOnce([recentConversation, oldConversation])
+      .mockResolvedValue([{
+        ...recentConversation,
+        id: NEW_ID,
+        title: 'Ý tưởng mới',
+      }, recentConversation, oldConversation]);
+    vi.mocked(aiApi.chatStream).mockImplementation(async (_messages, _attachments, options) => {
+      options.onDelta('Đã ghi nhận');
+      options.onDone?.({ conversationId: NEW_ID });
+      return 'Đã ghi nhận';
+    });
+    render(<AiChatPage />);
 
-    chat.mockResolvedValueOnce('Đây là tóm tắt');
-    await userEvent.click(conversation.getByRole('button', { name: 'Gửi lại' }));
+    const main = within(screen.getByRole('main'));
+    await userEvent.click(main.getByRole('button', { name: 'Trò chuyện mới' }));
+    await userEvent.type(main.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...'), 'Ý tưởng mới');
+    await userEvent.click(main.getByLabelText('Gửi'));
 
-    expect(await conversation.findByText('Đây là tóm tắt')).toBeInTheDocument();
-    expect(conversation.queryByText('Hết hạn mức truy vấn')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ý tưởng mới' })).toBeInTheDocument();
+    expect(routerReplace).toHaveBeenCalledWith('/ai', { scroll: false });
+  });
+
+  it('nên xoá hội thoại qua API rồi làm mới danh sách', async () => {
+    vi.mocked(aiConversationsApi.list)
+      .mockResolvedValueOnce([recentConversation, oldConversation])
+      .mockResolvedValue([oldConversation]);
+    render(<AiChatPage />);
+
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(RECENT_ID));
+    await userEvent.click(screen.getByLabelText('Xoá cuộc trò chuyện này'));
+
+    await waitFor(() => expect(aiConversationsApi.remove).toHaveBeenCalledWith(RECENT_ID));
+    await waitFor(() => expect(screen.queryByRole('button', { name: recentConversation.title })).not.toBeInTheDocument());
+  });
+
+  it('nên dùng chung query cache cho trang và popup', async () => {
+    useAiWindowStore.getState().open();
+    render(<><AiChatPage /><AiChatWindow /></>);
+
+    await screen.findByRole('button', { name: recentConversation.title });
+    await userEvent.click(screen.getByLabelText('Lịch sử hội thoại'));
+
+    // Sidebar trang, tiêu đề trang và danh sách popup cùng phản ánh hội thoại đang có.
+    expect(screen.getAllByText(recentConversation.title)).toHaveLength(3);
+    expect(aiConversationsApi.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('nên không đọc hoặc ghi kho localStorage cũ', async () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+
+    render(<AiChatPage />);
+    await screen.findByRole('button', { name: recentConversation.title });
+
+    expect(getItem).not.toHaveBeenCalledWith('ai-sessions');
+    expect(setItem).not.toHaveBeenCalledWith('ai-sessions', expect.any(String));
+    getItem.mockRestore();
+    setItem.mockRestore();
+  });
+
+  it('nên hiển thị thumbnail từ downloadUrl trong lịch sử', async () => {
+    isMobile = true;
+    vi.mocked(aiConversationsApi.detail).mockResolvedValue({
+      ...detailOf(RECENT_ID),
+      messages: [{
+        id: 'message-image',
+        role: 'user',
+        content: 'Ảnh tham khảo',
+        status: null,
+        toolNames: null,
+        attachments: [{
+          name: 'minh-hoa.png',
+          mimeType: 'image/png',
+          size: 2048,
+          downloadUrl: 'https://storage.test/minh-hoa.png',
+        }],
+        createdAt: new Date().toISOString(),
+      }],
+    });
+    render(<AiChatPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: recentConversation.title }));
+
+    expect(await screen.findByRole('img', { name: 'minh-hoa.png' })).toHaveAttribute(
+      'src',
+      'https://storage.test/minh-hoa.png',
+    );
   });
 });

@@ -12,6 +12,7 @@ export type AiAttachmentMeta = {
   name: string;
   mimeType: string;
   size: number;
+  downloadUrl?: string;
   previewUrl?: string; // object URL — chỉ hợp lệ trong phiên hiện tại, không persist
   /**
    * base64 để gửi lại vẫn kèm được tệp thật. Giữ trong bộ nhớ, KHÔNG persist:
@@ -30,6 +31,7 @@ export type AiMessage = {
   role: 'user' | 'assistant';
   content: string;
   attachments?: AiAttachmentMeta[];
+  toolNames?: string[];
   status?: AiMessageStatus;
   /** Lý do hỏng, hiển thị ngay dưới bong bóng thay vì banner rời. */
   errorMessage?: string;
