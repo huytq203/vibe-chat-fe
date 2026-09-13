@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Bell, BookmarkPlus, CheckSquare, Paperclip, Reply, Send, X } from 'lucide-react';
+import { Bell, BookmarkPlus, CheckSquare, Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
+import { AttachmentTray } from '@/features/chat/components/messages/attachment/AttachmentTray';
+import { useAttachments } from '@/features/chat/hooks/useAttachments';
 import {
   useSendStoreMessage,
   useSendStoreMediaMessage,
@@ -24,15 +26,49 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
   const [dialog, setDialog] = useState<ActiveDialog>(null);
   const send = useSendStoreMessage();
   const sendMedia = useSendStoreMediaMessage();
+  const { attachments, addFiles, remove, removeAll, uploadAll, isUploading } = useAttachments();
   const fileRef = useRef<HTMLInputElement>(null);
   const replyingState = useMessageReplyStore((s) => s.replying);
   const cancelReply = useMessageReplyStore((s) => s.cancelReply);
   const replying =
     conversationId && replyingState?.conversationId === conversationId ? replyingState : null;
 
-  function handleSend() {
+  async function handleSend() {
     const trimmed = text.trim();
-    if (!trimmed || send.isPending) return;
+    if ((!trimmed && attachments.length === 0) || send.isPending || sendMedia.isPending) return;
+
+    if (attachments.length > 0) {
+      const uploaded = await uploadAll();
+      const failed = uploaded.find((attachment) => attachment.status === 'error');
+      if (failed) {
+        toast.error(failed.error ?? 'Có tệp tải lên thất bại. Hãy gỡ tệp lỗi rồi thử lại.');
+        return;
+      }
+      const done = uploaded.filter(
+        (attachment): attachment is typeof attachment & {
+          media: NonNullable<typeof attachment.media>;
+        } => attachment.status === 'done' && attachment.media != null,
+      );
+      if (done.length === 0) return;
+
+      try {
+        await sendMedia.mutateAsync({
+          attachments: done.map((attachment) => ({
+            mediaId: attachment.media.id,
+            kind: attachment.kind,
+          })),
+          plaintext: trimmed || undefined,
+          replyToMessageId: replying?.messageId,
+        });
+        done.forEach((attachment) => remove(attachment.id, false));
+        setText('');
+        cancelReply();
+      } catch {
+        // Mutation đã hiển thị lỗi; giữ preview để người dùng có thể thử lại hoặc gỡ bỏ.
+      }
+      return;
+    }
+
     send.mutate(
       { plaintext: trimmed, replyToMessageId: replying?.messageId },
       {
@@ -48,17 +84,18 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = ''; // cho phép chọn lại cùng file
     if (files.length === 0) return;
-    // Ảnh/video/file gửi vào myStore tính vào quota 5GB (BE chặn nếu vượt).
-    for (const file of files) {
-      sendMedia.mutate({ file });
+    const availableSlots = Math.max(0, 10 - attachments.length);
+    const selectedFiles = files.slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      toast.warning('Mỗi lần gửi tối đa 10 tệp. Các tệp còn lại chưa được gửi.');
     }
-    toast.info(files.length > 1 ? `Đang tải lên ${files.length} tệp…` : 'Đang tải lên…');
+    if (selectedFiles.length > 0) addFiles(selectedFiles);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   }
 
@@ -87,6 +124,11 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
             </button>
           </div>
         )}
+        <AttachmentTray
+          attachments={attachments}
+          onRemove={remove}
+          onRemoveAll={removeAll}
+        />
         <div className="flex items-end gap-2">
           <input
             ref={fileRef}
@@ -97,7 +139,7 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
           />
           <button
             onClick={() => fileRef.current?.click()}
-            disabled={sendMedia.isPending}
+            disabled={isUploading || sendMedia.isPending || attachments.length >= 10}
             className="rounded-xl p-2.5 shrink-0 bg-accent text-muted-foreground hover:bg-accent/70 transition-colors disabled:opacity-60"
             title="Đính kèm ảnh/tệp"
             aria-label="Đính kèm ảnh/tệp"
@@ -117,16 +159,26 @@ export function MyStoreComposer({ conversationId }: MyStoreComposerProps) {
             onKeyDown={handleKeyDown}
           />
           <button
-            onClick={handleSend}
-            disabled={!text.trim() || send.isPending}
+            onClick={() => void handleSend()}
+            disabled={
+              (!text.trim() && attachments.length === 0) ||
+              send.isPending ||
+              sendMedia.isPending ||
+              isUploading
+            }
             className={cn(
               'rounded-xl p-2.5 transition-colors shrink-0',
-              text.trim()
+              text.trim() || attachments.length > 0
                 ? 'bg-primary text-primary-foreground hover:bg-primary/80'
                 : 'bg-accent text-muted-foreground',
             )}
+            aria-label="Gửi"
           >
-            <Send className="h-4 w-4" />
+            {isUploading || sendMedia.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </button>
         </div>
 

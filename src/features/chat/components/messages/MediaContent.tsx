@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Download, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -15,6 +15,7 @@ import type { Attachment, OptimisticMeta, Message } from '@/features/chat/types'
 type MediaContentProps = {
   message: Message;
   isMe: boolean;
+  presentation?: 'default' | 'store';
 };
 
 // Phân loại render theo MIME của TỪNG attachment (tin gộp nhiều file có thể lẫn loại).
@@ -24,17 +25,24 @@ function mimeKind(mime: string | null | undefined): 'image' | 'video' | 'file' {
   return 'file';
 }
 
-export function MediaContent({ message, isMe }: MediaContentProps) {
+export function MediaContent({ message, isMe, presentation = 'default' }: MediaContentProps) {
   const attachments = message.attachments ?? [];
   // Tin gộp nhiều file (ví dụ gửi 3 ảnh 1 lúc) → lưới. 0/1 → render đơn.
   // Tách 2 nhánh thành component con để hook (useRefreshableUrl) luôn gọi đúng thứ tự.
   if (attachments.length > 1) {
-    return <MediaGrid message={message} attachments={attachments} isMe={isMe} />;
+    return (
+      <MediaGrid
+        message={message}
+        attachments={attachments}
+        isMe={isMe}
+        presentation={presentation}
+      />
+    );
   }
-  return <SingleMedia message={message} isMe={isMe} />;
+  return <SingleMedia message={message} isMe={isMe} presentation={presentation} />;
 }
 
-function SingleMedia({ message, isMe }: MediaContentProps) {
+function SingleMedia({ message, isMe, presentation = 'default' }: MediaContentProps) {
   const attachment = message.attachments?.[0] ?? null;
   const meta = (message.metadata ?? {}) as OptimisticMeta;
   const localPreview = meta.previewUrl ?? null;
@@ -58,6 +66,14 @@ function SingleMedia({ message, isMe }: MediaContentProps) {
         url={url}
         name={name}
         onError={onError}
+        width={attachment?.width ?? null}
+        height={attachment?.height ?? null}
+        frameClassName="rounded-2xl border border-border/70 shadow-micro"
+        className={
+          presentation === 'store'
+            ? 'max-h-[340px] w-full max-w-[340px] rounded-2xl'
+            : 'max-h-[300px] w-full max-w-[300px] rounded-2xl'
+        }
       />
     );
   }
@@ -86,29 +102,66 @@ function MediaGrid({
   message,
   attachments,
   isMe,
+  presentation,
 }: {
   message: Message;
   attachments: Attachment[];
   isMe: boolean;
+  presentation: 'default' | 'store';
 }) {
   const visuals = attachments.filter((a) => mimeKind(a.mimeType) !== 'file');
   const files = attachments.filter((a) => mimeKind(a.mimeType) === 'file');
   return (
-    <div className="flex flex-col gap-1">
+    <div
+      data-media-gallery={presentation}
+      className={cn(
+        'flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-border/70 shadow-micro',
+      )}
+    >
       {visuals.length > 0 && (
         <div
           className={cn(
-            'grid w-[260px] max-w-full gap-1',
+            'grid max-w-full',
+            presentation === 'store'
+              ? 'w-[340px] max-w-[82vw] gap-0.5'
+              : 'w-[300px] max-w-[78vw] gap-0.5',
             visuals.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
           )}
         >
-          {visuals.map((att) => (
-            <MediaCell key={att.mediaId} message={message} attachment={att} isMe={isMe} grid />
-          ))}
+          {visuals.map((att, index) => {
+            const isLead = visuals.length === 3 && index === 0;
+            const isWideLast =
+              visuals.length > 3 &&
+              visuals.length % 2 === 1 &&
+              index === visuals.length - 1;
+            return (
+              <div
+                key={att.mediaId}
+                className={cn(isLead && 'row-span-2', isWideLast && 'col-span-2')}
+              >
+                <MediaCell
+                  message={message}
+                  attachment={att}
+                  isMe={isMe}
+                  grid
+                  flush
+                  gridClassName={
+                    isLead
+                      ? 'h-full w-full object-cover'
+                      : isWideLast
+                        ? 'aspect-[2/1] h-full w-full object-cover'
+                        : undefined
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
       )}
       {files.map((att) => (
-        <MediaCell key={att.mediaId} message={message} attachment={att} isMe={isMe} />
+        <div key={att.mediaId} className="bg-background px-3 py-2">
+          <MediaCell message={message} attachment={att} isMe={isMe} />
+        </div>
       ))}
     </div>
   );
@@ -121,11 +174,15 @@ function MediaCell({
   attachment,
   isMe,
   grid,
+  flush,
+  gridClassName,
 }: {
   message: Message;
   attachment: Attachment;
   isMe: boolean;
   grid?: boolean;
+  flush?: boolean;
+  gridClassName?: string;
 }) {
   const initialUrl = attachment.downloadUrl ?? null;
   const isBlob = initialUrl?.startsWith('blob:') ?? false;
@@ -147,12 +204,36 @@ function MediaCell({
         url={url}
         name={attachment.fileName}
         onError={onError}
-        className={grid ? 'aspect-square h-full w-full object-cover' : undefined}
+        width={attachment.width}
+        height={attachment.height}
+        frameClassName={grid ? cn('h-full w-full', flush && 'rounded-none') : undefined}
+        className={
+          grid
+            ? cn(
+                gridClassName ?? 'aspect-square h-full w-full object-cover',
+                flush && 'rounded-none',
+              )
+            : undefined
+        }
       />
     );
   }
   if (kind === 'video') {
-    return <VideoView url={url} name={attachment.fileName} onError={onError} className={grid ? 'aspect-square h-full w-full object-cover' : undefined} />;
+    return (
+      <VideoView
+        url={url}
+        name={attachment.fileName}
+        onError={onError}
+        className={
+          grid
+            ? cn(
+                gridClassName ?? 'aspect-square h-full w-full object-cover',
+                flush && 'rounded-none',
+              )
+            : undefined
+        }
+      />
+    );
   }
   return (
     <FileView
@@ -170,7 +251,7 @@ function MediaPlaceholder({ name }: { name: string }) {
   return (
     <div className="flex h-[140px] w-[220px] flex-col items-center justify-center gap-1.5 rounded-[10px] bg-border/40 px-3 text-muted-foreground">
       <ImageOff className="h-7 w-7" />
-      <span className="max-w-full truncate text-[11px]">{name}</span>
+      <span className="max-w-full truncate text-xs">{name}</span>
       <span className="text-[10px] opacity-70">Không tải được nội dung</span>
     </div>
   );
@@ -184,6 +265,9 @@ function ImageView({
   url,
   name,
   onError,
+  width,
+  height,
+  frameClassName,
   className,
 }: {
   id: string;
@@ -193,9 +277,14 @@ function ImageView({
   url: string | null;
   name: string;
   onError: () => void;
+  width: number | null;
+  height: number | null;
+  frameClassName?: string;
   className?: string;
 }) {
   const lightbox = useImageLightbox();
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const isLoaded = loadedUrl === url;
 
   // Đăng ký ảnh vào album dùng chung (gỡ khi unmount / url đổi). Luôn kèm handler
   // tải: cả hội thoại dùng chung MỘT album, nên chỉ cần vài ảnh thiếu handler là
@@ -221,18 +310,38 @@ function ImageView({
     <button
       type="button"
       onClick={() => lightbox.open(id)}
-      className={cn('block cursor-zoom-in', className ? 'h-full w-full' : '')}
+      className={cn(
+        'group/media relative block overflow-hidden bg-muted cursor-zoom-in outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        frameClassName ?? 'rounded-2xl',
+      )}
       aria-label="Phóng to ảnh"
     >
+      {!isLoaded && (
+        <span
+          aria-hidden="true"
+          data-image-loading
+          className="absolute inset-0 animate-pulse bg-muted motion-reduce:animate-none"
+        />
+      )}
       {/* URL ký sẵn (S3) hoặc blob: cục bộ — next/image không phù hợp, dùng <img>. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
         alt={name}
-        onError={onError}
+        width={width ?? undefined}
+        height={height ?? undefined}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        onLoad={() => setLoadedUrl(url)}
+        onError={() => {
+          setLoadedUrl(null);
+          void onError();
+        }}
         className={cn(
-          'block rounded-[10px] object-cover',
-          className ?? 'w-full max-h-[260px] max-w-[260px]',
+          'block object-cover transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none [@media(hover:hover)]:group-hover/media:scale-[1.015]',
+          isLoaded ? 'opacity-100' : 'opacity-0',
+          className ?? 'max-h-[300px] w-full max-w-[300px] rounded-2xl',
         )}
       />
     </button>
@@ -289,7 +398,7 @@ function FileView({
       </span>
       <span className="min-w-0">
         <span className="block max-w-[160px] truncate text-[13px] font-semibold">{name}</span>
-        <span className={isMe ? 'block text-[11px] opacity-70' : 'block text-[11px] text-muted-foreground'}>
+        <span className={isMe ? 'block text-xs opacity-70' : 'block text-xs text-muted-foreground'}>
           {formatFileSize(size)}
         </span>
       </span>

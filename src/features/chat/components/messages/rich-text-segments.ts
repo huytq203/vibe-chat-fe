@@ -1,7 +1,12 @@
 import { Fragment, type CSSProperties, type ReactNode, createElement } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { EmojiText } from '@/components/common/EmojiText';
-import { colorCssVar, fontCssFamily, sanitizeLinkUrl } from '@/lib/editor/rich-presets';
+import {
+  colorCssVar,
+  fontCssFamily,
+  isColorKey,
+  sanitizeLinkUrl,
+} from '@/lib/editor/rich-presets';
 import type { Mention, RichMark } from '@/features/chat/types';
 
 /** Marks phủ toàn bộ [s,e). */
@@ -20,7 +25,12 @@ function applyMarks(marks: RichMark[], key: string, children: ReactNode): ReactN
     else if (m.type === 'italic') node = createElement('em', null, node);
     else if (m.type === 'underline') node = createElement('u', null, node);
     else if (m.type === 'strike') node = createElement('s', null, node);
-    else if (m.type === 'color' && m.value) style.color = colorCssVar(m.value);
+    else if (m.type === 'color' && m.value) {
+      // Màu mặc định/legacy kế thừa foreground của bubble. "Muted" chỉ giảm
+      // cường độ của màu kế thừa, nên tự thích ứng đúng trên cả bubble sáng và tối.
+      if (m.value === 'muted') style.opacity = 0.72;
+      else if (m.value !== 'default' && isColorKey(m.value)) style.color = colorCssVar(m.value);
+    }
     else if (m.type === 'highlight' && m.value) style.backgroundColor = colorCssVar(m.value);
     else if (m.type === 'font' && m.value) style.fontFamily = fontCssFamily(m.value);
     else if (m.type === 'link' && m.value) linkUrl = sanitizeLinkUrl(m.value);

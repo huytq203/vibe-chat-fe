@@ -9,6 +9,7 @@ import { MyStoreHeader, type MyStoreTab } from './MyStoreHeader';
 import { MyStoreInfoPanel } from './MyStoreInfoPanel';
 import { useStoreConversation } from '@/features/my-store/hooks/use-query';
 import { useMyStoreRealtime } from '@/features/my-store/hooks/useMyStoreRealtime';
+import { LightboxProvider } from '@/features/chat/components/messages/LightboxProvider';
 
 export function MyStoreLayout() {
   const [activeTab, setActiveTab] = useState<MyStoreTab>('notes');
@@ -43,8 +44,10 @@ export function MyStoreLayout() {
       <div className="flex flex-1 min-h-0 gap-3">
         {activeTab === 'notes' ? (
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background/75 backdrop-blur-md md:rounded-2xl md:border md:shadow-subtle">
-            <MyStoreFeed />
-            <MyStoreComposer conversationId={selfConv?.id ?? null} />
+            <LightboxProvider>
+              <MyStoreFeed />
+              <MyStoreComposer conversationId={selfConv?.id ?? null} />
+            </LightboxProvider>
           </div>
         ) : (
           <StoreFileBrowser />

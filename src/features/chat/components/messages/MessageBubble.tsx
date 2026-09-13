@@ -57,6 +57,8 @@ type MessageBubbleProps = {
   enableBotCommands?: boolean;
   /** Render Markdown an toàn cho nội dung do bot gửi. */
   renderMarkdown?: boolean;
+  /** Chrome dành cho kho cá nhân: media độc lập, không có nền bubble màu primary. */
+  appearance?: "default" | "store";
   onLaunchWebapp?: (input: {
     botUsername: string;
     buttonPayload?: string;
@@ -88,6 +90,7 @@ function MessageBubbleImpl({
   showBotMarkup = true,
   enableBotCommands = false,
   renderMarkdown = false,
+  appearance = "default",
   onLaunchWebapp,
 }: MessageBubbleProps) {
   const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
@@ -144,6 +147,17 @@ function MessageBubbleImpl({
     message.type === "TEXT" &&
     !message.isDeleted &&
     (renderMarkdown || shouldRenderAssistantMarkdown(resolvedBody, isMe));
+  const isStoreAppearance = appearance === "store";
+  const hasVisualAttachment = message.attachments?.some(
+    (attachment) =>
+      attachment.mimeType.startsWith("image/") || attachment.mimeType.startsWith("video/"),
+  );
+  const isBareMedia =
+    !message.isDeleted &&
+    hasVisualAttachment &&
+    !resolvedBody.trim() &&
+    !message.replyToMessageId &&
+    !message.forwardFrom;
 
   // Nút Like ở mép dưới bong bóng (chỉ hiện khi hover và CHƯA có reaction nào).
   const likeButton = enableLikeButton && canActions && !hasReactions && (
@@ -190,8 +204,12 @@ function MessageBubbleImpl({
           "min-w-0",
           isContactCard
             ? "w-[352px] max-w-[92%]"
+            : isBareMedia
+              ? "w-fit max-w-[82%] sm:max-w-[420px]"
             : isMarkdownText
               ? "max-w-[88%] sm:max-w-[78%] md:max-w-[720px]"
+              : isStoreAppearance
+                ? "max-w-[78%] sm:max-w-[68%] md:max-w-[560px]"
               : "max-w-[65%]",
         )}
       >
@@ -204,27 +222,28 @@ function MessageBubbleImpl({
           viaBotUsername={viaBotUsername}
         />
         <div
+          data-message-surface
           className={cn(
-            "relative rounded-2xl transition-all",
-            isVisualMedia ? "p-1.5" : "px-3.5 py-2.5",
-            !hasTheme &&
+            "relative transition-all",
+            "rounded-2xl",
+            isBareMedia
+              ? "bg-transparent p-0"
+              : isVisualMedia
+                ? "p-1.5"
+                : "px-3.5 py-2.5",
+            !isBareMedia &&
               (isMe
-                ? "bg-primary text-primary-foreground"
-                : wallpaperActive
+                ? cn("bg-primary text-primary-foreground", isStoreAppearance && "shadow-micro")
+                : !hasTheme && wallpaperActive
                   ? "border border-border/40 bg-background text-foreground"
-                  : "border border-border bg-muted text-foreground"),
-            hasTheme && !isMe && "border border-white/10",
+                  : !hasTheme
+                    ? "border border-border bg-muted text-foreground"
+                    : "border border-white/10"),
             isFailed && "border border-danger/60",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-1 ring-offset-background",
           )}
-          style={
-            hasTheme
-              ? isMe
-                ? bubbleConfig.myStyle
-                : bubbleConfig.otherStyle
-              : undefined
-          }
+          style={hasTheme && !isMe && !isBareMedia ? bubbleConfig.otherStyle : undefined}
           {...bubbleProps}
         >
           {actionsMenu}
@@ -249,21 +268,22 @@ function MessageBubbleImpl({
             isMe={isMe}
             enableBotCommands={enableBotCommands}
             renderMarkdown={renderMarkdown}
-          />
-          {/* Timestamp + status INSIDE bubble — luôn hiển thị để tránh flash layout */}
-          <BubbleMetaRow
-            message={message}
-            isMe={isMe}
-            isSending={isSending}
-            isFailed={isFailed}
-            isSeen={isSeen}
-            hasTheme={hasTheme}
-            bubbleConfig={bubbleConfig}
+            mediaPresentation={isStoreAppearance ? "store" : "default"}
           />
         </div>
         {showReactions && !message.isDeleted && (
           <MessageReactions message={message} isMe={isMe} />
         )}
+        <BubbleMetaRow
+          message={message}
+          isMe={isMe}
+          isSending={isSending}
+          isFailed={isFailed}
+          isSeen={isSeen}
+          hasTheme={false}
+          bubbleConfig={bubbleConfig}
+          outside
+        />
         {showBotMarkup && (
           <BotQuickReplies
             message={message}

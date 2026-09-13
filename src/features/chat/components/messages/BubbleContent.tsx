@@ -55,12 +55,14 @@ export function BubbleContent({
   isMe,
   enableBotCommands = false,
   renderMarkdown = false,
+  mediaPresentation = 'default',
 }: {
   message: Message;
   isMe: boolean;
   enableBotCommands?: boolean;
   /** Chỉ bật cho tin do bot gửi; user message vẫn hiển thị plain text. */
   renderMarkdown?: boolean;
+  mediaPresentation?: 'default' | 'store';
 }) {
   // Content plaintext — render trực tiếp (không còn lớp giải mã).
   const resolvedBody = message.plaintext ?? message.contentPreview ?? "";
@@ -75,7 +77,7 @@ export function BubbleContent({
   if (message.type === "TEXT") {
     const body = resolvedBody;
     const textClass =
-      "block whitespace-pre-wrap break-words text-[13.5px] leading-relaxed";
+      " whitespace-pre-wrap break-words text-[13.5px] leading-relaxed";
     if (renderMarkdown || shouldRenderAssistantMarkdown(body, isMe)) {
       // Nhánh Markdown chạy trước nhánh BotCommandText bên dưới, nên nếu không
       // truyền id hội thoại thì mọi slash command trong tin bot sẽ mất khả năng bấm.
@@ -150,7 +152,7 @@ export function BubbleContent({
     const caption = message.plaintext?.trim();
     return (
       <>
-        <MediaContent message={message} isMe={isMe} />
+        <MediaContent message={message} isMe={isMe} presentation={mediaPresentation} />
         {caption &&
           (message.mentions?.length ? (
             <MentionText

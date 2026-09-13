@@ -10,13 +10,14 @@ type SelfDestructTimerProps = {
   /** ISO thời điểm tin biến mất. */
   expireAt: string;
   isMe: boolean;
+  outside?: boolean;
 };
 
 /**
  * Đồng hồ đếm ngược cho tin tự huỷ (xem 15-edit-recall-selfdestruct.md).
  * Việc ẩn tin do useSelfDestruct lo — component này chỉ hiển thị thời gian còn lại.
  */
-export function SelfDestructTimer({ expireAt, isMe }: SelfDestructTimerProps) {
+export function SelfDestructTimer({ expireAt, isMe, outside = false }: SelfDestructTimerProps) {
   const target = new Date(expireAt).getTime();
   const [left, setLeft] = useState(() => target - serverNow());
 
@@ -31,7 +32,11 @@ export function SelfDestructTimer({ expireAt, isMe }: SelfDestructTimerProps) {
     <span
       className={cn(
         'inline-flex items-center gap-0.5 text-[9.5px]',
-        isMe ? 'text-primary-foreground/60' : 'text-muted-foreground/70',
+        outside
+          ? 'text-primary-foreground/80'
+          : isMe
+            ? 'text-primary-foreground/60'
+            : 'text-muted-foreground/70',
       )}
       title="Tin nhắn tự huỷ"
     >

@@ -49,6 +49,30 @@ describe('RichText', () => {
     expect(screen.getByText('hello')).toBeInTheDocument();
   });
 
+  it('để màu mặc định kế thừa từ bubble thay vì đặt foreground toàn app', () => {
+    const { container } = render(
+      <RichText
+        text="hello"
+        mentions={[]}
+        richText={rt([{ start: 0, end: 5, type: 'color', value: 'default' }])}
+      />,
+    );
+
+    expect(container.querySelector('[style*="color"]')).toBeNull();
+  });
+
+  it('để màu legacy không hợp lệ kế thừa từ bubble', () => {
+    const { container } = render(
+      <RichText
+        text="hello"
+        mentions={[]}
+        richText={rt([{ start: 0, end: 5, type: 'color', value: 'legacy-black' }])}
+      />,
+    );
+
+    expect(container.querySelector('[style*="color"]')).toBeNull();
+  });
+
   it('mention thường → button bấm được; @all → không phải button', () => {
     render(
       <RichText

@@ -281,6 +281,7 @@ export function StoreMessageBubble({ message, repliedTo }: StoreMessageBubblePro
       enableLikeButton={false}
       showReactions={false}
       showBotMarkup={false}
+      appearance="store"
       renderActions={({ className }) => <StoreDeleteAction message={chatMessage} className={className} />}
     />
   );

@@ -14,6 +14,7 @@ export function Framework7Shell({ children }: { children: ReactNode }) {
       className="halo-framework7-shell"
       name="Halo"
       theme="auto"
+      touch={{ touchRipple: false }}
     >
       {children}
     </App>

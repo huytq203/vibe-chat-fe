@@ -13,9 +13,10 @@ type BubbleMetaRowProps = {
   isSeen: boolean;
   hasTheme: boolean;
   bubbleConfig: BubbleConfig;
+  outside?: boolean;
 };
 
-/** Hàng meta trong bong bóng: hẹn giờ tự huỷ, nhãn "đã chỉnh sửa", thời gian + icon trạng thái. */
+/** Hàng meta của tin nhắn: hẹn giờ tự huỷ, nhãn chỉnh sửa, thời gian và trạng thái. */
 export function BubbleMetaRow({
   message,
   isMe,
@@ -24,22 +25,27 @@ export function BubbleMetaRow({
   isSeen,
   hasTheme,
   bubbleConfig,
+  outside = false,
 }: BubbleMetaRowProps) {
   return (
     <div
+      data-message-meta
       className={cn(
-        "mt-1 flex items-center gap-1",
+        "mt-1 flex items-center gap-1 tabular-nums",
+        outside && "px-1 text-primary-foreground drop-shadow-[0_1px_2px_rgb(0_0_0/0.75)]",
         isMe ? "justify-end" : "justify-start",
       )}
     >
       {message.expireAt && !message.isDeleted && !isSending && !isFailed && (
-        <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} />
+        <SelfDestructTimer expireAt={message.expireAt} isMe={isMe} outside={outside} />
       )}
       {message.isEdited && !message.isDeleted && (
         <span
           className={cn(
             "text-[9.5px] italic",
-            !hasTheme && (isMe ? "text-primary-foreground/60" : "text-muted-foreground/70"),
+            outside
+              ? "text-primary-foreground/80"
+              : !hasTheme && (isMe ? "text-primary-foreground/60" : "text-muted-foreground/70"),
           )}
           style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
         >
@@ -49,7 +55,9 @@ export function BubbleMetaRow({
       <span
         className={cn(
           "text-[10px]",
-          !hasTheme && (isMe ? "text-primary-foreground/70" : "text-muted-foreground"),
+          outside
+            ? "text-primary-foreground/90"
+            : !hasTheme && (isMe ? "text-primary-foreground/70" : "text-muted-foreground"),
         )}
         style={hasTheme ? { color: isMe ? bubbleConfig.myMetaColor : bubbleConfig.otherMetaColor } : undefined}
       >
@@ -58,25 +66,25 @@ export function BubbleMetaRow({
       {isMe &&
         (isFailed ? (
           <AlertCircle
-            className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+            className={cn("h-3.5 w-3.5", outside ? "text-danger" : !hasTheme && "text-primary-foreground/70")}
             style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
             aria-label="Gửi thất bại"
           />
         ) : isSending ? (
           <Clock
-            className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+            className={cn("h-3.5 w-3.5", outside ? "text-primary-foreground/90" : !hasTheme && "text-primary-foreground/70")}
             style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
             aria-label="Đang gửi"
           />
         ) : isSeen ? (
           <CheckCheck
-            className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+            className={cn("h-3.5 w-3.5", outside ? "text-primary-foreground" : !hasTheme && "text-primary-foreground/70")}
             style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
             aria-label="Đã xem"
           />
         ) : (
           <Check
-            className={cn("h-3.5 w-3.5", !hasTheme && "text-primary-foreground/70")}
+            className={cn("h-3.5 w-3.5", outside ? "text-primary-foreground/90" : !hasTheme && "text-primary-foreground/70")}
             style={hasTheme ? { color: bubbleConfig.myMetaColor } : undefined}
             aria-label="Đã gửi"
           />

@@ -11,7 +11,7 @@ const NOTE_TYPES: StoreNoteType[] = ['REMINDER', 'CHECKLIST', 'BOOKMARK'];
 
 function MessageItem({ message, repliedTo }: { message: StoreMessage; repliedTo: StoreMessage | null }) {
   return (
-    <div className="relative px-5 pb-1 [@media(hover:hover)]:hover:z-10">
+    <div className="relative px-4 pb-2.5 md:px-5 [@media(hover:hover)]:hover:z-10">
       <StoreMessageBubble message={message} repliedTo={repliedTo} />
     </div>
   );

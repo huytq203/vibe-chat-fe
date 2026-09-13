@@ -29,8 +29,6 @@ import {
   patchMessage,
   prependMessage,
   removeMessage,
-  storeMediaType,
-  uploadStoreMedia,
   type MessagesCache,
 } from './store-mutation-helpers';
 
@@ -129,22 +127,38 @@ export function useSendStoreMessage() {
 }
 
 /**
- * Upload 1 file rồi gửi vào myStore dưới dạng tin media (IMAGE/VIDEO/AUDIO/FILE).
- * Bytes attachment được BE tính vào quota 5GB (sendServer, conversation SELF).
+ * Tạo một tin media từ các attachment đã upload xong bởi attachment tray.
  */
 export function useSendStoreMediaMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      file,
-      onProgress,
+      attachments,
+      plaintext,
+      replyToMessageId,
     }: {
-      file: File;
-      onProgress?: (percent: number) => void;
+      attachments: Array<{ mediaId: string; kind: 'image' | 'video' | 'file' }>;
+      plaintext?: string;
+      replyToMessageId?: string;
     }) => {
-      const media = await uploadStoreMedia(file, onProgress);
-      const type = storeMediaType(file.type || media.mimeType);
-      return myStoreApi.sendMessage({ type, attachmentIds: [media.id] });
+      if (attachments.length === 0 || attachments.length > 10) {
+        throw new Error('Mỗi tin nhắn hỗ trợ từ 1 đến 10 tệp');
+      }
+      const kinds = new Set(attachments.map((attachment) => attachment.kind));
+      const type = kinds.size === 1
+        ? attachments[0].kind === 'image'
+          ? 'IMAGE'
+          : attachments[0].kind === 'video'
+            ? 'VIDEO'
+            : 'FILE'
+        : 'FILE';
+
+      return myStoreApi.sendMessage({
+        type,
+        attachmentIds: attachments.map((attachment) => attachment.mediaId),
+        ...(plaintext ? { plaintext } : {}),
+        ...(replyToMessageId ? { replyToMessageId } : {}),
+      });
     },
     onSuccess: (msg) => {
       prependMessage(qc, msg);
