@@ -15,6 +15,10 @@ export function Framework7Shell({ children }: { children: ReactNode }) {
       name="Halo"
       theme="auto"
       touch={{ touchRipple: false }}
+      // Module "clicks" của Framework7 mặc định chặn (preventDefault) mọi <a> nội bộ để
+      // giao cho router của nó — ở đây không có View nên click <Link> bị "nuốt"
+      // (vd. Thùng rác ở /notes). Coi mọi <a> là external để Next Link tự điều hướng.
+      clicks={{ externalLinks: 'a' }}
     >
       {children}
     </App>
