@@ -105,7 +105,7 @@ export function AiChatInput({
         className={cn(
           'overflow-hidden rounded-2xl border border-border bg-muted/35',
           'transition-colors focus-within:border-primary/55',
-          isPage && 'bg-sidebar/95',
+          isPage && 'bg-sidebar/95 shadow-subtle',
         )}
       >
         {attachmentControls && (
@@ -125,7 +125,7 @@ export function AiChatInput({
             'resize-none overflow-y-auto rounded-none border-0 bg-transparent px-3',
             'focus:border-transparent focus-visible:border-transparent',
             isPage
-              ? 'min-h-16 max-h-40 py-3 text-sm leading-relaxed'
+              ? 'min-h-11 max-h-40 px-4 py-3 text-sm leading-[1.375rem]'
               : 'min-h-16 max-h-32 py-3 text-[13px] leading-relaxed',
           )}
           placeholder={isPage ? 'Hỏi Halo AI bất cứ điều gì...' : 'Nhắn tin với AI...'}
@@ -139,7 +139,12 @@ export function AiChatInput({
           onKeyDown={(e) => onKeyDown(e, onSend, loading || disabled)}
         />
 
-        <div className="flex min-h-11 items-center justify-between gap-2 px-2 pb-2">
+        <div
+          className={cn(
+            'flex min-h-11 items-center justify-between gap-2 px-2 pb-2',
+            isPage && 'pt-0.5',
+          )}
+        >
           <div className="flex min-w-0 items-center">
             {attachmentControls && (
               <>
@@ -154,7 +159,10 @@ export function AiChatInput({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-9 shrink-0 rounded-xl text-muted-foreground hover:text-primary"
+                  className={cn(
+                    'shrink-0 rounded-xl text-muted-foreground hover:text-primary',
+                    isPage ? 'size-10' : 'size-9',
+                  )}
                   type="button"
                   aria-label="Đính kèm file"
                   title="Đính kèm file"
@@ -172,7 +180,7 @@ export function AiChatInput({
             type="button"
             onClick={canStop ? onStop : onSend}
             disabled={canStop ? false : cannotSend || loading}
-            className="size-9 shrink-0 rounded-full"
+            className={cn('shrink-0 rounded-full', isPage ? 'size-10' : 'size-9')}
             aria-label={canStop ? 'Dừng trả lời' : 'Gửi'}
             title={canStop ? 'Dừng trả lời' : 'Gửi (Enter)'}
           >
@@ -202,8 +210,8 @@ export function AiChatInput({
   // Mobile: full-bleed, viền chỉ ở cạnh trên (giống MessageInput bên chat). Khe hở 4px
   // hai bên trước đây để lọt nền wallpaper thành một sọc mỏng, trông như lỗi render.
   return (
-    <div className="shrink-0 border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:border-0 md:px-1">
-      <div className="mx-auto w-full max-w-170">{composer}</div>
+    <div className="shrink-0 border-t bg-sidebar px-2.5 py-2 max-md:pb-[max(var(--safe-bottom),0.5rem)] md:border-0 md:bg-transparent md:px-1 md:pb-4 md:pt-0">
+      <div className="mx-auto w-full max-w-[680px]">{composer}</div>
     </div>
   );
 }

@@ -78,6 +78,29 @@ describe('AiChatPage', () => {
     expect(screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).toBeInTheDocument();
   });
 
+  it('nên chừa chỗ cho header để tin nhắn đầu không bị che', () => {
+    routeParams = { id: RECENT_ID };
+    render(<AiChatPage />);
+
+    const conversation = screen.getByRole('main');
+    const header = conversation.querySelector('header');
+    const messageScroller = conversation.querySelector('.h-full.overflow-y-auto');
+
+    expect(header).toHaveClass('shrink-0');
+    expect(messageScroller).toHaveClass('py-2');
+  });
+
+  it('nên hiện composer 1 dòng khi rỗng', () => {
+    routeParams = { id: RECENT_ID };
+    render(<AiChatPage />);
+
+    const textarea = screen.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...');
+
+    expect(textarea).toHaveAttribute('rows', '1');
+    expect(textarea).toHaveClass('min-h-11');
+    expect(textarea).not.toHaveClass('min-h-16');
+  });
+
   it('gom nhóm lịch sử theo mốc thời gian', () => {
     render(<AiChatPage />);
 
@@ -150,8 +173,6 @@ describe('AiChatPage', () => {
       screen.getByRole('button', { name: 'Soạn giúp tôi tin nhắn xin nghỉ phép lịch sự' }),
     ).toBeInTheDocument();
   });
-
-;
 
   it('tin gửi hỏng nêu lý do ngay dưới bong bóng và gửi lại được', async () => {
     routeParams = { id: RECENT_ID };
