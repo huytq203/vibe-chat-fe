@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { useSectionNav } from '@/features/chat/hooks/useSectionNav';
 import { useSelectedAiSession } from '@/features/chat/hooks/useSelectedAiSession';
 import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
-import { aiConversationsApi } from '@/services/ai-conversations.api';
+import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
 import { AiSessionList } from './AiSessionList';
 import { AiChatMain } from './AiChatMain';
 
@@ -15,11 +15,15 @@ export function AiChatPage() {
   const { activeId: routeActiveId, setActiveId: setRouteActiveId } = useSelectedAiSession();
   const [historyOpen, setHistoryOpen] = useState(true);
   const {
-    conversations, session, activeId, actions, select, startNew, remember, refetch,
+    conversations, session, activeId, actions, select, startNew, remember,
   } = useAiConversations({
     origin: 'CHAT',
     scope: 'chat',
   });
+  const { remove, isDeleting } = useDeleteAiConversation('CHAT');
+  // Chỉ tự mở hội thoại gần nhất MỘT lần khi vào trang; sau khi người dùng bấm "+"
+  // (activeId về null) không được tự chọn lại — trước đây effect này "nuốt" nút tạo mới.
+  const autoPickedRef = useRef(false);
 
   useEffect(() => {
     if (routeActiveId) select(routeActiveId);
@@ -31,6 +35,7 @@ export function AiChatPage() {
   }, [select, setRouteActiveId]);
 
   const handleStartNew = useCallback((): void => {
+    autoPickedRef.current = true;
     startNew();
     setRouteActiveId(null);
   }, [setRouteActiveId, startNew]);
@@ -41,18 +46,19 @@ export function AiChatPage() {
   }, [remember, setRouteActiveId]);
 
   const handleDelete = useCallback(async (id: string): Promise<void> => {
-    await aiConversationsApi.remove(id);
     if (activeId === id) handleStartNew();
-    refetch();
-  }, [activeId, handleStartNew, refetch]);
+    await remove(id);
+  }, [activeId, handleStartNew, remove]);
 
   // Desktop: vào /ai trống mà đã có session → mở session gần nhất (giống auto-chọn hội thoại
   // ở chat). Mobile chỉ có một cột nên giữ nguyên màn danh sách để người dùng tự chọn.
   useEffect(() => {
-    if (isMobile || activeId) return;
+    if (isMobile || activeId || routeActiveId || autoPickedRef.current) return;
     const first = conversations[0];
-    if (first) handleSelect(first.id);
-  }, [isMobile, activeId, conversations, handleSelect]);
+    if (!first) return;
+    autoPickedRef.current = true;
+    handleSelect(first.id);
+  }, [isMobile, activeId, routeActiveId, conversations, handleSelect]);
 
   const showHistory = isMobile ? !activeId : historyOpen;
   const showConversation = !isMobile || Boolean(activeId);
@@ -66,6 +72,7 @@ export function AiChatPage() {
           onSelect={handleSelect}
           onCreate={handleStartNew}
           onDelete={(id) => void handleDelete(id)}
+          isDeleting={isDeleting}
           onCollapse={isMobile ? undefined : () => setHistoryOpen(false)}
           onBack={isMobile ? () => goToSection('chat') : undefined}
         />

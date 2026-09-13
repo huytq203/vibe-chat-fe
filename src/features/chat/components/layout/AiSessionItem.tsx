@@ -1,6 +1,7 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 import type { AiConversationSummary } from '@/services/ai-conversations.api';
 import { formatSessionTime } from '@/features/chat/hooks/useAiSessionGroups';
@@ -10,9 +11,11 @@ interface AiSessionItemProps {
   isActive: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Đang gọi API xoá — khoá nút để tránh bấm đúp. */
+  isDeleting?: boolean;
 }
 
-export function AiSessionItem({ conversation, isActive, onSelect, onDelete }: AiSessionItemProps) {
+export function AiSessionItem({ conversation, isActive, onSelect, onDelete, isDeleting = false }: AiSessionItemProps) {
   const title = conversation.title ?? 'Cuộc trò chuyện mới';
   return (
     <div className="group relative">
@@ -49,14 +52,17 @@ export function AiSessionItem({ conversation, isActive, onSelect, onDelete }: Ai
         aria-label={`Xoá cuộc trò chuyện ${title}`}
         title="Xoá cuộc trò chuyện"
         onClick={() => onDelete(conversation.id)}
+        disabled={isDeleting}
+        aria-busy={isDeleting}
         className={cn(
           'absolute right-1.5 top-2 flex h-6 w-6 items-center justify-center rounded-lg',
           'text-muted-foreground opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger',
           'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           'group-hover:opacity-100',
+          isDeleting && 'cursor-wait opacity-100',
         )}
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        {isDeleting ? <Spinner size="xs" /> : <Trash2 className="h-3.5 w-3.5" />}
       </button>
     </div>
   );

@@ -15,6 +15,7 @@ interface AiSessionListProps {
   onSelect: (id: string) => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
+  isDeleting?: (id: string) => boolean;
   /** Có nút thu gọn (desktop). Mobile ẩn đi vì danh sách chiếm nguyên màn. */
   onCollapse?: () => void;
   /** Mobile: rời khu vực AI (không có NavSidebar để bấm). */
@@ -27,6 +28,7 @@ export function AiSessionList({
   onSelect,
   onCreate,
   onDelete,
+  isDeleting,
   onCollapse,
   onBack,
 }: AiSessionListProps) {
@@ -139,6 +141,7 @@ export function AiSessionList({
                 isActive={conversation.id === activeId}
                   onSelect={onSelect}
                   onDelete={onDelete}
+                  isDeleting={isDeleting?.(conversation.id) ?? false}
                 />
               ))}
             </div>

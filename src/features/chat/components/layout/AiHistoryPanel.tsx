@@ -1,6 +1,7 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
 import { Button } from '@/components/ui/button/Button';
@@ -11,9 +12,10 @@ interface AiHistoryPanelProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  isDeleting?: (id: string) => boolean;
 }
 
-export function AiHistoryPanel({ conversations, activeId, onSelect, onDelete }: AiHistoryPanelProps) {
+export function AiHistoryPanel({ conversations, activeId, onSelect, onDelete, isDeleting }: AiHistoryPanelProps) {
   if (conversations.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
@@ -48,9 +50,10 @@ export function AiHistoryPanel({ conversations, activeId, onSelect, onDelete }: 
               variant="ghost"
               aria-label={`Xoá cuộc trò chuyện ${title}`}
               onClick={() => onDelete(conversation.id)}
+              disabled={isDeleting?.(conversation.id) ?? false}
               className="invisible absolute right-1 top-1 size-8 text-muted-foreground opacity-0 hover:text-danger focus-visible:visible focus-visible:opacity-100 group-hover:visible group-hover:opacity-100"
             >
-              <Trash2 className="size-3.5" />
+              {isDeleting?.(conversation.id) ? <Spinner size="xs" /> : <Trash2 className="size-3.5" />}
             </Button>
           </div>
         );

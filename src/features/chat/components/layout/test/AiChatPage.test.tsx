@@ -177,6 +177,36 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: recentConversation.title })).not.toBeInTheDocument());
   });
 
+  it('nên giữ trạng thái hội thoại mới sau khi bấm "+" — không tự chọn lại hội thoại gần nhất', async () => {
+    render(<AiChatPage />);
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(RECENT_ID));
+
+    const main = within(screen.getByRole('main'));
+    await userEvent.click(main.getByRole('button', { name: 'Trò chuyện mới' }));
+
+    // Hội thoại gần nhất không còn được đánh dấu đang mở, và không tải lại chi tiết của nó.
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith('/ai', { scroll: false }));
+    expect(aiConversationsApi.detail).toHaveBeenCalledTimes(1);
+    expect(main.getByPlaceholderText('Hỏi Halo AI bất cứ điều gì...')).toBeInTheDocument();
+  });
+
+  it('nên khoá nút xoá và chỉ gọi API một lần khi bấm đúp lúc đang xoá', async () => {
+    let finishRemove: (() => void) | undefined;
+    vi.mocked(aiConversationsApi.remove).mockImplementation(
+      () => new Promise<void>((resolve) => { finishRemove = resolve; }),
+    );
+    render(<AiChatPage />);
+    await waitFor(() => expect(aiConversationsApi.detail).toHaveBeenCalledWith(RECENT_ID));
+
+    const deleteButton = screen.getByLabelText('Xoá cuộc trò chuyện này');
+    await userEvent.click(deleteButton);
+    await userEvent.click(deleteButton);
+
+    expect(aiConversationsApi.remove).toHaveBeenCalledTimes(1);
+    finishRemove?.();
+    await waitFor(() => expect(screen.queryByRole('button', { name: recentConversation.title })).not.toBeInTheDocument());
+  });
+
   it('nên dùng chung query cache cho trang và popup', async () => {
     useAiWindowStore.getState().open();
     render(<><AiChatPage /><AiChatWindow /></>);

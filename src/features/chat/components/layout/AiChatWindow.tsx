@@ -13,7 +13,7 @@ import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
-import { aiConversationsApi } from '@/services/ai-conversations.api';
+import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
 import { aiApi } from '@/services/ai.api';
 import { AiHistoryPanel } from './AiHistoryPanel';
 
@@ -27,8 +27,9 @@ export function AiChatWindow() {
   const [showHistory, setShowHistory] = useState(false);
 
   const {
-    conversations, session, activeId, actions, select, startNew, remember, refetch, isLoading,
+    conversations, session, activeId, actions, select, startNew, remember, isLoading,
   } = useAiConversations({ origin: 'CHAT', scope: 'chat' });
+  const { remove, isDeleting } = useDeleteAiConversation('CHAT');
   const messages = session.messages;
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =
@@ -69,9 +70,8 @@ export function AiChatWindow() {
   }
 
   async function handleDelete(id: string): Promise<void> {
-    await aiConversationsApi.remove(id);
     if (activeId === id) startNew();
-    refetch();
+    await remove(id);
   }
 
   async function handleSend() {
@@ -138,6 +138,7 @@ export function AiChatWindow() {
           activeId={activeId}
           onSelect={(id) => { select(id); setShowHistory(false); }}
           onDelete={(id) => void handleDelete(id)}
+          isDeleting={isDeleting}
         />
       ) : (
         <>
