@@ -85,7 +85,7 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   } = useAiConversations({
     scope: `${workspaceId}:${pageId}`,
   });
-  const { remove, isDeleting } = useDeleteAiConversation('NOTES');
+  const { remove, isDeleting } = useDeleteAiConversation();
   const pageQuery = usePage(pageId);
   const { changedVersion, checkForChange, dismissChange } = useAiPageChange(pageId);
   const stream = useCallback<AiStreamFn>(

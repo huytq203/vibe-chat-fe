@@ -20,7 +20,7 @@ export function AiChatPage() {
     origin: 'CHAT',
     scope: 'chat',
   });
-  const { remove, isDeleting } = useDeleteAiConversation('CHAT');
+  const { remove, isDeleting } = useDeleteAiConversation();
   // Chỉ tự mở hội thoại gần nhất MỘT lần khi vào trang; sau khi người dùng bấm "+"
   // (activeId về null) không được tự chọn lại — trước đây effect này "nuốt" nút tạo mới.
   const autoPickedRef = useRef(false);

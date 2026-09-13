@@ -64,7 +64,7 @@ export function TaskAiPanel() {
   } = useAiConversations({
     scope: selectedProjectId ?? 'tasks:all',
   });
-  const { remove, isDeleting } = useDeleteAiConversation('TASKS');
+  const { remove, isDeleting } = useDeleteAiConversation();
 
   const stream = useCallback<AiStreamFn>((messages, attachments, options) =>
     aiApi.chatStream(

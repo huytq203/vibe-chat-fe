@@ -29,7 +29,7 @@ export function AiChatWindow() {
   const {
     conversations, session, activeId, actions, select, startNew, remember, isLoading,
   } = useAiConversations({ origin: 'CHAT', scope: 'chat' });
-  const { remove, isDeleting } = useDeleteAiConversation('CHAT');
+  const { remove, isDeleting } = useDeleteAiConversation();
   const messages = session.messages;
 
   const { ref: textareaRef, resize, focusInput, handleKeyDown: handleTextareaKeyDown } =

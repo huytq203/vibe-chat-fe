@@ -153,16 +153,19 @@ function useStableActions(
       sessionRef,
       update: (updater) => setLocal((previous) => {
         const current = stateRef.current;
+        // `current` (ref) chỉ cập nhật sau render; các updater gộp trong cùng một nhịp
+        // (remember gán activeId rồi persist đẩy câu trả lời) thấy ref còn activeId=null.
+        // Vì vậy so với bản nháp trước theo `previous`, không theo ref, và giữ nguyên
+        // activeId của nó — nếu không, câu trả lời sẽ ghi vào một phiên rỗng và màn hình nháy.
         const hasLocalDraft = previous.scope === current.scope
-          && previous.activeId === current.activeId
-          && previous.dirty;
-        // Chỉ chặn khi KHÔNG có bản nháp cục bộ: ngay sau lượt đầu, activeId vừa được gán nên
-        // detail đang tải — nếu bỏ qua cập nhật lúc này thì câu trả lời/tin kế tiếp bị rơi.
+          && previous.dirty
+          && (previous.activeId === current.activeId || current.activeId === null);
+        // Chỉ chặn khi KHÔNG có bản nháp cục bộ (đang tải detail của hội thoại vừa chọn).
         if (current.isDetailLoading && !hasLocalDraft) return previous;
         const source = hasLocalDraft ? previous.value : sessionRef.current;
         return {
           scope: current.scope,
-          activeId: current.activeId,
+          activeId: hasLocalDraft ? previous.activeId : current.activeId,
           value: updater(source),
           dirty: true,
         };
