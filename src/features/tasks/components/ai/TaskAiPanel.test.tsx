@@ -24,6 +24,7 @@ const sessionActions = {
   removeMessage: vi.fn(() => null),
 };
 const projectsMock = vi.hoisted(() => ({ name: 'Dự án Beam' }));
+const useAiConversationsOptions = vi.hoisted(() => vi.fn());
 
 const remember = vi.fn();
 const removeConversation = vi.fn();
@@ -37,23 +38,26 @@ let conversations = [] as Array<{
 }>;
 
 vi.mock('@/features/ai/hooks/useAiConversations', () => ({
-  useAiConversations: () => ({
-    conversations,
-    activeId: activeConversationId,
-    session: {
-      id: activeConversationId ?? 'task-ai:project-1',
-      title: 'Cuộc trò chuyện mới',
-      messages: [],
-      updatedAt: 0,
-    },
-    actions: sessionActions,
-    isLoading: false,
-    isError: false,
-    select: vi.fn(),
-    startNew: vi.fn(),
-    remember,
-    refetch: vi.fn(),
-  }),
+  useAiConversations: (options: unknown) => {
+    useAiConversationsOptions(options);
+    return {
+      conversations,
+      activeId: activeConversationId,
+      session: {
+        id: activeConversationId ?? 'task-ai:project-1',
+        title: 'Cuộc trò chuyện mới',
+        messages: [],
+        updatedAt: 0,
+      },
+      actions: sessionActions,
+      isLoading: false,
+      isError: false,
+      select: vi.fn(),
+      startNew: vi.fn(),
+      remember,
+      refetch: vi.fn(),
+    };
+  },
 }));
 
 vi.mock('@/features/ai/hooks/useDeleteAiConversation', () => ({
@@ -86,6 +90,7 @@ describe('panel trợ lý AI cho công việc', () => {
     conversations = [];
     projectsMock.name = 'Dự án Beam';
     remember.mockReset();
+    useAiConversationsOptions.mockReset();
     removeConversation.mockReset().mockResolvedValue(true);
     vi.mocked(aiApi.chatStream).mockReset().mockResolvedValue('Đã xong');
     useTasksUIStore.setState({
@@ -111,6 +116,18 @@ describe('panel trợ lý AI cho công việc', () => {
     expect(screen.getByRole('button', { name: 'Việc của tôi đang mở' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tiến độ project này' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo task mới giao cho…' })).toBeInTheDocument();
+  });
+
+  it('giữ nguyên scope hội thoại khi link task chuyển sang project khác', async () => {
+    renderWithProviders(<TaskAiPanel />);
+
+    expect(useAiConversationsOptions).toHaveBeenLastCalledWith({ scope: 'tasks' });
+
+    act(() => useTasksUIStore.getState().setSelectedProjectId('project-2'));
+
+    await waitFor(() => {
+      expect(useAiConversationsOptions).toHaveBeenLastCalledWith({ scope: 'tasks' });
+    });
   });
 
   it('xoá hội thoại công việc và khoá hội thoại đang xoá', async () => {

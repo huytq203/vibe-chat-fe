@@ -80,6 +80,12 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [closingTaskId, setClosingTaskId] = useState<string | null>(null);
+  const dialogOpen = !!selectedTaskId && closingTaskId !== selectedTaskId;
+
+  // Keep the selected task mounted until Base UI finishes the exit animation.
+  // Clearing it in onOpenChange removes the modal body one frame before the
+  // popup/backdrop leave the screen, which appears as a white flash.
 
   useEffect(
     () => () => {
@@ -109,8 +115,6 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
     saveFieldSoon(field, value);
   };
 
-  const open = !!selectedTaskId;
-
   const handleTitleSave = () => {
     const timer = saveTimers.current.title;
     if (timer) clearTimeout(timer);
@@ -119,7 +123,18 @@ export function TaskDetailModal({ projectId }: { projectId: string }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && closeTask()}>
+    <Dialog
+      open={dialogOpen}
+      onOpenChange={(open) => {
+        setClosingTaskId(open ? null : selectedTaskId);
+      }}
+      onOpenChangeComplete={(open) => {
+        if (!open && closingTaskId === selectedTaskId) {
+          closeTask();
+          setClosingTaskId(null);
+        }
+      }}
+    >
       <DialogContent mobileContentClassName="max-md:px-0 max-md:pt-0 max-md:pb-[var(--f7-safe-area-bottom)]" className="flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[1180px] flex-col gap-0 overflow-hidden p-0 sm:h-[90vh] sm:w-[calc(100vw-2rem)]">
         {isLoading && (
           <div className="grid flex-1 place-items-center text-sm text-muted-foreground">

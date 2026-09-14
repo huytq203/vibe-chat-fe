@@ -62,7 +62,10 @@ export function TaskAiPanel() {
     remember,
     refetch,
   } = useAiConversations({
-    scope: selectedProjectId ?? 'tasks:all',
+    // Hội thoại là trạng thái của panel, không phải của project đang hiển thị.
+    // Mở một task-link có thể đổi project; giữ scope ổn định để không vô tình
+    // chuyển người dùng sang "Cuộc trò chuyện mới".
+    scope: 'tasks',
   });
   const { remove, isDeleting } = useDeleteAiConversation();
 
@@ -90,7 +93,7 @@ export function TaskAiPanel() {
     }
   }, [focusInput, queryClient, selectedProjectId]);
   const conversation = useAiConversation({
-    streamKey: `tasks:assistant:${selectedProjectId ?? 'all'}`,
+    streamKey: 'tasks:assistant',
     session,
     actions,
     stream,
