@@ -129,7 +129,7 @@ function applyTaskPayload(board: Board, task: RealtimeTask): Board | null {
     dueDate: task.dueDate,
     tags: task.tags.map(({ id, name, color }) => ({ id, name, color })),
     assignees: task.assignees ?? current?.assignees ?? [],
-    checklistCount: task.checklistCount ?? task.checklistTotal,
+    checklistCount: task.checklistCount ?? current?.checklistCount ?? 0,
     commentCount: task.commentCount,
     completedAt: task.completedAt,
     reviewRequestedAt: task.reviewRequestedAt,
@@ -518,7 +518,7 @@ const EVENT_HANDLERS: Record<string, Handler> = {
       patchById(l, ev.itemId, { isDone: ev.isDone }),
     );
     if (isLocal(ev.taskId, 'checklist:toggled')) return;
-    invalidateDetail(qc, projectId, ev.taskId); // checklistDone trên detail
+    invalidateDetail(qc, projectId, ev.taskId); // danh sách checklist trên detail
     invalidateFeed(qc);
   },
   'checklist:deleted': (qc, projectId, p) => {

@@ -13,6 +13,7 @@ import type {
   JoinRequest,
   Leaderboard,
   Member,
+  TaskAssignee,
   MyTask,
   PaginationMeta,
   PresignResult,
@@ -161,7 +162,7 @@ export const tasksApi = {
 
   // --- Assignees ---
   listAssignees: (projectId: string, taskId: string) =>
-    taskClient.get<Member[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`),
+    taskClient.get<TaskAssignee[]>(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`),
 
   addAssignee: (
     projectId: string,

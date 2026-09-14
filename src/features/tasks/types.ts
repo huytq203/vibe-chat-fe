@@ -115,6 +115,7 @@ export interface UserSnapshot {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
+  changed?: boolean;
 }
 
 export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
@@ -188,6 +189,14 @@ export interface Activity {
   createdAt: string;
 }
 
+/** Người được giao task — BE trả cùng shape ở GET /tasks/:id và GET .../assignees. */
+export interface TaskAssignee {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  assignedAt: string;
+}
+
 export interface TaskDetail {
   id: string;
   version: number;
@@ -201,10 +210,9 @@ export interface TaskDetail {
   gemSource: GemSource;
   isPinned: boolean;
   position: number;
-  assigneeCount: number;
+  assignees: TaskAssignee[];
   commentCount: number;
-  checklistTotal: number;
-  checklistDone: number;
+  checklists: ChecklistItem[];
   /** Thời điểm hoàn thành (ISO) — null nghĩa là task chưa done */
   completedAt: string | null;
   /** Thời điểm member thường yêu cầu owner duyệt (ISO) — null nếu chưa */

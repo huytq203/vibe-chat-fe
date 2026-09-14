@@ -12,7 +12,5 @@ export function useActivityFeed(page = 1, limit = 20) {
     queryFn: () => tasksApi.getActivityFeed(page, limit),
     enabled: isAuthed,
     staleTime: 60_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
   });
 }

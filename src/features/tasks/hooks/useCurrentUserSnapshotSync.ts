@@ -9,8 +9,8 @@ import { normalizeDisplayName } from '../lib/normalize-display-name';
 
 /**
  * Đồng bộ profile hiện tại sang UserSnapshot của task-service.
- * Việc invalidate sau khi sync giúp dữ liệu mojibake đã lưu trước đây được làm mới
- * trong assignee, comment, activity và board mà không cần gỡ/gán lại người dùng.
+ * Chỉ invalidate task cache khi snapshot thực sự đổi để làm mới dữ liệu đã enrich
+ * mà không refetch toàn bộ task sau mỗi lần sync không có thay đổi.
  */
 export function useCurrentUserSnapshotSync(): void {
   const queryClient = useQueryClient();
@@ -31,7 +31,7 @@ export function useCurrentUserSnapshotSync(): void {
   });
 
   useEffect(() => {
-    if (!sync.dataUpdatedAt) return;
+    if (sync.data?.changed !== true) return;
     void queryClient.invalidateQueries({ queryKey: taskKeys.all });
-  }, [queryClient, sync.dataUpdatedAt]);
+  }, [queryClient, sync.data?.changed]);
 }

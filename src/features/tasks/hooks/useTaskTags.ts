@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { tasksApi } from '../services/tasks.api';
 import { taskKeys } from '../services/keys';
 import { applyTagAttached, applyTagDetached } from '../lib/board-cache';
+import { seedFromDetail } from '../lib/detail-seed';
 import { markLocal } from '../lib/local-mutations';
 import type { Board, Tag } from '../types';
 
@@ -26,10 +27,12 @@ function settleTags(qc: QueryClient, projectId: string, taskId: string) {
 }
 
 export function useTaskTags(projectId: string, taskId: string | null) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: ['tasks', projectId, taskId, 'tags'],
     queryFn: () => tasksApi.listTaskTags(projectId, taskId!),
     enabled: !!projectId && !!taskId,
+    ...(taskId ? seedFromDetail(qc, projectId, taskId, (detail) => detail.tags) : {}),
   });
 }
 

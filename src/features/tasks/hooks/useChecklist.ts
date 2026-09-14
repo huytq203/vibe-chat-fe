@@ -3,6 +3,7 @@ import { tasksApi } from '../services/tasks.api';
 import { taskKeys } from '../services/keys';
 import { upsertById, patchById, removeById } from '../lib/list-cache';
 import { bumpTaskCount } from '../lib/board-cache';
+import { seedFromDetail } from '../lib/detail-seed';
 import { markLocal } from '../lib/local-mutations';
 import type { Board, ChecklistItem, TaskDetail } from '../types';
 
@@ -23,29 +24,24 @@ function bumpBoardChecklistCount(
   );
 }
 
-function patchChecklistSummary(
+function patchDetailChecklists(
   qc: QueryClient,
   projectId: string,
   taskId: string,
-  totalDelta: number,
-  doneDelta: number,
+  update: (checklists: ChecklistItem[]) => ChecklistItem[],
 ): void {
   qc.setQueryData<TaskDetail>(['tasks', projectId, taskId, 'detail'], (detail) =>
-    detail
-      ? {
-          ...detail,
-          checklistTotal: Math.max(0, detail.checklistTotal + totalDelta),
-          checklistDone: Math.max(0, detail.checklistDone + doneDelta),
-        }
-      : detail,
+    detail ? { ...detail, checklists: update(detail.checklists) } : detail,
   );
 }
 
 export function useChecklist(projectId: string, taskId: string | null) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: checklistKey(projectId, taskId),
     queryFn: () => tasksApi.listChecklist(projectId, taskId!),
     enabled: !!projectId && !!taskId,
+    ...(taskId ? seedFromDetail(qc, projectId, taskId, (detail) => detail.checklists) : {}),
   });
 }
 
@@ -67,8 +63,10 @@ export function useCreateChecklistItem(projectId: string, taskId: string) {
       );
       if (!alreadyCached) {
         bumpBoardChecklistCount(qc, projectId, taskId, 1);
-        patchChecklistSummary(qc, projectId, taskId, 1, created.isDone ? 1 : 0);
       }
+      patchDetailChecklists(qc, projectId, taskId, (checklists) =>
+        upsertById(checklists, created, byPosition),
+      );
     },
   });
 }
@@ -99,14 +97,13 @@ export function useUpdateChecklistItem(projectId: string, taskId: string) {
       if (ctx?.previous) qc.setQueryData(checklistKey(projectId, taskId), ctx.previous);
     },
     // Server là nguồn chuẩn — ghi đè item bằng response, không cần refetch list
-    onSuccess: (updated, _vars, ctx) => {
+    onSuccess: (updated) => {
       qc.setQueryData<ChecklistItem[]>(checklistKey(projectId, taskId), (old) =>
         old ? upsertById(old, updated, byPosition) : old,
       );
-      const previousItem = ctx?.previous?.find((item) => item.id === updated.id);
-      if (previousItem && previousItem.isDone !== updated.isDone) {
-        patchChecklistSummary(qc, projectId, taskId, 0, updated.isDone ? 1 : -1);
-      }
+      patchDetailChecklists(qc, projectId, taskId, (checklists) =>
+        upsertById(checklists, updated, byPosition),
+      );
     },
   });
 }
@@ -131,9 +128,10 @@ export function useDeleteChecklistItem(projectId: string, taskId: string) {
       if (ctx?.previous) qc.setQueryData(checklistKey(projectId, taskId), ctx.previous);
       bumpBoardChecklistCount(qc, projectId, taskId, 1);
     },
-    onSuccess: (_result, itemId, ctx) => {
-      const deleted = ctx?.previous?.find((item) => item.id === itemId);
-      patchChecklistSummary(qc, projectId, taskId, -1, deleted?.isDone ? -1 : 0);
+    onSuccess: (_result, itemId) => {
+      patchDetailChecklists(qc, projectId, taskId, (checklists) =>
+        removeById(checklists, itemId),
+      );
     },
   });
 }

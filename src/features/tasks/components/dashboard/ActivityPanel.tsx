@@ -45,8 +45,8 @@ function ActivityRow({ activity }: { activity: Activity }) {
 }
 
 export function ActivityPanel() {
-  const feed = useActivityFeed(1, FEED_SIZE);
-  const items = feed.data?.items ?? [];
+  const feed = useActivityFeed();
+  const items = (feed.data?.items ?? []).slice(0, FEED_SIZE);
 
   return (
     <Panel title="Hoạt động gần đây" bodyClassName="max-h-[300px] overflow-y-auto pr-0.5">
