@@ -13,6 +13,10 @@ export function useCreateProject() {
       startDate?: string | null;
       endDate?: string | null;
     }) => tasksApi.createProject(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.projects() }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: taskKeys.projects() });
+      // Tiến độ dòng project đọc từ stats/overview → phải làm mới theo
+      void qc.invalidateQueries({ queryKey: ['tasks', 'overview'] });
+    },
   });
 }

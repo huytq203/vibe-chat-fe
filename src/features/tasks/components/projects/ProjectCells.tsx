@@ -4,9 +4,8 @@ import { Progress } from '@/components/ui/progress/Progress';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { Text } from '@/components/ui/typography/Typography';
-import { useBoard } from '../../hooks/useBoard';
-import { useMembers } from '../../hooks/useMembers';
-import { computeBoardProgress } from '../../lib/board-progress';
+import { useStatsOverview } from '../../hooks/useReports';
+import { progressFromStats } from '../../lib/board-progress';
 import { PROJECT_STATUS_META, PROJECT_OVERDUE_META } from '../../constants';
 import type { Project } from '../../types';
 
@@ -26,8 +25,9 @@ export function ProjectNameCell({ project }: ProjectCellProps) {
 }
 
 export function ProjectProgressCell({ project }: ProjectCellProps) {
-  const { data: board, isLoading } = useBoard(project.id);
-  const stats = computeBoardProgress(board);
+  const overview = useStatsOverview();
+  const stats = progressFromStats(overview.data?.projects.find((p) => p.projectId === project.id));
+  const isLoading = overview.isPending;
 
   return (
     <span className="flex items-center gap-2">
@@ -38,15 +38,15 @@ export function ProjectProgressCell({ project }: ProjectCellProps) {
 }
 
 export function ProjectOpenCell({ project }: ProjectCellProps) {
-  const { data: board, isLoading } = useBoard(project.id);
-  const stats = computeBoardProgress(board);
+  const overview = useStatsOverview();
+  const stats = progressFromStats(overview.data?.projects.find((p) => p.projectId === project.id));
+  const isLoading = overview.isPending;
 
   return <Text size="sm" weight="medium">{isLoading ? '…' : stats.open}</Text>;
 }
 
 export function ProjectMembersCell({ project }: ProjectCellProps) {
-  const { data: members = [] } = useMembers(project.id);
-  const visible = members.slice(0, 4);
+  const visible = (project.memberPreview ?? []).slice(0, 4);
 
   return (
     <span className="flex -space-x-2">

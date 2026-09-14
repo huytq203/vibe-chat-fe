@@ -3,6 +3,7 @@ export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'PENDING' | 'COMPLETED';
 
 export interface Project {
   id: string;
+  eventSeq?: number;
   name: string;
   description?: string | null;
   ownerId: string;
@@ -16,6 +17,12 @@ export interface Project {
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
+  memberCount?: number;
+  memberPreview?: {
+    userId: string;
+    displayName: string;
+    avatarUrl: string | null;
+  }[];
 }
 
 /** Meta phân trang trả kèm list endpoint (khớp BE PaginationMeta). */

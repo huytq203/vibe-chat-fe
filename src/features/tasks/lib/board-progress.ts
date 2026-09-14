@@ -1,10 +1,20 @@
-import type { Board } from '../types';
+import type { Board, ProjectStats } from '../types';
 
 export interface BoardProgress {
   total: number;
   done: number;
   open: number;
   pct: number;
+}
+
+export function progressFromStats(stats: ProjectStats | undefined): BoardProgress {
+  if (!stats) return { total: 0, done: 0, open: 0, pct: 0 };
+  return {
+    total: stats.totalTasks,
+    done: stats.completedTasks,
+    open: stats.totalTasks - stats.completedTasks,
+    pct: stats.completionRate,
+  };
 }
 
 export function computeBoardProgress(board: Board | undefined): BoardProgress {

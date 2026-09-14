@@ -12,6 +12,7 @@ export function useDeleteProject(projectId: string) {
     mutationFn: () => tasksApi.deleteProject(projectId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: taskKeys.projects() });
+      void qc.invalidateQueries({ queryKey: ['tasks', 'overview'] });
       toast.success('Đã xoá dự án');
     },
     onError: (error) =>

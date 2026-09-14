@@ -1,15 +1,16 @@
 'use client';
 
 import { Progress } from '@/components/ui/progress/Progress';
-import { useBoard } from '../../hooks/useBoard';
+import { useStatsOverview } from '../../hooks/useReports';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import { computeBoardProgress } from '../../lib/board-progress';
+import { progressFromStats } from '../../lib/board-progress';
 import type { Project } from '../../types';
 
 export function DashboardProjectRow({ project }: { project: Project }) {
   const setSelected = useTasksUIStore((s) => s.setSelectedProjectId);
-  const { data: board, isLoading } = useBoard(project.id);
-  const stats = computeBoardProgress(board);
+  const overview = useStatsOverview();
+  const stats = progressFromStats(overview.data?.projects.find((p) => p.projectId === project.id));
+  const isLoading = overview.isPending;
 
   return (
     <button
