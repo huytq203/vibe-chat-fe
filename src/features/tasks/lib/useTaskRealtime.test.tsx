@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { taskKeys } from '../services/keys';
+import { tasksApi } from '../services/tasks.api';
 import { markLocal } from './local-mutations';
 import type { Board, TaskDetail } from '../types';
 
@@ -32,10 +33,11 @@ import { useTaskRealtime } from '../hooks/useTaskRealtime';
 const projectId = 'project-realtime';
 const taskId = 'task-realtime';
 
-function createBoard(): Board {
+function createBoard(eventSeq = 0): Board {
   return {
     project: {
       id: projectId,
+      eventSeq,
       name: 'Dự án',
       ownerId: 'owner-1',
       isBoardLocked: false,
@@ -100,10 +102,70 @@ describe('realtime task chống bão request', () => {
     socket.on.mockClear();
     socket.off.mockClear();
     socket.emit.mockClear();
+    vi.mocked(tasksApi.getChangesSince).mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('nên không gọi getChangesSince khi mount và board chưa có trong cache', async () => {
+    const client = new QueryClient();
+
+    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+    await act(async () => Promise.resolve());
+
+    expect(tasksApi.getChangesSince).not.toHaveBeenCalled();
+  });
+
+  it('nên đặt lastSeq = board.project.eventSeq khi board vào cache và bỏ qua event có seq <= eventSeq', () => {
+    const client = new QueryClient();
+    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+
+    act(() => {
+      client.setQueryData(taskKeys.board(projectId), createBoard(12));
+      socketHandlers.get('column:created')?.({
+        id: 'column-stale',
+        name: 'Cột cũ',
+        color: null,
+        position: 1,
+        isDoneCol: false,
+        seq: 12,
+      });
+    });
+
+    expect(client.getQueryData<Board>(taskKeys.board(projectId))?.columns).toHaveLength(1);
+  });
+
+  it('nên gọi getChangesSince(projectId, eventSeq) khi socket reconnect', async () => {
+    const client = new QueryClient();
+    client.setQueryData(taskKeys.board(projectId), createBoard(27));
+    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+
+    await act(async () => {
+      socketHandlers.get('connect')?.({});
+      await Promise.resolve();
+    });
+
+    expect(tasksApi.getChangesSince).toHaveBeenCalledTimes(1);
+    expect(tasksApi.getChangesSince).toHaveBeenCalledWith(projectId, 27);
+  });
+
+  it('nên invalidate board thay vì gọi getChangesSince khi reconnect mà lastSeq vẫn = 0', async () => {
+    const client = new QueryClient();
+    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
+    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+
+    act(() => {
+      socketHandlers.get('connect')?.({});
+    });
+    await act(() => vi.advanceTimersByTimeAsync(400));
+
+    expect(tasksApi.getChangesSince).not.toHaveBeenCalled();
+    expect(invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: taskKeys.board(projectId) },
+      { cancelRefetch: false },
+    );
   });
 
   it('gom năm sự kiện cập nhật liên tiếp thành tối đa một invalidate board', async () => {

@@ -590,7 +590,8 @@ const SOCKET_RETRY_MS = 1000;
 /**
  * Realtime cho board/project đang mở: join room `project:{id}`, mọi event
  * từ thành viên khác được áp thẳng vào cache (delta) hoặc invalidate.
- * Delta/invalidation idempotent nên event từ chính mình cũng vô hại.
+ * Mốc tuần tự lấy từ board snapshot trong cache; khi reconnect chỉ resync từ
+ * mốc đó, còn nếu chưa có mốc thì invalidate board thay vì tải changes từ 0.
  */
 export function useTaskRealtime(projectId: string | null): void {
   const qc = useQueryClient();
@@ -603,6 +604,21 @@ export function useTaskRealtime(projectId: string | null): void {
     let teardown: (() => void) | null = null;
     let lastSeq = 0;
 
+    const syncSeqFromBoard = (): void => {
+      const seq = qc.getQueryData<Board>(taskKeys.board(projectId))?.project.eventSeq ?? 0;
+      if (seq > lastSeq) lastSeq = seq;
+    };
+
+    const unsubscribe = qc.getQueryCache().subscribe((event) => {
+      if (
+        event.type === 'updated'
+        && event.action.type === 'success'
+        && JSON.stringify(event.query.queryKey) === JSON.stringify(taskKeys.board(projectId))
+      ) {
+        syncSeqFromBoard();
+      }
+    });
+
     const applyChange = (type: string, payload: unknown, seq: number): void => {
       const handler = EVENT_HANDLERS[type];
       if (!handler || seq <= lastSeq) return;
@@ -611,6 +627,10 @@ export function useTaskRealtime(projectId: string | null): void {
     };
 
     const resync = async (): Promise<void> => {
+      if (lastSeq === 0) {
+        scheduleInvalidate(qc, taskKeys.board(projectId));
+        return;
+      }
       try {
         const response = await tasksApi.getChangesSince(projectId, lastSeq);
         if (disposed) return;
@@ -665,11 +685,11 @@ export function useTaskRealtime(projectId: string | null): void {
           },
         );
       };
+      syncSeqFromBoard();
       join();
-      void resync();
 
-      // Sau reconnect: join lại room (server quên room cũ) + refetch các query
-      // đang hiển thị — event trong lúc mất kết nối đã mất, phải resync
+      // Sau reconnect: join lại room (server quên room cũ) và lấy các event
+      // đã mất từ mốc của board snapshot gần nhất.
       const onReconnect = (): void => {
         join();
         void resync();
@@ -688,6 +708,7 @@ export function useTaskRealtime(projectId: string | null): void {
     return () => {
       disposed = true;
       if (retryTimer) clearTimeout(retryTimer);
+      unsubscribe();
       teardown?.();
     };
   }, [projectId, qc]);
