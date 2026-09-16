@@ -96,6 +96,7 @@ export const chatKeys = {
       filters.from ?? '',
       filters.to ?? '',
     ] as const,
+  presenceAll: () => [...chatKeys.all, 'presence'] as const,
   presence: (userIds: string[]) =>
     [...chatKeys.all, 'presence', [...userIds].sort()] as const,
   commonGroups: (userId: string) =>

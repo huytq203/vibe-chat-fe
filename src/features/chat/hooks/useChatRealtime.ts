@@ -15,7 +15,7 @@ import {
 } from '@/lib/ws/socket';
 import { useAuthStore } from '@/features/auth';
 import { useConvLockStore } from '@/features/chat/stores/conv-lock.store';
-import { chatKeys } from '@/services/keys';
+import { chatApi } from '@/services/chat.api';
 import { useTypingStore } from '@/features/chat/stores/typing.store';
 import { useSelectedConversation } from './useSelectedConversation';
 import {
@@ -34,6 +34,7 @@ import {
   makeOnPinUpdated,
   makeOnPresenceUpdate,
   makeOnReactionUpdated,
+  makeOnReconnectCatchUp,
   makeOnScheduledSent,
   makeOnScheduledUpdate,
   makeOnTyping,
@@ -128,6 +129,9 @@ export function useChatRealtime() {
       upsertMessage,
       shouldBumpUnread,
     };
+    const catchUp = makeOnReconnectCatchUp(deps, (id) =>
+      chatApi.listMessages(id, { limit: 30 }),
+    );
 
     const onMessageNew = makeOnMessageNew(deps);
     const onMessageEdited = makeOnMessageEdited(deps);
@@ -150,7 +154,7 @@ export function useChatRealtime() {
         s.emit('conversation:join', { conversationId: joinedRef.current });
       }
       // Bù event đã miss trong gap.
-      qc.invalidateQueries({ queryKey: chatKeys.all });
+      void catchUp();
     }
 
     const onMessageRead = makeOnMessageRead(deps);

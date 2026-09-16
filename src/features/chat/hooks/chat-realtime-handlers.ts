@@ -35,3 +35,5 @@ export {
   makeOnScheduledUpdate,
   makeOnScheduledSent,
 } from './chat-realtime-group-handlers';
+
+export { makeOnReconnectCatchUp } from './chat-realtime-reconnect';
