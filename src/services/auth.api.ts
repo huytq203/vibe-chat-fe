@@ -15,7 +15,12 @@ import type { Conversation } from '@/features/chat/types';
 export type BootstrapResponse = {
   me: AuthUser;
   conversations: Conversation[];
-  conversationsMeta: { page: number; limit: number; total: number };
+  conversationsMeta: {
+    page: number;
+    limit: number;
+    total: number;
+    archived?: { total: number; unread: number };
+  };
   unreadCount: number;
   systemNotifCount: number;
 };

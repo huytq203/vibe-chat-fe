@@ -184,4 +184,19 @@ describe('unread badge realtime — message:new rồi conversation:notify cho c�
     onConversationNotify({ conversationId: 'c1', message });
     expect(getConv(qc).unreadCount).toBe(1);
   });
+
+  it('nên giữ nguyên meta của danh sách sau khi patch conversation', () => {
+    const { qc } = setup();
+    const patchConvInList = makePatchConvInList(qc);
+    const withMeta = Object.assign([makeConversation()], {
+      meta: { page: 1, limit: 30, total: 1, archived: { total: 2, unread: 1 } },
+    });
+    qc.setQueryData(LIST_KEY, withMeta);
+
+    patchConvInList('c1', { message: makeMessage(), incrementCount: true });
+
+    const after = qc.getQueryData<typeof withMeta>(LIST_KEY);
+    expect(after?.meta?.archived).toEqual({ total: 2, unread: 1 });
+    expect(after?.[0].messageCount).toBe(6);
+  });
 });

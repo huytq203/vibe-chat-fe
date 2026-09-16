@@ -6,6 +6,7 @@ import { useAuthStore } from '@/features/auth';
 import { peekOptimisticNonce } from './optimistic-nonce';
 import type {
   Conversation,
+  ConversationListResult,
   LastMessagePreview,
   Message,
   MessagesPage,
@@ -55,7 +56,7 @@ export function makePatchConvInList(qc: QueryClient): PatchConvInList {
     opts: PatchConvInListOpts,
   ): boolean {
     let found = false;
-    qc.setQueriesData<Conversation[]>(
+    qc.setQueriesData<ConversationListResult>(
       { queryKey: chatKeys.conversationLists() },
       (prev) => {
         if (!prev) return prev;
@@ -74,7 +75,8 @@ export function makePatchConvInList(qc: QueryClient): PatchConvInList {
           else if (opts.bumpUnread) patched.unreadCount = c.unreadCount + 1;
           return patched;
         });
-        return changed ? next : prev;
+        // prev.map trả mảng thuần → gắn lại meta (archived badge, total) kẻo mất tới lần refetch.
+        return changed ? Object.assign(next, { meta: prev.meta }) : prev;
       },
     );
     return found;

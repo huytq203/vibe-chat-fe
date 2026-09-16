@@ -53,12 +53,16 @@ export function AuthBootstrap({
           if (cancelled || useAuthStore.getState().isAuthenticated) return;
           apiAuth.setToken(tokens.accessToken, tokens.expiresIn);
         }
-        const { me, conversations, unreadCount, systemNotifCount } = await authApi.bootstrap();
+        const { me, conversations, conversationsMeta, unreadCount, systemNotifCount } =
+          await authApi.bootstrap();
         if (cancelled || useAuthStore.getState().isAuthenticated) return;
         // Seed toàn bộ data khởi động vào cache trước khi render ChatLayout →
         // tất cả useQuery (me, conversations, unreadCount) đều hit cache, không call REST thêm.
         qc.setQueryData(authKeys.me(), me);
-        qc.setQueryData(chatKeys.conversationList({ page: 1, limit: 30 }), conversations);
+        qc.setQueryData(
+          chatKeys.conversationList({ page: 1, limit: 30 }),
+          Object.assign(conversations, { meta: conversationsMeta }),
+        );
         qc.setQueryData(notificationKeys.unreadCount(), { unreadCount });
         qc.setQueryData(notificationKeys.unreadCount('system'), { unreadCount: systemNotifCount });
         setUser(me);
