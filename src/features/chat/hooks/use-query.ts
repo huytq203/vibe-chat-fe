@@ -56,7 +56,9 @@ export function useConversation(id: string | null) {
     queryKey: id ? chatKeys.conversationDetail(id) : ['chat', 'conversation', 'null'],
     queryFn: () => chatApi.getConversation(id as string),
     enabled: Boolean(id) && isAuthed,
-    staleTime: 30_000,
+    // Detail chỉ khác list ở isUnlocked; mutation/WS (conversation:updated, pin, lock, member)
+    // đã invalidate key này → không cần refetch mỗi lần mở lại.
+    staleTime: 5 * 60_000,
     // Seed từ cache danh sách conversation (đã có members/lastMessage/settings) để
     // panel render NGAY khi mở chat — detail fetch chỉ chạy nền để làm tươi
     // (unread/isUnlocked). Tránh màn trống chờ round-trip GET /conversations/:id.

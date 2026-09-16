@@ -33,7 +33,18 @@ describe('P1/P2 API contracts', () => {
   });
 
   it('forward gửi một request cho nhiều target', async () => {
-    await messageApi.forward('source', 'message-1', ['target-1', 'target-2']);
-    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/conversations/source/messages/message-1/forward', { body: { targetConversationIds: ['target-1', 'target-2'] } });
+    await messageApi.forward('source', 'message-1', {
+      conversationIds: ['target-1', 'target-2'],
+      userIds: ['user-1'],
+    });
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/v1/conversations/source/messages/message-1/forward',
+      {
+        body: {
+          targetConversationIds: ['target-1', 'target-2'],
+          targetUserIds: ['user-1'],
+        },
+      },
+    );
   });
 });

@@ -14,10 +14,21 @@ export type ForwardResult = {
 
 /** Transport cho tin nhắn: liệt kê/tìm/gửi/sửa/gỡ + đọc + refresh URL attachment. */
 export const messageApi = {
-  forward: (conversationId: string, messageId: string, targetConversationIds: string[]) =>
+  forward: (
+    conversationId: string,
+    messageId: string,
+    targets: { conversationIds: string[]; userIds: string[] },
+  ) =>
     apiClient.post<ForwardResult>(
       `/api/v1/conversations/${conversationId}/messages/${messageId}/forward`,
-      { body: { targetConversationIds } },
+      {
+        body: {
+          targetConversationIds: targets.conversationIds.length
+            ? targets.conversationIds
+            : undefined,
+          targetUserIds: targets.userIds.length ? targets.userIds : undefined,
+        },
+      },
     ),
   listMessages: async (
     conversationId: string,
