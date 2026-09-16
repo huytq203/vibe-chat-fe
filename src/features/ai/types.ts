@@ -58,6 +58,12 @@ export type AiSession = {
 export type AiSessionActions = {
   createSession: () => string;
   pushMessage: (sessionId: string, message: AiMessage) => void;
+  /**
+   * Chốt lại tin user của lượt đang chạy trước khi ghi câu trả lời. Đây là lưới
+   * an toàn cho lượt đầu, khi id phiên nháp đổi sang conversationId trong cùng
+   * nhịp với sự kiện `done` và cập nhật optimistic ban đầu có thể bị thay thế.
+   */
+  ensurePendingUser?: (sessionId: string, message: AiMessage) => void;
   dropLastAssistant: (sessionId: string) => AiMessage[];
   markLastUserFailed: (sessionId: string, reason: string) => void;
   prepareResend: (sessionId: string, index: number) => AiMessage[];

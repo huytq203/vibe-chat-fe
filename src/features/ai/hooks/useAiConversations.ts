@@ -69,6 +69,21 @@ function clearFailure(message: AiMessage): AiMessage {
   return next;
 }
 
+function isSamePendingUser(left: AiMessage | undefined, right: AiMessage): boolean {
+  if (left?.role !== 'user' || right.role !== 'user' || left.content !== right.content) {
+    return false;
+  }
+  const leftAttachments = left.attachments ?? [];
+  const rightAttachments = right.attachments ?? [];
+  return leftAttachments.length === rightAttachments.length
+    && leftAttachments.every((attachment, index) => {
+      const other = rightAttachments[index];
+      return other?.name === attachment.name
+        && other.mimeType === attachment.mimeType
+        && other.size === attachment.size;
+    });
+}
+
 type SessionAccess = {
   sessionRef: RefObject<AiSession>;
   update: (updater: (session: AiSession) => AiSession) => void;
@@ -91,6 +106,23 @@ function createSessionActions(access: SessionAccess): AiSessionActions {
         return {
           ...session,
           title,
+          messages: [...session.messages, message],
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    ensurePendingUser: (sessionId, message) => {
+      access.update((session) => {
+        if (session.id !== sessionId || isSamePendingUser(session.messages.at(-1), message)) {
+          return session;
+        }
+        return {
+          ...session,
+          title: session.messages.length === 0
+            ? (message.content.slice(0, 40)
+              || message.attachments?.[0]?.name
+              || NEW_CONVERSATION_TITLE)
+            : session.title,
           messages: [...session.messages, message],
           updatedAt: Date.now(),
         };
@@ -186,6 +218,8 @@ function useStableActions(
     return {
       createSession: () => getActions().createSession(),
       pushMessage: (id, message) => getActions().pushMessage(resolve(id), message),
+      ensurePendingUser: (id, message) =>
+        getActions().ensurePendingUser?.(resolve(id), message),
       dropLastAssistant: (id) => getActions().dropLastAssistant(resolve(id)),
       markLastUserFailed: (id, reason) => getActions().markLastUserFailed(resolve(id), reason),
       prepareResend: (id, index) => getActions().prepareResend(resolve(id), index),

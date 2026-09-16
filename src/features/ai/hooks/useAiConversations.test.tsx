@@ -109,6 +109,31 @@ describe('lịch sử hội thoại AI hợp nhất', () => {
     expect(resolveDetail).toBeDefined();
   });
 
+  it('khôi phục pending user nếu cập nhật optimistic lượt đầu bị thay thế lúc đổi id', async () => {
+    detail.mockImplementation(() => new Promise(() => undefined));
+    const { result } = renderHook(
+      () => useAiConversations({ scope: 'project-1' }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const draftId = result.current.session.id;
+    const pendingUser = { role: 'user' as const, content: 'Tin đầu tiên' };
+
+    // Mô phỏng đúng race ngoài trình duyệt: BE cấp id thật trước khi optimistic
+    // user message còn hiện diện trong local session.
+    act(() => result.current.remember('conversation-new'));
+    act(() => {
+      result.current.actions.ensurePendingUser?.(draftId, pendingUser);
+      result.current.actions.pushMessage(draftId, { role: 'assistant', content: 'Đã trả lời' });
+    });
+
+    expect(result.current.session.messages).toEqual([
+      pendingUser,
+      { role: 'assistant', content: 'Đã trả lời' },
+    ]);
+  });
+
   it('giữ lịch sử cũ khi gửi thêm lượt vào hội thoại đã chọn', async () => {
     detail.mockResolvedValue({
       id: 'conversation-1', title: 'Tiến độ', origin: 'TASKS', context: null,

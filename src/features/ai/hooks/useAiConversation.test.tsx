@@ -16,6 +16,7 @@ function createActions(): AiSessionActions {
   return {
     createSession: vi.fn(() => 'session-1'),
     pushMessage: vi.fn(),
+    ensurePendingUser: vi.fn(),
     dropLastAssistant: vi.fn(() => []),
     markLastUserFailed: vi.fn(),
     prepareResend: vi.fn(() => []),
@@ -82,6 +83,10 @@ describe('useAiConversation', () => {
     await act(async () => result.current.send('Xin chào', []));
 
     expect(stream).toHaveBeenCalledOnce();
+    expect(actions.ensurePendingUser).toHaveBeenCalledWith('session-1', {
+      role: 'user',
+      content: 'Xin chào',
+    });
     expect(actions.pushMessage).toHaveBeenLastCalledWith('session-1', {
       role: 'assistant',
       content: 'Xong',

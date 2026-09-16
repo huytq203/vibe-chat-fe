@@ -89,6 +89,12 @@ export async function runAiConversation(options: RunAiConversationOptions): Prom
     ),
     onFinish: (result) => {
       persistFinishedTurn(options.key, result);
+      // `done` cũng là lúc phiên nháp nhận conversationId thật. Chốt lại câu hỏi
+      // trước câu trả lời để một cập nhật state bị batch/replace không thể làm mất
+      // riêng tin user đầu tiên (reload từ BE thì lại thấy).
+      if (options.pendingUser) {
+        options.actions.ensurePendingUser?.(options.sessionId, options.pendingUser);
+      }
       finishRun(result, options.sessionId, options.actions);
       if (!persistence || persistence.isMounted()) options.onSettled();
     },

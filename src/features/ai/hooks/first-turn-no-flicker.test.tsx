@@ -37,7 +37,7 @@ function useCombined() {
   const c = useAiConversation({ streamKey: `chat:${session.id}`, session, actions, stream: s, onSettled: () => undefined });
   const visible = withPendingUser(session.messages, c.pendingUser, c.loading);
   trace.push(`id=${session.id.slice(0,8)} active=${activeId ?? '-'} loading=${c.loading} msgs=${visible.length} streaming=${c.streaming ? 'y' : 'n'} isLoading=${conv.isLoading}`);
-  return { conv, c };
+  return { conv, c, visible };
 }
 
 beforeEach(() => {
@@ -63,5 +63,10 @@ describe('lượt đầu tiên của hội thoại mới', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
     const afterSend = trace.slice(trace.indexOf('--- send') + 1).filter((l) => l.startsWith('id='));
     expect(afterSend.every((l) => !/msgs=0/.test(l))).toBe(true);
+    expect(result.current.conv.session.messages).toEqual([
+      expect.objectContaining({ role: 'user', content: 'hi' }),
+      expect.objectContaining({ role: 'assistant', content: 'Chào' }),
+    ]);
+    expect(result.current.visible).toEqual(result.current.conv.session.messages);
   });
 });
