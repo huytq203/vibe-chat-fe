@@ -20,9 +20,9 @@ import { buildTaskAiContext } from '../../lib/ai-context';
 
 const DEFAULT_STATUS = 'Đang xử lý…';
 const SUGGESTIONS = [
-  'Việc của tôi đang mở',
-  'Tiến độ project này',
-  'Tạo task mới giao cho…',
+  'Tiến độ tuần này của tôi?',
+  'Tôi có những task nào?',
+  'Tôi tổng kết báo cáo tuần.',
 ] as const;
 const MUTATING_TOOLS = new Set(['create_project', 'create_task', 'update_task']);
 const TOOL_LABELS: Record<string, string> = {

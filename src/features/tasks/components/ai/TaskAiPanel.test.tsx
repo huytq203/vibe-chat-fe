@@ -113,9 +113,9 @@ describe('panel trợ lý AI cho công việc', () => {
       name: 'Cuộc trò chuyện mới, mở lịch sử hội thoại',
     })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo hội thoại mới' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Việc của tôi đang mở' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tiến độ project này' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tạo task mới giao cho…' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tiến độ tuần này của tôi?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tôi có những task nào?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tôi tổng kết báo cáo tuần.' })).toBeInTheDocument();
   });
 
   it('giữ nguyên scope hội thoại khi link task chuyển sang project khác', async () => {
@@ -178,7 +178,7 @@ describe('panel trợ lý AI cho công việc', () => {
     const { queryClient } = renderWithProviders(<TaskAiPanel />);
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo task mới giao cho…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tôi tổng kết báo cáo tuần.' }));
 
     await waitFor(() => expect(aiApi.chatStream).toHaveBeenCalledOnce());
     expect(aiApi.chatStream).toHaveBeenCalledWith(
@@ -257,7 +257,7 @@ describe('panel trợ lý AI cho công việc', () => {
     activeConversationId = 'conversation-old';
     renderWithProviders(<TaskAiPanel />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tiến độ project này' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tôi có những task nào?' }));
 
     await waitFor(() => expect(aiApi.chatStream).toHaveBeenCalledOnce());
     expect(aiApi.chatStream).toHaveBeenCalledWith(
@@ -277,7 +277,7 @@ describe('panel trợ lý AI cho công việc', () => {
     });
     renderWithProviders(<TaskAiPanel />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Việc của tôi đang mở' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tiến độ tuần này của tôi?' }));
 
     await waitFor(() => expect(remember).toHaveBeenCalledWith('conversation-new'));
   });
