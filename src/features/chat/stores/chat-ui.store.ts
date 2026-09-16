@@ -4,6 +4,11 @@ import { create } from 'zustand';
 
 export type NavSection = 'chat' | 'ai-full' | 'tasks' | 'notes' | 'store' | 'settings';
 
+/** Kích thước trang sidebar — khớp bootstrap (`limit: 30`). */
+export const SIDEBAR_PAGE_STEP = 30;
+/** Trần limit của GET /conversations (BE @Max(200)). Quá trần → dùng ô tìm kiếm. */
+export const SIDEBAR_LIMIT_MAX = 200;
+
 type ChatUIState = {
   rightPanelOpen: boolean;
   activeTab: 'all' | 'unread' | 'group';
@@ -17,6 +22,7 @@ type ChatUIState = {
   strangerOpen: boolean;
   /** Desktop nav sidebar — section đang active. */
   activeSection: NavSection;
+  sidebarLimit: number;
   toggleRight: () => void;
   setRightOpen: (open: boolean) => void;
   setActiveTab: (tab: ChatUIState['activeTab']) => void;
@@ -25,6 +31,7 @@ type ChatUIState = {
   setMobilePanel: (panel: ChatUIState['mobilePanel']) => void;
   setStrangerOpen: (open: boolean) => void;
   setActiveSection: (section: NavSection) => void;
+  loadMoreConversations: () => void;
 };
 
 export const useChatUIStore = create<ChatUIState>((set) => ({
@@ -35,6 +42,7 @@ export const useChatUIStore = create<ChatUIState>((set) => ({
   mobilePanel: 'list',
   strangerOpen: false,
   activeSection: 'chat',
+  sidebarLimit: SIDEBAR_PAGE_STEP,
   toggleRight: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
   setRightOpen: (open) => set({ rightPanelOpen: open }),
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -45,4 +53,6 @@ export const useChatUIStore = create<ChatUIState>((set) => ({
   setMobilePanel: (panel) => set({ mobilePanel: panel }),
   setStrangerOpen: (open) => set({ strangerOpen: open }),
   setActiveSection: (section) => set({ activeSection: section }),
+  loadMoreConversations: () =>
+    set((s) => ({ sidebarLimit: Math.min(s.sidebarLimit + SIDEBAR_PAGE_STEP, SIDEBAR_LIMIT_MAX) })),
 }));

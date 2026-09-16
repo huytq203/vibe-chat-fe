@@ -15,7 +15,10 @@ import { chatApi } from '@/services/chat.api';
 import { chatKeys } from '@/services/keys';
 import { useConversations, useLockedConversations } from '@/features/chat/hooks/use-query';
 import { useStoreConversation } from '@/features/my-store';
-import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
+import {
+  SIDEBAR_LIMIT_MAX,
+  useChatUIStore,
+} from '@/features/chat/stores/chat-ui.store';
 import { useSelectedConversation } from '@/features/chat/hooks/useSelectedConversation';
 import { getConversationName } from '@/features/chat/utils';
 import { useStrangerConversations } from '@/features/chat/hooks/useStrangerConversations';
@@ -44,7 +47,7 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
   const setMobilePanel = useChatUIStore((s) => s.setMobilePanel);
   const { selectedConversationId, setSelected } = useSelectedConversation();
   const isMobile = useIsMobile();
-  const { data: conversations = [], isLoading } = useConversations();
+  const { data: conversations = [], isLoading, isFetching } = useConversations();
   const [archiveOpen, setArchiveOpen] = useState(false);
   const { data: archivedConversations = [], isLoading: archivedLoading } = useConversations({
     archived: true,
@@ -145,6 +148,11 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
   }, [archiveOpen, search, isLoading, strangerConversations.length, filtered]);
 
   const archiveMeta = conversations.meta?.archived;
+  const loadMoreConversations = useChatUIStore((s) => s.loadMoreConversations);
+  const sidebarLimit = useChatUIStore((s) => s.sidebarLimit);
+  const totalConversations = conversations.meta?.total ?? conversations.length;
+  const hasMoreConversations =
+    conversations.length < totalConversations && sidebarLimit < SIDEBAR_LIMIT_MAX;
   const currentLoading = archiveOpen ? archivedLoading : isLoading;
 
   return (
@@ -271,6 +279,16 @@ export function ConversationList({ showDock = true }: ConversationListProps) {
                   />
                 );
               })}
+              {!archiveOpen && !search && hasMoreConversations && (
+                <button
+                  type="button"
+                  onClick={loadMoreConversations}
+                  disabled={isFetching}
+                  className="mt-1 w-full rounded-lg py-2 text-[12px] font-semibold text-primary hover:bg-secondary disabled:opacity-60"
+                >
+                  {isFetching ? 'Đang tải…' : `Tải thêm (${conversations.length}/${conversations.meta?.total ?? '…'})`}
+                </button>
+              )}
             </div>
           </>
         )}

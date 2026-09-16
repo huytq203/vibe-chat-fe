@@ -40,7 +40,7 @@ export function FriendPickerDialog({
   const { data: groupPages, isLoading: groupsLoading, isError: groupsError } = useGroupsInfinite();
 
   const groups = useMemo(
-    () => groupPages?.pages.flatMap((p) => p.filter((c) => c.type === 'GROUP')) ?? [],
+    () => groupPages?.pages.flat() ?? [],
     [groupPages],
   );
 

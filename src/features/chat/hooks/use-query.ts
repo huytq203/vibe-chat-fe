@@ -6,6 +6,7 @@ import { usersApi } from '@/services/users.api';
 import { chatKeys, userKeys } from '@/services/keys';
 import { useAuthStore } from '@/features/auth';
 import type { Conversation, ReactionType, SharedContentType } from '@/features/chat/types';
+import { useChatUIStore } from '@/features/chat/stores/chat-ui.store';
 
 // Cache tin nhắn giữ lâu (2h): realtime WS đã upsert tin mới vào cache nên không
 // cần refetch REST mỗi lần mở lại conversation → tránh reload tin & media nặng.
@@ -16,8 +17,10 @@ const MESSAGES_GC_TIME = 2 * 60 * 60_000;
 export function useConversations(
   params: { page?: number; limit?: number; archived?: boolean; enabled?: boolean } = {},
 ) {
+  const sidebarLimit = useChatUIStore((s) => s.sidebarLimit);
   const page = params.page ?? 1;
-  const limit = params.limit ?? 30;
+  // Không truyền limit → theo sidebarLimit (tăng khi bấm "Tải thêm"), mọi caller chung 1 key.
+  const limit = params.limit ?? sidebarLimit;
   const archived = params.archived ?? false;
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
@@ -29,15 +32,16 @@ export function useConversations(
 }
 
 /**
- * Danh sách nhóm (type GROUP) lazy-load cho modal Tìm kiếm & Kết bạn. Phân trang theo
- * `page` của listConversations rồi lọc GROUP phía FE; còn trang kế khi page trả đủ limit.
+ * Danh sách nhóm (type GROUP) lazy-load cho modal Tìm kiếm & Kết bạn. BE lọc GROUP;
+ * còn trang kế khi page trả đủ limit.
  */
 export function useGroupsInfinite(limit = 30) {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
   return useInfiniteQuery({
     queryKey: chatKeys.groupList(),
     initialPageParam: 1,
-    queryFn: ({ pageParam }) => chatApi.listConversations({ page: pageParam, limit }),
+    queryFn: ({ pageParam }) =>
+      chatApi.listConversations({ page: pageParam, limit, type: 'GROUP' }),
     getNextPageParam: (last, _all, lastPageParam) =>
       last.length === limit ? lastPageParam + 1 : undefined,
     enabled: isAuthed,

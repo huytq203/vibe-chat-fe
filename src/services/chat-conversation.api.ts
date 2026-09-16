@@ -19,12 +19,26 @@ export type UpdateConversationInput = {
 
 /** Transport cho hội thoại: tạo/liệt kê/xoá + ghim/mute/nền/cài đặt + presence. */
 export const conversationApi = {
-  listConversations: async (params: { page: number; limit: number; archived?: boolean }) => {
+  listConversations: async (params: {
+    page: number;
+    limit: number;
+    archived?: boolean;
+    type?: 'DIRECT' | 'GROUP' | 'CHANNEL';
+  }) => {
     // Không gửi `archived=false`: endpoint mặc định trả danh sách đang hoạt động,
     // đồng thời tránh các BE parser coi chuỗi query "false" là truthy.
     const query = params.archived
-      ? { page: params.page, limit: params.limit, archived: true }
-      : { page: params.page, limit: params.limit };
+      ? {
+          page: params.page,
+          limit: params.limit,
+          archived: true,
+          ...(params.type ? { type: params.type } : {}),
+        }
+      : {
+          page: params.page,
+          limit: params.limit,
+          ...(params.type ? { type: params.type } : {}),
+        };
     const result = await apiClient.rawWithMeta<Conversation[]>(
       'GET',
       '/api/v1/conversations',
