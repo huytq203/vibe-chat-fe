@@ -116,6 +116,8 @@ function resolveBase(path: string, service?: ApiService): string {
   if (path.startsWith('/api/v1/ai/')) return env.NEXT_PUBLIC_AI_URL;
   // bot-service: cả /api/v1/bot/... (self, messages) lẫn /api/v1/bots/... (management).
   if (path.startsWith('/api/v1/bot')) return env.NEXT_PUBLIC_BOT_URL;
+  // notification-service phục vụ toàn bộ API thông báo, tách khỏi chat-service.
+  if (path.startsWith('/api/v1/notifications')) return env.NEXT_PUBLIC_NOTIFICATION_URL;
   return env.NEXT_PUBLIC_VIBE_URL;
 }
 

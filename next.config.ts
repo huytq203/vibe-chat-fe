@@ -69,6 +69,8 @@ const BOT_URL = process.env.BOT_URL || process.env.NEXT_PUBLIC_BOT_URL;
 // ai-service (cổng AI duy nhất). Tách khỏi BOT_URL từ 2026-09-06 khi module AI
 // rời bot-service; bot-service không còn giữ API key của provider nào.
 const AI_URL = process.env.AI_URL || process.env.NEXT_PUBLIC_AI_URL;
+// notification-service (tách khỏi chat-service từ 2026-09-16): /api/v1/notifications/* — phải đứng trước catch-all.
+const NOTIFICATION_URL = process.env.NOTIFICATION_URL || process.env.NEXT_PUBLIC_NOTIFICATION_URL;
 
 if (!isElectron && (!AUTH_URL || !VIBE_URL)) {
   throw new Error('Missing AUTH_URL or VIBE_URL in env — BE deployed, must be set.');
@@ -106,12 +108,14 @@ function buildContentSecurityPolicy(): string {
         process.env.NEXT_PUBLIC_NOTION_WS_URL,
         process.env.NEXT_PUBLIC_BOT_URL,
         process.env.NEXT_PUBLIC_AI_URL,
+        process.env.NEXT_PUBLIC_NOTIFICATION_URL,
         AUTH_URL,
         VIBE_URL,
         TASK_URL,
         NOTION_URL,
         BOT_URL,
         AI_URL,
+        NOTIFICATION_URL,
       ]
         .map(toOrigin)
         .filter((origin): origin is string => origin !== null),
@@ -175,6 +179,9 @@ const nextConfig: NextConfig = {
       // ai-service: /api/v1/ai/* — cũng phải đứng trước catch-all /api/v1/:path*.
       if (AI_URL) {
         rules.unshift({ source: '/api/v1/ai/:path*', destination: `${AI_URL}/api/v1/ai/:path*` });
+      }
+      if (NOTIFICATION_URL) {
+        rules.unshift({ source: '/api/v1/notifications/:path*', destination: `${NOTIFICATION_URL}/api/v1/notifications/:path*` });
       }
       return rules;
     },

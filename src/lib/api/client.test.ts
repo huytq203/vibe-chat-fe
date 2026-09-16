@@ -6,6 +6,7 @@ vi.mock('@/config/env', () => ({
     NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
     NEXT_PUBLIC_BOT_URL: 'http://bot.test',
     NEXT_PUBLIC_AI_URL: 'http://ai.test',
+    NEXT_PUBLIC_NOTIFICATION_URL: 'http://notification.test',
     NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
     NEXT_PUBLIC_WS_URL: 'http://vibe.test',
     NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',
@@ -33,6 +34,13 @@ describe('resolveApiUrl', () => {
   it('nên route /api/v1/ai/chat sang NEXT_PUBLIC_AI_URL chứ không phải bot-service', async () => {
     const { resolveApiUrl } = await import('./client');
     expect(resolveApiUrl('/api/v1/ai/chat')).toBe('http://ai.test/api/v1/ai/chat');
+  });
+
+  it('nên gọi thẳng NEXT_PUBLIC_NOTIFICATION_URL cho /api/v1/notifications khi USE_PROXY=false', async () => {
+    const { resolveApiUrl } = await import('./client');
+    expect(resolveApiUrl('/api/v1/notifications')).toBe(
+      'http://notification.test/api/v1/notifications',
+    );
   });
 
   it('nên route /api/v1/auth/login sang NEXT_PUBLIC_AUTH_URL', async () => {
@@ -66,6 +74,7 @@ describe('resolveApiUrl khi dùng proxy', () => {
         NEXT_PUBLIC_VIBE_URL: 'http://vibe.test',
         NEXT_PUBLIC_BOT_URL: 'http://bot.test',
         NEXT_PUBLIC_AI_URL: 'http://ai.test',
+        NEXT_PUBLIC_NOTIFICATION_URL: 'http://notification.test',
         NEXT_PUBLIC_NOTION_URL: 'http://notion.test',
         NEXT_PUBLIC_WS_URL: 'http://vibe.test',
         NEXT_PUBLIC_CALL_WS_URL: 'http://vibe.test',
