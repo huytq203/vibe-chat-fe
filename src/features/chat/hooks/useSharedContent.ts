@@ -10,9 +10,14 @@ import type { Attachment, Message, MessagesPage } from '@/features/chat/types';
 export type SharedMedia = { key: string; message: Message; attachment: Attachment };
 export type SharedLink = { key: string; url: string; messageId: string; createdAt: string };
 
-/** Một tab Shared: danh sách item ĐẦY ĐỦ (lấy hết 1 lần) + cờ đang tải. Mở rộng hiển thị
- *  ("Xem thêm") xử lý phía FE bằng slicing, không gọi BE thêm. */
-export type SharedSection<T> = { items: T[]; isLoading: boolean };
+/** Một tab Shared: lấy theo trang 40 tin, "Xem thêm" hết slice thì fetch trang kế. */
+export type SharedSection<T> = {
+  items: T[];
+  isLoading: boolean;
+  hasMore: boolean;
+  isFetchingMore: boolean;
+  loadMore: () => void;
+};
 
 export type SharedContent = {
   media: SharedSection<SharedMedia>;
@@ -52,14 +57,14 @@ function deriveSharedContent(messages: Message[]): {
 export type SharedTab = 'media' | 'files' | 'links';
 
 /**
- * Gom ảnh/video, tệp và liên kết đã chia sẻ của một conversation — lấy ĐỦ toàn bộ.
+ * Gom ảnh/video, tệp và liên kết đã chia sẻ của một conversation.
  *
- * - `featureFlags.sharedContentApi` BẬT → mỗi loại gọi endpoint BE riêng một lần KHÔNG `limit`
- *   (`GET /conversations/:id/shared`, xem FRONTEND/20-shared-content.md) → nhận hết.
+ * - `featureFlags.sharedContentApi` BẬT → mỗi loại gọi endpoint BE riêng, lấy theo trang 40 tin
+ *   (`GET /conversations/:id/shared`, xem FRONTEND/20-shared-content.md).
  * - TẮT → fallback suy ra từ các trang message đã nạp trong cache.
  * - `activeTab` → chỉ fetch loại đang hiển thị; hai tab còn lại chờ đến khi user chuyển.
  *
- * "Xem thêm" trong UI chỉ mở rộng số item hiển thị (slicing FE), KHÔNG fetch thêm.
+ * "Xem thêm" mở rộng slice phía FE; khi hết slice thì fetch trang kế.
  */
 export function useSharedContent(conversationId: string | null, activeTab: SharedTab = 'media'): SharedContent {
   const useApi = featureFlags.sharedContentApi;
@@ -73,26 +78,62 @@ export function useSharedContent(conversationId: string | null, activeTab: Share
 
   return useMemo(() => {
     if (useApi) {
+      const section = <T,>(
+        q: ReturnType<typeof useSharedMessages>,
+        pick: (all: ReturnType<typeof deriveSharedContent>) => T[],
+      ): SharedSection<T> => ({
+        items: pick(deriveSharedContent(flattenInfinite(q.data))),
+        isLoading: q.isLoading,
+        hasMore: Boolean(q.hasNextPage),
+        isFetchingMore: q.isFetchingNextPage,
+        loadMore: () => {
+          if (q.hasNextPage && !q.isFetchingNextPage) void q.fetchNextPage();
+        },
+      });
       return {
-        media: { items: deriveSharedContent(mediaQ.data?.items ?? []).media, isLoading: mediaQ.isLoading },
-        files: { items: deriveSharedContent(filesQ.data?.items ?? []).files, isLoading: filesQ.isLoading },
-        links: { items: deriveSharedContent(linksQ.data?.items ?? []).links, isLoading: linksQ.isLoading },
+        media: section(mediaQ, (all) => all.media),
+        files: section(filesQ, (all) => all.files),
+        links: section(linksQ, (all) => all.links),
       };
     }
     const all = deriveSharedContent(flattenInfinite(cacheData));
     return {
-      media: { items: all.media, isLoading: false },
-      files: { items: all.files, isLoading: false },
-      links: { items: all.links, isLoading: false },
+      media: {
+        items: all.media,
+        isLoading: false,
+        hasMore: false,
+        isFetchingMore: false,
+        loadMore: () => {},
+      },
+      files: {
+        items: all.files,
+        isLoading: false,
+        hasMore: false,
+        isFetchingMore: false,
+        loadMore: () => {},
+      },
+      links: {
+        items: all.links,
+        isLoading: false,
+        hasMore: false,
+        isFetchingMore: false,
+        loadMore: () => {},
+      },
     };
   }, [
     useApi,
     mediaQ.data,
     mediaQ.isLoading,
+    mediaQ.hasNextPage,
+    mediaQ.isFetchingNextPage,
     filesQ.data,
     filesQ.isLoading,
+    filesQ.hasNextPage,
+    filesQ.isFetchingNextPage,
     linksQ.data,
     linksQ.isLoading,
+    linksQ.hasNextPage,
+    linksQ.isFetchingNextPage,
     cacheData,
   ]);
 }

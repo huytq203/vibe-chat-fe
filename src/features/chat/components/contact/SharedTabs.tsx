@@ -13,21 +13,28 @@ import { useSharedContent, type SharedMedia, type SharedTab } from '@/features/c
 
 const EMPTY_CLS = 'py-3 text-center text-[11.5px] text-muted-foreground';
 
-/** Số item hiển thị mỗi lần bấm "Xem thêm" (mở rộng phía FE, không gọi BE). */
+/** Số item hiển thị mỗi lần bấm "Xem thêm". */
 const EXPAND_STEP = 12;
 
-/** Mở rộng hiển thị dần phía FE: cắt `items` theo `visible`, "Xem thêm" tăng thêm EXPAND_STEP. */
-function useExpandable<T>(items: T[]): { visible: T[]; hasMore: boolean; showMore: () => void } {
+/** Mở rộng hiển thị phía FE; hết slice thì gọi BE trang kế. */
+function useExpandable<T>(
+  items: T[],
+  remote: { hasMore: boolean; loadMore: () => void },
+): { visible: T[]; hasMore: boolean; showMore: () => void } {
   const [count, setCount] = useState(EXPAND_STEP);
   const visible = useMemo(() => items.slice(0, count), [items, count]);
+  const hasLocal = count < items.length;
   return {
     visible,
-    hasMore: count < items.length,
-    showMore: () => setCount((c) => c + EXPAND_STEP),
+    hasMore: hasLocal || remote.hasMore,
+    showMore: () => {
+      if (hasLocal) setCount((c) => c + EXPAND_STEP);
+      else remote.loadMore();
+    },
   };
 }
 
-/** Nút "Xem thêm" — mở rộng hiển thị phía FE, không fetch BE. */
+/** Nút "Xem thêm" — mở rộng hiển thị phía FE, hết thì gọi BE trang kế. */
 function ShowMore({ hasMore, onClick }: { hasMore: boolean; onClick: () => void }) {
   if (!hasMore) return null;
   return (
@@ -44,9 +51,9 @@ function ShowMore({ hasMore, onClick }: { hasMore: boolean; onClick: () => void 
 export function SharedTabs({ conversationId }: { conversationId: string }) {
   const [activeTab, setActiveTab] = useState<SharedTab>('media');
   const { media, files, links } = useSharedContent(conversationId, activeTab);
-  const mediaEx = useExpandable(media.items);
-  const filesEx = useExpandable(files.items);
-  const linksEx = useExpandable(links.items);
+  const mediaEx = useExpandable(media.items, media);
+  const filesEx = useExpandable(files.items, files);
+  const linksEx = useExpandable(links.items, links);
 
   return (
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SharedTab)}>

@@ -87,21 +87,29 @@ export function useMessages(conversationId: string | null) {
   });
 }
 
+const SHARED_PAGE_SIZE = 40;
+
 /**
- * Nội dung chia sẻ theo loại (MEDIA/FILE/LINK) qua endpoint BE riêng — lấy ĐỦ toàn bộ
- * trong 1 lần gọi (không `limit`). "Xem thêm" mở rộng hiển thị phía FE, không fetch thêm.
- * Gọi qua useSharedContent.
+ * Nội dung chia sẻ theo loại (MEDIA/FILE/LINK) — cursor `before`, mỗi trang 40 tin.
+ * Trước đây lấy-all (BE cap 500 tin + ký URL toàn bộ) → chuyển sang trang để mở tab nhanh.
  */
 export function useSharedMessages(
   conversationId: string | null,
   type: SharedContentType,
   enabled: boolean,
 ) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: conversationId
       ? chatKeys.shared(conversationId, type)
       : ['chat', 'shared', 'null', type],
-    queryFn: () => chatApi.listShared(conversationId as string, { type }),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      chatApi.listShared(conversationId as string, {
+        type,
+        limit: SHARED_PAGE_SIZE,
+        before: pageParam ?? undefined,
+      }),
+    getNextPageParam: (last) => last.nextCursor,
     enabled: enabled && Boolean(conversationId),
     staleTime: 60_000,
   });

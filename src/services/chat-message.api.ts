@@ -34,8 +34,8 @@ export const messageApi = {
   /**
    * Nội dung chia sẻ của 1 conversation theo loại (toàn bộ lịch sử, BE filter sẵn) —
    * cho tab "Ảnh & Video / Tài liệu / Liên kết". Trả Message[] cùng shape listMessages.
-   * Bỏ `limit` = lấy TẤT CẢ trong 1 lần gọi (mặc định cho tab Shared); chỉ truyền
-   * `limit`/`before` khi muốn phân trang. Xem FRONTEND/20-shared-content.md.
+   * Bỏ `limit` = BE trả tới 500 (legacy). FE luôn truyền limit để phân trang.
+   * Xem FRONTEND/20-shared-content.md.
    */
   listShared: async (
     conversationId: string,
