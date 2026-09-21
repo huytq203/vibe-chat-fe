@@ -17,6 +17,7 @@ import { useSelfDestruct } from "@/features/chat/hooks/useSelfDestruct";
 import { useTypingStore } from "@/features/chat/stores/typing.store";
 import { useBubbleConfig } from "@/features/chat/hooks/useWallpaper";
 import { useMessageJumpStore } from "@/features/chat/stores/message-jump.store";
+import { useMessageSelectionStore } from "@/features/chat/stores/message-selection.store";
 import { useSendErrorStore } from "@/features/chat/stores/send-error.store";
 import type { MemberRole, Message } from "@/features/chat/types";
 import {
@@ -28,6 +29,8 @@ import {
   isBotAuthoredMessage,
 } from "@/features/chat/utils";
 import { MessageBubble } from "./MessageBubble";
+import { MessageAnalysisDialog } from "./MessageAnalysisDialog";
+import { MessageSelectionToolbar } from "./MessageSelectionToolbar";
 import { TypingBubble } from "./TypingBubble";
 import { LightboxProvider } from "./LightboxProvider";
 
@@ -187,6 +190,20 @@ export function MessageList({
   const clearJump = useMessageJumpStore((s) => s.clear);
   const jumpFetchCountRef = useRef(0);
   const lastJumpIdRef = useRef<string | null>(null);
+  const selection = useMessageSelectionStore();
+  const [analysisMessageIds, setAnalysisMessageIds] = useState<
+    string[] | null
+  >(null);
+
+  useEffect(() => {
+    return () => {
+      if (
+        useMessageSelectionStore.getState().conversationId === conversationId
+      ) {
+        useMessageSelectionStore.getState().exit();
+      }
+    };
+  }, [conversationId]);
 
   useEffect(() => {
     if (!jumpTarget) {
@@ -249,6 +266,10 @@ export function MessageList({
   return (
     <LightboxProvider>
       <div className="animate-in fade-in relative isolate flex min-h-0 flex-1 flex-col duration-200">
+        <MessageSelectionToolbar
+          conversationId={conversationId}
+          onAnalyze={setAnalysisMessageIds}
+        />
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -280,6 +301,15 @@ export function MessageList({
                 : (memberNames[repliedTo.senderId] ?? null)
               : null;
             const isNew = msgDate.getTime() > mountAt;
+            const selectionActiveHere =
+              selection.conversationId === conversationId;
+            const selectableHere =
+              selectionActiveHere &&
+              !m.isDeleted &&
+              m.metadata?.optimistic !== true &&
+              m.metadata?.failed !== true;
+            const selectedHere =
+              selectionActiveHere && selection.selectedIds.has(m.id);
             return (
               <div
                 key={(m.metadata?.clientNonce as string | undefined) ?? m.id}
@@ -322,6 +352,8 @@ export function MessageList({
                     enableBotCommands={hasBotMember}
                     renderMarkdown={isBotAuthoredMessage(m, conversation, meId)}
                     onLaunchWebapp={onLaunchWebapp}
+                    selectable={selectableHere}
+                    selected={selectedHere}
                   />
                 </div>
               </div>
@@ -364,6 +396,16 @@ export function MessageList({
           </button>
         )}
       </div>
+      {analysisMessageIds && (
+        <MessageAnalysisDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setAnalysisMessageIds(null);
+          }}
+          conversationId={conversationId}
+          messageIds={analysisMessageIds}
+        />
+      )}
     </LightboxProvider>
   );
 }
