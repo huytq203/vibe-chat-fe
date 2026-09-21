@@ -19,6 +19,9 @@ type TasksUIState = {
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
+  selectedCommitmentId: string | null;
+  openCommitmentDetail: (id: string) => void;
+  closeCommitmentDetail: () => void;
   aiConversationByProjectId: Record<string, string | null>;
   setAiConversation: (projectId: string, conversationId: string | null) => void;
   /** Ngăn xếp drill-down subtask (id các task con dưới task gốc đang mở). */
@@ -45,6 +48,9 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   selectedTaskId: null,
   openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
   closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),
+  selectedCommitmentId: null,
+  openCommitmentDetail: (id) => set({ selectedCommitmentId: id }),
+  closeCommitmentDetail: () => set({ selectedCommitmentId: null }),
   aiConversationByProjectId: {},
   setAiConversation: (projectId, conversationId) =>
     set((state) => ({

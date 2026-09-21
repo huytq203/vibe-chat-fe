@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { SettingsPlaceholder } from '../projects/SettingsPlaceholder';
 import { ClientTab } from './ClientTab';
+import { CommitmentsTab } from './CommitmentsTab';
 import { ScopeTab } from './ScopeTab';
 
 const TABS = [
@@ -31,7 +32,7 @@ export function CommitmentGraphView({ projectId }: { projectId: string }) {
             <ScopeTab projectId={projectId} />
           </TabsContent>
           <TabsContent value="commitments">
-            <SettingsPlaceholder title="Danh sách cam kết" />
+            <CommitmentsTab projectId={projectId} />
           </TabsContent>
           <TabsContent value="change-requests">
             <SettingsPlaceholder title="Yêu cầu thay đổi" />
