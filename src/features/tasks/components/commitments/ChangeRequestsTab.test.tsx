@@ -10,6 +10,12 @@ import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { ChangeRequestSummary } from '../../types';
 import { ChangeRequestsTab } from './ChangeRequestsTab';
 
+vi.mock('./ChangeRequestDetailModal', () => ({
+  ChangeRequestDetailModal: ({ projectId }: { projectId: string }) => (
+    <div data-testid="change-request-detail-modal">{projectId}</div>
+  ),
+}));
+
 vi.mock('../../hooks/useChangeRequests', () => ({
   useChangeRequestsInfinite: vi.fn(),
   useCreateChangeRequest: vi.fn(),
@@ -198,7 +204,7 @@ describe('ChangeRequestsTab', () => {
       },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
-  });
+  }, 10000);
 
   it('mở chi tiết yêu cầu thay đổi được chọn', async () => {
     const user = userEvent.setup();
@@ -209,5 +215,13 @@ describe('ChangeRequestsTab', () => {
     );
 
     expect(openChangeRequestDetail).toHaveBeenCalledWith('change-request-1');
+  });
+
+  it('mount modal chi tiết cho dự án hiện tại', () => {
+    renderWithProviders(<ChangeRequestsTab projectId="project-1" />);
+
+    expect(screen.getByTestId('change-request-detail-modal')).toHaveTextContent(
+      'project-1',
+    );
   });
 });

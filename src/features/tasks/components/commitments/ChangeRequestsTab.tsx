@@ -28,6 +28,7 @@ import { commitmentsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { ChangeRequestFilters } from '../../hooks/useChangeRequests';
 import type { ChangeRequestStatusValue } from '../../types';
+import { ChangeRequestDetailModal } from './ChangeRequestDetailModal';
 
 const STATUS_VARIANT: Record<
   ChangeRequestStatusValue,
@@ -145,6 +146,7 @@ export function ChangeRequestsTab({ projectId }: { projectId: string }) {
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
+      <ChangeRequestDetailModal projectId={projectId} />
     </div>
   );
 }
