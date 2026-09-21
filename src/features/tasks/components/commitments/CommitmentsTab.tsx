@@ -36,6 +36,7 @@ import type {
   CommitmentSummary,
   DeliveryStatus,
 } from '../../types';
+import { CommitmentDetailModal } from './CommitmentDetailModal';
 
 const DELIVERY_STATUS_VARIANT: Record<
   DeliveryStatus,
@@ -237,6 +238,7 @@ export function CommitmentsTab({ projectId }: { projectId: string }) {
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
+      <CommitmentDetailModal projectId={projectId} />
     </div>
   );
 }
@@ -269,6 +271,11 @@ function CreateCommitmentDialog({
     setDueAt(undefined);
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    onOpenChange(nextOpen);
+    if (!nextOpen) reset();
+  }
+
   function handleSubmit() {
     create.mutate(
       {
@@ -290,13 +297,7 @@ function CreateCommitmentDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        onOpenChange(nextOpen);
-        if (!nextOpen) reset();
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tạo cam kết</DialogTitle>
@@ -338,7 +339,7 @@ function CreateCommitmentDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)}>
             Huỷ
           </Button>
           <Button

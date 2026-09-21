@@ -4,6 +4,7 @@ import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils'
 import {
   useCommitmentsInfinite,
   useCreateCommitment,
+  useCommitmentDetail,
 } from '../../hooks/useCommitments';
 import { useMembers } from '../../hooks/useMembers';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -13,6 +14,7 @@ import { CommitmentsTab } from './CommitmentsTab';
 vi.mock('../../hooks/useCommitments', () => ({
   useCommitmentsInfinite: vi.fn(),
   useCreateCommitment: vi.fn(),
+  useCommitmentDetail: vi.fn(),
 }));
 
 vi.mock('../../hooks/useMembers', () => ({
@@ -84,6 +86,10 @@ beforeEach(() => {
     mutate: createCommitment,
     isPending: false,
   } as unknown as ReturnType<typeof useCreateCommitment>);
+  vi.mocked(useCommitmentDetail).mockReturnValue({
+    isPending: false,
+    data: undefined,
+  } as ReturnType<typeof useCommitmentDetail>);
   vi.mocked(useMembers).mockReturnValue({
     data: [
       {
@@ -97,7 +103,7 @@ beforeEach(() => {
     ],
   } as ReturnType<typeof useMembers>);
   vi.mocked(useTasksUIStore).mockImplementation((selector) =>
-    selector({ openCommitmentDetail } as never),
+    selector({ openCommitmentDetail, selectedCommitmentId: null } as never),
   );
 });
 
@@ -167,6 +173,20 @@ describe('CommitmentsTab', () => {
       },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it('resets the form after cancelling creation', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentsTab projectId="project-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Tạo cam kết' }));
+    let dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/^Tiêu đề/), 'Bản nháp');
+    await user.click(within(dialog).getByRole('button', { name: 'Huỷ' }));
+    await user.click(screen.getByRole('button', { name: 'Tạo cam kết' }));
+    dialog = await screen.findByRole('dialog');
+
+    expect(within(dialog).getByLabelText(/^Tiêu đề/)).toHaveValue('');
   });
 
   it('opens the selected commitment detail', async () => {
