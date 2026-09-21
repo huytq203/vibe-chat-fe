@@ -74,6 +74,41 @@ describe('commitmentsApi', () => {
       '/api/v1/projects/proj-1/commitments?limit=100',
     );
   });
+
+  it('listPaged() gửi đúng query filter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({ success: true, data: [], meta: { total: 0 } }),
+    });
+    await commitmentsApi.listPaged('proj-1', {
+      page: 2,
+      limit: 20,
+      deliveryStatus: 'IN_PROGRESS',
+      risk: 'OVERDUE',
+    });
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain('/api/v1/projects/proj-1/commitments?');
+    expect(url).toContain('page=2');
+    expect(url).toContain('deliveryStatus=IN_PROGRESS');
+    expect(url).toContain('risk=OVERDUE');
+  });
+
+  it('getDetail() gọi đúng path', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'c1' }));
+    await commitmentsApi.getDetail('c1');
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain('/api/v1/commitments/c1');
+  });
+
+  it('getSourceRefContent() gọi đúng path', async () => {
+    mockFetch.mockResolvedValue(okResponse([]));
+    await commitmentsApi.getSourceRefContent('c1', 'ref1');
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain(
+      '/api/v1/commitments/c1/source-refs/ref1/content',
+    );
+  });
 });
 
 describe('changeRequestsApi', () => {

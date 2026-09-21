@@ -51,6 +51,16 @@ describe('useConfirmCreateCommitment', () => {
       id: 'c1',
       title: 'X',
       deliveryStatus: 'PLANNED',
+      scopeStatus: 'UNCLEAR',
+      ownerId: null,
+      dueAt: null,
+      deliveredAt: null,
+      version: 1,
+      createdAt: '2026-09-21T00:00:00.000Z',
+      updatedAt: '2026-09-21T00:00:00.000Z',
+      contact: null,
+      risks: [],
+      isReadyToDeliver: false,
     });
     const { result } = renderHook(
       () => useConfirmCreateCommitment('proj-1'),

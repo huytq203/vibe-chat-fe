@@ -1,9 +1,14 @@
 import { taskClient } from '../lib/task-client';
 import type {
   ChangeRequestSummary,
+  CommitmentDetail,
+  CommitmentRiskCode,
   CommitmentSummary,
   CreateSourceRefInput,
+  DeliveryStatus,
+  PaginationMeta,
 } from '../types';
+import type { ResolvedMessage } from '@/features/chat/types';
 
 export const commitmentsApi = {
   create: (
@@ -41,6 +46,37 @@ export const commitmentsApi = {
   list: (projectId: string) =>
     taskClient.getPaged<CommitmentSummary[], { total: number }>(
       `/api/v1/projects/${projectId}/commitments?limit=100`,
+    ),
+
+  listPaged: (
+    projectId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      deliveryStatus?: DeliveryStatus;
+      scopeStatus?: 'IN_SCOPE' | 'UNCLEAR' | 'OUT_OF_SCOPE';
+      risk?: CommitmentRiskCode;
+      ownerId?: string;
+    },
+  ) => {
+    const sp = new URLSearchParams();
+    sp.set('page', String(params.page ?? 1));
+    sp.set('limit', String(params.limit ?? 20));
+    if (params.deliveryStatus) sp.set('deliveryStatus', params.deliveryStatus);
+    if (params.scopeStatus) sp.set('scopeStatus', params.scopeStatus);
+    if (params.risk) sp.set('risk', params.risk);
+    if (params.ownerId) sp.set('ownerId', params.ownerId);
+    return taskClient.getPaged<CommitmentSummary[], PaginationMeta>(
+      `/api/v1/projects/${projectId}/commitments?${sp.toString()}`,
+    );
+  },
+
+  getDetail: (commitmentId: string) =>
+    taskClient.get<CommitmentDetail>(`/api/v1/commitments/${commitmentId}`),
+
+  getSourceRefContent: (commitmentId: string, refId: string) =>
+    taskClient.get<ResolvedMessage[]>(
+      `/api/v1/commitments/${commitmentId}/source-refs/${refId}/content`,
     ),
 };
 

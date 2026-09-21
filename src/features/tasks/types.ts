@@ -406,10 +406,90 @@ export interface ChangesResponse {
   changes: ProjectChange[];
 }
 
+export type DeliveryStatus =
+  | 'PLANNED'
+  | 'IN_PROGRESS'
+  | 'READY'
+  | 'DELIVERED'
+  | 'CHANGES_REQUESTED'
+  | 'ACCEPTED'
+  | 'CANCELLED';
+
+export type CommitmentRiskCode =
+  | 'NO_TASK'
+  | 'NO_OWNER'
+  | 'DUE_SOON_INACTIVE'
+  | 'OVERDUE'
+  | 'DONE_NOT_DELIVERED'
+  | 'DELIVERED_NOT_ACCEPTED'
+  | 'WAITING_CLIENT';
+
 export interface CommitmentSummary {
   id: string;
   title: string;
-  deliveryStatus: string;
+  deliveryStatus: DeliveryStatus;
+  scopeStatus: 'IN_SCOPE' | 'UNCLEAR' | 'OUT_OF_SCOPE';
+  ownerId: string | null;
+  dueAt: string | null;
+  deliveredAt: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  contact: ProjectContact | null;
+  risks: CommitmentRiskCode[];
+  isReadyToDeliver: boolean;
+}
+
+export interface CommitmentTaskLink {
+  id: string;
+  title: string;
+  columnId: string;
+  completedAt: string | null;
+}
+
+export type EvidenceMilestone =
+  | 'IMPLEMENTED'
+  | 'TESTED'
+  | 'DEPLOYED'
+  | 'DELIVERED'
+  | 'ACCEPTED'
+  | 'OTHER';
+
+export type EvidenceType = 'URL' | 'NOTE';
+
+export interface CommitmentEvidence {
+  id: string;
+  commitmentId: string;
+  milestone: EvidenceMilestone;
+  type: EvidenceType;
+  url: string | null;
+  note: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface SourceRef {
+  id: string;
+  targetType: 'COMMITMENT' | 'CHANGE_REQUEST' | 'DECISION';
+  targetId: string;
+  type: 'CHAT_MESSAGE' | 'MEETING' | 'NOTE';
+  conversationId: string | null;
+  messageIds: string[];
+  meetingId: string | null;
+  noteId: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CommitmentDetail extends CommitmentSummary {
+  description: string | null;
+  requestedByContactId: string | null;
+  promisedAt: string | null;
+  scopeItemId: string | null;
+  tasks: CommitmentTaskLink[];
+  evidence: CommitmentEvidence[];
+  sourceRefs: SourceRef[];
+  openSentChangeRequests: number;
 }
 
 export interface ChangeRequestSummary {

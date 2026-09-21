@@ -8,4 +8,8 @@ export const taskKeys = {
   board: (projectId: string) => [...taskKeys.all, 'board', projectId] as const,
   client: (projectId: string) => [...taskKeys.all, 'client', projectId] as const,
   scope: (projectId: string) => [...taskKeys.all, 'scope', projectId] as const,
+  commitments: (projectId: string) =>
+    [...taskKeys.all, 'commitments', projectId] as const,
+  commitmentDetail: (commitmentId: string) =>
+    [...taskKeys.all, 'commitment', commitmentId] as const,
 } as const;
