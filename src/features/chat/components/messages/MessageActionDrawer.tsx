@@ -1,12 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Copy, Flag, Forward, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
+import { CheckSquare, Copy, Flag, Forward, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer/Drawer';
 import { cn } from '@/lib/utils/cn';
 import type { Message, ReactionType } from '@/features/chat/types';
 import { useMessageActions } from '@/features/chat/hooks/useMessageActions';
 import { useToggleReaction } from '@/features/chat/hooks/useReactions';
+import { useMessageSelectionStore } from '@/features/chat/stores/message-selection.store';
 import { ReactionPickerRow } from './ReactionPickerRow';
 import { MessageActionDialogs } from './MessageActionDialogs';
 
@@ -36,6 +37,7 @@ export function MessageActionDrawer({
 }: MessageActionDrawerProps) {
   const a = useMessageActions({ message, meId, isMe, senderName, isPinned });
   const toggleReaction = useToggleReaction(message.conversationId);
+  const enterSelection = useMessageSelectionStore((s) => s.enter);
   const myReaction = message.myReaction ?? null;
 
   const close = () => onOpenChange(false);
@@ -54,6 +56,7 @@ export function MessageActionDrawer({
     { key: 'forward', icon: <Forward className="h-5 w-5" />, label: 'Chuyển tiếp', onClick: run(() => a.setForwardOpen(true)), show: true },
     { key: 'pin', icon: isPinned ? <PinOff className="h-5 w-5" /> : <Pin className="h-5 w-5" />, label: isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn', onClick: run(a.handleTogglePin), show: !!canPin },
     { key: 'analyze', icon: <Sparkles className="h-5 w-5" />, label: 'Phân tích và xử lý', onClick: run(() => a.setAnalysisOpen(true)), show: true },
+    { key: 'select', icon: <CheckSquare className="h-5 w-5" />, label: 'Chọn nhiều tin nhắn', onClick: run(() => enterSelection(message.conversationId, message.id)), show: true },
     { key: 'edit', icon: <Pencil className="h-5 w-5" />, label: 'Chỉnh sửa', onClick: run(a.handleEdit), show: a.canEdit },
     { key: 'copy', icon: <Copy className="h-5 w-5" />, label: 'Sao chép', onClick: run(a.handleCopy), show: a.canCopy },
     { key: 'report', icon: <Flag className="h-5 w-5" />, label: 'Báo cáo', onClick: run(() => a.setReportOpen(true)), danger: true, show: !isMe },

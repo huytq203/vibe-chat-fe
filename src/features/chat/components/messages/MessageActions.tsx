@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Flag, Forward, MoreVertical, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
+import { CheckSquare, Copy, Flag, Forward, MoreVertical, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button/Button';
 import { cn } from '@/lib/utils/cn';
 import type { Message } from '@/features/chat/types';
 import { useMessageActions } from '@/features/chat/hooks/useMessageActions';
+import { useMessageSelectionStore } from '@/features/chat/stores/message-selection.store';
 import { MessageActionDialogs } from './MessageActionDialogs';
 
 type MessageActionsProps = {
@@ -40,6 +41,7 @@ export function MessageActions({
   // Kiểm soát mở dropdown để giữ bar hiện khi menu đang mở (dù chuột đã rê ra ngoài).
   const [menuOpen, setMenuOpen] = useState(false);
   const a = useMessageActions({ message, meId, isMe, senderName, isPinned });
+  const enterSelection = useMessageSelectionStore((s) => s.enter);
 
   return (
     <div
@@ -94,6 +96,12 @@ export function MessageActions({
           <DropdownMenuItem onClick={() => a.setAnalysisOpen(true)}>
             <Sparkles className="h-4 w-4" />
             Phân tích và xử lý
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => enterSelection(message.conversationId, message.id)}
+          >
+            <CheckSquare className="h-4 w-4" />
+            Chọn nhiều tin nhắn
           </DropdownMenuItem>
           {(a.canEdit || a.canCopy || isMe) && <DropdownMenuSeparator />}
           {a.canEdit && (
