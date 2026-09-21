@@ -423,3 +423,37 @@ export interface CreateSourceRefInput {
   conversationId: string;
   messageIds: string[];
 }
+
+export interface ProjectContact {
+  id: string;
+  userId: string | null;
+  name: string;
+  email: string | null;
+  title: string | null;
+  isPrimary: boolean;
+  isDeleted: boolean;
+}
+
+export interface ProjectClient {
+  projectId: string;
+  name: string;
+  contacts: ProjectContact[];
+}
+
+export type ScopeItemStatus = 'APPROVED' | 'PHASE_2' | 'REMOVED';
+
+export interface ScopeItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: ScopeItemStatus;
+  position: number;
+  originChangeRequestId: string | null;
+}
+
+export interface ProjectScope {
+  projectId: string;
+  rawDocument: string | null;
+  version: number;
+  items: ScopeItem[];
+}

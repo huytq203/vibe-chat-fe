@@ -6,6 +6,7 @@ import { Dashboard } from '../dashboard';
 import { ReportsView } from '../reports';
 import { ProjectsPage, ProjectSettingsModal, NewProjectModal } from '../projects';
 import { BoardHeader, KanbanBoard, ListView, ProjectSwitcher, TaskDetailModal } from '../board';
+import { CommitmentGraphView } from '../commitments/CommitmentGraphView';
 import { TaskAiPanel } from '../ai';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useProjects } from '../../hooks/useProjects';
@@ -53,8 +54,10 @@ export function TaskManagementLayout() {
                 </div>
                 {boardView === 'board' ? (
                   <KanbanBoard key={selectedId} projectId={selectedId} />
-                ) : (
+                ) : boardView === 'list' ? (
                   <ListView projectId={selectedId} />
+                ) : (
+                  <CommitmentGraphView projectId={selectedId} />
                 )}
                 <TaskDetailModal projectId={selectedId} />
                 <ProjectSettingsModal project={selectedProject} />

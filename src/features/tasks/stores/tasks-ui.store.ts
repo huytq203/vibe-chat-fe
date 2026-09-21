@@ -25,8 +25,8 @@ type TasksUIState = {
   subtaskPath: string[];
   openSubtask: (id: string) => void;
   navigateSubtaskBack: () => void;
-  boardView: 'board' | 'list';
-  setBoardView: (v: 'board' | 'list') => void;
+  boardView: 'board' | 'list' | 'commitments';
+  setBoardView: (v: 'board' | 'list' | 'commitments') => void;
   settingsModal: SettingsModalState;
   openSettings: (tab?: 'info' | 'share' | 'labels') => void;
   closeSettings: () => void;
