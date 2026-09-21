@@ -78,7 +78,8 @@ Types tối thiểu cần cho luồng confirm (không phải full response shape
 FE thực sự dùng để hiện toast/kiểm tra thành công):
 
 ```ts
-// src/features/tasks/types/commitment.ts
+// Thêm vào CUỐI src/features/tasks/types.ts (file phẳng có sẵn, KHÔNG tạo thư mục types/ mới —
+// repo hiện không có thư mục đó, đi đúng cấu trúc hiện tại)
 export interface CommitmentSummary {
   id: string;
   title: string;
@@ -101,7 +102,7 @@ export interface CreateSourceRefInput {
 ```ts
 // src/features/tasks/services/commitments.api.ts
 import { taskClient } from '../lib/task-client';
-import type { CommitmentSummary, ChangeRequestSummary, CreateSourceRefInput } from '../types/commitment';
+import type { CommitmentSummary, ChangeRequestSummary, CreateSourceRefInput } from '../types';
 
 export const commitmentsApi = {
   create: (
