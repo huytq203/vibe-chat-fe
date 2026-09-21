@@ -30,13 +30,17 @@ import { useMembers } from '../../hooks/useMembers';
 import {
   useAddEvidence,
   useCommitmentDetail,
+  useLinkExistingTask,
   useRemoveSourceRef,
+  useTransitionCommitment,
+  useUnlinkTask,
   useUpdateCommitment,
 } from '../../hooks/useCommitments';
 import { useProjectScope } from '../../hooks/useScope';
 import { commitmentsApi } from '../../services/commitments.api';
+import { tasksApi } from '../../services/tasks.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import type { CommitmentDetail, SourceRef } from '../../types';
+import type { CommitmentDetail, DeliveryStatus, SourceRef } from '../../types';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -46,10 +50,12 @@ function formatDate(iso: string | null): string {
 export function CommitmentDetailModal({ projectId }: { projectId: string }) {
   const [editOpen, setEditOpen] = useState(false);
   const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
+  const [transitionOpen, setTransitionOpen] = useState(false);
   const selectedId = useTasksUIStore((state) => state.selectedCommitmentId);
   const close = useTasksUIStore((state) => state.closeCommitmentDetail);
   const detail = useCommitmentDetail(selectedId ?? '');
   const members = useMembers(projectId);
+  const unlinkTask = useUnlinkTask(projectId, selectedId ?? '');
 
   const ownerName = (ownerId: string | null) =>
     ownerId
@@ -73,6 +79,16 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 <Badge variant="secondary" size="sm">
                   {DELIVERY_STATUS_LABELS[detail.data.deliveryStatus]}
                 </Badge>
+                {detail.data.deliveryStatus !== 'ACCEPTED' &&
+                  detail.data.deliveryStatus !== 'CANCELLED' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTransitionOpen(true)}
+                    >
+                      Chuyển trạng thái
+                    </Button>
+                  )}
                 <Badge variant="soft-primary" size="sm">
                   {SCOPE_STATUS_LABELS[detail.data.scopeStatus]}
                 </Badge>
@@ -134,7 +150,10 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 />
               </div>
 
-              <Section title="Task liên kết">
+              <div>
+                <h3 className="mb-1.5 text-sm font-semibold text-foreground">
+                  Task liên kết
+                </h3>
                 {detail.data.tasks.length === 0 ? (
                   <EmptyText>Chưa liên kết task nào.</EmptyText>
                 ) : (
@@ -150,11 +169,23 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                             Hoàn thành
                           </Badge>
                         )}
+                        <button
+                          type="button"
+                          aria-label={`Gỡ ${task.title}`}
+                          className="text-muted-foreground hover:text-danger"
+                          onClick={() => unlinkTask.mutate(task.id)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </li>
                     ))}
                   </ul>
                 )}
-              </Section>
+                <LinkTaskPicker
+                  projectId={projectId}
+                  commitment={detail.data}
+                />
+              </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
@@ -220,10 +251,71 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
               open={addEvidenceOpen}
               onOpenChange={setAddEvidenceOpen}
             />
+            <TransitionDialog
+              projectId={projectId}
+              commitment={detail.data}
+              open={transitionOpen}
+              onOpenChange={setTransitionOpen}
+            />
           </>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function LinkTaskPicker({
+  projectId,
+  commitment,
+}: {
+  projectId: string;
+  commitment: CommitmentDetail;
+}) {
+  const [taskId, setTaskId] = useState('');
+  const board = useQuery({
+    queryKey: ['tasks', projectId, 'board'],
+    queryFn: () => tasksApi.getBoard(projectId),
+  });
+  const linkTask = useLinkExistingTask(projectId, commitment.id);
+
+  const linkedIds = new Set(commitment.tasks.map((task) => task.id));
+  const options = (board.data?.columns ?? [])
+    .flatMap((column) => column.tasks)
+    .filter((task) => !linkedIds.has(task.id))
+    .map((task) => ({ value: task.id, label: task.title }));
+
+  if (!board.isPending && options.length === 0) {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        Không còn task nào để gắn.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex items-end gap-2">
+      <ComboBox
+        label="Gắn task có sẵn"
+        value={taskId}
+        options={options}
+        onValueChange={(value) =>
+          setTaskId(Array.isArray(value) ? (value[0] ?? '') : value)
+        }
+        placeholder={board.isPending ? 'Đang tải...' : 'Chọn task'}
+        emptyText="Không còn task nào để gắn."
+        className="flex-1"
+      />
+      <Button
+        size="sm"
+        disabled={!taskId}
+        isLoading={linkTask.isPending}
+        onClick={() => {
+          linkTask.mutate(taskId, { onSuccess: () => setTaskId('') });
+        }}
+      >
+        Gắn
+      </Button>
+    </div>
   );
 }
 
@@ -583,6 +675,140 @@ function AddEvidenceDialog({
             isLoading={addEvidence.isPending}
           >
             Thêm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TransitionDialog({
+  projectId,
+  commitment,
+  open,
+  onOpenChange,
+}: {
+  projectId: string;
+  commitment: CommitmentDetail;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [to, setTo] = useState<DeliveryStatus>(
+    (Object.keys(DELIVERY_STATUS_LABELS) as DeliveryStatus[]).find(
+      (status) => status !== commitment.deliveryStatus,
+    )!,
+  );
+  const [evidenceId, setEvidenceId] = useState('');
+  const [onBehalfOf, setOnBehalfOf] = useState('');
+  const [reason, setReason] = useState('');
+  const transition = useTransitionCommitment(projectId, commitment.id);
+
+  const needsEvidence = to === 'DELIVERED' || to === 'ACCEPTED';
+  const needsOnBehalfOf = to === 'ACCEPTED';
+  const needsReason = to === 'CHANGES_REQUESTED' || to === 'CANCELLED';
+  const matchingEvidence = commitment.evidence.filter(
+    (evidence) => evidence.milestone === to,
+  );
+
+  const canSubmit =
+    (!needsEvidence || !!evidenceId) &&
+    (!needsOnBehalfOf || onBehalfOf.trim().length > 0) &&
+    (!needsReason || reason.trim().length > 0);
+
+  function handleSubmit() {
+    transition.mutate(
+      {
+        to,
+        version: commitment.version,
+        ...(needsEvidence && evidenceId ? { evidenceId } : {}),
+        ...(needsOnBehalfOf ? { onBehalfOf: onBehalfOf.trim() } : {}),
+        ...(needsReason ? { reason: reason.trim() } : {}),
+      },
+      { onSuccess: () => onOpenChange(false) },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Chuyển trạng thái cam kết</DialogTitle>
+          <DialogDescription>
+            Đang ở &quot;
+            {DELIVERY_STATUS_LABELS[commitment.deliveryStatus]}&quot;.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <ComboBox
+            label="Chuyển đến"
+            value={to}
+            options={Object.entries(DELIVERY_STATUS_LABELS)
+              .filter(([value]) => value !== commitment.deliveryStatus)
+              .map(([value, label]) => ({ value, label }))}
+            onValueChange={(value) =>
+              setTo(
+                (Array.isArray(value) ? value[0] : value) as DeliveryStatus,
+              )
+            }
+          />
+          {needsEvidence &&
+            (matchingEvidence.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Chưa có bằng chứng phù hợp — thêm bằng chứng có mốc &quot;
+                {
+                  EVIDENCE_MILESTONE_LABELS[
+                    to as keyof typeof EVIDENCE_MILESTONE_LABELS
+                  ]
+                }
+                &quot; trước.
+              </p>
+            ) : (
+              <ComboBox
+                label="Bằng chứng"
+                value={evidenceId}
+                options={matchingEvidence.map((evidence) => ({
+                  value: evidence.id,
+                  label:
+                    evidence.type === 'URL'
+                      ? (evidence.url ?? evidence.id)
+                      : (evidence.note ?? evidence.id),
+                }))}
+                onValueChange={(value) =>
+                  setEvidenceId(
+                    Array.isArray(value) ? (value[0] ?? '') : value,
+                  )
+                }
+                placeholder="Chọn bằng chứng"
+                emptyText="Không có bằng chứng phù hợp."
+              />
+            ))}
+          {needsOnBehalfOf && (
+            <Input
+              label="Người xác nhận phía khách"
+              value={onBehalfOf}
+              onChange={(event) => setOnBehalfOf(event.target.value)}
+              required
+            />
+          )}
+          {needsReason && (
+            <Textarea
+              label="Lý do"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              required
+            />
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Huỷ
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            isLoading={transition.isPending}
+          >
+            Xác nhận
           </Button>
         </DialogFooter>
       </DialogContent>

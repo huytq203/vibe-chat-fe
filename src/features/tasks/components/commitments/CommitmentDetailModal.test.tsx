@@ -1,16 +1,20 @@
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '@/test/test-utils';
+import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils';
 import { useProjectClient } from '../../hooks/useClient';
 import { useMembers } from '../../hooks/useMembers';
 import {
   useAddEvidence,
   useCommitmentDetail,
+  useLinkExistingTask,
   useRemoveSourceRef,
+  useTransitionCommitment,
+  useUnlinkTask,
   useUpdateCommitment,
 } from '../../hooks/useCommitments';
 import { useProjectScope } from '../../hooks/useScope';
 import { commitmentsApi } from '../../services/commitments.api';
+import { tasksApi } from '../../services/tasks.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { CommitmentDetail } from '../../types';
 import { CommitmentDetailModal } from './CommitmentDetailModal';
@@ -20,6 +24,9 @@ vi.mock('../../hooks/useCommitments', () => ({
   useUpdateCommitment: vi.fn(),
   useAddEvidence: vi.fn(),
   useRemoveSourceRef: vi.fn(),
+  useLinkExistingTask: vi.fn(),
+  useUnlinkTask: vi.fn(),
+  useTransitionCommitment: vi.fn(),
 }));
 
 vi.mock('../../hooks/useClient', () => ({
@@ -44,10 +51,19 @@ vi.mock('../../services/commitments.api', () => ({
   },
 }));
 
+vi.mock('../../services/tasks.api', () => ({
+  tasksApi: {
+    getBoard: vi.fn(),
+  },
+}));
+
 const closeCommitmentDetail = vi.fn();
 const updateCommitment = vi.fn();
 const addEvidence = vi.fn();
 const removeSourceRef = vi.fn();
+const linkExistingTask = vi.fn();
+const unlinkTask = vi.fn();
+const transitionCommitment = vi.fn();
 let selectedCommitmentId: string | null = 'commitment-1';
 
 const commitmentDetail: CommitmentDetail = {
@@ -163,6 +179,18 @@ beforeEach(() => {
     mutate: removeSourceRef,
     isPending: false,
   } as unknown as ReturnType<typeof useRemoveSourceRef>);
+  vi.mocked(useLinkExistingTask).mockReturnValue({
+    mutate: linkExistingTask,
+    isPending: false,
+  } as unknown as ReturnType<typeof useLinkExistingTask>);
+  vi.mocked(useUnlinkTask).mockReturnValue({
+    mutate: unlinkTask,
+    isPending: false,
+  } as unknown as ReturnType<typeof useUnlinkTask>);
+  vi.mocked(useTransitionCommitment).mockReturnValue({
+    mutate: transitionCommitment,
+    isPending: false,
+  } as unknown as ReturnType<typeof useTransitionCommitment>);
   vi.mocked(useTasksUIStore).mockImplementation((selector) =>
     selector({ selectedCommitmentId, closeCommitmentDetail } as never),
   );
@@ -174,6 +202,64 @@ beforeEach(() => {
       createdAt: '2026-09-18T08:00:00.000Z',
     },
   ]);
+  vi.mocked(tasksApi.getBoard).mockResolvedValue({
+    project: {
+      id: 'project-1',
+      name: 'Dự án ACME',
+      description: null,
+      ownerId: 'user-1',
+      isBoardLocked: false,
+      status: 'ACTIVE',
+      isOverdue: false,
+      startDate: null,
+      endDate: null,
+      createdAt: '2026-09-01T00:00:00.000Z',
+      updatedAt: '2026-09-20T00:00:00.000Z',
+    },
+    columns: [
+      {
+        id: 'column-1',
+        name: 'Đang làm',
+        color: null,
+        position: 0,
+        isDoneCol: false,
+        tasks: [
+          {
+            id: 'task-1',
+            columnId: 'column-1',
+            title: 'Kiểm thử luồng thanh toán',
+            position: 0,
+            isPinned: false,
+            priority: null,
+            dueDate: null,
+            tags: [],
+            assignees: [],
+            checklistCount: 0,
+            commentCount: 0,
+            completedAt: '2026-09-20T07:00:00.000Z',
+            reviewRequestedAt: null,
+            status: 'DONE',
+          },
+          {
+            id: 'task-2',
+            columnId: 'column-1',
+            title: 'Chuẩn bị tài liệu bàn giao',
+            position: 1,
+            isPinned: false,
+            priority: 'P1',
+            dueDate: null,
+            tags: [],
+            assignees: [],
+            checklistCount: 0,
+            commentCount: 0,
+            completedAt: null,
+            reviewRequestedAt: null,
+            status: 'OPEN',
+          },
+        ],
+      },
+    ],
+  });
 });
 
 describe('CommitmentDetailModal', () => {
@@ -317,4 +403,167 @@ describe('CommitmentDetailModal', () => {
     expect(useRemoveSourceRef).toHaveBeenCalledWith('commitment-1');
     expect(removeSourceRef).toHaveBeenCalledWith('ref-1');
   });
+
+  it('chỉ cho gắn task chưa liên kết và gỡ đúng task đã liên kết', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(await screen.findByRole('combobox'));
+
+    expect(
+      screen.queryByRole('option', { name: 'Kiểm thử luồng thanh toán' }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('option', { name: 'Chuẩn bị tài liệu bàn giao' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Gắn' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Gỡ Kiểm thử luồng thanh toán' }),
+    );
+
+    expect(useLinkExistingTask).toHaveBeenCalledWith(
+      'project-1',
+      'commitment-1',
+    );
+    expect(linkExistingTask).toHaveBeenCalledWith(
+      'task-2',
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+    expect(useUnlinkTask).toHaveBeenCalledWith('project-1', 'commitment-1');
+    expect(unlinkTask).toHaveBeenCalledWith('task-1');
+  });
+
+  it('chuyển sang đã bàn giao với đúng bằng chứng cùng mốc', async () => {
+    const user = userEvent.setup();
+    mockDetail({
+      ...commitmentDetail,
+      evidence: [
+        ...commitmentDetail.evidence,
+        {
+          ...commitmentDetail.evidence[0],
+          id: 'evidence-delivered',
+          milestone: 'DELIVERED',
+          url: 'https://example.com/delivery-report',
+        },
+      ],
+    });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Chuyển trạng thái' }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: 'Chuyển trạng thái cam kết',
+    });
+    await user.click(within(dialog).getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Đã bàn giao' }));
+
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(2);
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    expect(
+      screen.queryByRole('option', { name: 'https://example.com/test-report' }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('option', {
+        name: 'https://example.com/delivery-report',
+      }),
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận' }));
+
+    expect(useTransitionCommitment).toHaveBeenCalledWith(
+      'project-1',
+      'commitment-1',
+    );
+    expect(transitionCommitment).toHaveBeenCalledWith(
+      { to: 'DELIVERED', version: 2, evidenceId: 'evidence-delivered' },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('chuyển sang đã nghiệm thu với bằng chứng và người xác nhận', async () => {
+    const user = userEvent.setup();
+    mockDetail({
+      ...commitmentDetail,
+      evidence: [
+        {
+          ...commitmentDetail.evidence[0],
+          id: 'evidence-accepted',
+          milestone: 'ACCEPTED',
+          type: 'NOTE',
+          url: null,
+          note: 'Khách hàng đã nghiệm thu',
+        },
+      ],
+    });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Chuyển trạng thái' }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: 'Chuyển trạng thái cam kết',
+    });
+    await user.click(within(dialog).getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Đã nghiệm thu' }));
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    await user.click(
+      await screen.findByRole('option', { name: 'Khách hàng đã nghiệm thu' }),
+    );
+    await user.type(
+      within(dialog).getByLabelText(/^Người xác nhận phía khách/),
+      '  Minh Anh  ',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận' }));
+
+    expect(transitionCommitment).toHaveBeenCalledWith(
+      {
+        to: 'ACCEPTED',
+        version: 2,
+        evidenceId: 'evidence-accepted',
+        onBehalfOf: 'Minh Anh',
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('chuyển sang yêu cầu sửa với lý do và không yêu cầu bằng chứng', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Chuyển trạng thái' }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: 'Chuyển trạng thái cam kết',
+    });
+    await user.click(within(dialog).getByRole('combobox'));
+    await user.click(
+      await screen.findByRole('option', { name: 'Yêu cầu sửa' }),
+    );
+
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(1);
+    await user.type(
+      within(dialog).getByLabelText(/^Lý do/),
+      '  Cần bổ sung  ',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận' }));
+
+    expect(transitionCommitment).toHaveBeenCalledWith(
+      { to: 'CHANGES_REQUESTED', version: 2, reason: 'Cần bổ sung' },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it.each(['ACCEPTED', 'CANCELLED'] as const)(
+    'ẩn nút chuyển trạng thái khi cam kết ở trạng thái kết thúc %s',
+    (deliveryStatus) => {
+      mockDetail({ ...commitmentDetail, deliveryStatus });
+
+      renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Chuyển trạng thái' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 });

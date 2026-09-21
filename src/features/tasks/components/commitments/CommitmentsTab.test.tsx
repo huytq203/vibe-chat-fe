@@ -15,6 +15,12 @@ vi.mock('../../hooks/useCommitments', () => ({
   useCommitmentsInfinite: vi.fn(),
   useCreateCommitment: vi.fn(),
   useCommitmentDetail: vi.fn(),
+  useUpdateCommitment: vi.fn(),
+  useAddEvidence: vi.fn(),
+  useRemoveSourceRef: vi.fn(),
+  useLinkExistingTask: vi.fn(),
+  useUnlinkTask: vi.fn(),
+  useTransitionCommitment: vi.fn(),
 }));
 
 vi.mock('../../hooks/useMembers', () => ({
