@@ -42,6 +42,39 @@ describe('AI API streaming transport', () => {
     }));
   });
 
+  it('gửi payload phân tích tới ai-service và kiểm tra response', async () => {
+    const result = {
+      classification: 'TASK',
+      scopeStatus: 'IN_SCOPE',
+      summary: 'Cần cập nhật trang thanh toán.',
+      reasoning: 'Tin nhắn mô tả một đầu việc cụ thể.',
+      confidence: 0.92,
+      clarifyingQuestion: null,
+      suggestedActions: [],
+      source: {
+        conversationId: '11111111-1111-4111-8111-111111111111',
+        messageIds: ['22222222-2222-4222-8222-222222222222'],
+      },
+    };
+    post.mockResolvedValue(result);
+
+    await expect(aiApi.analyze({
+      projectId: 'project-1',
+      conversationId: result.source.conversationId,
+      messages: [{
+        uuid: result.source.messageIds[0],
+        senderId: 'user-1',
+        previewText: 'Cập nhật trang thanh toán',
+        createdAt: '2026-09-21T08:00:00.000Z',
+      }],
+    })).resolves.toEqual(result);
+
+    expect(post).toHaveBeenCalledWith('/api/v1/ai/analyze', {
+      body: expect.objectContaining({ projectId: 'project-1' }),
+      service: 'ai',
+    });
+  });
+
   it('calls onTool with the tool name when the stream contains a tool event', async () => {
     postStream.mockResolvedValue(
       createStreamResponse('event: tool\ndata: {"name":"read_page"}\n\nevent: done\ndata: {}\n\n'),

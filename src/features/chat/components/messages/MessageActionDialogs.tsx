@@ -13,6 +13,7 @@ import { ReportDialog } from '@/features/reports/components/ReportDialog';
 import { FriendPickerDialog } from '@/features/chat/components/contact/FriendPickerDialog';
 import type { Message } from '@/features/chat/types';
 import type { MessageActionsApi } from '@/features/chat/hooks/useMessageActions';
+import { MessageAnalysisDialog } from './MessageAnalysisDialog';
 
 type MessageActionDialogsProps = {
   actions: MessageActionsApi;
@@ -33,6 +34,8 @@ export function MessageActionDialogs({
     setReportOpen,
     forwardOpen,
     setForwardOpen,
+    analysisOpen,
+    setAnalysisOpen,
     forward,
     deleteMut,
     handleDelete,
@@ -80,6 +83,13 @@ export function MessageActionDialogs({
         onPick={(targets) => void forward(targets)}
         title="Chuyển tiếp tới"
         actionLabel="Chuyển tiếp"
+      />
+
+      <MessageAnalysisDialog
+        open={analysisOpen}
+        onOpenChange={setAnalysisOpen}
+        conversationId={message.conversationId}
+        messageIds={[message.id]}
       />
     </>
   );

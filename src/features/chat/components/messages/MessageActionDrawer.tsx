@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Copy, Flag, Forward, Pencil, Pin, PinOff, Quote, Trash2 } from 'lucide-react';
+import { Copy, Flag, Forward, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer/Drawer';
 import { cn } from '@/lib/utils/cn';
 import type { Message, ReactionType } from '@/features/chat/types';
@@ -53,6 +53,7 @@ export function MessageActionDrawer({
     { key: 'reply', icon: <Quote className="h-5 w-5" />, label: 'Trả lời', onClick: run(a.handleReply), show: true },
     { key: 'forward', icon: <Forward className="h-5 w-5" />, label: 'Chuyển tiếp', onClick: run(() => a.setForwardOpen(true)), show: true },
     { key: 'pin', icon: isPinned ? <PinOff className="h-5 w-5" /> : <Pin className="h-5 w-5" />, label: isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn', onClick: run(a.handleTogglePin), show: !!canPin },
+    { key: 'analyze', icon: <Sparkles className="h-5 w-5" />, label: 'Phân tích và xử lý', onClick: run(() => a.setAnalysisOpen(true)), show: true },
     { key: 'edit', icon: <Pencil className="h-5 w-5" />, label: 'Chỉnh sửa', onClick: run(a.handleEdit), show: a.canEdit },
     { key: 'copy', icon: <Copy className="h-5 w-5" />, label: 'Sao chép', onClick: run(a.handleCopy), show: a.canCopy },
     { key: 'report', icon: <Flag className="h-5 w-5" />, label: 'Báo cáo', onClick: run(() => a.setReportOpen(true)), danger: true, show: !isMe },
@@ -79,7 +80,7 @@ export function MessageActionDrawer({
                   type="button"
                   onClick={it.onClick}
                   className={cn(
-                    'flex items-center gap-4 px-6 py-3 text-left text-[15px] transition-colors active:bg-muted',
+                    'flex items-center gap-4 px-6 py-3 text-left text-sm transition-colors active:bg-muted',
                     it.danger ? 'text-danger' : 'text-foreground',
                   )}
                 >

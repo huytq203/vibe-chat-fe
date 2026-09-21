@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Flag, Forward, MoreVertical, Pencil, Pin, PinOff, Quote, Trash2 } from 'lucide-react';
+import { Copy, Flag, Forward, MoreVertical, Pencil, Pin, PinOff, Quote, Sparkles, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +91,10 @@ export function MessageActions({
               {isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onClick={() => a.setAnalysisOpen(true)}>
+            <Sparkles className="h-4 w-4" />
+            Phân tích và xử lý
+          </DropdownMenuItem>
           {(a.canEdit || a.canCopy || isMe) && <DropdownMenuSeparator />}
           {a.canEdit && (
             <DropdownMenuItem onClick={a.handleEdit}>

@@ -1,5 +1,7 @@
 import { ApiError, apiClient } from '@/lib/api/client';
 import { readSseEvents } from '@/lib/api/sse';
+import { messageAnalysisSchema } from '@/features/chat/types/message-analysis';
+import type { MessageAnalysisInput } from '@/features/chat/types/message-analysis';
 
 export type AiChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -188,6 +190,14 @@ async function consume(
 export const aiApi = {
   chat,
   completeOnce,
+
+  analyze: async (input: MessageAnalysisInput) => {
+    const raw = await apiClient.post<unknown>('/api/v1/ai/analyze', {
+      body: input,
+      service: 'ai' as never,
+    });
+    return messageAnalysisSchema.parse(raw);
+  },
 
   estimateGem: (input: EstimateGemInput) =>
     apiClient.post<EstimateGemResult>('/api/v1/ai/tasks/estimate-gem', {

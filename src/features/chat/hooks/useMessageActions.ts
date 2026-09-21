@@ -37,6 +37,7 @@ export function useMessageActions({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const { forward } = useForwardMessage(message);
   const startEdit = useMessageEditStore((s) => s.startEdit);
   const startReply = useMessageReplyStore((s) => s.startReply);
@@ -99,6 +100,8 @@ export function useMessageActions({
     setReportOpen,
     forwardOpen,
     setForwardOpen,
+    analysisOpen,
+    setAnalysisOpen,
     forward,
     deleteMut,
     canEdit,

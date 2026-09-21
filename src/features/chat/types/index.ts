@@ -86,3 +86,9 @@ export type {
   CreateScheduledMessageInput,
   UpdateScheduledMessageInput,
 } from './scheduled-message';
+
+export type {
+  ResolvedMessage,
+  MessageAnalysis,
+  MessageAnalysisInput,
+} from './message-analysis';

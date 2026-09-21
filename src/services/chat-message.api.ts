@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client';
+import { resolvedMessageSchema } from '@/features/chat/types/message-analysis';
 import type {
   AttachmentUrl,
   Message,
@@ -14,6 +15,14 @@ export type ForwardResult = {
 
 /** Transport cho tin nhắn: liệt kê/tìm/gửi/sửa/gỡ + đọc + refresh URL attachment. */
 export const messageApi = {
+  resolveByIds: async (conversationId: string, messageIds: string[]) => {
+    const raw = await apiClient.get<unknown>(
+      `/api/v1/conversations/${conversationId}/messages/by-ids`,
+      { query: { uuids: messageIds.join(',') } },
+    );
+    return resolvedMessageSchema.array().parse(raw);
+  },
+
   forward: (
     conversationId: string,
     messageId: string,
