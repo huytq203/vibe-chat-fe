@@ -405,3 +405,21 @@ export interface ChangesResponse {
   resync: boolean;
   changes: ProjectChange[];
 }
+
+export interface CommitmentSummary {
+  id: string;
+  title: string;
+  deliveryStatus: string;
+}
+
+export interface ChangeRequestSummary {
+  id: string;
+  title: string;
+  status: string;
+}
+
+export interface CreateSourceRefInput {
+  type: 'CHAT_MESSAGE';
+  conversationId: string;
+  messageIds: string[];
+}

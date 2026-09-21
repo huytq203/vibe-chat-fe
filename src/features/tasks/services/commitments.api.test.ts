@@ -1,0 +1,97 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { changeRequestsApi, commitmentsApi } from './commitments.api';
+
+const mockFetch = vi.fn();
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  vi.stubGlobal('fetch', mockFetch);
+});
+
+function okResponse(data: unknown) {
+  return {
+    ok: true,
+    text: async () => JSON.stringify({ success: true, data }),
+  };
+}
+
+describe('commitmentsApi', () => {
+  it('create() gửi đúng path/body và header Idempotency-Key', async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({ id: 'c1', title: 'X', deliveryStatus: 'PLANNED' }),
+    );
+
+    await commitmentsApi.create(
+      'proj-1',
+      { title: 'X', scopeStatus: 'UNCLEAR' },
+      'idem-key-1',
+    );
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/projects/proj-1/commitments');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toBe(
+      'idem-key-1',
+    );
+    expect(JSON.parse(init.body as string)).toEqual({
+      title: 'X',
+      scopeStatus: 'UNCLEAR',
+    });
+  });
+
+  it('linkSourceRef() KHÔNG gửi header Idempotency-Key', async () => {
+    mockFetch.mockResolvedValue(okResponse(undefined));
+
+    await commitmentsApi.linkSourceRef('c1', {
+      type: 'CHAT_MESSAGE',
+      conversationId: 'conv-1',
+      messageIds: ['m1'],
+    });
+
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(
+      (init.headers as Record<string, string>)['Idempotency-Key'],
+    ).toBeUndefined();
+  });
+
+  it('linkTask() gọi đúng path với taskId trong body', async () => {
+    mockFetch.mockResolvedValue(okResponse(undefined));
+    await commitmentsApi.linkTask('c1', 't1');
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/tasks');
+    expect(JSON.parse(init.body as string)).toEqual({ taskId: 't1' });
+  });
+
+  it('list() gọi đúng path với limit=100', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({ success: true, data: [], meta: { total: 0 } }),
+    });
+    await commitmentsApi.list('proj-1');
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain(
+      '/api/v1/projects/proj-1/commitments?limit=100',
+    );
+  });
+});
+
+describe('changeRequestsApi', () => {
+  it('create() gửi đúng path/body và header Idempotency-Key', async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({ id: 'cr1', title: 'X', status: 'DRAFT' }),
+    );
+
+    await changeRequestsApi.create(
+      'proj-1',
+      { title: 'X', impact: 'Ảnh hưởng lớn' },
+      'idem-key-2',
+    );
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/projects/proj-1/change-requests');
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toBe(
+      'idem-key-2',
+    );
+  });
+});

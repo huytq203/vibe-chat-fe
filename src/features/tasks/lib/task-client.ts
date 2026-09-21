@@ -24,13 +24,19 @@ function taskBase(): string {
   return env.NEXT_PUBLIC_USE_PROXY ? '/task-proxy' : env.NEXT_PUBLIC_TASK_URL;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
   const token = apiAuth.getToken();
   const res = await fetch(`${taskBase()}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extraHeaders,
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -71,7 +77,11 @@ async function requestPaged<T, M>(
 export const taskClient = {
   get: <T>(path: string) => request<T>('GET', path),
   getPaged: <T, M>(path: string) => requestPaged<T, M>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  post: <T>(
+    path: string,
+    body?: unknown,
+    extraHeaders?: Record<string, string>,
+  ) => request<T>('POST', path, body, extraHeaders),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
 };

@@ -99,8 +99,14 @@ export const tasksApi = {
   getTask: (projectId: string, taskId: string) =>
     taskClient.get<TaskDetail>(`/api/v1/tasks/${taskId}`),
 
-  createTask: (projectId: string, input: { title: string; columnId: string }) =>
-    taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, input),
+  createTask: (
+    projectId: string,
+    input: { title: string; columnId: string },
+    idempotencyKey: string,
+  ) =>
+    taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, input, {
+      'Idempotency-Key': idempotencyKey,
+    }),
 
   updateTask: (
     taskId: string,

@@ -8,7 +8,7 @@ export function useCreateTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { title: string; columnId: string }) =>
-      tasksApi.createTask(projectId, input),
+      tasksApi.createTask(projectId, input, crypto.randomUUID()),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.board(projectId) }),
   });
 }
