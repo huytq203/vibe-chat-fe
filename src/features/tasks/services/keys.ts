@@ -6,4 +6,5 @@ export const taskKeys = {
   all: ['tasks'] as const,
   projects: () => [...taskKeys.all, 'projects'] as const,
   board: (projectId: string) => [...taskKeys.all, 'board', projectId] as const,
+  client: (projectId: string) => [...taskKeys.all, 'client', projectId] as const,
 } as const;

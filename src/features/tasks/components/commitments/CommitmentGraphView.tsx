@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { SettingsPlaceholder } from '../projects/SettingsPlaceholder';
+import { ClientTab } from './ClientTab';
 
 const TABS = [
   { value: 'client', label: 'Khách hàng' },
@@ -10,9 +11,7 @@ const TABS = [
   { value: 'change-requests', label: 'Yêu cầu thay đổi' },
 ] as const;
 
-export function CommitmentGraphView({ projectId: _projectId }: { projectId: string }) {
-  void _projectId;
-
+export function CommitmentGraphView({ projectId }: { projectId: string }) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <Tabs defaultValue="client" className="flex min-h-0 flex-1 flex-col">
@@ -25,7 +24,7 @@ export function CommitmentGraphView({ projectId: _projectId }: { projectId: stri
         </TabsList>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           <TabsContent value="client">
-            <SettingsPlaceholder title="Khách hàng" />
+            <ClientTab projectId={projectId} />
           </TabsContent>
           <TabsContent value="scope">
             <SettingsPlaceholder title="Phạm vi" />
