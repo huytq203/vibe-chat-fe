@@ -1,5 +1,6 @@
 import { taskClient } from '../lib/task-client';
 import type {
+  ChangeRequestStatusValue,
   ChangeRequestSummary,
   CommitmentDetail,
   CommitmentEvidence,
@@ -159,5 +160,77 @@ export const changeRequestsApi = {
       `/api/v1/projects/${projectId}/change-requests`,
       input,
       { 'Idempotency-Key': idempotencyKey },
+    ),
+
+  listPaged: (
+    projectId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      status?: ChangeRequestStatusValue;
+      commitmentId?: string;
+    },
+  ) => {
+    const sp = new URLSearchParams();
+    sp.set('page', String(params.page ?? 1));
+    sp.set('limit', String(params.limit ?? 20));
+    if (params.status) sp.set('status', params.status);
+    if (params.commitmentId) sp.set('commitmentId', params.commitmentId);
+    return taskClient.getPaged<ChangeRequestSummary[], PaginationMeta>(
+      `/api/v1/projects/${projectId}/change-requests?${sp.toString()}`,
+    );
+  },
+
+  getDetail: (changeRequestId: string) =>
+    taskClient.get<ChangeRequestSummary>(
+      `/api/v1/change-requests/${changeRequestId}`,
+    ),
+
+  update: (
+    changeRequestId: string,
+    input: {
+      title?: string;
+      impact?: string;
+      estimateHours?: number;
+      cost?: number;
+      timelineShiftDays?: number;
+      commitmentId?: string;
+      version: number;
+    },
+  ) =>
+    taskClient.patch<ChangeRequestSummary>(
+      `/api/v1/change-requests/${changeRequestId}`,
+      input,
+    ),
+
+  transition: (
+    changeRequestId: string,
+    input: {
+      to: ChangeRequestStatusValue;
+      onBehalfOf?: string;
+      reason?: string;
+      sourceRef?: CreateSourceRefInput;
+      version: number;
+    },
+  ) =>
+    taskClient.post<ChangeRequestSummary>(
+      `/api/v1/change-requests/${changeRequestId}/transition`,
+      input,
+    ),
+
+  addSourceRef: (changeRequestId: string, input: CreateSourceRefInput) =>
+    taskClient.post<void>(
+      `/api/v1/change-requests/${changeRequestId}/source-refs`,
+      input,
+    ),
+
+  removeSourceRef: (changeRequestId: string, refId: string) =>
+    taskClient.delete<void>(
+      `/api/v1/change-requests/${changeRequestId}/source-refs/${refId}`,
+    ),
+
+  getSourceRefContent: (changeRequestId: string, refId: string) =>
+    taskClient.get<ResolvedMessage[]>(
+      `/api/v1/change-requests/${changeRequestId}/source-refs/${refId}/content`,
     ),
 };

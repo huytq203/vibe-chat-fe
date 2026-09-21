@@ -86,8 +86,28 @@ describe('useConfirmCreateChangeRequest', () => {
   it('nên gọi changeRequestsApi.create với đúng input', async () => {
     vi.mocked(changeRequestsApi.create).mockResolvedValue({
       id: 'cr1',
+      projectId: 'proj-1',
+      commitmentId: null,
       title: 'X',
+      impact: 'Ảnh hưởng lớn',
+      estimateHours: null,
+      cost: null,
+      currency: 'VND',
+      timelineShiftDays: null,
       status: 'DRAFT',
+      internalApprovedByUserId: null,
+      internalApprovedAt: null,
+      sentAt: null,
+      clientApprovedByUserId: null,
+      clientApprovedOnBehalfOf: null,
+      clientApprovedAt: null,
+      rejectedAt: null,
+      rejectReason: null,
+      createdBy: 'user-1',
+      version: 1,
+      createdAt: '2026-09-21T00:00:00.000Z',
+      updatedAt: '2026-09-21T00:00:00.000Z',
+      sourceRefs: [],
     });
     const { result } = renderHook(
       () => useConfirmCreateChangeRequest('proj-1'),

@@ -492,10 +492,37 @@ export interface CommitmentDetail extends CommitmentSummary {
   openSentChangeRequests: number;
 }
 
+export type ChangeRequestStatusValue =
+  | 'DRAFT'
+  | 'INTERNAL_APPROVED'
+  | 'SENT'
+  | 'CLIENT_APPROVED'
+  | 'REJECTED';
+
 export interface ChangeRequestSummary {
   id: string;
+  projectId: string;
+  commitmentId: string | null;
   title: string;
-  status: string;
+  impact: string;
+  estimateHours: number | null;
+  cost: string | null;
+  currency: string;
+  timelineShiftDays: number | null;
+  status: ChangeRequestStatusValue;
+  internalApprovedByUserId: string | null;
+  internalApprovedAt: string | null;
+  sentAt: string | null;
+  clientApprovedByUserId: string | null;
+  clientApprovedOnBehalfOf: string | null;
+  clientApprovedAt: string | null;
+  rejectedAt: string | null;
+  rejectReason: string | null;
+  createdBy: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  sourceRefs: SourceRef[];
 }
 
 export interface CreateSourceRefInput {

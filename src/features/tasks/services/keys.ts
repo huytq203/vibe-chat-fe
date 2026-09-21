@@ -12,4 +12,8 @@ export const taskKeys = {
     [...taskKeys.all, 'commitments', projectId] as const,
   commitmentDetail: (commitmentId: string) =>
     [...taskKeys.all, 'commitment', commitmentId] as const,
+  changeRequests: (projectId: string) =>
+    [...taskKeys.all, 'change-requests', projectId] as const,
+  changeRequestDetail: (id: string) =>
+    [...taskKeys.all, 'change-request', id] as const,
 } as const;

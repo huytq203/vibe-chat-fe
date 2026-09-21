@@ -51,8 +51,28 @@ describe('ConfirmCreateChangeRequestForm', () => {
   it('nên tạo yêu cầu thay đổi gắn với cam kết rồi báo hoàn tất', async () => {
     vi.mocked(changeRequestsApi.create).mockResolvedValue({
       id: 'change-request-1',
+      projectId: 'proj-1',
+      commitmentId: 'commitment-1',
       title: 'Yêu cầu thay đổi X',
-      status: 'OPEN',
+      impact: 'Tác động X',
+      estimateHours: null,
+      cost: null,
+      currency: 'VND',
+      timelineShiftDays: null,
+      status: 'DRAFT',
+      internalApprovedByUserId: null,
+      internalApprovedAt: null,
+      sentAt: null,
+      clientApprovedByUserId: null,
+      clientApprovedOnBehalfOf: null,
+      clientApprovedAt: null,
+      rejectedAt: null,
+      rejectReason: null,
+      createdBy: 'user-1',
+      version: 1,
+      createdAt: '2026-09-21T00:00:00.000Z',
+      updatedAt: '2026-09-21T00:00:00.000Z',
+      sourceRefs: [],
     });
     const onDone = vi.fn();
     renderForm(onDone);

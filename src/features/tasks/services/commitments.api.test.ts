@@ -190,4 +190,71 @@ describe('changeRequestsApi', () => {
       'idem-key-2',
     );
   });
+
+  it('listPaged() gửi đúng query filter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({ success: true, data: [], meta: { total: 0 } }),
+    });
+    await changeRequestsApi.listPaged('proj-1', {
+      page: 1,
+      status: 'DRAFT',
+    });
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain('/api/v1/projects/proj-1/change-requests?');
+    expect(url).toContain('status=DRAFT');
+  });
+
+  it('getDetail() gọi đúng path', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'cr1' }));
+    await changeRequestsApi.getDetail('cr1');
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain('/api/v1/change-requests/cr1');
+  });
+
+  it('update() gửi PATCH với đúng body', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'cr1' }));
+    await changeRequestsApi.update('cr1', { title: 'X mới', version: 2 });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/change-requests/cr1');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(init.body as string)).toEqual({
+      title: 'X mới',
+      version: 2,
+    });
+  });
+
+  it('transition() gửi POST với đúng body', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'cr1' }));
+    await changeRequestsApi.transition('cr1', {
+      to: 'REJECTED',
+      reason: 'Không khả thi',
+      version: 2,
+    });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/change-requests/cr1/transition');
+    expect(JSON.parse(init.body as string)).toEqual({
+      to: 'REJECTED',
+      reason: 'Không khả thi',
+      version: 2,
+    });
+  });
+
+  it('removeSourceRef() gửi DELETE với đúng path', async () => {
+    mockFetch.mockResolvedValue({ ok: true, text: async () => '' });
+    await changeRequestsApi.removeSourceRef('cr1', 'ref1');
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/change-requests/cr1/source-refs/ref1');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('getSourceRefContent() gọi đúng path', async () => {
+    mockFetch.mockResolvedValue(okResponse([]));
+    await changeRequestsApi.getSourceRefContent('cr1', 'ref1');
+    const [url] = mockFetch.mock.calls[0] as [string];
+    expect(url).toContain(
+      '/api/v1/change-requests/cr1/source-refs/ref1/content',
+    );
+  });
 });
