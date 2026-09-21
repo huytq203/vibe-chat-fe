@@ -109,6 +109,67 @@ describe('commitmentsApi', () => {
       '/api/v1/commitments/c1/source-refs/ref1/content',
     );
   });
+
+  it('nên gửi PATCH với đúng path/body khi update()', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'c1' }));
+    await commitmentsApi.update('c1', { title: 'X mới', version: 3 });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(init.body as string)).toEqual({
+      title: 'X mới',
+      version: 3,
+    });
+  });
+
+  it('nên gửi DELETE với đúng path khi unlinkTask()', async () => {
+    mockFetch.mockResolvedValue({ ok: true, text: async () => '' });
+    await commitmentsApi.unlinkTask('c1', 't1');
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/tasks/t1');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('nên gửi đúng path/body khi addEvidence()', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'e1' }));
+    await commitmentsApi.addEvidence('c1', {
+      milestone: 'TESTED',
+      type: 'NOTE',
+      note: 'ok',
+    });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/evidence');
+    expect(JSON.parse(init.body as string)).toEqual({
+      milestone: 'TESTED',
+      type: 'NOTE',
+      note: 'ok',
+    });
+  });
+
+  it('nên gửi POST với đúng path/body khi transition()', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'c1' }));
+    await commitmentsApi.transition('c1', {
+      to: 'DELIVERED',
+      evidenceId: 'e1',
+      version: 3,
+    });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/transition');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({
+      to: 'DELIVERED',
+      evidenceId: 'e1',
+      version: 3,
+    });
+  });
+
+  it('nên gửi DELETE với đúng path khi removeSourceRef()', async () => {
+    mockFetch.mockResolvedValue({ ok: true, text: async () => '' });
+    await commitmentsApi.removeSourceRef('c1', 'ref1');
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/source-refs/ref1');
+    expect(init.method).toBe('DELETE');
+  });
 });
 
 describe('changeRequestsApi', () => {

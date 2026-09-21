@@ -7,6 +7,8 @@ import {
   useCommitmentDetail,
   useCommitmentsInfinite,
   useCreateCommitment,
+  useTransitionCommitment,
+  useUpdateCommitment,
 } from './useCommitments';
 
 vi.mock('../services/commitments.api', () => ({
@@ -14,6 +16,8 @@ vi.mock('../services/commitments.api', () => ({
     listPaged: vi.fn(),
     getDetail: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
+    transition: vi.fn(),
   },
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -77,5 +81,41 @@ describe('useCreateCommitment', () => {
       { title: 'X', scopeStatus: 'UNCLEAR' },
       expect.any(String),
     );
+  });
+});
+
+describe('useUpdateCommitment', () => {
+  it('nên gọi commitmentsApi.update với đúng tham số', async () => {
+    vi.mocked(commitmentsApi.update).mockResolvedValue({} as never);
+    const { result } = renderHook(
+      () => useUpdateCommitment('proj-1', 'c1'),
+      { wrapper },
+    );
+
+    result.current.mutate({ title: 'X mới', version: 3 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(commitmentsApi.update).toHaveBeenCalledWith('c1', {
+      title: 'X mới',
+      version: 3,
+    });
+  });
+});
+
+describe('useTransitionCommitment', () => {
+  it('nên gọi commitmentsApi.transition với đúng tham số', async () => {
+    vi.mocked(commitmentsApi.transition).mockResolvedValue({} as never);
+    const { result } = renderHook(
+      () => useTransitionCommitment('proj-1', 'c1'),
+      { wrapper },
+    );
+
+    result.current.mutate({ to: 'READY', version: 2 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(commitmentsApi.transition).toHaveBeenCalledWith('c1', {
+      to: 'READY',
+      version: 2,
+    });
   });
 });

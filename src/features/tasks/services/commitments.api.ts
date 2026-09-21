@@ -2,10 +2,13 @@ import { taskClient } from '../lib/task-client';
 import type {
   ChangeRequestSummary,
   CommitmentDetail,
+  CommitmentEvidence,
   CommitmentRiskCode,
   CommitmentSummary,
   CreateSourceRefInput,
   DeliveryStatus,
+  EvidenceMilestone,
+  EvidenceType,
   PaginationMeta,
 } from '../types';
 import type { ResolvedMessage } from '@/features/chat/types';
@@ -40,6 +43,64 @@ export const commitmentsApi = {
     taskClient.post<void>(`/api/v1/commitments/${commitmentId}/tasks`, {
       taskId,
     }),
+
+  update: (
+    commitmentId: string,
+    input: {
+      title?: string;
+      description?: string | null;
+      ownerId?: string | null;
+      requestedByContactId?: string | null;
+      dueAt?: string | null;
+      promisedAt?: string | null;
+      scopeStatus?: 'IN_SCOPE' | 'UNCLEAR' | 'OUT_OF_SCOPE';
+      scopeItemId?: string | null;
+      version: number;
+    },
+  ) =>
+    taskClient.patch<CommitmentDetail>(
+      `/api/v1/commitments/${commitmentId}`,
+      input,
+    ),
+
+  unlinkTask: (commitmentId: string, taskId: string) =>
+    taskClient.delete<void>(
+      `/api/v1/commitments/${commitmentId}/tasks/${taskId}`,
+    ),
+
+  addEvidence: (
+    commitmentId: string,
+    input: {
+      milestone: EvidenceMilestone;
+      type: EvidenceType;
+      url?: string;
+      note?: string;
+    },
+  ) =>
+    taskClient.post<CommitmentEvidence>(
+      `/api/v1/commitments/${commitmentId}/evidence`,
+      input,
+    ),
+
+  transition: (
+    commitmentId: string,
+    input: {
+      to: DeliveryStatus;
+      evidenceId?: string;
+      onBehalfOf?: string;
+      reason?: string;
+      version: number;
+    },
+  ) =>
+    taskClient.post<CommitmentDetail>(
+      `/api/v1/commitments/${commitmentId}/transition`,
+      input,
+    ),
+
+  removeSourceRef: (commitmentId: string, refId: string) =>
+    taskClient.delete<void>(
+      `/api/v1/commitments/${commitmentId}/source-refs/${refId}`,
+    ),
 
   // Picker cho LINK_EXISTING_COMMITMENT. Backend chưa hỗ trợ tìm theo tên (`q`) — lấy 1 trang
   // tối đa (limit=100, giới hạn cứng của PaginationQueryDto) rồi filter theo title ở client.
