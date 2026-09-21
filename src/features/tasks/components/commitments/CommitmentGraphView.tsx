@@ -1,7 +1,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
-import { SettingsPlaceholder } from '../projects/SettingsPlaceholder';
+import { ChangeRequestsTab } from './ChangeRequestsTab';
 import { ClientTab } from './ClientTab';
 import { CommitmentsTab } from './CommitmentsTab';
 import { ScopeTab } from './ScopeTab';
@@ -35,7 +35,7 @@ export function CommitmentGraphView({ projectId }: { projectId: string }) {
             <CommitmentsTab projectId={projectId} />
           </TabsContent>
           <TabsContent value="change-requests">
-            <SettingsPlaceholder title="Yêu cầu thay đổi" />
+            <ChangeRequestsTab projectId={projectId} />
           </TabsContent>
         </div>
       </Tabs>
