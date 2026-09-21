@@ -121,7 +121,12 @@ export function MessageAnalysisDialog({
               danger
             />
           )}
-          {analysis.data && <MessageAnalysisPreview analysis={analysis.data} />}
+          {analysis.data && (
+            <MessageAnalysisPreview
+              analysis={analysis.data}
+              projectId={resolvedProjectId}
+            />
+          )}
         </div>
 
         <DialogFooter className="mt-6 shrink-0">

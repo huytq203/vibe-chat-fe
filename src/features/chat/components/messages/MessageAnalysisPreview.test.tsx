@@ -23,8 +23,8 @@ const baseAnalysis: MessageAnalysis = {
 };
 
 describe('MessageAnalysisPreview', () => {
-  it('hiển thị kết quả và đề xuất có cấu trúc', () => {
-    render(<MessageAnalysisPreview analysis={baseAnalysis} />);
+  it('nên hiển thị kết quả và đề xuất có cấu trúc', () => {
+    render(<MessageAnalysisPreview analysis={baseAnalysis} projectId="proj-1" />);
 
     expect(screen.getByText('Thay đổi phạm vi')).toBeInTheDocument();
     expect(screen.getByText('Ngoài phạm vi')).toBeInTheDocument();
@@ -32,8 +32,13 @@ describe('MessageAnalysisPreview', () => {
     expect(screen.getByText('Tạo yêu cầu thay đổi')).toBeInTheDocument();
   });
 
-  it('hiển thị empty state khi không có đề xuất', () => {
-    render(<MessageAnalysisPreview analysis={{ ...baseAnalysis, suggestedActions: [] }} />);
+  it('nên hiển thị empty state khi không có đề xuất', () => {
+    render(
+      <MessageAnalysisPreview
+        analysis={{ ...baseAnalysis, suggestedActions: [] }}
+        projectId="proj-1"
+      />,
+    );
 
     expect(screen.getByText('Chưa có hành động phù hợp.')).toBeInTheDocument();
   });
