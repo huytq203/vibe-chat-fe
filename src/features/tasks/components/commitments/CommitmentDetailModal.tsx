@@ -2,14 +2,22 @@
 
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Pencil, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
+import { Button } from '@/components/ui/button/Button';
+import { ComboBox } from '@/components/ui/combobox/ComboBox';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog/Dialog';
+import { Input } from '@/components/ui/input/Input';
 import { Skeleton } from '@/components/ui/skeleton/Skeleton';
+import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Text } from '@/components/ui/typography/Typography';
 import {
   DELIVERY_STATUS_LABELS,
@@ -17,11 +25,18 @@ import {
   RISK_LABELS,
   SCOPE_STATUS_LABELS,
 } from '../../lib/commitment-labels';
+import { useProjectClient } from '../../hooks/useClient';
 import { useMembers } from '../../hooks/useMembers';
-import { useCommitmentDetail } from '../../hooks/useCommitments';
+import {
+  useAddEvidence,
+  useCommitmentDetail,
+  useRemoveSourceRef,
+  useUpdateCommitment,
+} from '../../hooks/useCommitments';
+import { useProjectScope } from '../../hooks/useScope';
 import { commitmentsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import type { SourceRef } from '../../types';
+import type { CommitmentDetail, SourceRef } from '../../types';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -29,6 +44,8 @@ function formatDate(iso: string | null): string {
 }
 
 export function CommitmentDetailModal({ projectId }: { projectId: string }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
   const selectedId = useTasksUIStore((state) => state.selectedCommitmentId);
   const close = useTasksUIStore((state) => state.closeCommitmentDetail);
   const detail = useCommitmentDetail(selectedId ?? '');
@@ -59,6 +76,15 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 <Badge variant="soft-primary" size="sm">
                   {SCOPE_STATUS_LABELS[detail.data.scopeStatus]}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Sửa cam kết"
+                  className="ml-auto"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </DialogTitle>
             </DialogHeader>
 
@@ -130,7 +156,20 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 )}
               </Section>
 
-              <Section title="Bằng chứng">
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Bằng chứng
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAddEvidenceOpen(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Thêm
+                  </Button>
+                </div>
                 {detail.data.evidence.length === 0 ? (
                   <EmptyText>Chưa có bằng chứng.</EmptyText>
                 ) : (
@@ -157,7 +196,7 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                     ))}
                   </ul>
                 )}
-              </Section>
+              </div>
 
               <Section title="Nguồn tham chiếu">
                 {detail.data.sourceRefs.length === 0 ? (
@@ -170,6 +209,17 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 )}
               </Section>
             </div>
+            <EditCommitmentDialog
+              projectId={projectId}
+              commitment={detail.data}
+              open={editOpen}
+              onOpenChange={setEditOpen}
+            />
+            <AddEvidenceDialog
+              commitmentId={detail.data.id}
+              open={addEvidenceOpen}
+              onOpenChange={setAddEvidenceOpen}
+            />
           </>
         ) : null}
       </DialogContent>
@@ -213,6 +263,7 @@ function SourceRefList({
   refs: SourceRef[];
 }) {
   const [openRefId, setOpenRefId] = useState<string | null>(null);
+  const removeSourceRef = useRemoveSourceRef(commitmentId);
 
   return (
     <ul className="space-y-1.5">
@@ -237,6 +288,14 @@ function SourceRefList({
                 {openRefId === sourceRef.id ? 'Ẩn nội dung' : 'Xem nội dung'}
               </button>
             )}
+            <button
+              type="button"
+              aria-label="Gỡ nguồn tham chiếu"
+              className="ml-auto text-muted-foreground hover:text-danger"
+              onClick={() => removeSourceRef.mutate(sourceRef.id)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
           {openRefId === sourceRef.id && (
             <SourceRefContent
@@ -247,6 +306,287 @@ function SourceRefList({
         </li>
       ))}
     </ul>
+  );
+}
+
+function EditCommitmentDialog({
+  projectId,
+  commitment,
+  open,
+  onOpenChange,
+}: {
+  projectId: string;
+  commitment: CommitmentDetail;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [title, setTitle] = useState(commitment.title);
+  const [description, setDescription] = useState(
+    commitment.description ?? '',
+  );
+  const [ownerId, setOwnerId] = useState(commitment.ownerId ?? '');
+  const [contactId, setContactId] = useState(commitment.contact?.id ?? '');
+  const [dueAt, setDueAt] = useState<Date | undefined>(
+    commitment.dueAt ? new Date(commitment.dueAt) : undefined,
+  );
+  const [promisedAt, setPromisedAt] = useState<Date | undefined>(
+    commitment.promisedAt ? new Date(commitment.promisedAt) : undefined,
+  );
+  const [scopeStatus, setScopeStatus] = useState(commitment.scopeStatus);
+  const [scopeItemId, setScopeItemId] = useState(
+    commitment.scopeItemId ?? '',
+  );
+
+  const members = useMembers(projectId);
+  const client = useProjectClient(projectId);
+  const scope = useProjectScope(projectId);
+  const update = useUpdateCommitment(projectId, commitment.id);
+
+  const memberOptions = (members.data ?? []).map((member) => ({
+    value: member.userId,
+    label: member.displayName,
+  }));
+  const contactOptions = (client.data?.contacts ?? []).map((contact) => ({
+    value: contact.id,
+    label: contact.name,
+  }));
+  const scopeItemOptions = (scope.data?.items ?? []).map((item) => ({
+    value: item.id,
+    label: item.title,
+  }));
+
+  function handleSubmit() {
+    update.mutate(
+      {
+        title: title.trim(),
+        description: description.trim() || null,
+        ownerId: ownerId || null,
+        requestedByContactId: contactId || null,
+        dueAt: dueAt ? dueAt.toISOString() : null,
+        promisedAt: promisedAt ? promisedAt.toISOString() : null,
+        scopeStatus,
+        scopeItemId: scopeItemId || null,
+        version: commitment.version,
+      },
+      { onSuccess: () => onOpenChange(false) },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Sửa cam kết</DialogTitle>
+          <DialogDescription>Cập nhật thông tin cam kết.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            label="Tiêu đề"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+          />
+          <Textarea
+            label="Mô tả"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+          <ComboBox
+            label="Người chịu trách nhiệm"
+            value={ownerId}
+            options={memberOptions}
+            onValueChange={(value) =>
+              setOwnerId(Array.isArray(value) ? (value[0] ?? '') : value)
+            }
+            placeholder="Chọn thành viên"
+            emptyText="Không có thành viên."
+          />
+          <ComboBox
+            label="Người yêu cầu phía khách"
+            value={contactId}
+            options={contactOptions}
+            onValueChange={(value) =>
+              setContactId(Array.isArray(value) ? (value[0] ?? '') : value)
+            }
+            placeholder="Chọn người liên hệ"
+            emptyText="Chưa có người liên hệ nào."
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <DatePicker
+              mode="single"
+              editable
+              label="Đã hứa lúc"
+              placeholder="dd/mm/yyyy"
+              value={promisedAt}
+              onChange={(date) =>
+                setPromisedAt(date instanceof Date ? date : undefined)
+              }
+            />
+            <DatePicker
+              mode="single"
+              editable
+              label="Hạn hoàn thành"
+              placeholder="dd/mm/yyyy"
+              value={dueAt}
+              onChange={(date) =>
+                setDueAt(date instanceof Date ? date : undefined)
+              }
+            />
+          </div>
+          <ComboBox
+            label="Trạng thái phạm vi"
+            value={scopeStatus}
+            options={Object.entries(SCOPE_STATUS_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onValueChange={(value) =>
+              setScopeStatus(
+                (Array.isArray(value)
+                  ? value[0]
+                  : value) as CommitmentDetail['scopeStatus'],
+              )
+            }
+          />
+          <ComboBox
+            label="Hạng mục scope liên quan"
+            value={scopeItemId}
+            options={scopeItemOptions}
+            onValueChange={(value) =>
+              setScopeItemId(Array.isArray(value) ? (value[0] ?? '') : value)
+            }
+            placeholder="Chọn hạng mục"
+            emptyText="Chưa có hạng mục scope nào."
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Huỷ
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+            isLoading={update.isPending}
+          >
+            Lưu
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddEvidenceDialog({
+  commitmentId,
+  open,
+  onOpenChange,
+}: {
+  commitmentId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [milestone, setMilestone] =
+    useState<keyof typeof EVIDENCE_MILESTONE_LABELS>('IMPLEMENTED');
+  const [type, setType] = useState<'URL' | 'NOTE'>('URL');
+  const [url, setUrl] = useState('');
+  const [note, setNote] = useState('');
+  const addEvidence = useAddEvidence(commitmentId);
+
+  function reset() {
+    setMilestone('IMPLEMENTED');
+    setType('URL');
+    setUrl('');
+    setNote('');
+  }
+
+  function handleSubmit() {
+    addEvidence.mutate(
+      {
+        milestone,
+        type,
+        ...(type === 'URL' ? { url: url.trim() } : { note: note.trim() }),
+      },
+      {
+        onSuccess: () => {
+          reset();
+          onOpenChange(false);
+        },
+      },
+    );
+  }
+
+  const canSubmit =
+    type === 'URL' ? url.trim().startsWith('http') : note.trim().length > 0;
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        onOpenChange(nextOpen);
+        if (!nextOpen) reset();
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Thêm bằng chứng</DialogTitle>
+          <DialogDescription>
+            Bằng chứng cho 1 mốc thực hiện cụ thể.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <ComboBox
+            label="Mốc thực hiện"
+            value={milestone}
+            options={Object.entries(EVIDENCE_MILESTONE_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onValueChange={(value) =>
+              setMilestone(
+                (Array.isArray(value) ? value[0] : value) as typeof milestone,
+              )
+            }
+          />
+          <ComboBox
+            label="Loại"
+            value={type}
+            options={[
+              { value: 'URL', label: 'Đường dẫn' },
+              { value: 'NOTE', label: 'Ghi chú' },
+            ]}
+            onValueChange={(value) =>
+              setType(
+                (Array.isArray(value) ? value[0] : value) as 'URL' | 'NOTE',
+              )
+            }
+          />
+          {type === 'URL' ? (
+            <Input
+              label="URL"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://..."
+            />
+          ) : (
+            <Textarea
+              label="Ghi chú"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Huỷ
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            isLoading={addEvidence.isPending}
+          >
+            Thêm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

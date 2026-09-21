@@ -1,8 +1,15 @@
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '@/test/test-utils';
+import { useProjectClient } from '../../hooks/useClient';
 import { useMembers } from '../../hooks/useMembers';
-import { useCommitmentDetail } from '../../hooks/useCommitments';
+import {
+  useAddEvidence,
+  useCommitmentDetail,
+  useRemoveSourceRef,
+  useUpdateCommitment,
+} from '../../hooks/useCommitments';
+import { useProjectScope } from '../../hooks/useScope';
 import { commitmentsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { CommitmentDetail } from '../../types';
@@ -10,10 +17,21 @@ import { CommitmentDetailModal } from './CommitmentDetailModal';
 
 vi.mock('../../hooks/useCommitments', () => ({
   useCommitmentDetail: vi.fn(),
+  useUpdateCommitment: vi.fn(),
+  useAddEvidence: vi.fn(),
+  useRemoveSourceRef: vi.fn(),
+}));
+
+vi.mock('../../hooks/useClient', () => ({
+  useProjectClient: vi.fn(),
 }));
 
 vi.mock('../../hooks/useMembers', () => ({
   useMembers: vi.fn(),
+}));
+
+vi.mock('../../hooks/useScope', () => ({
+  useProjectScope: vi.fn(),
 }));
 
 vi.mock('../../stores/tasks-ui.store', () => ({
@@ -27,6 +45,9 @@ vi.mock('../../services/commitments.api', () => ({
 }));
 
 const closeCommitmentDetail = vi.fn();
+const updateCommitment = vi.fn();
+const addEvidence = vi.fn();
+const removeSourceRef = vi.fn();
 let selectedCommitmentId: string | null = 'commitment-1';
 
 const commitmentDetail: CommitmentDetail = {
@@ -115,6 +136,33 @@ beforeEach(() => {
       },
     ],
   } as ReturnType<typeof useMembers>);
+  vi.mocked(useProjectClient).mockReturnValue({
+    data: {
+      projectId: 'project-1',
+      name: 'Khách hàng ACME',
+      contacts: [commitmentDetail.contact],
+    },
+  } as ReturnType<typeof useProjectClient>);
+  vi.mocked(useProjectScope).mockReturnValue({
+    data: {
+      projectId: 'project-1',
+      rawDocument: null,
+      version: 1,
+      items: [],
+    },
+  } as unknown as ReturnType<typeof useProjectScope>);
+  vi.mocked(useUpdateCommitment).mockReturnValue({
+    mutate: updateCommitment,
+    isPending: false,
+  } as unknown as ReturnType<typeof useUpdateCommitment>);
+  vi.mocked(useAddEvidence).mockReturnValue({
+    mutate: addEvidence,
+    isPending: false,
+  } as unknown as ReturnType<typeof useAddEvidence>);
+  vi.mocked(useRemoveSourceRef).mockReturnValue({
+    mutate: removeSourceRef,
+    isPending: false,
+  } as unknown as ReturnType<typeof useRemoveSourceRef>);
   vi.mocked(useTasksUIStore).mockImplementation((selector) =>
     selector({ selectedCommitmentId, closeCommitmentDetail } as never),
   );
@@ -194,5 +242,79 @@ describe('CommitmentDetailModal', () => {
     expect(
       await screen.findByText('Khách hàng xác nhận nội dung bàn giao.'),
     ).toBeInTheDocument();
+  });
+
+  it('mở biểu mẫu sửa với dữ liệu hiện tại và gửi nội dung đã cập nhật', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Sửa cam kết' }));
+
+    expect(screen.getByRole('dialog', { name: 'Sửa cam kết' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Tiêu đề/)).toHaveValue(
+      'Bàn giao bản beta',
+    );
+    expect(screen.getByLabelText('Mô tả')).toHaveValue(
+      'Hoàn thiện và bàn giao bản beta cho khách hàng.',
+    );
+
+    const titleInput = screen.getByLabelText(/^Tiêu đề/);
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Bàn giao bản chính thức');
+    await user.click(screen.getByRole('button', { name: 'Lưu' }));
+
+    expect(useUpdateCommitment).toHaveBeenCalledWith(
+      'project-1',
+      'commitment-1',
+    );
+    expect(updateCommitment).toHaveBeenCalledWith(
+      {
+        title: 'Bàn giao bản chính thức',
+        description: 'Hoàn thiện và bàn giao bản beta cho khách hàng.',
+        ownerId: 'user-1',
+        requestedByContactId: 'contact-1',
+        dueAt: '2026-09-25T08:00:00.000Z',
+        promisedAt: '2026-09-18T08:00:00.000Z',
+        scopeStatus: 'IN_SCOPE',
+        scopeItemId: null,
+        version: 2,
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('thêm bằng chứng đường dẫn cho cam kết', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Thêm bằng chứng' }),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('URL'), 'https://example.com/demo');
+    await user.click(screen.getAllByRole('button', { name: 'Thêm' }).at(-1)!);
+
+    expect(useAddEvidence).toHaveBeenCalledWith('commitment-1');
+    expect(addEvidence).toHaveBeenCalledWith(
+      {
+        milestone: 'IMPLEMENTED',
+        type: 'URL',
+        url: 'https://example.com/demo',
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('gỡ nguồn tham chiếu khỏi cam kết', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Gỡ nguồn tham chiếu' }),
+    );
+
+    expect(useRemoveSourceRef).toHaveBeenCalledWith('commitment-1');
+    expect(removeSourceRef).toHaveBeenCalledWith('ref-1');
   });
 });
