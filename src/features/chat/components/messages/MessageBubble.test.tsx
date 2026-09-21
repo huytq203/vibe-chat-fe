@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { fireEvent, renderWithProviders } from '@/test/test-utils';
 import type { Message } from '@/features/chat/types';
 import { CHAT_THEMES } from '@/features/chat/config/chat-themes';
+import { useMessageSelectionStore } from '@/features/chat/stores/message-selection.store';
 import { MessageBubble } from './MessageBubble';
 import { LightboxProvider } from './LightboxProvider';
 
@@ -58,6 +60,10 @@ function buildImageAttachment(id: string) {
 }
 
 describe('MessageBubble', () => {
+  beforeEach(() => {
+    useMessageSelectionStore.setState({ conversationId: null, selectedIds: new Set() });
+  });
+
   it('renders the original sender label for a forwarded message', () => {
     const { getByText } = renderWithProviders(
       <MessageBubble
@@ -443,5 +449,62 @@ describe('MessageBubble', () => {
     expect(container.querySelector('table')).toHaveTextContent('Thời gian');
     expect(container.querySelector('strong')).toHaveTextContent('Bot Service');
     expect(container.querySelector('code')).toHaveTextContent('GET /api/v1/bot/me');
+  });
+
+  it('nên hiện checkbox overlay khi selectable=true', () => {
+    renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble
+          message={buildMessage()}
+          meId="user-1"
+          showAvatar
+          selectable
+          selected={false}
+        />
+      </LightboxProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Chọn tin nhắn' }),
+    ).toBeInTheDocument();
+  });
+
+  it('nên hiện trạng thái đã chọn khi selected=true', () => {
+    renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble
+          message={buildMessage()}
+          meId="user-1"
+          showAvatar
+          selectable
+          selected
+        />
+      </LightboxProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Bỏ chọn tin nhắn' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('nên gọi toggle với đúng messageId khi bấm overlay, không kích hoạt onQuoteClick', async () => {
+    const user = userEvent.setup();
+    const onQuoteClick = vi.fn();
+    const message = buildMessage({ replyToMessageId: 'm0' });
+    renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble
+          message={message}
+          meId="user-1"
+          showAvatar
+          selectable
+          selected={false}
+          onQuoteClick={onQuoteClick}
+        />
+      </LightboxProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Chọn tin nhắn' }));
+
+    expect(useMessageSelectionStore.getState().selectedIds.has(message.id)).toBe(true);
+    expect(onQuoteClick).not.toHaveBeenCalled();
   });
 });

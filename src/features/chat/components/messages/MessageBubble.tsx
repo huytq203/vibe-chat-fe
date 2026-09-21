@@ -1,8 +1,10 @@
 "use client";
 
 import { memo, type ReactNode } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { Message } from "@/features/chat/types";
+import { useMessageSelectionStore } from "@/features/chat/stores/message-selection.store";
 import {
   type BubbleConfig,
   DEFAULT_BUBBLE_CONFIG,
@@ -59,6 +61,10 @@ type MessageBubbleProps = {
   renderMarkdown?: boolean;
   /** Chrome dành cho kho cá nhân: media độc lập, không có nền bubble màu primary. */
   appearance?: "default" | "store";
+  /** Đang ở chế độ chọn nhiều tin nhắn và tin này chọn được (canActions ở MessageList). */
+  selectable?: boolean;
+  /** Tin này đang nằm trong danh sách đã chọn. */
+  selected?: boolean;
   onLaunchWebapp?: (input: {
     botUsername: string;
     buttonPayload?: string;
@@ -91,6 +97,8 @@ function MessageBubbleImpl({
   enableBotCommands = false,
   renderMarkdown = false,
   appearance = "default",
+  selectable = false,
+  selected = false,
   onLaunchWebapp,
 }: MessageBubbleProps) {
   const hasTheme = Object.keys(bubbleConfig.myStyle).length > 0;
@@ -246,6 +254,33 @@ function MessageBubbleImpl({
           style={hasTheme && !isMe && !isBareMedia ? bubbleConfig.otherStyle : undefined}
           {...bubbleProps}
         >
+          {selectable && (
+            <button
+              type="button"
+              aria-label={selected ? "Bỏ chọn tin nhắn" : "Chọn tin nhắn"}
+              aria-pressed={selected}
+              onClick={(e) => {
+                e.stopPropagation();
+                useMessageSelectionStore.getState().toggle(message.id);
+              }}
+              className={cn(
+                "absolute inset-0 z-30 rounded-2xl",
+                selected ? "bg-primary/15 ring-2 ring-primary" : "bg-transparent",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2",
+                  isMe ? "right-1.5" : "left-1.5",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background",
+                )}
+              >
+                {selected && <Check className="h-3.5 w-3.5" />}
+              </span>
+            </button>
+          )}
           {actionsMenu}
           {likeButton}
           {drawer}
