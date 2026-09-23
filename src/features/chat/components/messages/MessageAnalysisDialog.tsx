@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button/Button';
 import { ComboBox } from '@/components/ui/combobox/ComboBox';
@@ -134,13 +134,13 @@ export function MessageAnalysisDialog({
             Đóng
           </Button>
           {!analysis.data && !projects.isPending && !projects.isError && projectOptions.length > 0 && (
-            <Button onClick={handleAnalyze} disabled={!resolvedProjectId} isLoading={analysis.isPending}>
-              Phân tích tin nhắn
+            <Button onClick={handleAnalyze} disabled={!resolvedProjectId || analysis.isPending}>
+              {analysis.isPending ? 'AI đang phân tích…' : 'Phân tích tin nhắn'}
             </Button>
           )}
           {analysis.data && (
-            <Button variant="secondary" onClick={handleAnalyze} isLoading={analysis.isPending}>
-              Phân tích lại
+            <Button variant="secondary" onClick={handleAnalyze} disabled={analysis.isPending}>
+              {analysis.isPending ? 'AI đang phân tích…' : 'Phân tích lại'}
             </Button>
           )}
         </DialogFooter>
@@ -150,11 +150,27 @@ export function MessageAnalysisDialog({
 }
 
 function AnalysisLoading() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const comparing = window.setTimeout(() => setStep(1), 4_000);
+    const drafting = window.setTimeout(() => setStep(2), 6_000);
+    return () => {
+      window.clearTimeout(comparing);
+      window.clearTimeout(drafting);
+    };
+  }, []);
+
+  const messages = [
+    'AI đang đọc các tin nhắn đã chọn…',
+    'AI đang đối chiếu với task trong project…',
+    'AI đang soạn đề xuất task…',
+  ];
+
   return (
-    <div aria-label="AI đang phân tích" className="space-y-3 rounded-xl bg-muted/60 p-4">
-      <Skeleton className="h-4 w-2/3" />
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-5/6" />
+    <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-4">
+      <Sparkles aria-hidden="true" className="analysis-thinking-sparkle size-5 shrink-0 text-primary" />
+      <p aria-live="polite" className="text-sm text-foreground">{messages[step]}</p>
     </div>
   );
 }
