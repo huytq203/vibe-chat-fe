@@ -19,20 +19,14 @@ type TasksUIState = {
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
-  selectedCommitmentId: string | null;
-  openCommitmentDetail: (id: string) => void;
-  closeCommitmentDetail: () => void;
-  selectedChangeRequestId: string | null;
-  openChangeRequestDetail: (id: string) => void;
-  closeChangeRequestDetail: () => void;
   aiConversationByProjectId: Record<string, string | null>;
   setAiConversation: (projectId: string, conversationId: string | null) => void;
   /** Ngăn xếp drill-down subtask (id các task con dưới task gốc đang mở). */
   subtaskPath: string[];
   openSubtask: (id: string) => void;
   navigateSubtaskBack: () => void;
-  boardView: 'board' | 'list' | 'commitments';
-  setBoardView: (v: 'board' | 'list' | 'commitments') => void;
+  boardView: 'board' | 'list';
+  setBoardView: (v: 'board' | 'list') => void;
   settingsModal: SettingsModalState;
   openSettings: (tab?: 'info' | 'share' | 'labels') => void;
   closeSettings: () => void;
@@ -51,12 +45,6 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   selectedTaskId: null,
   openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
   closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),
-  selectedCommitmentId: null,
-  openCommitmentDetail: (id) => set({ selectedCommitmentId: id }),
-  closeCommitmentDetail: () => set({ selectedCommitmentId: null }),
-  selectedChangeRequestId: null,
-  openChangeRequestDetail: (id) => set({ selectedChangeRequestId: id }),
-  closeChangeRequestDetail: () => set({ selectedChangeRequestId: null }),
   aiConversationByProjectId: {},
   setAiConversation: (projectId, conversationId) =>
     set((state) => ({

@@ -42,9 +42,6 @@ export function ConfirmCreateTaskForm({ projectId, action, onDone }: Props) {
         description,
         ...(dueDate ? { dueDate: format(dueDate, 'yyyy-MM-dd') } : {}),
         columnId,
-        ...(action.targetCommitmentId
-          ? { commitmentId: action.targetCommitmentId }
-          : {}),
         idempotencyKey,
       },
       { onSuccess: onDone },

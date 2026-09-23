@@ -19,7 +19,7 @@ describe('taskClient', () => {
       text: async () => JSON.stringify({ success: true, data: { id: 'c1' } }),
     });
 
-    await taskClient.post('/api/v1/commitments', { title: 'X' }, {
+    await taskClient.post('/api/v1/projects/project-1/tasks', { title: 'X' }, {
       'Idempotency-Key': 'idem-key-1',
     });
 

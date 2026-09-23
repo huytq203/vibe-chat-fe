@@ -1,6 +1,6 @@
 'use client';
 
-import { Columns3, List, Settings, Share2, ShieldCheck } from 'lucide-react';
+import { Columns3, List, Settings, Share2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar/Avatar';
 import { useMembers } from '../../hooks/useMembers';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -39,17 +39,6 @@ export function BoardHeader({ projectId }: { projectId: string }) {
         >
           <List className="h-4 w-4" />
           Danh sách
-        </button>
-        <button
-          type="button"
-          onClick={() => setBoardView('commitments')}
-          aria-pressed={boardView === 'commitments'}
-          className={boardView === 'commitments'
-            ? 'flex h-9 items-center gap-1.5 rounded-lg bg-background px-3 text-sm font-semibold text-primary shadow-micro'
-            : 'flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground'}
-        >
-          <ShieldCheck className="h-4 w-4" />
-          Cam kết
         </button>
       </div>
 

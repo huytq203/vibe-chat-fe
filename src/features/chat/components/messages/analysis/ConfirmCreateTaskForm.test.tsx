@@ -2,22 +2,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { commitmentsApi } from '@/features/tasks/services/commitments.api';
 import { tasksApi } from '@/features/tasks/services/tasks.api';
 import { ConfirmCreateTaskForm } from './ConfirmCreateTaskForm';
 
 vi.mock('@/features/tasks/services/tasks.api', () => ({
   tasksApi: { createTask: vi.fn(), getBoard: vi.fn() },
 }));
-vi.mock('@/features/tasks/services/commitments.api', () => ({
-  commitmentsApi: { linkTask: vi.fn() },
-}));
-
 const ACTION = {
   type: 'CREATE_TASK' as const,
   title: 'Task X',
   description: 'Mô tả task X',
-  targetCommitmentId: 'commitment-1',
   dueDate: '2026-10-15',
 };
 
@@ -63,10 +57,9 @@ describe('ConfirmCreateTaskForm', () => {
     expect(screen.getByDisplayValue('15/10/2026')).toBeInTheDocument();
   });
 
-  it('nên tạo task rồi gắn task vào cam kết và báo hoàn tất', async () => {
+  it('nên tạo task và báo hoàn tất', async () => {
     const user = userEvent.setup();
     vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
-    vi.mocked(commitmentsApi.linkTask).mockResolvedValue(undefined);
     const onDone = vi.fn();
     renderForm(onDone);
 
@@ -80,12 +73,10 @@ describe('ConfirmCreateTaskForm', () => {
       { title: 'Task X', columnId: 'column-1', description: 'Mô tả task X', dueDate: '2026-10-15' },
       expect.any(String),
     );
-    expect(commitmentsApi.linkTask).toHaveBeenCalledWith('commitment-1', 'task-1');
   });
 
   it('nên gửi mô tả và hạn chót khi tạo task', async () => {
     vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
-    vi.mocked(commitmentsApi.linkTask).mockResolvedValue(undefined);
     renderForm();
     fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: '  Nội dung thật  ' } });
     const user = userEvent.setup();
@@ -97,7 +88,6 @@ describe('ConfirmCreateTaskForm', () => {
 
   it('nên không gửi mô tả khi mô tả rỗng', async () => {
     vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
-    vi.mocked(commitmentsApi.linkTask).mockResolvedValue(undefined);
     renderForm();
     fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: '   ' } });
     const user = userEvent.setup();

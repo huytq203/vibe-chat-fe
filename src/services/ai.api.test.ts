@@ -44,8 +44,6 @@ describe('AI API streaming transport', () => {
 
   it('gửi payload phân tích tới ai-service và kiểm tra response', async () => {
     const result = {
-      classification: 'TASK',
-      scopeStatus: 'IN_SCOPE',
       summary: 'Cần cập nhật trang thanh toán.',
       reasoning: 'Tin nhắn mô tả một đầu việc cụ thể.',
       confidence: 0.92,

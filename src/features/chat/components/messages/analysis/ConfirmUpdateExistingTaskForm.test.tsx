@@ -12,10 +12,9 @@ vi.mock('@/features/tasks/services/tasks.api', () => ({
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const ACTION = {
-  type: 'UPDATE_EXISTING_TASK',
+  type: 'UPDATE_EXISTING_TASK' as const,
   title: 'Cập nhật task',
   description: 'Mô tả',
-  targetCommitmentId: null,
   targetTaskId: 'task-1',
   dueDate: '2026-10-15',
 };

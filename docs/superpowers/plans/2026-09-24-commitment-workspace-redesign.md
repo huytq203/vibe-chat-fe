@@ -1,3 +1,5 @@
+> ✗ **ĐÃ HUỶ** — Commitment Graph bị gỡ theo quyết định 2026-09-24
+
 # Thiết kế lại Commitment Graph thành "không gian cam kết" — Brief + Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development hoặc superpowers:executing-plans. Plan cố ý KHÔNG chép sẵn code — người thực thi tự đọc code hiện có, theo pattern lân cận, test trước (fail) rồi code (pass).

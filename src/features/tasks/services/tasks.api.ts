@@ -294,8 +294,8 @@ export const tasksApi = {
   listMembers: (projectId: string) =>
     taskClient.get<Member[]>(`/api/v1/projects/${projectId}/members`),
 
-  addMember: (projectId: string, userId: string, options?: { role?: 'MEMBER' | 'CLIENT'; contactId?: string }) =>
-    taskClient.post<Member>(`/api/v1/projects/${projectId}/members`, { userId, ...options }),
+  addMember: (projectId: string, userId: string) =>
+    taskClient.post<Member>(`/api/v1/projects/${projectId}/members`, { userId }),
 
   removeMember: (projectId: string, userId: string) =>
     taskClient.delete<void>(`/api/v1/projects/${projectId}/members/${userId}`),

@@ -3,34 +3,10 @@
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import type { MessageAnalysis } from '@/features/chat/types';
-import { ConfirmCreateChangeRequestForm } from './analysis/ConfirmCreateChangeRequestForm';
-import { ConfirmCreateCommitmentForm } from './analysis/ConfirmCreateCommitmentForm';
 import { ConfirmCreateTaskForm } from './analysis/ConfirmCreateTaskForm';
 import { ConfirmUpdateExistingTaskForm } from './analysis/ConfirmUpdateExistingTaskForm';
-import { ConfirmLinkExistingCommitmentForm } from './analysis/ConfirmLinkExistingCommitmentForm';
 
-const classificationLabels: Record<MessageAnalysis['classification'], string> = {
-  TASK: 'Công việc',
-  SCOPE_CHANGE: 'Thay đổi phạm vi',
-  COMMITMENT: 'Cam kết',
-  DECISION: 'Quyết định',
-  BLOCKER: 'Vướng mắc',
-  UNCLEAR: 'Chưa rõ',
-};
-
-const scopeLabels: Record<MessageAnalysis['scopeStatus'], string> = {
-  IN_SCOPE: 'Trong phạm vi',
-  OUT_OF_SCOPE: 'Ngoài phạm vi',
-  UNCLEAR: 'Chưa xác định phạm vi',
-};
-
-const SUPPORTED_ACTION_TYPES = new Set([
-  'CREATE_COMMITMENT',
-  'CREATE_CHANGE_REQUEST',
-  'CREATE_TASK',
-  'UPDATE_EXISTING_TASK',
-  'LINK_EXISTING_COMMITMENT',
-]);
+const SUPPORTED_ACTION_TYPES = new Set(['CREATE_TASK', 'UPDATE_EXISTING_TASK', 'ASK_CLARIFICATION']);
 
 export function MessageAnalysisPreview({
   analysis,
@@ -41,20 +17,15 @@ export function MessageAnalysisPreview({
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [doneIndexes, setDoneIndexes] = useState<Set<number>>(new Set());
+  const suggestedActions = analysis.suggestedActions.filter((action) =>
+    SUPPORTED_ACTION_TYPES.has(action.type),
+  );
 
   return (
     <section aria-label="Kết quả phân tích" className="space-y-4 rounded-xl bg-muted/50 p-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-          {classificationLabels[analysis.classification]}
-        </span>
-        <span className="rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">
-          {scopeLabels[analysis.scopeStatus]}
-        </span>
-        <span className="ml-auto tabular-nums text-muted-foreground">
-          Độ tin cậy {Math.round(analysis.confidence * 100)}%
-        </span>
-      </div>
+      <p className="text-xs font-semibold tabular-nums text-muted-foreground">
+        Độ tin cậy {Math.round(analysis.confidence * 100)}%
+      </p>
       <div>
         <h3 className="text-sm font-semibold text-foreground">Tóm tắt</h3>
         <p className="mt-1 text-sm leading-6 text-foreground">{analysis.summary}</p>
@@ -71,12 +42,11 @@ export function MessageAnalysisPreview({
       )}
       <div>
         <h3 className="text-sm font-semibold text-foreground">Đề xuất tiếp theo</h3>
-        {analysis.suggestedActions.length === 0 ? (
+        {suggestedActions.length === 0 ? (
           <p className="mt-1 text-sm text-muted-foreground">Chưa có hành động phù hợp.</p>
         ) : (
           <ul className="mt-2 space-y-2">
-            {analysis.suggestedActions.map((action, index) => {
-              const supported = SUPPORTED_ACTION_TYPES.has(action.type);
+            {suggestedActions.map((action, index) => {
               const done = doneIndexes.has(index);
 
               return (
@@ -99,7 +69,7 @@ export function MessageAnalysisPreview({
                       <span className="shrink-0 text-xs font-medium text-success">
                         Đã tạo
                       </span>
-                    ) : supported ? (
+                    ) : action.type !== 'ASK_CLARIFICATION' ? (
                       <button
                         type="button"
                         className="shrink-0 text-xs font-medium text-primary underline"
@@ -109,16 +79,11 @@ export function MessageAnalysisPreview({
                       >
                         {openIndex === index ? 'Đóng' : 'Chọn phương án này'}
                       </button>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        Sắp có
-                      </span>
-                    )}
+                    ) : null}
                   </div>
-                  {supported && openIndex === index && (
+                  {action.type !== 'ASK_CLARIFICATION' && openIndex === index && (
                     <ActionForm
                       action={action}
-                      analysis={analysis}
                       projectId={projectId}
                       onDone={() => {
                         setDoneIndexes((previous) =>
@@ -140,35 +105,14 @@ export function MessageAnalysisPreview({
 
 function ActionForm({
   action,
-  analysis,
   projectId,
   onDone,
 }: {
   action: MessageAnalysis['suggestedActions'][number];
-  analysis: MessageAnalysis;
   projectId: string;
   onDone: () => void;
 }) {
   switch (action.type) {
-    case 'CREATE_COMMITMENT':
-      return (
-        <ConfirmCreateCommitmentForm
-          projectId={projectId}
-          action={action}
-          scopeStatus={analysis.scopeStatus}
-          source={analysis.source}
-          onDone={onDone}
-        />
-      );
-    case 'CREATE_CHANGE_REQUEST':
-      return (
-        <ConfirmCreateChangeRequestForm
-          projectId={projectId}
-          action={action}
-          source={analysis.source}
-          onDone={onDone}
-        />
-      );
     case 'CREATE_TASK':
       return (
         <ConfirmCreateTaskForm
@@ -185,15 +129,6 @@ function ActionForm({
           onDone={onDone}
         />
       ) : null;
-    case 'LINK_EXISTING_COMMITMENT':
-      return (
-        <ConfirmLinkExistingCommitmentForm
-          projectId={projectId}
-          action={action}
-          source={analysis.source}
-          onDone={onDone}
-        />
-      );
     default:
       return null;
   }
