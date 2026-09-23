@@ -3,8 +3,8 @@ import type { ProjectClient, ProjectContact } from '../types';
 
 export interface ClientContactInput {
   name: string;
-  email?: string;
-  title?: string;
+  email?: string | null;
+  title?: string | null;
   isPrimary?: boolean;
 }
 

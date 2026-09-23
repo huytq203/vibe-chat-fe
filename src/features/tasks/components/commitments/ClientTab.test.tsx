@@ -216,6 +216,101 @@ describe('ClientTab', () => {
     );
   });
 
+  it('sends null when clearing an existing email during edit', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Sửa Alex Nguyen' }));
+    const dialog = await screen.findByRole('dialog');
+    const emailInput = within(dialog).getByLabelText('Email (không bắt buộc)');
+    await user.clear(emailInput);
+    await user.type(emailInput, '   ');
+    await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
+
+    expect(updateContact).toHaveBeenCalledWith(
+      {
+        contactId: 'c1',
+        input: {
+          name: 'Alex Nguyen',
+          email: null,
+          title: 'Product Manager',
+          isPrimary: true,
+        },
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('sends null when clearing an existing title during edit', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Sửa Alex Nguyen' }));
+    const dialog = await screen.findByRole('dialog');
+    const titleInput = within(dialog).getByLabelText('Chức danh (không bắt buộc)');
+    await user.clear(titleInput);
+    await user.type(titleInput, '   ');
+    await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
+
+    expect(updateContact).toHaveBeenCalledWith(
+      {
+        contactId: 'c1',
+        input: {
+          name: 'Alex Nguyen',
+          email: 'alex@example.com',
+          title: null,
+          isPrimary: true,
+        },
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('omits optional fields that were already empty during edit', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useProjectClient).mockReturnValue({
+      data: {
+        projectId: 'proj-1',
+        name: 'ACME',
+        contacts: [{
+          id: 'c1', userId: null, name: 'Alex Nguyen', email: null, title: null,
+          isPrimary: true, isDeleted: false,
+        }],
+      },
+      isPending: false,
+    } as ReturnType<typeof useProjectClient>);
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Sửa Alex Nguyen' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
+
+    expect(updateContact).toHaveBeenCalledWith(
+      {
+        contactId: 'c1',
+        input: { name: 'Alex Nguyen', isPrimary: true },
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('omits empty optional fields when creating a contact', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Thêm người liên hệ' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/^Tên/), 'Taylor');
+    await user.type(within(dialog).getByLabelText('Email (không bắt buộc)'), '   ');
+    await user.type(within(dialog).getByLabelText('Chức danh (không bắt buộc)'), '   ');
+    await user.click(within(dialog).getByRole('button', { name: 'Thêm' }));
+
+    expect(addContact).toHaveBeenCalledWith(
+      { name: 'Taylor', isPrimary: false },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
   it('nên xoá người liên hệ sau khi xác nhận', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ClientTab projectId="proj-1" />);

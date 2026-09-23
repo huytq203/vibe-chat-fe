@@ -336,8 +336,16 @@ function ContactFormDialog({
   function handleSubmit() {
     const input = {
       name: name.trim(),
-      ...(email.trim() ? { email: email.trim() } : {}),
-      ...(title.trim() ? { title: title.trim() } : {}),
+      ...(email.trim()
+        ? { email: email.trim() }
+        : mode === 'edit' && contact?.email?.trim()
+          ? { email: null }
+          : {}),
+      ...(title.trim()
+        ? { title: title.trim() }
+        : mode === 'edit' && contact?.title?.trim()
+          ? { title: null }
+          : {}),
       isPrimary,
     };
 
