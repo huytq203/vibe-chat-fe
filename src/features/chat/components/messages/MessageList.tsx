@@ -266,10 +266,6 @@ export function MessageList({
   return (
     <LightboxProvider>
       <div className="animate-in fade-in relative isolate flex min-h-0 flex-1 flex-col duration-200">
-        <MessageSelectionToolbar
-          conversationId={conversationId}
-          onAnalyze={setAnalysisMessageIds}
-        />
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -353,6 +349,7 @@ export function MessageList({
                     renderMarkdown={isBotAuthoredMessage(m, conversation, meId)}
                     onLaunchWebapp={onLaunchWebapp}
                     selectable={selectableHere}
+                    selectionMode={selectionActiveHere}
                     selected={selectedHere}
                   />
                 </div>
@@ -381,6 +378,14 @@ export function MessageList({
             );
           })}
         </div>
+
+        <MessageSelectionToolbar
+          conversationId={conversationId}
+          onAnalyze={setAnalysisMessageIds}
+          messages={messages}
+          senderNames={memberNames}
+          meId={meId}
+        />
 
         {showScrollDown && (
           <button

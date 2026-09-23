@@ -36,6 +36,7 @@ import { BookmarkDialog } from "@/features/my-store/components/BookmarkDialog";
 import { CreatePollDialog } from "@/features/chat/components/polls/CreatePollDialog";
 import { useAiWindowStore } from "@/features/chat/stores/ai-window.store";
 import { useMessageDraftCommandStore } from "@/features/chat/stores/message-draft-command.store";
+import { useMessageSelectionStore } from "@/features/chat/stores/message-selection.store";
 import { cn } from "@/lib/utils/cn";
 import type { SerializedMessage } from "@/lib/editor/serializer";
 
@@ -65,6 +66,8 @@ export function MessageInput({
   onWebappMenuClick,
   stickerBotConversation,
 }: MessageInputProps) {
+  const selectionActive = useMessageSelectionStore((state) => state.conversationId === conversationId);
+  const inputDisabled = disabled || selectionActive;
   const {
     editorRef,
     mention,
@@ -86,7 +89,7 @@ export function MessageInput({
     sendInlineResult,
     exitEdit,
     handleEmojiSelect,
-  } = useMessageComposer(conversationId, disabled, stickerBotConversation);
+  } = useMessageComposer(conversationId, inputDisabled, stickerBotConversation);
 
   const [editor, setEditor] = useState<Editor | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -111,7 +114,7 @@ export function MessageInput({
     conversationId,
     conversationType,
     plaintext,
-    disabled: disabled || isEditing,
+    disabled: inputDisabled || isEditing,
   });
 
   // Lỗi micro (chặn quyền / không có thiết bị) → báo cho người dùng.
@@ -127,7 +130,7 @@ export function MessageInput({
   }, [conversationId, botFatherCommands, isEditing]);
 
   useEffect(() => {
-    if (!draftCommand || disabled || isEditing) return;
+    if (!draftCommand || inputDisabled || isEditing) return;
     editorRef.current?.setPlainText(draftCommand.text);
     editorRef.current?.focus();
     handleUpdate(draftCommand.text.trim().length > 0);
@@ -135,7 +138,7 @@ export function MessageInput({
   }, [
     clearDraftCommand,
     conversationId,
-    disabled,
+    inputDisabled,
     draftCommand,
     editorRef,
     handleUpdate,
@@ -143,7 +146,7 @@ export function MessageInput({
   ]);
 
   function updateCommandSuggestions(plaintext: string) {
-    if (!botFatherCommands || isEditing || disabled) {
+    if (!botFatherCommands || isEditing || inputDisabled) {
       setCommandItems([]);
       return;
     }
@@ -222,7 +225,7 @@ export function MessageInput({
   const actions = (
     <ComposerActions
       conversationId={conversationId}
-      disabled={disabled}
+      disabled={inputDisabled}
       isEditing={isEditing}
       expanded={expanded}
       selfDestructTtl={selfDestructTtl}
@@ -256,7 +259,7 @@ export function MessageInput({
         richText: null,
       }}
       focusOnMount
-      disabled={disabled}
+      disabled={inputDisabled}
       expanded
       mentionSuggestion={mention.suggestion}
       isMentionOpen={mention.isMentionOpen}
@@ -273,7 +276,7 @@ export function MessageInput({
       ref={editorRef}
       value={plaintext}
       placeholder={editorPlaceholder}
-      disabled={disabled}
+      disabled={inputDisabled}
       onUpdate={handleEditorUpdate}
       onEnter={() => void submit()}
       onEscape={isEditing ? exitEdit : undefined}
@@ -299,7 +302,7 @@ export function MessageInput({
           if (shouldKeepKeyboard) editorRef.current?.focus();
         }}
         isLoading={isEditing ? isSavingEdit : isUploading}
-        disabled={disabled}
+        disabled={inputDisabled}
         aria-label={isEditing ? "Lưu chỉnh sửa" : "Gửi"}
         title={isEditing ? "Lưu (Enter)" : "Gửi"}
         className="shrink-0 border-none "
@@ -313,7 +316,7 @@ export function MessageInput({
         variant="ghost"
         size="icon-sm"
         onClick={() => void recorder.start()}
-        disabled={disabled}
+        disabled={inputDisabled}
         aria-label="Ghi âm tin nhắn thoại"
         title="Ghi âm"
         className="shrink-0 text-muted-foreground hover:text-primary"
@@ -326,9 +329,12 @@ export function MessageInput({
     <div
       className={cn(
         "shrink-0 border-t py-2 pl-[max(var(--safe-left),0.75rem)] pr-[max(var(--safe-right),0.75rem)] max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:px-4 md:shadow-subtle",
+        selectionActive && "opacity-50",
         wallpaperActive ? "bg-sidebar" : "bg-sidebar",
       )}
       data-message-composer
+      aria-disabled={selectionActive}
+      inert={selectionActive}
     >
       {isEditing && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
@@ -404,7 +410,7 @@ export function MessageInput({
           />
         ) : expanded ? (
           <>
-            <MessageToolbar editor={editor} disabled={disabled} />
+            <MessageToolbar editor={editor} disabled={inputDisabled} />
             {editorEl}
             <div className="mt-1.5 flex items-center justify-between gap-1.5">
               {actions}

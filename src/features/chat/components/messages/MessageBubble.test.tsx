@@ -507,6 +507,35 @@ describe('MessageBubble', () => {
     expect(onQuoteClick).not.toHaveBeenCalled();
   });
 
+  it('hides message actions and reactions during selection', () => {
+    renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble
+          message={buildMessage({ reactions: [{ type: 'LIKE', count: 1 }] })}
+          meId="me"
+          showAvatar={false}
+          selectable
+        />
+      </LightboxProvider>,
+    );
+    expect(screen.queryByRole('button', { name: 'Trả lời' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Thả cảm xúc' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xem ai đã thả cảm xúc' })).not.toBeInTheDocument();
+  });
+
+  it('toggles selection instead of opening an image', async () => {
+    const user = userEvent.setup();
+    const message = buildMessage({ type: 'IMAGE', plaintext: null, attachments: [buildImageAttachment('selected-image')] });
+    renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble message={message} meId="me" showAvatar={false} selectable />
+      </LightboxProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Phóng to ảnh' }));
+    expect(useMessageSelectionStore.getState().selectedIds.has(message.id)).toBe(true);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it.each([
     ['incoming text', buildMessage({ plaintext: 'First line\nSecond line' }), 'me', 'pl-8'],
     ['outgoing text', buildMessage({ senderId: 'me' }), 'me', 'pr-8'],

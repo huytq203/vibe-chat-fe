@@ -63,6 +63,7 @@ type MessageBubbleProps = {
   appearance?: "default" | "store";
   /** Whether selection mode is active and this message can be selected. */
   selectable?: boolean;
+  selectionMode?: boolean;
   /** Whether this message is currently selected. */
   selected?: boolean;
   onLaunchWebapp?: (input: {
@@ -98,6 +99,7 @@ function MessageBubbleImpl({
   renderMarkdown = false,
   appearance = "default",
   selectable = false,
+  selectionMode = false,
   selected = false,
   onLaunchWebapp,
 }: MessageBubbleProps) {
@@ -123,7 +125,8 @@ function MessageBubbleImpl({
       message.type === "CONTACT");
   const isContactCard = !message.isDeleted && message.type === "CONTACT";
   // Show actions for sent, non-deleted messages. MessageActions limits edit and delete to own messages.
-  const canActions = !isSending && !isFailed && !message.isDeleted;
+  const isSelecting = selectionMode || selectable;
+  const canActions = !isSelecting && !isSending && !isFailed && !message.isDeleted;
   // Position the action toolbar outside the bubble and reveal it when the row is hovered.
   // Disable pointer events while hidden so it does not block the message.
   const actionsClassName = cn(
@@ -252,10 +255,17 @@ function MessageBubbleImpl({
           )}
           style={hasTheme && !isMe && !isBareMedia ? bubbleConfig.otherStyle : undefined}
           {...bubbleProps}
+          onClickCapture={(event) => {
+            if (!selectable || (event.target instanceof Element && event.target.closest('[data-selection-overlay]'))) return;
+            event.preventDefault();
+            event.stopPropagation();
+            useMessageSelectionStore.getState().toggle(message.id);
+          }}
         >
           {selectable && (
             <button
               type="button"
+              data-selection-overlay
               aria-label={selected ? "Bỏ chọn tin nhắn" : "Chọn tin nhắn"}
               aria-pressed={selected}
               onClick={(e) => {
@@ -305,7 +315,7 @@ function MessageBubbleImpl({
             mediaPresentation={isStoreAppearance ? "store" : "default"}
           />
         </div>
-        {showReactions && !message.isDeleted && (
+        {showReactions && !isSelecting && !message.isDeleted && (
           <MessageReactions message={message} isMe={isMe} />
         )}
         <BubbleMetaRow
@@ -318,7 +328,7 @@ function MessageBubbleImpl({
           bubbleConfig={bubbleConfig}
           outside
         />
-        {showBotMarkup && (
+        {showBotMarkup && !isSelecting && (
           <BotQuickReplies
             message={message}
             isMe={isMe}
@@ -326,7 +336,7 @@ function MessageBubbleImpl({
             onLaunchWebapp={onLaunchWebapp}
           />
         )}
-        {showBotMarkup && (
+        {showBotMarkup && !isSelecting && (
           <BotInlineKeyboard
             message={message}
             isMe={isMe}
@@ -334,7 +344,7 @@ function MessageBubbleImpl({
             onLaunchWebapp={onLaunchWebapp}
           />
         )}
-        {isFailed && isMe && <MessageFailedActions message={message} />}
+        {isFailed && isMe && !isSelecting && <MessageFailedActions message={message} />}
       </div>
     </div>
   );
