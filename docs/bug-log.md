@@ -14,7 +14,7 @@ Trạng thái: 🆕 Mới · 🔍 Đang điều tra · 🛠️ Đang sửa · �
 | B7 | 2026-09-24 | Commitment Graph | Khó dùng: không thấy tổng quan, chuyển trạng thái khó hiểu, 4 tab rời rạc | Thiết kế cấu trúc | ⏸️ Huỷ — thay bằng B10 (gỡ hẳn Commitment) | plan `docs/superpowers/plans/2026-09-24-commitment-workspace-redesign.md` (đã huỷ) |
 | B8 | 2026-09-24 | Gợi ý AI | Tin nhắn "hạn cho bạn là tối nay" (gửi 23:58) nhưng AI không điền Hạn chót | Prompt chỉ cho điền `dueDate` khi có ngày cụ thể, bỏ qua mốc tương đối rõ nghĩa | ✅ | ai-service `801d1a7` |
 | B9 | 2026-09-24 | Gợi ý AI — loading | Lúc đang phân tích chỉ có skeleton xám; không thấy AI đang làm gì | Chưa có trạng thái tiến trình | ✅ | FE `0eae4df` |
-| B10 | 2026-09-24 | Commitment / CR / Scope / Khách hàng / CLIENT | Tính năng Cam kết rối, không thực tế → gỡ sạch, chỉ giữ "tạo task với AI" | Quyết định sản phẩm | 🛠️ FE `5328eca`, ai-service `4674585`, task-service `e855e3d` + migration DROP đã apply; còn dọn vibe-chat + field thừa ai-service | plan `task-service/docs/superpowers/plans/2026-09-24-remove-commitment-graph.md` |
+| B10 | 2026-09-24 | Commitment / CR / Scope / Khách hàng / CLIENT | Tính năng Cam kết rối, không thực tế → gỡ sạch, chỉ giữ "tạo task với AI" | Quyết định sản phẩm | ✅ FE `5328eca`, ai-service `4674585` `5f17aa9`, task-service `e855e3d` + migration DROP đã apply, vibe-chat `f4f651f` | plan `task-service/docs/superpowers/plans/2026-09-24-remove-commitment-graph.md` |
 | B11 | 2026-09-24 | Quy trình FE | Mọi việc code FE phải dùng skill impeccable để chuẩn hoá và làm đẹp theo quy tắc | Quy ước làm việc | ✅ Đã ghi vào memory + ràng buộc plan FE | |
 
 ## Cách báo bug mới
