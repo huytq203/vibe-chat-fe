@@ -457,7 +457,14 @@ export type EvidenceMilestone =
   | 'ACCEPTED'
   | 'OTHER';
 
-export type EvidenceType = 'URL' | 'NOTE';
+export type EvidenceType = 'URL' | 'NOTE' | 'FILE';
+
+export interface CommitmentEvidenceFile {
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  downloadUrl: string;
+}
 
 export interface CommitmentEvidence {
   id: string;
@@ -466,6 +473,7 @@ export interface CommitmentEvidence {
   type: EvidenceType;
   url: string | null;
   note: string | null;
+  file: CommitmentEvidenceFile | null;
   createdBy: string;
   createdAt: string;
 }

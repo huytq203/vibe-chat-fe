@@ -26,6 +26,7 @@ import {
   RISK_LABELS,
   SCOPE_STATUS_LABELS,
 } from '../../lib/commitment-labels';
+import { ALLOWED_EVIDENCE_MIME_TYPES, formatFileSize, validateEvidenceFile } from '../../lib/evidence-upload';
 import { useProjectClient } from '../../hooks/useClient';
 import { useMembers } from '../../hooks/useMembers';
 import {
@@ -36,13 +37,14 @@ import {
   useTransitionCommitment,
   useUnlinkTask,
   useUpdateCommitment,
+  useUploadEvidenceFile,
 } from '../../hooks/useCommitments';
 import { useProjectScope } from '../../hooks/useScope';
 import { useProjectRole } from '../../hooks/useProjectRole';
 import { commitmentsApi } from '../../services/commitments.api';
 import { tasksApi } from '../../services/tasks.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
-import type { CommitmentDetail, DeliveryStatus, SourceRef } from '../../types';
+import type { CommitmentDetail, DeliveryStatus, EvidenceType, SourceRef } from '../../types';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -222,7 +224,20 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                           {EVIDENCE_MILESTONE_LABELS[evidence.milestone]}
                         </span>
                         {': '}
-                        {evidence.type === 'URL' && evidence.url ? (
+                        {evidence.type === 'FILE' && evidence.file ? (
+                          <span>
+                            <span>{evidence.file.fileName}</span>{' '}
+                            (<span>{formatFileSize(evidence.file.fileSize)}</span>){' '}
+                            <a
+                              href={evidence.file.downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline"
+                            >
+                              Tải xuống
+                            </a>
+                          </span>
+                        ) : evidence.type === 'URL' && evidence.url ? (
                           <a
                             href={evidence.url}
                             target="_blank"
@@ -594,19 +609,41 @@ function AddEvidenceDialog({
 }) {
   const [milestone, setMilestone] =
     useState<keyof typeof EVIDENCE_MILESTONE_LABELS>('IMPLEMENTED');
-  const [type, setType] = useState<'URL' | 'NOTE'>('URL');
+  const [type, setType] = useState<EvidenceType>('URL');
   const [url, setUrl] = useState('');
   const [note, setNote] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const addEvidence = useAddEvidence(commitmentId);
+  const uploadEvidenceFile = useUploadEvidenceFile(commitmentId);
 
   function reset() {
     setMilestone('IMPLEMENTED');
     setType('URL');
     setUrl('');
     setNote('');
+    setFile(null);
   }
 
   function handleSubmit() {
+    if (type === 'FILE') {
+      if (!file) return;
+      const error = validateEvidenceFile(file);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      uploadEvidenceFile.mutate(
+        { milestone, file },
+        {
+          onSuccess: () => {
+            reset();
+            onOpenChange(false);
+          },
+          onError: (uploadError) => toast.error(uploadError instanceof Error ? uploadError.message : 'Không thể tải tệp lên'),
+        },
+      );
+      return;
+    }
     addEvidence.mutate(
       {
         milestone,
@@ -622,8 +659,11 @@ function AddEvidenceDialog({
     );
   }
 
-  const canSubmit =
-    type === 'URL' ? url.trim().startsWith('http') : note.trim().length > 0;
+  const canSubmit = type === 'URL'
+    ? url.trim().startsWith('http')
+    : type === 'NOTE'
+      ? note.trim().length > 0
+      : file !== null;
 
   return (
     <Dialog
@@ -659,10 +699,11 @@ function AddEvidenceDialog({
             options={[
               { value: 'URL', label: 'Đường dẫn' },
               { value: 'NOTE', label: 'Ghi chú' },
+              { value: 'FILE', label: 'File' },
             ]}
             onValueChange={(value) =>
               setType(
-                (Array.isArray(value) ? value[0] : value) as 'URL' | 'NOTE',
+                (Array.isArray(value) ? value[0] : value) as EvidenceType,
               )
             }
           />
@@ -673,11 +714,18 @@ function AddEvidenceDialog({
               onChange={(event) => setUrl(event.target.value)}
               placeholder="https://..."
             />
-          ) : (
+          ) : type === 'NOTE' ? (
             <Textarea
               label="Ghi chú"
               value={note}
               onChange={(event) => setNote(event.target.value)}
+            />
+          ) : (
+            <Input
+              type="file"
+              label="Tệp"
+              accept={ALLOWED_EVIDENCE_MIME_TYPES.join(',')}
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
           )}
         </div>
@@ -688,7 +736,7 @@ function AddEvidenceDialog({
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            isLoading={addEvidence.isPending}
+            isLoading={addEvidence.isPending || uploadEvidenceFile.isPending}
           >
             Thêm
           </Button>
@@ -785,7 +833,9 @@ function TransitionDialog({
                 options={matchingEvidence.map((evidence) => ({
                   value: evidence.id,
                   label:
-                    evidence.type === 'URL'
+                    evidence.type === 'FILE'
+                      ? (evidence.file?.fileName ?? evidence.id)
+                      : evidence.type === 'URL'
                       ? (evidence.url ?? evidence.id)
                       : (evidence.note ?? evidence.id),
                 }))}

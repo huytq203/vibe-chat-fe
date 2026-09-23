@@ -12,6 +12,7 @@ import {
   useTransitionCommitment,
   useUnlinkTask,
   useUpdateCommitment,
+  useUploadEvidenceFile,
 } from '../../hooks/useCommitments';
 import { useProjectScope } from '../../hooks/useScope';
 import { commitmentsApi } from '../../services/commitments.api';
@@ -32,6 +33,7 @@ vi.mock('../../hooks/useCommitments', () => ({
   useLinkExistingTask: vi.fn(),
   useUnlinkTask: vi.fn(),
   useTransitionCommitment: vi.fn(),
+  useUploadEvidenceFile: vi.fn(),
 }));
 
 vi.mock('../../hooks/useClient', () => ({
@@ -65,6 +67,7 @@ vi.mock('../../services/tasks.api', () => ({
 const closeCommitmentDetail = vi.fn();
 const updateCommitment = vi.fn();
 const addEvidence = vi.fn();
+const uploadEvidenceFile = vi.fn();
 const removeSourceRef = vi.fn();
 const linkExistingTask = vi.fn();
 const unlinkTask = vi.fn();
@@ -113,6 +116,7 @@ const commitmentDetail: CommitmentDetail = {
       type: 'URL',
       url: 'https://example.com/test-report',
       note: null,
+      file: null,
       createdBy: 'user-1',
       createdAt: '2026-09-20T08:00:00.000Z',
     },
@@ -181,6 +185,10 @@ beforeEach(() => {
     mutate: addEvidence,
     isPending: false,
   } as unknown as ReturnType<typeof useAddEvidence>);
+  vi.mocked(useUploadEvidenceFile).mockReturnValue({
+    mutate: uploadEvidenceFile,
+    isPending: false,
+  } as unknown as ReturnType<typeof useUploadEvidenceFile>);
   vi.mocked(useRemoveSourceRef).mockReturnValue({
     mutate: removeSourceRef,
     isPending: false,
@@ -430,6 +438,76 @@ describe('CommitmentDetailModal', () => {
       },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it('nên tải file lên khi chọn loại File và bấm thêm', async () => {
+    const user = userEvent.setup();
+    const file = new File(['pdf'], 'bao-cao.pdf', { type: 'application/pdf' });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    const dialog = screen.getByRole('dialog', { name: 'Thêm bằng chứng' });
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    await user.click(await screen.findByRole('option', { name: 'File' }));
+    await user.upload(within(dialog).getByLabelText('Tệp'), file);
+    await user.click(within(dialog).getByRole('button', { name: 'Thêm' }));
+    expect(uploadEvidenceFile).toHaveBeenCalledWith(
+      { milestone: 'IMPLEMENTED', file },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('nên chặn và báo lỗi khi file sai định dạng mà không gọi API', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    const dialog = screen.getByRole('dialog', { name: 'Thêm bằng chứng' });
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    await user.click(await screen.findByRole('option', { name: 'File' }));
+    await user.upload(within(dialog).getByLabelText('Tệp'), new File(['x'], 'bad.html', { type: 'text/html' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Thêm' }));
+    expect(toast.error).toHaveBeenCalled();
+    expect(uploadEvidenceFile).not.toHaveBeenCalled();
+  });
+
+  it('nên giữ dialog mở và báo lỗi khi tải lên thất bại', async () => {
+    const user = userEvent.setup();
+    const file = new File(['pdf'], 'bao-cao.pdf', { type: 'application/pdf' });
+    uploadEvidenceFile.mockImplementation((_input, options) => options.onError(new Error('Tải lên thất bại')));
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    const dialog = screen.getByRole('dialog', { name: 'Thêm bằng chứng' });
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    await user.click(await screen.findByRole('option', { name: 'File' }));
+    await user.upload(within(dialog).getByLabelText('Tệp'), file);
+    await user.click(within(dialog).getByRole('button', { name: 'Thêm' }));
+    expect(dialog).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith('Tải lên thất bại');
+  });
+
+  it('nên hiện tên file, dung lượng và link tải cho bằng chứng FILE', () => {
+    mockDetail({ ...commitmentDetail, evidence: [{ ...commitmentDetail.evidence[0], type: 'FILE', url: null, file: {
+      fileName: 'bao-cao.pdf', mimeType: 'application/pdf', fileSize: 1572864, downloadUrl: 'https://s3.test/download',
+    } }] });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+    expect(screen.getByText('bao-cao.pdf')).toBeInTheDocument();
+    expect(screen.getByText('1.5 MB')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Tải xuống' })).toHaveAttribute('href', 'https://s3.test/download');
+    expect(screen.getByRole('link', { name: 'Tải xuống' })).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', { name: 'Tải xuống' })).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('nên hiện tên file trong danh sách chọn bằng chứng khi chuyển trạng thái', async () => {
+    const user = userEvent.setup();
+    mockDetail({ ...commitmentDetail, evidence: [{ ...commitmentDetail.evidence[0], milestone: 'DELIVERED', type: 'FILE', url: null, file: {
+      fileName: 'bao-cao.pdf', mimeType: 'application/pdf', fileSize: 1024, downloadUrl: 'https://s3.test/download',
+    } }] });
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+    await user.click(screen.getByRole('button', { name: 'Chuyển trạng thái' }));
+    const dialog = screen.getByRole('dialog', { name: 'Chuyển trạng thái cam kết' });
+    await user.click(within(dialog).getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Đã bàn giao' }));
+    await user.click(within(dialog).getAllByRole('combobox')[1]);
+    expect(await screen.findByRole('option', { name: 'bao-cao.pdf' })).toBeInTheDocument();
   });
 
   it('gỡ nguồn tham chiếu khỏi cam kết', async () => {

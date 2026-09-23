@@ -146,6 +146,27 @@ describe('commitmentsApi', () => {
     });
   });
 
+  it('nên presign tệp bằng chứng với đúng mốc và thông tin tệp', async () => {
+    mockFetch.mockResolvedValue(okResponse({ evidenceId: 'e1', uploadUrl: 'https://s3.test/upload' }));
+    const result = await commitmentsApi.presignEvidence('c1', {
+      milestone: 'TESTED', fileName: 'report.pdf', mimeType: 'application/pdf', fileSize: 1024,
+    });
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/evidence/presign');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ milestone: 'TESTED', fileName: 'report.pdf', mimeType: 'application/pdf', fileSize: 1024 });
+    expect(result).toEqual({ evidenceId: 'e1', uploadUrl: 'https://s3.test/upload' });
+  });
+
+  it('nên xác nhận tệp bằng chứng theo evidenceId', async () => {
+    mockFetch.mockResolvedValue(okResponse({ id: 'e1', type: 'FILE' }));
+    const result = await commitmentsApi.confirmEvidence('c1', 'e1');
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/commitments/c1/evidence/e1/confirm');
+    expect(init.method).toBe('POST');
+    expect(result).toEqual({ id: 'e1', type: 'FILE' });
+  });
+
   it('nên gửi POST với đúng path/body khi transition()', async () => {
     mockFetch.mockResolvedValue(okResponse({ id: 'c1' }));
     await commitmentsApi.transition('c1', {

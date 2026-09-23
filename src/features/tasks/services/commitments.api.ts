@@ -83,6 +83,29 @@ export const commitmentsApi = {
       input,
     ),
 
+  presignEvidence: (
+    commitmentId: string,
+    input: {
+      milestone: EvidenceMilestone;
+      fileName: string;
+      mimeType: string;
+      fileSize: number;
+    },
+  ): Promise<{ evidenceId: string; uploadUrl: string }> =>
+    taskClient.post<{ evidenceId: string; uploadUrl: string }>(
+      `/api/v1/commitments/${commitmentId}/evidence/presign`,
+      input,
+    ),
+
+  confirmEvidence: (
+    commitmentId: string,
+    evidenceId: string,
+  ): Promise<CommitmentEvidence> =>
+    taskClient.post<CommitmentEvidence>(
+      `/api/v1/commitments/${commitmentId}/evidence/${evidenceId}/confirm`,
+      {},
+    ),
+
   transition: (
     commitmentId: string,
     input: {

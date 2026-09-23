@@ -9,6 +9,7 @@ import {
   useCreateCommitment,
   useTransitionCommitment,
   useUpdateCommitment,
+  useUploadEvidenceFile,
 } from './useCommitments';
 
 vi.mock('../services/commitments.api', () => ({
@@ -18,6 +19,8 @@ vi.mock('../services/commitments.api', () => ({
     create: vi.fn(),
     update: vi.fn(),
     transition: vi.fn(),
+    presignEvidence: vi.fn(),
+    confirmEvidence: vi.fn(),
   },
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -117,5 +120,62 @@ describe('useTransitionCommitment', () => {
       to: 'READY',
       version: 2,
     });
+  });
+});
+
+describe('useUploadEvidenceFile', () => {
+  const file = new File(['pdf'], 'report.pdf', { type: 'application/pdf' });
+
+  it('nên gọi presign rồi PUT rồi confirm theo thứ tự', async () => {
+    const steps: string[] = [];
+    vi.mocked(commitmentsApi.presignEvidence).mockImplementation(async () => {
+      steps.push('presign');
+      return { evidenceId: 'e1', uploadUrl: 'https://s3.test/upload' };
+    });
+    const upload = vi.fn().mockImplementation(async () => {
+      steps.push('put');
+      return { ok: true };
+    });
+    vi.stubGlobal('fetch', upload);
+    vi.mocked(commitmentsApi.confirmEvidence).mockImplementation(async () => {
+      steps.push('confirm');
+      return { id: 'e1' } as never;
+    });
+    const { result } = renderHook(() => useUploadEvidenceFile('c1'), { wrapper });
+
+    await result.current.mutateAsync({ milestone: 'TESTED', file });
+
+    expect(steps).toEqual(['presign', 'put', 'confirm']);
+    expect(commitmentsApi.presignEvidence).toHaveBeenCalledWith('c1', {
+      milestone: 'TESTED', fileName: 'report.pdf', mimeType: 'application/pdf', fileSize: 3,
+    });
+    expect(commitmentsApi.confirmEvidence).toHaveBeenCalledWith('c1', 'e1');
+    vi.unstubAllGlobals();
+  });
+
+  it('nên không gọi confirm khi PUT thất bại', async () => {
+    vi.mocked(commitmentsApi.presignEvidence).mockResolvedValue({ evidenceId: 'e1', uploadUrl: 'https://s3.test/upload' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    const { result } = renderHook(() => useUploadEvidenceFile('c1'), { wrapper });
+
+    await expect(result.current.mutateAsync({ milestone: 'TESTED', file })).rejects.toThrow();
+
+    expect(commitmentsApi.confirmEvidence).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('nên PUT không kèm Authorization và đúng Content-Type', async () => {
+    vi.mocked(commitmentsApi.presignEvidence).mockResolvedValue({ evidenceId: 'e1', uploadUrl: 'https://s3.test/upload' });
+    const upload = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', upload);
+    vi.mocked(commitmentsApi.confirmEvidence).mockResolvedValue({ id: 'e1' } as never);
+    const { result } = renderHook(() => useUploadEvidenceFile('c1'), { wrapper });
+
+    await result.current.mutateAsync({ milestone: 'TESTED', file });
+
+    expect(upload).toHaveBeenCalledWith('https://s3.test/upload', {
+      method: 'PUT', body: file, headers: { 'Content-Type': 'application/pdf' },
+    });
+    vi.unstubAllGlobals();
   });
 });

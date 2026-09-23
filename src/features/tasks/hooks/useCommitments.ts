@@ -9,7 +9,7 @@ import {
 import { toast } from 'sonner';
 import { commitmentsApi } from '../services/commitments.api';
 import { taskKeys } from '../services/keys';
-import type { CommitmentRiskCode, DeliveryStatus } from '../types';
+import type { CommitmentRiskCode, DeliveryStatus, EvidenceMilestone } from '../types';
 
 const PAGE_SIZE = 20;
 
@@ -152,6 +152,31 @@ export function useAddEvidence(commitmentId: string) {
       toast.error(
         error instanceof Error ? error.message : 'Không thể thêm bằng chứng',
       ),
+  });
+}
+
+export function useUploadEvidenceFile(commitmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ milestone, file }: { milestone: EvidenceMilestone; file: File }) => {
+      const { evidenceId, uploadUrl } = await commitmentsApi.presignEvidence(commitmentId, {
+        milestone,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+      });
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+      if (!uploadResponse.ok) throw new Error('Không thể tải tệp lên');
+      return commitmentsApi.confirmEvidence(commitmentId, evidenceId);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: taskKeys.commitmentDetail(commitmentId) });
+      toast.success('Đã thêm bằng chứng');
+    },
   });
 }
 
