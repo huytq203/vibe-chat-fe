@@ -9,6 +9,9 @@ import { commitmentsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { ChangeRequestSummary } from '../../types';
 import { ChangeRequestsTab } from './ChangeRequestsTab';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
 
 vi.mock('./ChangeRequestDetailModal', () => ({
   ChangeRequestDetailModal: ({ projectId }: { projectId: string }) => (
@@ -85,6 +88,7 @@ function changeRequestsResult(items: ChangeRequestSummary[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   vi.mocked(useChangeRequestsInfinite).mockReturnValue(
     changeRequestsResult([changeRequest]),
   );
@@ -118,6 +122,23 @@ beforeEach(() => {
 });
 
 describe('ChangeRequestsTab', () => {
+  it('nên ẩn các nút ghi khi user không có quyền quản lý', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    vi.mocked(useChangeRequestsInfinite).mockReturnValue(changeRequestsResult([]));
+    renderWithProviders(<ChangeRequestsTab projectId="project-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Tạo yêu cầu thay đổi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tạo yêu cầu đầu tiên' })).not.toBeInTheDocument();
+    expect(screen.getByText('Chưa có yêu cầu thay đổi nào.')).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi user có quyền quản lý', () => {
+    vi.mocked(useChangeRequestsInfinite).mockReturnValue(changeRequestsResult([]));
+    renderWithProviders(<ChangeRequestsTab projectId="project-1" />);
+
+    expect(screen.getByRole('button', { name: 'Tạo yêu cầu thay đổi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tạo yêu cầu đầu tiên' })).toBeInTheDocument();
+  });
   it('hiển thị danh sách yêu cầu thay đổi và trạng thái', () => {
     renderWithProviders(<ChangeRequestsTab projectId="project-1" />);
 

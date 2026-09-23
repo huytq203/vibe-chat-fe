@@ -10,6 +10,9 @@ import { useMembers } from '../../hooks/useMembers';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { CommitmentSummary } from '../../types';
 import { CommitmentsTab } from './CommitmentsTab';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
 
 vi.mock('../../hooks/useCommitments', () => ({
   useCommitmentsInfinite: vi.fn(),
@@ -85,6 +88,7 @@ function commitmentsResult(items: CommitmentSummary[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   vi.mocked(useCommitmentsInfinite).mockReturnValue(
     commitmentsResult([commitment]),
   );
@@ -114,6 +118,23 @@ beforeEach(() => {
 });
 
 describe('CommitmentsTab', () => {
+  it('nên ẩn các nút ghi khi user không có quyền quản lý', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    vi.mocked(useCommitmentsInfinite).mockReturnValue(commitmentsResult([]));
+    renderWithProviders(<CommitmentsTab projectId="project-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Tạo cam kết' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tạo cam kết đầu tiên' })).not.toBeInTheDocument();
+    expect(screen.getByText('Chưa có cam kết nào.')).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi user có quyền quản lý', () => {
+    vi.mocked(useCommitmentsInfinite).mockReturnValue(commitmentsResult([]));
+    renderWithProviders(<CommitmentsTab projectId="project-1" />);
+
+    expect(screen.getByRole('button', { name: 'Tạo cam kết' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tạo cam kết đầu tiên' })).toBeInTheDocument();
+  });
   it('renders the commitment list and status badges', () => {
     renderWithProviders(<CommitmentsTab projectId="project-1" />);
 

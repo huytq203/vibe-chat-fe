@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
@@ -25,6 +26,7 @@ import {
   useUpdateChangeRequest,
 } from '../../hooks/useChangeRequests';
 import { CHANGE_REQUEST_STATUS_LABELS } from '../../lib/change-request-labels';
+import { useProjectRole } from '../../hooks/useProjectRole';
 import { changeRequestsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type {
@@ -43,6 +45,7 @@ export function ChangeRequestDetailModal({
 }: {
   projectId: string;
 }) {
+  const { canManage } = useProjectRole(projectId);
   const [editOpen, setEditOpen] = useState(false);
   const [transitionOpen, setTransitionOpen] = useState(false);
   const selectedId = useTasksUIStore(
@@ -67,7 +70,7 @@ export function ChangeRequestDetailModal({
                 <Badge variant="secondary" size="sm">
                   {CHANGE_REQUEST_STATUS_LABELS[detail.data.status]}
                 </Badge>
-                {detail.data.status !== 'CLIENT_APPROVED' &&
+                {canManage && detail.data.status !== 'CLIENT_APPROVED' &&
                   detail.data.status !== 'REJECTED' && (
                     <Button
                       variant="outline"
@@ -77,15 +80,17 @@ export function ChangeRequestDetailModal({
                       Chuyển trạng thái
                     </Button>
                   )}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Sửa yêu cầu thay đổi"
-                  className="ml-auto"
-                  onClick={() => setEditOpen(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Sửa yêu cầu thay đổi"
+                    className="ml-auto"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </DialogTitle>
             </DialogHeader>
 
@@ -144,6 +149,7 @@ export function ChangeRequestDetailModal({
                   <SourceRefList
                     changeRequestId={detail.data.id}
                     refs={detail.data.sourceRefs}
+                    canManage={canManage}
                   />
                 )}
               </Section>
@@ -199,9 +205,11 @@ function EmptyText({ children }: { children: ReactNode }) {
 function SourceRefList({
   changeRequestId,
   refs,
+  canManage,
 }: {
   changeRequestId: string;
   refs: SourceRef[];
+  canManage: boolean;
 }) {
   const [openRefId, setOpenRefId] = useState<string | null>(null);
   const removeSourceRef = useRemoveChangeRequestSourceRef(changeRequestId);
@@ -229,14 +237,16 @@ function SourceRefList({
                 {openRefId === sourceRef.id ? 'Ẩn nội dung' : 'Xem nội dung'}
               </button>
             )}
-            <button
-              type="button"
-              aria-label="Gỡ nguồn tham chiếu"
-              className="ml-auto text-muted-foreground hover:text-danger"
-              onClick={() => removeSourceRef.mutate(sourceRef.id)}
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                aria-label="Gỡ nguồn tham chiếu"
+                className="ml-auto text-muted-foreground hover:text-danger"
+                onClick={() => removeSourceRef.mutate(sourceRef.id)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           {openRefId === sourceRef.id && (
             <SourceRefContent
@@ -265,8 +275,14 @@ function SourceRefContent({
       'source-ref-content',
       refId,
     ],
-    queryFn: () =>
-      changeRequestsApi.getSourceRefContent(changeRequestId, refId),
+    queryFn: async () => {
+      try {
+        return await changeRequestsApi.getSourceRefContent(changeRequestId, refId);
+      } catch {
+        toast.error('Không xem được nội dung tin nhắn nguồn');
+        return [];
+      }
+    },
   });
 
   if (content.isPending) return <Skeleton className="mt-1 h-8 w-full" />;

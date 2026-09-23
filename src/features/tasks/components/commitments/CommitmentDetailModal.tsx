@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Pencil, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
@@ -37,6 +38,7 @@ import {
   useUpdateCommitment,
 } from '../../hooks/useCommitments';
 import { useProjectScope } from '../../hooks/useScope';
+import { useProjectRole } from '../../hooks/useProjectRole';
 import { commitmentsApi } from '../../services/commitments.api';
 import { tasksApi } from '../../services/tasks.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
@@ -48,6 +50,7 @@ function formatDate(iso: string | null): string {
 }
 
 export function CommitmentDetailModal({ projectId }: { projectId: string }) {
+  const { canManage } = useProjectRole(projectId);
   const [editOpen, setEditOpen] = useState(false);
   const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
   const [transitionOpen, setTransitionOpen] = useState(false);
@@ -79,7 +82,7 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 <Badge variant="secondary" size="sm">
                   {DELIVERY_STATUS_LABELS[detail.data.deliveryStatus]}
                 </Badge>
-                {detail.data.deliveryStatus !== 'ACCEPTED' &&
+                {canManage && detail.data.deliveryStatus !== 'ACCEPTED' &&
                   detail.data.deliveryStatus !== 'CANCELLED' && (
                     <Button
                       variant="outline"
@@ -92,15 +95,17 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                 <Badge variant="soft-primary" size="sm">
                   {SCOPE_STATUS_LABELS[detail.data.scopeStatus]}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Sửa cam kết"
-                  className="ml-auto"
-                  onClick={() => setEditOpen(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Sửa cam kết"
+                    className="ml-auto"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </DialogTitle>
             </DialogHeader>
 
@@ -169,22 +174,26 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                             Hoàn thành
                           </Badge>
                         )}
-                        <button
-                          type="button"
-                          aria-label={`Gỡ ${task.title}`}
-                          className="text-muted-foreground hover:text-danger"
-                          onClick={() => unlinkTask.mutate(task.id)}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                        {canManage && (
+                          <button
+                            type="button"
+                            aria-label={`Gỡ ${task.title}`}
+                            className="text-muted-foreground hover:text-danger"
+                            onClick={() => unlinkTask.mutate(task.id)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
                 )}
-                <LinkTaskPicker
-                  projectId={projectId}
-                  commitment={detail.data}
-                />
+                {canManage && (
+                  <LinkTaskPicker
+                    projectId={projectId}
+                    commitment={detail.data}
+                  />
+                )}
               </div>
 
               <div>
@@ -192,14 +201,16 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                   <h3 className="text-sm font-semibold text-foreground">
                     Bằng chứng
                   </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAddEvidenceOpen(true)}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Thêm
-                  </Button>
+                  {canManage && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAddEvidenceOpen(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Thêm
+                    </Button>
+                  )}
                 </div>
                 {detail.data.evidence.length === 0 ? (
                   <EmptyText>Chưa có bằng chứng.</EmptyText>
@@ -236,6 +247,7 @@ export function CommitmentDetailModal({ projectId }: { projectId: string }) {
                   <SourceRefList
                     commitmentId={detail.data.id}
                     refs={detail.data.sourceRefs}
+                    canManage={canManage}
                   />
                 )}
               </Section>
@@ -350,9 +362,11 @@ function EmptyText({ children }: { children: ReactNode }) {
 function SourceRefList({
   commitmentId,
   refs,
+  canManage,
 }: {
   commitmentId: string;
   refs: SourceRef[];
+  canManage: boolean;
 }) {
   const [openRefId, setOpenRefId] = useState<string | null>(null);
   const removeSourceRef = useRemoveSourceRef(commitmentId);
@@ -380,14 +394,16 @@ function SourceRefList({
                 {openRefId === sourceRef.id ? 'Ẩn nội dung' : 'Xem nội dung'}
               </button>
             )}
-            <button
-              type="button"
-              aria-label="Gỡ nguồn tham chiếu"
-              className="ml-auto text-muted-foreground hover:text-danger"
-              onClick={() => removeSourceRef.mutate(sourceRef.id)}
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                aria-label="Gỡ nguồn tham chiếu"
+                className="ml-auto text-muted-foreground hover:text-danger"
+                onClick={() => removeSourceRef.mutate(sourceRef.id)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           {openRefId === sourceRef.id && (
             <SourceRefContent
@@ -831,7 +847,14 @@ function SourceRefContent({
       'source-ref-content',
       refId,
     ],
-    queryFn: () => commitmentsApi.getSourceRefContent(commitmentId, refId),
+    queryFn: async () => {
+      try {
+        return await commitmentsApi.getSourceRefContent(commitmentId, refId);
+      } catch {
+        toast.error('Không xem được nội dung tin nhắn nguồn');
+        return [];
+      }
+    },
   });
 
   if (content.isPending) return <Skeleton className="mt-1 h-8 w-full" />;

@@ -32,6 +32,7 @@ import {
   useUpdateScopeItem,
 } from '../../hooks/useScope';
 import type { ScopeItem, ScopeItemStatus } from '../../types';
+import { useProjectRole } from '../../hooks/useProjectRole';
 
 const STATUS_LABELS: Record<ScopeItemStatus, string> = {
   APPROVED: 'Đã duyệt',
@@ -50,6 +51,7 @@ const STATUS_BADGE_VARIANT: Record<
 
 export function ScopeTab({ projectId }: { projectId: string }) {
   const scope = useProjectScope(projectId);
+  const { canManage } = useProjectRole(projectId);
 
   if (scope.isPending) {
     return (
@@ -68,11 +70,13 @@ export function ScopeTab({ projectId }: { projectId: string }) {
         projectId={projectId}
         rawDocument={scope.data.rawDocument}
         version={scope.data.version}
+        canManage={canManage}
       />
       <ScopeItemList
         projectId={projectId}
         items={scope.data.items}
         version={scope.data.version}
+        canManage={canManage}
       />
     </div>
   );
@@ -82,10 +86,12 @@ function ScopeDocumentForm({
   projectId,
   rawDocument,
   version,
+  canManage,
 }: {
   projectId: string;
   rawDocument: string | null;
   version: number;
+  canManage: boolean;
 }) {
   const [value, setValue] = useState(rawDocument ?? '');
   const update = useUpdateScopeDocument(projectId);
@@ -99,14 +105,16 @@ function ScopeDocumentForm({
         rows={10}
         placeholder="Dán nội dung SOW hoặc mô tả phạm vi dự án..."
       />
-      <Button
-        size="sm"
-        disabled={value === (rawDocument ?? '')}
-        isLoading={update.isPending}
-        onClick={() => update.mutate({ rawDocument: value, version })}
-      >
-        Lưu tài liệu
-      </Button>
+      {canManage && (
+        <Button
+          size="sm"
+          disabled={value === (rawDocument ?? '')}
+          isLoading={update.isPending}
+          onClick={() => update.mutate({ rawDocument: value, version })}
+        >
+          Lưu tài liệu
+        </Button>
+      )}
     </div>
   );
 }
@@ -115,10 +123,12 @@ function ScopeItemList({
   projectId,
   items,
   version,
+  canManage,
 }: {
   projectId: string;
   items: ScopeItem[];
   version: number;
+  canManage: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<ScopeItem | null>(null);
@@ -131,10 +141,12 @@ function ScopeItemList({
         <h3 className="text-sm font-semibold text-foreground">
           Hạng mục phạm vi
         </h3>
-        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Thêm hạng mục
-        </Button>
+        {canManage && (
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Thêm hạng mục
+          </Button>
+        )}
       </div>
 
       {items.length === 0 ? (
@@ -169,24 +181,26 @@ function ScopeItemList({
                   </p>
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Sửa ${item.title}`}
-                  onClick={() => setEditing(item)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Xoá ${item.title}`}
-                  onClick={() => setDeleting(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {canManage && (
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Sửa ${item.title}`}
+                    onClick={() => setEditing(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Xoá ${item.title}`}
+                    onClick={() => setDeleting(item)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

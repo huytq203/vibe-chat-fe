@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils';
 import { useProjectClient } from '../../hooks/useClient';
@@ -18,6 +19,10 @@ import { tasksApi } from '../../services/tasks.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { CommitmentDetail } from '../../types';
 import { CommitmentDetailModal } from './CommitmentDetailModal';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 
 vi.mock('../../hooks/useCommitments', () => ({
   useCommitmentDetail: vi.fn(),
@@ -138,6 +143,7 @@ function mockDetail(data: CommitmentDetail | undefined) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   selectedCommitmentId = 'commitment-1';
   mockDetail(commitmentDetail);
   vi.mocked(useMembers).mockReturnValue({
@@ -263,6 +269,40 @@ beforeEach(() => {
 });
 
 describe('CommitmentDetailModal', () => {
+  it('nên ẩn các nút ghi khi !canManage', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Sửa cam kết' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chuyển trạng thái' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Thêm' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gỡ Kiểm thử luồng thanh toán' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gắn' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gỡ nguồn tham chiếu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem nội dung' })).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi canManage', () => {
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    expect(screen.getByRole('button', { name: 'Sửa cam kết' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chuyển trạng thái' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thêm' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gỡ Kiểm thử luồng thanh toán' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gắn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gỡ nguồn tham chiếu' })).toBeInTheDocument();
+  });
+
+  it('nên hiện toast khi xem nội dung nguồn bị lỗi', async () => {
+    const user = userEvent.setup();
+    vi.mocked(commitmentsApi.getSourceRefContent).mockRejectedValue(new Error('Network error'));
+    renderWithProviders(<CommitmentDetailModal projectId="project-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Xem nội dung' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Không xem được nội dung tin nhắn nguồn'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
   it('không mở hộp thoại khi chưa chọn cam kết', () => {
     selectedCommitmentId = null;
 

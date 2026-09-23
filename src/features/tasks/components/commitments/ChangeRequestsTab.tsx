@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Text } from '@/components/ui/typography/Typography';
 import { CHANGE_REQUEST_STATUS_LABELS } from '../../lib/change-request-labels';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { useProjectRole } from '../../hooks/useProjectRole';
 import {
   useChangeRequestsInfinite,
   useCreateChangeRequest,
@@ -42,6 +43,7 @@ const STATUS_VARIANT: Record<
 };
 
 export function ChangeRequestsTab({ projectId }: { projectId: string }) {
+  const { canManage } = useProjectRole(projectId);
   const [filters, setFilters] = useState<ChangeRequestFilters>({});
   const [createOpen, setCreateOpen] = useState(false);
   const openDetail = useTasksUIStore((state) => state.openChangeRequestDetail);
@@ -78,14 +80,16 @@ export function ChangeRequestsTab({ projectId }: { projectId: string }) {
           }
           className="w-48"
         />
-        <Button
-          size="sm"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Tạo yêu cầu thay đổi
-        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            className="ml-auto"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Tạo yêu cầu thay đổi
+          </Button>
+        )}
       </div>
 
       {changeRequests.isPending ? (
@@ -98,13 +102,15 @@ export function ChangeRequestsTab({ projectId }: { projectId: string }) {
           <Text size="sm" color="muted">
             Chưa có yêu cầu thay đổi nào.
           </Text>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCreateOpen(true)}
-          >
-            Tạo yêu cầu đầu tiên
-          </Button>
+          {canManage && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCreateOpen(true)}
+            >
+              Tạo yêu cầu đầu tiên
+            </Button>
+          )}
         </div>
       ) : (
         <div

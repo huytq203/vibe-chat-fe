@@ -9,6 +9,9 @@ import {
   useUpdateScopeItem,
 } from '../../hooks/useScope';
 import { ScopeTab } from './ScopeTab';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
 
 vi.mock('../../hooks/useScope', () => ({
   useProjectScope: vi.fn(),
@@ -29,6 +32,7 @@ function mutationResult(mutate: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   vi.mocked(useProjectScope).mockReturnValue({
     data: {
       projectId: 'proj-1',
@@ -68,6 +72,25 @@ beforeEach(() => {
 });
 
 describe('ScopeTab', () => {
+  it('nên ẩn các nút ghi khi user không có quyền quản lý', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    renderWithProviders(<ScopeTab projectId="proj-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Lưu tài liệu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Thêm hạng mục' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sửa Đăng nhập' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xoá Đăng nhập' })).not.toBeInTheDocument();
+    expect(screen.getByText('Đăng nhập')).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi user có quyền quản lý', () => {
+    renderWithProviders(<ScopeTab projectId="proj-1" />);
+
+    expect(screen.getByRole('button', { name: 'Lưu tài liệu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thêm hạng mục' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sửa Đăng nhập' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xoá Đăng nhập' })).toBeInTheDocument();
+  });
   it('nên hiện tài liệu và danh sách hạng mục phạm vi', () => {
     renderWithProviders(<ScopeTab projectId="proj-1" />);
 

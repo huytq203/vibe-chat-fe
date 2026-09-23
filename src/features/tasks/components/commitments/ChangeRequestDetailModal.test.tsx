@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils';
 import {
@@ -11,6 +12,10 @@ import { changeRequestsApi } from '../../services/commitments.api';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import type { ChangeRequestSummary } from '../../types';
 import { ChangeRequestDetailModal } from './ChangeRequestDetailModal';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 
 vi.mock('../../hooks/useChangeRequests', () => ({
   useChangeRequestDetail: vi.fn(),
@@ -83,6 +88,7 @@ function mockDetail(data: ChangeRequestSummary | undefined) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   selectedChangeRequestId = 'change-request-1';
   mockDetail(changeRequest);
   vi.mocked(useUpdateChangeRequest).mockReturnValue({
@@ -111,6 +117,34 @@ beforeEach(() => {
 });
 
 describe('ChangeRequestDetailModal', () => {
+  it('nên ẩn các nút ghi khi !canManage', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    renderWithProviders(<ChangeRequestDetailModal projectId="project-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Sửa yêu cầu thay đổi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chuyển trạng thái' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gỡ nguồn tham chiếu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem nội dung' })).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi canManage', () => {
+    renderWithProviders(<ChangeRequestDetailModal projectId="project-1" />);
+
+    expect(screen.getByRole('button', { name: 'Sửa yêu cầu thay đổi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chuyển trạng thái' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gỡ nguồn tham chiếu' })).toBeInTheDocument();
+  });
+
+  it('nên hiện toast khi xem nội dung nguồn bị lỗi', async () => {
+    const user = userEvent.setup();
+    vi.mocked(changeRequestsApi.getSourceRefContent).mockRejectedValue(new Error('Network error'));
+    renderWithProviders(<ChangeRequestDetailModal projectId="project-1" />);
+
+    await user.click(screen.getByRole('button', { name: 'Xem nội dung' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Không xem được nội dung tin nhắn nguồn'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
   it('không mở hộp thoại khi chưa chọn yêu cầu thay đổi', () => {
     selectedChangeRequestId = null;
 

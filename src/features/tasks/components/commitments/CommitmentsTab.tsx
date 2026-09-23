@@ -25,6 +25,7 @@ import {
 } from '../../lib/commitment-labels';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useMembers } from '../../hooks/useMembers';
+import { useProjectRole } from '../../hooks/useProjectRole';
 import {
   useCommitmentsInfinite,
   useCreateCommitment,
@@ -68,6 +69,7 @@ function isOverdue(commitment: CommitmentSummary): boolean {
 }
 
 export function CommitmentsTab({ projectId }: { projectId: string }) {
+  const { canManage } = useProjectRole(projectId);
   const [filters, setFilters] = useState<CommitmentFilters>({});
   const [createOpen, setCreateOpen] = useState(false);
   const openDetail = useTasksUIStore((state) => state.openCommitmentDetail);
@@ -146,14 +148,16 @@ export function CommitmentsTab({ projectId }: { projectId: string }) {
           }
           className="w-48"
         />
-        <Button
-          size="sm"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Tạo cam kết
-        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            className="ml-auto"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Tạo cam kết
+          </Button>
+        )}
       </div>
 
       {commitments.isPending ? (
@@ -166,13 +170,15 @@ export function CommitmentsTab({ projectId }: { projectId: string }) {
           <Text size="sm" color="muted">
             Chưa có cam kết nào.
           </Text>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCreateOpen(true)}
-          >
-            Tạo cam kết đầu tiên
-          </Button>
+          {canManage && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCreateOpen(true)}
+            >
+              Tạo cam kết đầu tiên
+            </Button>
+          )}
         </div>
       ) : (
         <div

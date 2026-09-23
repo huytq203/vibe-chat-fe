@@ -9,6 +9,9 @@ import {
   useUpsertClient,
 } from '../../hooks/useClient';
 import { ClientTab } from './ClientTab';
+import { useProjectRole } from '../../hooks/useProjectRole';
+
+vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
 
 vi.mock('../../hooks/useClient', () => ({
   useProjectClient: vi.fn(),
@@ -29,6 +32,7 @@ function mutationResult(mutate: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
   vi.mocked(useProjectClient).mockReturnValue({
     data: {
       projectId: 'proj-1',
@@ -62,6 +66,25 @@ beforeEach(() => {
 });
 
 describe('ClientTab', () => {
+  it('nên ẩn các nút ghi khi user không có quyền quản lý', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    expect(screen.queryByRole('button', { name: 'Lưu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Thêm người liên hệ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sửa Alex Nguyen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xoá Alex Nguyen' })).not.toBeInTheDocument();
+    expect(screen.getByText('Alex Nguyen')).toBeInTheDocument();
+  });
+
+  it('nên hiện các nút ghi khi user có quyền quản lý', () => {
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+
+    expect(screen.getByRole('button', { name: 'Lưu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thêm người liên hệ' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sửa Alex Nguyen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xoá Alex Nguyen' })).toBeInTheDocument();
+  });
   it('nên hiện tên khách hàng và danh sách người liên hệ', () => {
     renderWithProviders(<ClientTab projectId="proj-1" />);
 

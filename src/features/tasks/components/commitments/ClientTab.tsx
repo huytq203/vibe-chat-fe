@@ -31,9 +31,11 @@ import {
   useUpsertClient,
 } from '../../hooks/useClient';
 import type { ProjectContact } from '../../types';
+import { useProjectRole } from '../../hooks/useProjectRole';
 
 export function ClientTab({ projectId }: { projectId: string }) {
   const client = useProjectClient(projectId);
+  const { canManage } = useProjectRole(projectId);
 
   if (client.isPending) {
     return (
@@ -46,9 +48,9 @@ export function ClientTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
-      <ClientNameForm projectId={projectId} name={client.data?.name ?? ''} />
+      <ClientNameForm projectId={projectId} name={client.data?.name ?? ''} canManage={canManage} />
       {client.data && (
-        <ContactList projectId={projectId} contacts={client.data.contacts} />
+        <ContactList projectId={projectId} contacts={client.data.contacts} canManage={canManage} />
       )}
     </div>
   );
@@ -57,9 +59,11 @@ export function ClientTab({ projectId }: { projectId: string }) {
 function ClientNameForm({
   projectId,
   name,
+  canManage,
 }: {
   projectId: string;
   name: string;
+  canManage: boolean;
 }) {
   const [value, setValue] = useState(name);
   const upsert = useUpsertClient(projectId);
@@ -73,13 +77,15 @@ function ClientNameForm({
         placeholder="VD: ACME Corporation"
         className="max-w-sm"
       />
-      <Button
-        onClick={() => upsert.mutate(value.trim())}
-        disabled={!value.trim() || value.trim() === name}
-        isLoading={upsert.isPending}
-      >
-        Lưu
-      </Button>
+      {canManage && (
+        <Button
+          onClick={() => upsert.mutate(value.trim())}
+          disabled={!value.trim() || value.trim() === name}
+          isLoading={upsert.isPending}
+        >
+          Lưu
+        </Button>
+      )}
     </div>
   );
 }
@@ -87,9 +93,11 @@ function ClientNameForm({
 function ContactList({
   projectId,
   contacts,
+  canManage,
 }: {
   projectId: string;
   contacts: ProjectContact[];
+  canManage: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectContact | null>(null);
@@ -100,10 +108,12 @@ function ContactList({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Người liên hệ</h3>
-        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Thêm người liên hệ
-        </Button>
+        {canManage && (
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Thêm người liên hệ
+          </Button>
+        )}
       </div>
 
       {contacts.length === 0 ? (
@@ -133,24 +143,26 @@ function ContactList({
                     '—'}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Sửa ${contact.name}`}
-                  onClick={() => setEditing(contact)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Xoá ${contact.name}`}
-                  onClick={() => setDeleting(contact)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {canManage && (
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Sửa ${contact.name}`}
+                    onClick={() => setEditing(contact)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Xoá ${contact.name}`}
+                    onClick={() => setDeleting(contact)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
