@@ -8,7 +8,7 @@ import { useMessageSelectionStore } from '@/features/chat/stores/message-selecti
 import { MessageBubble } from './MessageBubble';
 import { LightboxProvider } from './LightboxProvider';
 
-// Dialog mở profile cần next/navigation router context không có trong test — mock như RichText.test.tsx.
+// The profile dialog needs a Next.js router context, so mock it as in RichText.test.tsx.
 vi.mock('@/features/chat/components/contact/UserProfileDialog', () => ({
   UserProfileDialog: () => null,
 }));
@@ -371,8 +371,7 @@ describe('MessageBubble', () => {
   });
 
   it('keeps slash commands clickable inside a bot Markdown reply', () => {
-    // Regression: nhánh Markdown chạy trước BotCommandText nên command trong tin
-    // bot từng render thành chữ thường, không bấm được.
+    // Regression: Markdown previously rendered bot commands as plain text before BotCommandText ran.
     const { getByRole } = renderWithProviders(
       <MessageBubble
         message={buildMessage({
@@ -451,7 +450,7 @@ describe('MessageBubble', () => {
     expect(container.querySelector('code')).toHaveTextContent('GET /api/v1/bot/me');
   });
 
-  it('nên hiện checkbox overlay khi selectable=true', () => {
+  it('shows the selection overlay when the message is selectable', () => {
     renderWithProviders(
       <LightboxProvider>
         <MessageBubble
@@ -468,7 +467,7 @@ describe('MessageBubble', () => {
     ).toBeInTheDocument();
   });
 
-  it('nên hiện trạng thái đã chọn khi selected=true', () => {
+  it('shows the selected state when selected is true', () => {
     renderWithProviders(
       <LightboxProvider>
         <MessageBubble
@@ -485,7 +484,7 @@ describe('MessageBubble', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('nên gọi toggle với đúng messageId khi bấm overlay, không kích hoạt onQuoteClick', async () => {
+  it('toggles the message selection without activating the reply quote', async () => {
     const user = userEvent.setup();
     const onQuoteClick = vi.fn();
     const message = buildMessage({ replyToMessageId: 'm0' });
@@ -506,5 +505,38 @@ describe('MessageBubble', () => {
 
     expect(useMessageSelectionStore.getState().selectedIds.has(message.id)).toBe(true);
     expect(onQuoteClick).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['incoming text', buildMessage({ plaintext: 'First line\nSecond line' }), 'me', 'pl-8'],
+    ['outgoing text', buildMessage({ senderId: 'me' }), 'me', 'pr-8'],
+    ['reply quote', buildMessage({ replyToMessageId: 'earlier-message' }), 'me', 'pl-8'],
+    ['bare image', buildMessage({ type: 'IMAGE', plaintext: null, contentPreview: null, attachments: [buildImageAttachment('selection-image')] }), 'me', 'pl-8'],
+  ])('reserves space for the selection mark on %s', (_case, message, meId, expectedPadding) => {
+    const { container, getByRole } = renderWithProviders(
+      <LightboxProvider>
+        <MessageBubble message={message} meId={meId} showAvatar={false} selectable selected />
+      </LightboxProvider>,
+    );
+
+    const surface = container.querySelector('[data-message-surface]') as HTMLElement;
+    const overlay = getByRole('button', { name: 'Bỏ chọn tin nhắn' });
+    const mark = overlay.querySelector('span') as HTMLElement;
+
+    expect(surface).toHaveClass(expectedPadding);
+    expect(overlay).toHaveClass('absolute', 'inset-0', 'ring-primary');
+    expect(overlay).toHaveAttribute('aria-pressed', 'true');
+    expect(mark).toHaveClass('top-1/2', '-translate-y-1/2');
+  });
+
+  it('keeps the original surface padding when selection mode is off', () => {
+    const { container, queryByRole } = renderWithProviders(
+      <MessageBubble message={buildMessage()} meId="me" showAvatar={false} />,
+    );
+
+    const surface = container.querySelector('[data-message-surface]') as HTMLElement;
+    expect(surface).toHaveClass('px-3.5', 'py-2.5');
+    expect(surface).not.toHaveClass('pl-8', 'pr-8');
+    expect(queryByRole('button', { name: 'Chọn tin nhắn' })).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { type TwemojiEntity } from 'twemoji-parser';
 import { parseEmoji } from '@/lib/utils/emoji';
 import { createUrlRegex, normalizeUrl } from '@/lib/utils/url';
 
-/** Tách 1 đoạn text thành các node: phần URL → <a> clickable, còn lại giữ text. */
+/** Split text into links and plain text nodes. */
 function linkify(slice: string, keyBase: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   const re = createUrlRegex();
@@ -50,9 +51,27 @@ type EmojiTextProps = {
   className?: string;
   /** Enlarge emoji when the entire message is emoji-only (1–5 emojis). */
   largeEmoji?: boolean;
-  /** Biến URL trong text thành link clickable. */
+  /** Make URLs in the text clickable. */
   linkify?: boolean;
 };
+
+function EmojiImage({ token, className }: { token: TwemojiEntity; className: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) return <span className={className}>{token.text}</span>;
+
+  return (
+    <img
+      src={token.url}
+      alt={token.text}
+      title={token.text}
+      className={className}
+      loading="lazy"
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function EmojiText({ text, className, largeEmoji = false, linkify: enableLinks = false }: EmojiTextProps) {
   if (!text) return <span className={className} />;
@@ -76,17 +95,7 @@ export function EmojiText({ text, className, largeEmoji = false, linkify: enable
     if (token.indices[0] > lastIndex) {
       segments.push(renderText(text.slice(lastIndex, token.indices[0]), `s${i}`));
     }
-    segments.push(
-      <img
-        key={i}
-        src={token.url}
-        alt={token.text}
-        title={token.text}
-        className={`inline-block ${imgClass}`}
-        loading="lazy"
-        draggable={false}
-      />
-    );
+    segments.push(<EmojiImage key={`${i}-${token.text}`} token={token} className={`inline-block ${imgClass}`} />);
     lastIndex = token.indices[1];
   });
 

@@ -27,43 +27,43 @@ type MessageBubbleProps = {
   meId: string | null;
   showAvatar: boolean;
   senderName?: string | null;
-  /** Hiện tên người gửi trên bubble (group, tin đầu của mỗi chuỗi tin). */
+  /** Show the sender name above the first bubble in a group. */
   showSenderName?: boolean;
-  /** Avatar người gửi (URL đã ký, từ conversation.members). */
+  /** Sender avatar URL from conversation members. */
   senderAvatarUrl?: string | null;
-  /** Tin gốc được trả lời, tra từ cache; null nếu tin không reply hoặc ngoài khung nhìn. */
+  /** Replied-to message from the cache, or null if unavailable. */
   repliedTo?: Message | null;
-  /** Tên người gửi tin gốc đã resolve (cho ReplyQuote). */
+  /** Resolved sender name of the replied-to message. */
   repliedToName?: string | null;
   senderUsername?: string | null;
-  /** Bấm quote → cuộn tới tin gốc (do MessageList cung cấp). */
+  /** Scroll to the original message when its quote is clicked. */
   onQuoteClick?: (messageId: string) => void;
-  /** Đang được nháy sáng do vừa cuộn tới từ một reply. */
+  /** Highlight after scrolling to this message from a reply. */
   isHighlighted?: boolean;
-  /** Có quyền ghim/bỏ ghim tin trong conversation này (truyền xuống MessageActions). */
+  /** Whether the user may pin or unpin messages in this conversation. */
   canPin?: boolean;
-  /** Tin này đang được ghim. */
+  /** Whether this message is pinned. */
   isPinned?: boolean;
-  /** Nhãn "Trưởng nhóm"/"Phó nhóm" của người gửi (chỉ khi markLeaderMessages). */
+  /** Sender leadership label when leader messages are marked. */
   leaderLabel?: string | null;
   wallpaperActive?: boolean;
   bubbleConfig?: BubbleConfig;
-  /** Cho surface khác (vd. My Store) thay toolbar action nhưng vẫn dùng chung chrome bubble. */
+  /** Allow another surface to replace the action toolbar while sharing the bubble shell. */
   renderActions?: (args: { isMe: boolean; className: string }) => ReactNode;
   enableDefaultActions?: boolean;
   enableTouchMenu?: boolean;
   enableLikeButton?: boolean;
   showReactions?: boolean;
   showBotMarkup?: boolean;
-  /** Chỉ conversation có bot mới cho phép click slash command. */
+  /** Enable clickable slash commands only in conversations with a bot. */
   enableBotCommands?: boolean;
-  /** Render Markdown an toàn cho nội dung do bot gửi. */
+  /** Render bot content as safe Markdown. */
   renderMarkdown?: boolean;
-  /** Chrome dành cho kho cá nhân: media độc lập, không có nền bubble màu primary. */
+  /** Use standalone media without a primary bubble background for personal storage. */
   appearance?: "default" | "store";
-  /** Đang ở chế độ chọn nhiều tin nhắn và tin này chọn được (canActions ở MessageList). */
+  /** Whether selection mode is active and this message can be selected. */
   selectable?: boolean;
-  /** Tin này đang nằm trong danh sách đã chọn. */
+  /** Whether this message is currently selected. */
   selected?: boolean;
   onLaunchWebapp?: (input: {
     botUsername: string;
@@ -115,19 +115,17 @@ function MessageBubbleImpl({
       : message.viaBotId
         ? "bot"
         : null;
-  // Ảnh/video hiển thị sát viền → bóng dùng padding nhỏ.
+  // Keep image and video content close to the bubble edge.
   const isVisualMedia =
     !message.isDeleted &&
     (message.type === "IMAGE" ||
       message.type === "VIDEO" ||
       message.type === "CONTACT");
   const isContactCard = !message.isDeleted && message.type === "CONTACT";
-  // Menu hành động: mọi tin đã gửi xong, chưa gỡ. Reply cho tất cả;
-  // Sửa/Gỡ chỉ tin của mình (gate trong MessageActions qua isMe).
+  // Show actions for sent, non-deleted messages. MessageActions limits edit and delete to own messages.
   const canActions = !isSending && !isFailed && !message.isDeleted;
-  // Toolbar action (reply / forward / ⋮) nổi ở cạnh ngoài bong bóng. Hiện khi hover
-  // cả DÒNG (group/row), không chỉ riêng bong bóng; pointer-events-none khi ẩn để
-  // không chặn chuột. left-full/right-full đẩy ra ngoài cạnh bubble.
+  // Position the action toolbar outside the bubble and reveal it when the row is hovered.
+  // Disable pointer events while hidden so it does not block the message.
   const actionsClassName = cn(
     "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity",
     "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
@@ -167,7 +165,7 @@ function MessageBubbleImpl({
     !message.replyToMessageId &&
     !message.forwardFrom;
 
-  // Nút Like ở mép dưới bong bóng (chỉ hiện khi hover và CHƯA có reaction nào).
+  // Show the Like button below the bubble on hover when no reaction exists.
   const likeButton = enableLikeButton && canActions && !hasReactions && (
     <MessageLikeButton
       message={message}
@@ -180,7 +178,7 @@ function MessageBubbleImpl({
     />
   );
 
-  // Tương tác cảm ứng: long-press mở menu action, double-tap thả nhanh cảm xúc.
+  // Touch interactions open actions on long press and react on double tap.
   const { bubbleProps, drawer } = useBubbleTouchMenu({
     message,
     meId,
@@ -239,6 +237,7 @@ function MessageBubbleImpl({
               : isVisualMedia
                 ? "p-1.5"
                 : "px-3.5 py-2.5",
+            selectable && (isMe ? "pr-8" : "pl-8"),
             !isBareMedia &&
               (isMe
                 ? cn("bg-primary text-primary-foreground", isStoreAppearance && "shadow-micro")
@@ -270,7 +269,7 @@ function MessageBubbleImpl({
             >
               <span
                 className={cn(
-                  "absolute top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2",
+                  "absolute top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full border-2",
                   isMe ? "right-1.5" : "left-1.5",
                   selected
                     ? "border-primary bg-primary text-primary-foreground"
@@ -341,7 +340,6 @@ function MessageBubbleImpl({
   );
 }
 
-// Memo: MessageList re-render mỗi tin mới / typing / sendError. Không memo → MỌI bubble
-// re-render lại. Props gần như primitive và ổn định (onQuoteClick là useCallback ở parent)
-// nên so sánh nông cắt phần lớn re-render thừa, mượt hơn khi hội thoại dài (P1).
+// MessageList updates on new messages, typing, and send errors. Memoization avoids
+// rerendering every bubble because props are mostly stable primitives or callbacks.
 export const MessageBubble = memo(MessageBubbleImpl);
