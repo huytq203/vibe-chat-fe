@@ -30,6 +30,14 @@ import type {
   UserSnapshot,
 } from '../types';
 
+// Date-only deadlines follow the backend convention: midnight UTC.
+function withDueDateTime<T extends { dueDate?: string | null }>(input: T): T {
+  if (typeof input.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) {
+    return { ...input, dueDate: `${input.dueDate}T00:00:00.000Z` };
+  }
+  return input;
+}
+
 export const tasksApi = {
   // --- Current user snapshot ---
   syncCurrentUserSnapshot: (input: {
@@ -104,7 +112,7 @@ export const tasksApi = {
     input: { title: string; columnId: string; description?: string; dueDate?: string },
     idempotencyKey: string,
   ) =>
-    taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, input, {
+    taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, withDueDateTime(input), {
       'Idempotency-Key': idempotencyKey,
     }),
 
@@ -119,7 +127,7 @@ export const tasksApi = {
       isPinned?: boolean;
       version?: number;
     },
-  ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, input),
+  ) => taskClient.patch<TaskDetail>(`/api/v1/tasks/${taskId}`, withDueDateTime(input)),
 
   deleteTask: (taskId: string) => taskClient.delete<void>(`/api/v1/tasks/${taskId}`),
 

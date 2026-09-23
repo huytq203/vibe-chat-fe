@@ -66,9 +66,9 @@ export function PinnedBanner({ conversation, meId }: PinnedBannerProps) {
   }
 
   return (
-    <div className="shrink-0 border-b border-border bg-sidebar">
+    <div className="shrink-0 border-t border-border md:rounded-b-2xl">
       {/* Hàng tóm tắt: bấm để mở rộng danh sách (nếu nhiều tin) + nút "…" tuỳ chọn tin trên cùng. */}
-      <div className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-muted/50">
+      <div className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-muted/50 md:rounded-b-2xl">
         <Pin className="h-4 w-4 shrink-0 text-primary" />
         <button
           type="button"

@@ -55,7 +55,7 @@ export function MessageSelectionToolbar({ conversationId, onAnalyze, messages, s
   }
 
   return (
-    <div role="toolbar" aria-label="Tin nhắn đã chọn" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-sidebar px-[max(var(--safe-left),0.75rem)] py-2 pr-[max(var(--safe-right),0.75rem)] text-foreground md:rounded-t-xl">
+    <div role="toolbar" aria-label="Tin nhắn đã chọn" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-[max(var(--safe-left),0.75rem)] py-2 pr-[max(var(--safe-right),0.75rem)] text-foreground md:px-4">
       <span className="flex items-center gap-2 text-sm font-medium">
         <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-primary/15 px-1.5 font-semibold tabular-nums text-primary">{count}</span>
         <span>Đã chọn</span>

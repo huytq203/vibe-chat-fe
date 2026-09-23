@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowDown } from "lucide-react";
 import { isSameDay, isToday, isYesterday, format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -51,6 +52,7 @@ function DateSeparator({ date }: { date: Date }) {
 }
 
 type MessageListProps = {
+  selectionToolbarHost?: HTMLDivElement | null;
   conversationId: string;
   onAtBottom?: () => void;
   wallpaperActive?: boolean;
@@ -64,6 +66,7 @@ const EMPTY_TYPING: string[] = [];
 const MAX_JUMP_FETCHES = 40;
 
 export function MessageList({
+  selectionToolbarHost,
   conversationId,
   onAtBottom,
   wallpaperActive = false,
@@ -379,13 +382,16 @@ export function MessageList({
           })}
         </div>
 
-        <MessageSelectionToolbar
-          conversationId={conversationId}
-          onAnalyze={setAnalysisMessageIds}
-          messages={messages}
-          senderNames={memberNames}
-          meId={meId}
-        />
+        {selectionToolbarHost && createPortal(
+          <MessageSelectionToolbar
+            conversationId={conversationId}
+            onAnalyze={setAnalysisMessageIds}
+            messages={messages}
+            senderNames={memberNames}
+            meId={meId}
+          />,
+          selectionToolbarHost,
+        )}
 
         {showScrollDown && (
           <button

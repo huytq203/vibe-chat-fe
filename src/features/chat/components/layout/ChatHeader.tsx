@@ -20,10 +20,11 @@ type ChatHeaderProps = {
   onToggleRight: () => void;
   /** Mobile only: back button ← về danh sách. */
   onBack?: () => void;
+  embedded?: boolean;
   wallpaperActive?: boolean;
 };
 
-export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack, wallpaperActive }: ChatHeaderProps) {
+export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRight, onBack, wallpaperActive, embedded = false }: ChatHeaderProps) {
   const [searching, setSearching] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const requestJump = useMessageJumpStore((s) => s.requestJump);
@@ -47,7 +48,7 @@ export function ChatHeader({ conversation, meId, presence, rightOpen, onToggleRi
         : presence.lastSeenLabel ?? 'Ngoại tuyến';
 
   return (
-    <div className={cn('flex shrink-0 items-center justify-between border-b px-4 py-3 max-md:pt-[calc(var(--safe-top)+0.75rem)] md:rounded-2xl md:border md:shadow-subtle', wallpaperActive ? 'bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md' : 'bg-sidebar')}>
+    <div className={cn('flex shrink-0 items-center justify-between px-4 py-3 max-md:pt-[calc(var(--safe-top)+0.75rem)]', !embedded && 'border-b md:rounded-2xl md:border md:shadow-subtle', !embedded && (wallpaperActive ? 'bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md' : 'bg-sidebar'))}>
       {onBack && (
         <Button
           variant="ghost"

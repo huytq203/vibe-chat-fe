@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils/cn";
 import type { SerializedMessage } from "@/lib/editor/serializer";
 
 type MessageInputProps = {
+  /** Render inside the shared composer surface owned by ChatPanel. */
+  embedded?: boolean;
   conversationId: string;
   conversationType: ConversationType;
   disabled?: boolean;
@@ -56,13 +58,13 @@ type MessageInputProps = {
 };
 
 export function MessageInput({
+  embedded = false,
   conversationId,
   conversationType,
   disabled,
   selfConv,
   isGroup,
   botFatherCommands,
-  wallpaperActive,
   onWebappMenuClick,
   stickerBotConversation,
 }: MessageInputProps) {
@@ -328,9 +330,9 @@ export function MessageInput({
   return (
     <div
       className={cn(
-        "shrink-0 border-t py-2 pl-[max(var(--safe-left),0.75rem)] pr-[max(var(--safe-right),0.75rem)] max-md:pb-[max(var(--safe-bottom),0.5rem)] md:rounded-2xl md:border md:px-4 md:shadow-subtle",
+        "shrink-0 py-2 pl-[max(var(--safe-left),0.75rem)] pr-[max(var(--safe-right),0.75rem)] max-md:pb-[max(var(--safe-bottom),0.5rem)] md:px-4",
+        !embedded && "border-t bg-sidebar md:rounded-2xl md:border md:shadow-subtle",
         selectionActive && "opacity-50",
-        wallpaperActive ? "bg-sidebar" : "bg-sidebar",
       )}
       data-message-composer
       aria-disabled={selectionActive}

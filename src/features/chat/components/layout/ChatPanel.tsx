@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { useAuthStore } from "@/features/auth";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
@@ -22,6 +22,7 @@ import { WebAppContainer } from "@/features/chat/components/webapp/WebAppContain
 import { cn } from "@/lib/utils/cn";
 
 export function ChatPanel() {
+  const [selectionToolbarHost, setSelectionToolbarHost] = useState<HTMLDivElement | null>(null);
   const meId = useAuthStore((s) => s.user?.id ?? null);
   const rightPanelOpen = useChatUIStore((s) => s.rightPanelOpen);
   const toggleRight = useChatUIStore((s) => s.toggleRight);
@@ -154,59 +155,75 @@ export function ChatPanel() {
 
   return (
     <main className="flex h-full min-w-0 flex-1 flex-col">
-      <ChatHeader
-        conversation={conversation}
-        meId={meId}
-        presence={otherPresence}
-        rightOpen={rightPanelOpen}
-        onToggleRight={isMobile ? () => setMobilePanel("contact") : toggleRight}
-        onBack={isMobile ? () => setMobilePanel("list") : undefined}
-        wallpaperActive={wallpaperActive}
-      />
+      <div
+        className={cn(
+          "shrink-0 border-b border-border md:rounded-2xl md:border md:shadow-subtle",
+          wallpaperActive
+            ? "bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md"
+            : "bg-sidebar",
+        )}
+      >
+        <ChatHeader
+          conversation={conversation}
+          meId={meId}
+          presence={otherPresence}
+          rightOpen={rightPanelOpen}
+          onToggleRight={isMobile ? () => setMobilePanel("contact") : toggleRight}
+          onBack={isMobile ? () => setMobilePanel("list") : undefined}
+          embedded
+        />
+        {!isLocked && (
+          <PinnedBanner conversation={conversation} meId={meId} />
+        )}
+      </div>
       <CallBanner />
       {isLocked ? (
         <ConvLockScreen conversationId={conversation.id} name={convName} />
       ) : (
         <>
-          <PinnedBanner conversation={conversation} meId={meId} />
           <MessageList
             key={conversation.id}
             conversationId={conversation.id}
             onAtBottom={handleAtBottom}
             wallpaperActive={wallpaperActive}
             onLaunchWebapp={webapp.launch}
+            selectionToolbarHost={selectionToolbarHost}
           />
-          {isSelfConv || canSendMessage(conversation, meId) ? (
-            <MessageInput
-              conversationId={conversation.id}
-              conversationType={conversation.type}
-              selfConv={isSelfConv}
-              isGroup={
-                conversation.type === "GROUP" || conversation.type === "CHANNEL"
-              }
-              botFatherCommands={isBotFatherConversation}
-              stickerBotConversation={isStickersBotConversation}
-              wallpaperActive={wallpaperActive}
-              onWebappMenuClick={
-                webappBotUsername
-                  ? () => void webapp.launch({ botUsername: webappBotUsername })
-                  : undefined
-              }
-            />
-          ) : (
-            <div
-              className={cn(
-                "shrink-0 rounded-2xl px-4 py-3 text-center text-[12.5px] text-muted-foreground shadow-subtle max-md:rounded-none max-md:pb-[max(var(--safe-bottom),0.75rem)]",
-                wallpaperActive
-                  ? "bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md"
-                  : "bg-sidebar",
-              )}
-            >
-              {isChatRestricted
-                ? "Bạn đang bị quản trị viên chặn gửi tin trong nhóm này"
-                : "Chỉ quản trị viên được nhắn trong nhóm này"}
-            </div>
-          )}
+          <div className="shrink-0 border-t border-border bg-sidebar md:rounded-2xl md:border md:shadow-subtle">
+            <div ref={setSelectionToolbarHost} />
+            {isSelfConv || canSendMessage(conversation, meId) ? (
+              <MessageInput
+                embedded
+                conversationId={conversation.id}
+                conversationType={conversation.type}
+                selfConv={isSelfConv}
+                isGroup={
+                  conversation.type === "GROUP" || conversation.type === "CHANNEL"
+                }
+                botFatherCommands={isBotFatherConversation}
+                stickerBotConversation={isStickersBotConversation}
+                wallpaperActive={wallpaperActive}
+                onWebappMenuClick={
+                  webappBotUsername
+                    ? () => void webapp.launch({ botUsername: webappBotUsername })
+                    : undefined
+                }
+              />
+            ) : (
+              <div
+                className={cn(
+                  "shrink-0 rounded-2xl px-4 py-3 text-center text-[12.5px] text-muted-foreground shadow-subtle max-md:rounded-none max-md:pb-[max(var(--safe-bottom),0.75rem)]",
+                  wallpaperActive
+                    ? "bg-sidebar md:bg-sidebar/75 md:backdrop-blur-md"
+                    : "bg-sidebar",
+                )}
+              >
+                {isChatRestricted
+                  ? "Bạn đang bị quản trị viên chặn gửi tin trong nhóm này"
+                  : "Chỉ quản trị viên được nhắn trong nhóm này"}
+              </div>
+            )}
+          </div>
           <WebAppContainer
             session={webapp.session}
             onSendData={webapp.sendData}
