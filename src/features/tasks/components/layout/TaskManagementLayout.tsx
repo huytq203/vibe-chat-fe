@@ -12,7 +12,9 @@ import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { useProjects } from '../../hooks/useProjects';
 import { useTaskRealtime, useTaskSocketWarmup } from '../../hooks/useTaskRealtime';
 import { useCurrentUserSnapshotSync } from '../../hooks/useCurrentUserSnapshotSync';
+import { useProjectRole } from '../../hooks/useProjectRole';
 import { getViewTitle } from '../../lib/view-title';
+import { Skeleton } from '@/components/ui/skeleton/Skeleton';
 
 export function TaskManagementLayout() {
   const activeView = useTasksUIStore((s) => s.activeView);
@@ -26,6 +28,7 @@ export function TaskManagementLayout() {
   // Realtime: join room project đang mở, đồng bộ board/detail giữa các thành viên
   useTaskRealtime(selectedId);
   const { data: projects = [] } = useProjects();
+  const { isClient, isLoading: isRoleLoading } = useProjectRole(selectedId ?? '');
   const selectedProject = projects.find((p) => p.id === selectedId);
   const boardMeta = getViewTitle('board', selectedProject);
 
@@ -50,17 +53,24 @@ export function TaskManagementLayout() {
                       <p className="truncate text-xs text-muted-foreground sm:text-sm">{boardMeta.sub}</p>
                     )}
                   </div>
-                  <BoardHeader projectId={selectedId} />
+                  {!isRoleLoading && !isClient && <BoardHeader projectId={selectedId} />}
                 </div>
-                {boardView === 'board' ? (
+                {isRoleLoading ? (
+                  <div role="status" aria-label="Đang tải quyền dự án" className="space-y-4 p-4 sm:p-5">
+                    <Skeleton className="h-10 w-48" />
+                    <Skeleton className="h-48 w-full" />
+                  </div>
+                ) : isClient ? (
+                  <CommitmentGraphView projectId={selectedId} />
+                ) : boardView === 'board' ? (
                   <KanbanBoard key={selectedId} projectId={selectedId} />
                 ) : boardView === 'list' ? (
                   <ListView projectId={selectedId} />
                 ) : (
                   <CommitmentGraphView projectId={selectedId} />
                 )}
-                <TaskDetailModal projectId={selectedId} />
-                <ProjectSettingsModal project={selectedProject} />
+                {!isRoleLoading && !isClient && <TaskDetailModal projectId={selectedId} />}
+                {!isRoleLoading && !isClient && <ProjectSettingsModal project={selectedProject} />}
               </div>
             ) : (
               <div className="grid h-full place-items-center text-muted-foreground">

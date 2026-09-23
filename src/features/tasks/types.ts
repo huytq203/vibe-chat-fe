@@ -101,10 +101,12 @@ export interface Tag {
   createdAt: string;
 }
 
+export type ProjectRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'CLIENT';
+
 export interface Member {
   userId: string;
   projectId: string;
-  role: string;
+  role: ProjectRole;
   displayName: string;
   avatarUrl: string | null;
   joinedAt: string;
