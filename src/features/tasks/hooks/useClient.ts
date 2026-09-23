@@ -7,6 +7,7 @@ import {
   type ClientContactInput,
 } from '../services/client.api';
 import { taskKeys } from '../services/keys';
+import { tasksApi } from '../services/tasks.api';
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -80,5 +81,34 @@ export function useRemoveContact(projectId: string) {
     },
     onError: (error) =>
       toast.error(getErrorMessage(error, 'Không thể xoá người liên hệ')),
+  });
+}
+
+const inviteErrorMessages: Record<string, string> = {
+  CLIENT_CONTACT_ALREADY_LINKED: 'Người liên hệ đã được gắn với tài khoản khác',
+  MEMBER_ALREADY_EXISTS: 'Người dùng đã là thành viên project',
+  CLIENT_CONTACT_NOT_FOUND: 'Không tìm thấy người liên hệ',
+};
+
+export function useInviteClientContact(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, contactId }: { userId: string; contactId: string }) =>
+      tasksApi.addMember(projectId, userId, { role: 'CLIENT', contactId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: taskKeys.client(projectId) });
+      void queryClient.invalidateQueries({ queryKey: ['tasks', projectId, 'members'] });
+      toast.success('Đã mời người liên hệ làm khách hàng');
+    },
+    onError: (error) => {
+      const code = error instanceof Error
+        ? ('code' in error && typeof error.code === 'string' ? error.code : error.message)
+        : '';
+      toast.error(inviteErrorMessages[code] ?? 'Không thể mời người liên hệ');
+      if (code === 'CLIENT_CONTACT_ALREADY_LINKED') {
+        void queryClient.invalidateQueries({ queryKey: taskKeys.client(projectId) });
+      }
+    },
   });
 }

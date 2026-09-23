@@ -1,11 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clientApi } from './client.api';
+import { tasksApi } from './tasks.api';
 
 const mockFetch = vi.fn();
 
 beforeEach(() => {
   mockFetch.mockReset();
   vi.stubGlobal('fetch', mockFetch);
+});
+
+describe('tasksApi.addMember', () => {
+  it('nên giữ mã lỗi BE để hiển thị thông báo phù hợp', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 409, text: async () => JSON.stringify({ success: false, error: { code: 'CLIENT_CONTACT_ALREADY_LINKED', message: 'Conflict' } }) });
+    await expect(tasksApi.addMember('proj-1', 'user-2', { role: 'CLIENT', contactId: 'c1' }))
+      .rejects.toMatchObject({ code: 'CLIENT_CONTACT_ALREADY_LINKED' });
+  });
+  it('nên giữ body cũ khi không truyền options', async () => {
+    mockFetch.mockResolvedValue(okResponse({}));
+    await tasksApi.addMember('proj-1', 'user-2');
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ userId: 'user-2' });
+  });
+
+  it('nên gửi role CLIENT và contactId khi có options', async () => {
+    mockFetch.mockResolvedValue(okResponse({}));
+    await tasksApi.addMember('proj-1', 'user-2', { role: 'CLIENT', contactId: 'c1' });
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ userId: 'user-2', role: 'CLIENT', contactId: 'c1' });
+  });
 });
 
 function okResponse(data: unknown) {

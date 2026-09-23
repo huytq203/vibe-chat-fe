@@ -45,7 +45,9 @@ async function request<T>(
   const text = await res.text();
   const json = text ? (JSON.parse(text) as Envelope<T>) : null;
   if (!res.ok || (json !== null && !json.success)) {
-    throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);
+    const error = new Error(json?.error?.message ?? `Request failed: ${res.status}`);
+    if (json?.error?.code) Object.assign(error, { code: json.error.code });
+    throw error;
   }
   return normalizeTaskDisplayNames((json ? json.data : undefined) as T);
 }

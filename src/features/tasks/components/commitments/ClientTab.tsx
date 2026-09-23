@@ -29,13 +29,16 @@ import {
   useRemoveContact,
   useUpdateContact,
   useUpsertClient,
+  useInviteClientContact,
 } from '../../hooks/useClient';
 import type { ProjectContact } from '../../types';
 import { useProjectRole } from '../../hooks/useProjectRole';
+import { useUserSearch } from '../../hooks/useUserSearch';
+import { Avatar } from '@/components/ui/avatar/Avatar';
 
 export function ClientTab({ projectId }: { projectId: string }) {
   const client = useProjectClient(projectId);
-  const { canManage } = useProjectRole(projectId);
+  const { canManage, role } = useProjectRole(projectId);
 
   if (client.isPending) {
     return (
@@ -50,7 +53,7 @@ export function ClientTab({ projectId }: { projectId: string }) {
     <div className="space-y-6">
       <ClientNameForm projectId={projectId} name={client.data?.name ?? ''} canManage={canManage} />
       {client.data && (
-        <ContactList projectId={projectId} contacts={client.data.contacts} canManage={canManage} />
+        <ContactList projectId={projectId} contacts={client.data.contacts} canManage={canManage} isOwner={role === 'OWNER'} />
       )}
     </div>
   );
@@ -94,14 +97,17 @@ function ContactList({
   projectId,
   contacts,
   canManage,
+  isOwner,
 }: {
   projectId: string;
   contacts: ProjectContact[];
   canManage: boolean;
+  isOwner: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectContact | null>(null);
   const [deleting, setDeleting] = useState<ProjectContact | null>(null);
+  const [inviting, setInviting] = useState<ProjectContact | null>(null);
   const removeContact = useRemoveContact(projectId);
 
   return (
@@ -137,30 +143,44 @@ function ContactList({
                       Liên hệ chính
                     </Badge>
                   )}
+                  {contact.userId && (
+                    <Badge variant="soft-success" size="sm">
+                      Đã liên kết tài khoản
+                    </Badge>
+                  )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
                   {[contact.title, contact.email].filter(Boolean).join(' · ') ||
                     '—'}
                 </p>
               </div>
-              {canManage && (
+              {(canManage || isOwner) && (
                 <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Sửa ${contact.name}`}
-                    onClick={() => setEditing(contact)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Xoá ${contact.name}`}
-                    onClick={() => setDeleting(contact)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {isOwner && !contact.userId && !contact.isDeleted && (
+                    <Button size="sm" variant="outline" onClick={() => setInviting(contact)}>
+                      Mời làm khách hàng
+                    </Button>
+                  )}
+                  {canManage && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Sửa ${contact.name}`}
+                        onClick={() => setEditing(contact)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Xoá ${contact.name}`}
+                        onClick={() => setDeleting(contact)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </li>
@@ -174,6 +194,13 @@ function ContactList({
         onOpenChange={setAddOpen}
         mode="create"
       />
+      {inviting && (
+        <InviteClientContactDialog
+          projectId={projectId}
+          contact={inviting}
+          onClose={() => setInviting(null)}
+        />
+      )}
       {editing && (
         <ContactFormDialog
           key={editing.id}
@@ -216,6 +243,64 @@ function ContactList({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function InviteClientContactDialog({ projectId, contact, onClose }: {
+  projectId: string;
+  contact: ProjectContact;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const search = useUserSearch(query);
+  const invite = useInviteClientContact(projectId);
+  const searchActive = query.trim().length >= 2;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mời làm khách hàng</DialogTitle>
+          <DialogDescription>Chọn tài khoản Halo cho {contact.name}.</DialogDescription>
+        </DialogHeader>
+        <Input
+          label="Tìm người dùng để mời"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Nhập tên hoặc email (tối thiểu 2 ký tự)"
+        />
+        {searchActive && (
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {search.isError ? (
+              <p className="text-sm text-danger">Không thể tìm kiếm người dùng lúc này.</p>
+            ) : search.isPending ? (
+              <p className="text-sm text-muted-foreground">Đang tìm…</p>
+            ) : (search.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Không tìm thấy người dùng phù hợp</p>
+            ) : (
+              (search.data ?? []).map((user) => (
+                <button
+                  key={user.userId}
+                  type="button"
+                  disabled={invite.isPending}
+                  onClick={() => invite.mutate({ userId: user.userId, contactId: contact.id }, { onSuccess: onClose })}
+                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted disabled:opacity-50"
+                >
+                  <Avatar src={user.avatarUrl ?? undefined} alt={user.displayName} fallback={user.displayName.charAt(0).toUpperCase()} className="h-7 w-7" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{user.displayName}</span>
+                    {user.email && <span className="block truncate text-xs text-muted-foreground">{user.email}</span>}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Huỷ</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

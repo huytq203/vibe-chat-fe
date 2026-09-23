@@ -7,11 +7,14 @@ import {
   useRemoveContact,
   useUpdateContact,
   useUpsertClient,
+  useInviteClientContact,
 } from '../../hooks/useClient';
 import { ClientTab } from './ClientTab';
 import { useProjectRole } from '../../hooks/useProjectRole';
+import { useUserSearch } from '../../hooks/useUserSearch';
 
 vi.mock('../../hooks/useProjectRole', () => ({ useProjectRole: vi.fn() }));
+vi.mock('../../hooks/useUserSearch', () => ({ useUserSearch: vi.fn() }));
 
 vi.mock('../../hooks/useClient', () => ({
   useProjectClient: vi.fn(),
@@ -19,12 +22,14 @@ vi.mock('../../hooks/useClient', () => ({
   useAddContact: vi.fn(),
   useUpdateContact: vi.fn(),
   useRemoveContact: vi.fn(),
+  useInviteClientContact: vi.fn(),
 }));
 
 const upsert = vi.fn();
 const addContact = vi.fn();
 const updateContact = vi.fn();
 const removeContact = vi.fn();
+const inviteClientContact = vi.fn();
 
 function mutationResult(mutate: ReturnType<typeof vi.fn>) {
   return { mutate, isPending: false };
@@ -32,7 +37,9 @@ function mutationResult(mutate: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useProjectRole).mockReturnValue({ canManage: true } as ReturnType<typeof useProjectRole>);
+  vi.mocked(useProjectRole).mockReturnValue({ role: 'OWNER', canManage: true } as ReturnType<typeof useProjectRole>);
+  vi.mocked(useUserSearch).mockReturnValue({ data: [{ userId: 'user-2', displayName: 'Bình', email: 'binh@example.com', avatarUrl: null }], isPending: false } as ReturnType<typeof useUserSearch>);
+  vi.mocked(useInviteClientContact).mockReturnValue(mutationResult(inviteClientContact) as unknown as ReturnType<typeof useInviteClientContact>);
   vi.mocked(useProjectClient).mockReturnValue({
     data: {
       projectId: 'proj-1',
@@ -66,6 +73,38 @@ beforeEach(() => {
 });
 
 describe('ClientTab', () => {
+  it('nên hiện nút mời cho contact chưa liên kết khi user là OWNER', () => {
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+    expect(screen.getByRole('button', { name: 'Mời làm khách hàng' })).toBeInTheDocument();
+  });
+
+  it('nên ẩn nút mời khi user là ADMIN', () => {
+    vi.mocked(useProjectRole).mockReturnValue({ role: 'ADMIN', canManage: true } as ReturnType<typeof useProjectRole>);
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+    expect(screen.queryByRole('button', { name: 'Mời làm khách hàng' })).not.toBeInTheDocument();
+  });
+
+  it('nên hiện badge đã liên kết khi contact có userId', () => {
+    vi.mocked(useProjectClient).mockReturnValue({
+      data: { projectId: 'proj-1', name: 'ACME', contacts: [{ id: 'c1', userId: 'user-2', name: 'Alex Nguyen', email: null, title: null, isPrimary: false, isDeleted: false }] },
+      isPending: false,
+    } as ReturnType<typeof useProjectClient>);
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+    expect(screen.getByText('Đã liên kết tài khoản')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mời làm khách hàng' })).not.toBeInTheDocument();
+  });
+
+  it('nên gửi lời mời CLIENT cho contact khi chọn user Halo', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ClientTab projectId="proj-1" />);
+    await user.click(screen.getByRole('button', { name: 'Mời làm khách hàng' }));
+    await user.type(screen.getByRole('textbox', { name: 'Tìm người dùng để mời' }), 'Bi');
+    await user.click(await screen.findByRole('button', { name: /Bình/ }));
+    expect(inviteClientContact).toHaveBeenCalledWith(
+      { userId: 'user-2', contactId: 'c1' },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
   it('nên ẩn các nút ghi khi user không có quyền quản lý', () => {
     vi.mocked(useProjectRole).mockReturnValue({ canManage: false } as ReturnType<typeof useProjectRole>);
     renderWithProviders(<ClientTab projectId="proj-1" />);
