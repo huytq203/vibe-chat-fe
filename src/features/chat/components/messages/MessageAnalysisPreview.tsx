@@ -6,6 +6,7 @@ import type { MessageAnalysis } from '@/features/chat/types';
 import { ConfirmCreateChangeRequestForm } from './analysis/ConfirmCreateChangeRequestForm';
 import { ConfirmCreateCommitmentForm } from './analysis/ConfirmCreateCommitmentForm';
 import { ConfirmCreateTaskForm } from './analysis/ConfirmCreateTaskForm';
+import { ConfirmUpdateExistingTaskForm } from './analysis/ConfirmUpdateExistingTaskForm';
 import { ConfirmLinkExistingCommitmentForm } from './analysis/ConfirmLinkExistingCommitmentForm';
 
 const classificationLabels: Record<MessageAnalysis['classification'], string> = {
@@ -27,6 +28,7 @@ const SUPPORTED_ACTION_TYPES = new Set([
   'CREATE_COMMITMENT',
   'CREATE_CHANGE_REQUEST',
   'CREATE_TASK',
+  'UPDATE_EXISTING_TASK',
   'LINK_EXISTING_COMMITMENT',
 ]);
 
@@ -90,7 +92,7 @@ export function MessageAnalysisPreview({
                       </strong>
                       <span className="text-muted-foreground">
                         {' '}
-                        — {action.description}
+                        — {action.rationale?.trim() || action.description}
                       </span>
                     </span>
                     {done ? (
@@ -113,7 +115,7 @@ export function MessageAnalysisPreview({
                       </span>
                     )}
                   </div>
-                  {openIndex === index && (
+                  {supported && openIndex === index && (
                     <ActionForm
                       action={action}
                       analysis={analysis}
@@ -175,6 +177,14 @@ function ActionForm({
           onDone={onDone}
         />
       );
+    case 'UPDATE_EXISTING_TASK':
+      return action.targetTaskId ? (
+        <ConfirmUpdateExistingTaskForm
+          projectId={projectId}
+          action={action}
+          onDone={onDone}
+        />
+      ) : null;
     case 'LINK_EXISTING_COMMITMENT':
       return (
         <ConfirmLinkExistingCommitmentForm

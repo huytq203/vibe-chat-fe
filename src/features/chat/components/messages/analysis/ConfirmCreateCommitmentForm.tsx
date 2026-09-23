@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button/Button';
 import { ComboBox } from '@/components/ui/combobox/ComboBox';
 import { DatePicker } from '@/components/ui/datepicker/DatePicker';
@@ -30,7 +31,7 @@ export function ConfirmCreateCommitmentForm({
   const [title, setTitle] = useState(action.title);
   const [description, setDescription] = useState(action.description);
   const [ownerId, setOwnerId] = useState('');
-  const [dueAt, setDueAt] = useState<Date | undefined>();
+  const [dueAt, setDueAt] = useState<Date | undefined>(() => action.dueDate ? parseISO(action.dueDate) : undefined);
   const members = useMembers(projectId);
   const confirm = useConfirmCreateCommitment(projectId);
 

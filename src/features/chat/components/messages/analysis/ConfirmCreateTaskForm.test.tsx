@@ -18,16 +18,17 @@ const ACTION = {
   title: 'Task X',
   description: 'Mô tả task X',
   targetCommitmentId: 'commitment-1',
+  dueDate: '2026-10-15',
 };
 
-function renderForm(onDone = vi.fn()) {
+function renderForm(onDone = vi.fn(), action = ACTION) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ConfirmCreateTaskForm projectId="proj-1" action={ACTION} onDone={onDone} />
+      <ConfirmCreateTaskForm projectId="proj-1" action={action} onDone={onDone} />
     </QueryClientProvider>,
   );
 }
@@ -57,6 +58,11 @@ describe('ConfirmCreateTaskForm', () => {
     expect(screen.getByDisplayValue('Mô tả task X')).toBeInTheDocument();
   });
 
+  it('nên điền sẵn hạn chót từ gợi ý', () => {
+    renderForm();
+    expect(screen.getByDisplayValue('15/10/2026')).toBeInTheDocument();
+  });
+
   it('nên tạo task rồi gắn task vào cam kết và báo hoàn tất', async () => {
     const user = userEvent.setup();
     vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
@@ -71,10 +77,34 @@ describe('ConfirmCreateTaskForm', () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
     expect(tasksApi.createTask).toHaveBeenCalledWith(
       'proj-1',
-      { title: 'Task X', columnId: 'column-1' },
+      { title: 'Task X', columnId: 'column-1', description: 'Mô tả task X', dueDate: '2026-10-15' },
       expect.any(String),
     );
     expect(commitmentsApi.linkTask).toHaveBeenCalledWith('commitment-1', 'task-1');
+  });
+
+  it('nên gửi mô tả và hạn chót khi tạo task', async () => {
+    vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
+    vi.mocked(commitmentsApi.linkTask).mockResolvedValue(undefined);
+    renderForm();
+    fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: '  Nội dung thật  ' } });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Cần làm' }));
+    await user.click(screen.getByRole('button', { name: /xác nhận tạo task/i }));
+    await waitFor(() => expect(tasksApi.createTask).toHaveBeenCalledWith('proj-1', { title: 'Task X', columnId: 'column-1', description: 'Nội dung thật', dueDate: '2026-10-15' }, expect.any(String)));
+  });
+
+  it('nên không gửi mô tả khi mô tả rỗng', async () => {
+    vi.mocked(tasksApi.createTask).mockResolvedValue({ id: 'task-1' } as never);
+    vi.mocked(commitmentsApi.linkTask).mockResolvedValue(undefined);
+    renderForm();
+    fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: '   ' } });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Cần làm' }));
+    await user.click(screen.getByRole('button', { name: /xác nhận tạo task/i }));
+    await waitFor(() => expect(tasksApi.createTask).toHaveBeenCalledWith('proj-1', { title: 'Task X', columnId: 'column-1', dueDate: '2026-10-15' }, expect.any(String)));
   });
 
   it('nên vô hiệu hóa nút xác nhận khi thiếu tiêu đề hoặc cột', async () => {

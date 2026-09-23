@@ -9,6 +9,10 @@ beforeEach(() => {
 });
 
 describe('taskClient', () => {
+  it('nên giữ mã trạng thái HTTP khi yêu cầu bị xung đột', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 409, text: async () => JSON.stringify({ success: false, error: { code: 'VERSION_CONFLICT', message: 'Conflict' } }) });
+    await expect(taskClient.patch('/api/v1/tasks/task-1', { version: 7 })).rejects.toMatchObject({ status: 409 });
+  });
   it('post() gộp header tuỳ chỉnh vào request', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

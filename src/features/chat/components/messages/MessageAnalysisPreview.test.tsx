@@ -42,4 +42,21 @@ describe('MessageAnalysisPreview', () => {
 
     expect(screen.getByText('Chưa có hành động phù hợp.')).toBeInTheDocument();
   });
+
+  it('nên hiện rationale làm lời giải thích', () => {
+    render(<MessageAnalysisPreview analysis={{ ...baseAnalysis, suggestedActions: [{ ...baseAnalysis.suggestedActions[0], rationale: 'Vì khách yêu cầu thêm.' }] }} projectId="proj-1" />);
+    expect(screen.getByText(/Vì khách yêu cầu thêm/)).toBeInTheDocument();
+    expect(screen.queryByText(/Ghi nhận phạm vi và tác động/)).not.toBeInTheDocument();
+  });
+
+  it('nên hiện description khi không có rationale', () => {
+    render(<MessageAnalysisPreview analysis={baseAnalysis} projectId="proj-1" />);
+    expect(screen.getByText(/Ghi nhận phạm vi và tác động/)).toBeInTheDocument();
+  });
+
+  it('nên bỏ qua gợi ý có type không nhận diện', () => {
+    render(<MessageAnalysisPreview analysis={{ ...baseAnalysis, suggestedActions: [{ ...baseAnalysis.suggestedActions[0], type: 'LOAI_MOI' as MessageAnalysis['suggestedActions'][number]['type'] }] }} projectId="proj-1" />);
+    expect(screen.getByText('Tạo yêu cầu thay đổi')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chọn phương án này' })).not.toBeInTheDocument();
+  });
 });

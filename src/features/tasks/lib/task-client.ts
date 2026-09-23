@@ -46,6 +46,7 @@ async function request<T>(
   const json = text ? (JSON.parse(text) as Envelope<T>) : null;
   if (!res.ok || (json !== null && !json.success)) {
     const error = new Error(json?.error?.message ?? `Request failed: ${res.status}`);
+    Object.assign(error, { status: res.status });
     if (json?.error?.code) Object.assign(error, { code: json.error.code });
     throw error;
   }

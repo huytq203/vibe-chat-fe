@@ -8,16 +8,12 @@ export const resolvedMessageSchema = z.object({
 });
 
 export const analysisActionSchema = z.object({
-  type: z.enum([
-    'CREATE_COMMITMENT',
-    'CREATE_CHANGE_REQUEST',
-    'CREATE_TASK',
-    'CREATE_DECISION',
-    'ASK_CLARIFICATION',
-    'LINK_EXISTING_COMMITMENT',
-  ]),
+  type: z.string(),
   title: z.string(),
   description: z.string(),
+  rationale: z.string().optional(),
+  dueDate: z.string().nullable().optional(),
+  targetTaskId: z.string().nullable().optional(),
   targetCommitmentId: z.string().nullable(),
 });
 

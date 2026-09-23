@@ -15,6 +15,7 @@ const ACTION = {
   title: 'Cam kết X',
   description: 'Mô tả X',
   targetCommitmentId: null,
+  dueDate: '2026-10-15',
 };
 const SOURCE = {
   conversationId: '11111111-1111-4111-8111-111111111111',
@@ -50,6 +51,11 @@ describe('ConfirmCreateCommitmentForm', () => {
 
     expect(screen.getByDisplayValue('Cam kết X')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Mô tả X')).toBeInTheDocument();
+  });
+
+  it('nên điền sẵn hạn chót cho cam kết', () => {
+    renderForm();
+    expect(screen.getByDisplayValue('15/10/2026')).toBeInTheDocument();
   });
 
   it('nên tạo cam kết kèm nguồn rồi báo hoàn tất', async () => {

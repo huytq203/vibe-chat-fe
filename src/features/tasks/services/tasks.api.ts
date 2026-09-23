@@ -101,7 +101,7 @@ export const tasksApi = {
 
   createTask: (
     projectId: string,
-    input: { title: string; columnId: string },
+    input: { title: string; columnId: string; description?: string; dueDate?: string },
     idempotencyKey: string,
   ) =>
     taskClient.post<BoardTask>(`/api/v1/projects/${projectId}/tasks`, input, {
