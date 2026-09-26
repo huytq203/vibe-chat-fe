@@ -13,9 +13,9 @@ import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs/Tabs';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { useScheduleMessage } from '@/features/chat/hooks/use-scheduled-messages';
+import { MAX_LENGTH } from './composer-utils';
 import { ScheduledMessageList } from './ScheduledMessageList';
 
-const MAX_LENGTH = 5000;
 // BE yêu cầu cách hiện tại ≥30s — FE đệm 60s cho an toàn lệch đồng hồ.
 const MIN_LEAD_MS = 60 * 1000;
 

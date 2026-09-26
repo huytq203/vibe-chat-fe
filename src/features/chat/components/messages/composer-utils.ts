@@ -1,6 +1,6 @@
 import type { ConversationMember, Mention } from '@/features/chat/types';
 
-export const MAX_LENGTH = 5000;
+export const MAX_LENGTH = 40_000;
 export const TYPING_STOP_DEBOUNCE_MS = 3_000;
 
 /** Sentinel cho chip `@all` — submit sẽ expand thành toàn bộ userId member. */
