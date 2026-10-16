@@ -10,18 +10,29 @@ export function createInvalidateScheduler(
   const pending = new Map<string, QueryKey>();
   let timer: ReturnType<typeof setTimeout> | null = null;
 
-  const flush = (): void => {
+  const arm = (): void => {
+    if (!timer) timer = setTimeout(flush, delayMs);
+  };
+
+  function flush(): void {
     timer = null;
     const queryKeys = [...pending.values()];
     pending.clear();
     for (const queryKey of queryKeys) {
+      // Query đang fetch có thể đã đọc DB trước thay đổi mới; gộp vào lần fetch đó sẽ
+      // đánh dấu "đã mới" nhầm → hoãn sang cửa sổ sau để refetch thật sự sau khi nó xong.
+      if (queryClient.isFetching({ queryKey }) > 0) {
+        pending.set(JSON.stringify(queryKey), queryKey);
+        continue;
+      }
       void queryClient.invalidateQueries({ queryKey }, { cancelRefetch: false });
     }
-  };
+    if (pending.size > 0) arm();
+  }
 
   return (queryKey) => {
     pending.set(JSON.stringify(queryKey), queryKey);
-    if (!timer) timer = setTimeout(flush, delayMs);
+    arm();
   };
 }
 

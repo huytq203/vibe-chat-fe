@@ -119,6 +119,14 @@ describe('useTaskRealtime (tín hiệu + invalidate)', () => {
     expect(invalidate).not.toHaveBeenCalled();
   });
 
+  it('nên vẫn invalidate khi tín hiệu cùng taskId và event của người khác đến trong 3s sau mutation local', () => {
+    const { invalidate } = setup();
+    markLocal('t1', 'task:updated');
+    fire('task:updated', { projectId, taskId: 't1', actorId: 'other' });
+    flush();
+    expect(invalidatedKeys(invalidate)).toContainEqual(['tasks', projectId, 't1']);
+  });
+
   it('nên invalidate danh sách subtask đang có trong cache khi tín hiệu thuộc task', () => {
     const { qc, invalidate } = setup();
     qc.setQueryData(['tasks', projectId, 'parent-1', 'subtasks'], []);

@@ -11,8 +11,6 @@ const aggregates = [
   ['tasks', 'overview'],
   ['tasks', 'reports'],
   ['reports', 'insights'],
-  ['tasks', projectId, 'stats'],
-  ['tasks', projectId, 'leaderboard'],
 ];
 const taskScope = (taskId: string) => [
   ['tasks', projectId, taskId],

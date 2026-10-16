@@ -41,13 +41,13 @@ function handleSignal(
   const signal = toSignal(payload);
   // Socket có thể còn ở room của project khác (vừa chuyển board) → bỏ qua
   if (signal.projectId && signal.projectId !== projectId) return;
-  // Thay đổi do chính tab này gây ra đã được cập nhật lạc quan; refetch có thể đè ô đang gõ
-  if (signal.taskId && isLocal(signal.taskId, event)) return;
+  const currentUserId = getCurrentUser()?.userId ?? null;
+  // Thay đổi do chính mình gây ra đã được cập nhật lạc quan; refetch có thể đè ô đang gõ.
+  // Tín hiệu của người khác (cùng taskId + event trong cửa sổ local) vẫn phải làm mới.
+  const isOwnSignal = !signal.actorId || signal.actorId === currentUserId;
+  if (signal.taskId && isOwnSignal && isLocal(signal.taskId, event)) return;
 
-  const { keys, subtaskLists } = invalidationFor(event, signal, {
-    projectId,
-    currentUserId: getCurrentUser()?.userId ?? null,
-  });
+  const { keys, subtaskLists } = invalidationFor(event, signal, { projectId, currentUserId });
   for (const key of keys) scheduleInvalidate(qc, key);
   if (subtaskLists) {
     for (const key of cachedSubtaskListKeys(qc, projectId)) scheduleInvalidate(qc, key);

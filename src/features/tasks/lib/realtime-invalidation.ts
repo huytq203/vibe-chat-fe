@@ -86,15 +86,13 @@ export function toSignal(payload: unknown): RealtimeSignal {
 const isOneOf = <T extends string>(list: readonly T[], value: string): value is T =>
   (list as readonly string[]).includes(value);
 
-function aggregateKeys(projectId: string): QueryKey[] {
+function aggregateKeys(): QueryKey[] {
   return [
     ['tasks', 'my'],
     ['tasks', 'feed'],
     ['tasks', 'overview'],
     ['tasks', 'reports'],
     ['reports', 'insights'],
-    ['tasks', projectId, 'stats'],
-    ['tasks', projectId, 'leaderboard'],
   ];
 }
 
@@ -146,7 +144,7 @@ export function invalidationFor(
       keys: [
         ...taskScopeKeys(projectId, signal),
         taskKeys.board(projectId),
-        ...aggregateKeys(projectId),
+        ...aggregateKeys(),
       ],
       subtaskLists: Boolean(signal.taskId),
     };
@@ -155,7 +153,7 @@ export function invalidationFor(
     keys: [
       taskKeys.board(projectId),
       ...projectExtraKeys(event, signal, ctx),
-      ...aggregateKeys(projectId),
+      ...aggregateKeys(),
     ],
     subtaskLists: false,
   };
