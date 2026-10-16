@@ -127,12 +127,16 @@ function MessageBubbleImpl({
   // Show actions for sent, non-deleted messages. MessageActions limits edit and delete to own messages.
   const isSelecting = selectionMode || selectable;
   const canActions = !isSelecting && !isSending && !isFailed && !message.isDeleted;
-  // Position the action toolbar outside the bubble and reveal it when the row is hovered.
+  // The rail spans the bubble height beside it; the toolbar sticks to the bottom of the
+  // viewport so long messages keep their actions reachable without scrolling.
+  const actionsRailClassName = cn(
+    "pointer-events-none absolute inset-y-0 z-20 flex flex-col justify-end",
+    isMe ? "right-full mr-1.5" : "left-full ml-1.5",
+  );
   // Disable pointer events while hidden so it does not block the message.
   const actionsClassName = cn(
-    "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity",
+    "pointer-events-none sticky bottom-2 opacity-0 transition-opacity",
     "[@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
-    isMe ? "right-full mr-1.5" : "left-full ml-1.5",
   );
   const defaultActionsMenu = enableDefaultActions && canActions && (
     <MessageActions
@@ -290,7 +294,7 @@ function MessageBubbleImpl({
               </span>
             </button>
           )}
-          {actionsMenu}
+          {actionsMenu && <div className={actionsRailClassName}>{actionsMenu}</div>}
           {likeButton}
           {drawer}
           {message.replyToMessageId && (

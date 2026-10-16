@@ -1,6 +1,6 @@
 ---
 name: codex-implementer
-description: Thi công MỘT task của kế hoạch triển khai bằng cách uỷ thác cho Codex CLI (gpt-5.6-sol) thay vì tự viết code. Dùng khi controller muốn giữ vòng điều phối và review bằng Claude nhưng để Codex viết code. Controller phải truyền đường dẫn plan + số task; agent trả về thread_id của Codex, commit SHA và kết quả test chạy thật.
+description: Thi công MỘT task của kế hoạch triển khai bằng cách uỷ thác cho Codex CLI (gpt-6-sol) thay vì tự viết code. Dùng khi controller muốn giữ vòng điều phối và review bằng Claude nhưng để Codex viết code. Controller phải truyền đường dẫn plan + số task; agent trả về thread_id của Codex, commit SHA và kết quả test chạy thật.
 tools: Bash, Read
 model: haiku
 ---
