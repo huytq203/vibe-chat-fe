@@ -407,3 +407,16 @@ export interface ChangesResponse {
   resync: boolean;
   changes: ProjectChange[];
 }
+
+/**
+ * Payload socket của event đồng bộ: chỉ là tín hiệu để FE refetch.
+ * Mọi field optional vì FE phải đọc được cả payload cũ của BE trong lúc chuyển đổi.
+ */
+export interface RealtimeSignal {
+  projectId?: string;
+  taskId?: string;
+  parentId?: string;
+  actorId?: string;
+  /** Chỉ có ở member:removed — người bị xoá khỏi project. */
+  userId?: string;
+}
