@@ -3,11 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { taskKeys } from '../services/keys';
-import { tasksApi } from '../services/tasks.api';
 import { markLocal } from './local-mutations';
-import type { Board, TaskDetail } from '../types';
 
-type SocketHandler = (payload: unknown) => void;
+type SocketHandler = (payload?: unknown) => void;
 
 const socketHandlers = new Map<string, SocketHandler>();
 const socket = {
@@ -18,244 +16,129 @@ const socket = {
   emit: vi.fn(),
 };
 
-vi.mock('./task-socket', () => ({
-  getTaskSocket: () => socket,
-}));
-
-vi.mock('../services/tasks.api', () => ({
-  tasksApi: {
-    getChangesSince: vi.fn().mockResolvedValue({ resync: false, changes: [] }),
-  },
-}));
+vi.mock('./task-socket', () => ({ getTaskSocket: () => socket }));
+vi.mock('./current-user', () => ({ getCurrentUser: () => ({ userId: 'me' }) }));
 
 import { useTaskRealtime } from '../hooks/useTaskRealtime';
 
 const projectId = 'project-realtime';
-const taskId = 'task-realtime';
+const FLUSH_MS = 400;
 
-function createBoard(eventSeq = 0): Board {
-  return {
-    project: {
-      id: projectId,
-      eventSeq,
-      name: 'Dự án',
-      ownerId: 'owner-1',
-      isBoardLocked: false,
-      status: 'ACTIVE',
-      isOverdue: false,
-      startDate: null,
-      endDate: null,
-      createdAt: '2026-09-13T00:00:00.000Z',
-      updatedAt: '2026-09-13T00:00:00.000Z',
-    },
-    columns: [{
-      id: 'column-1',
-      name: 'Đang làm',
-      color: null,
-      position: 0,
-      isDoneCol: false,
-      tasks: [],
-    }],
-  };
+function setup() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const invalidate = vi.spyOn(qc, 'invalidateQueries');
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  );
+  renderHook(() => useTaskRealtime(projectId), { wrapper });
+  invalidate.mockClear();
+  return { qc, invalidate };
 }
 
-function createTask(): TaskDetail {
-  return {
-    id: taskId,
-    version: 2,
-    projectId,
-    columnId: 'column-1',
-    title: 'Việc đã cập nhật',
-    description: null,
-    dueDate: null,
-    priority: null,
-    gem: null,
-    gemSource: null,
-    isPinned: false,
-    position: 0,
-    assignees: [],
-    commentCount: 0,
-    checklists: [],
-    completedAt: null,
-    reviewRequestedAt: null,
-    reviewRequestedBy: null,
-    status: 'OPEN',
-    parentId: null,
-    subtaskCount: 0,
-    tags: [],
-    createdAt: '2026-09-13T00:00:00.000Z',
-    updatedAt: '2026-09-13T00:00:00.000Z',
-  };
-}
+const fire = (event: string, payload?: unknown): void => {
+  const handler = socketHandlers.get(event);
+  if (!handler) throw new Error(`Chưa đăng ký handler cho ${event}`);
+  act(() => handler(payload));
+};
 
-function createWrapper(client: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  };
-}
+const flush = (): void => {
+  act(() => {
+    vi.advanceTimersByTime(FLUSH_MS);
+  });
+};
 
-describe('realtime task chống bão request', () => {
+const invalidatedKeys = (invalidate: ReturnType<typeof setup>['invalidate']): unknown[] =>
+  invalidate.mock.calls.map(([filters]) => (filters as { queryKey: unknown }).queryKey);
+
+describe('useTaskRealtime (tín hiệu + invalidate)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     socketHandlers.clear();
-    socket.on.mockClear();
-    socket.off.mockClear();
-    socket.emit.mockClear();
-    vi.mocked(tasksApi.getChangesSince).mockClear();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('nên không gọi getChangesSince khi mount và board chưa có trong cache', async () => {
-    const client = new QueryClient();
-
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-    await act(async () => Promise.resolve());
-
-    expect(tasksApi.getChangesSince).not.toHaveBeenCalled();
+  it('nên join project room khi mount', () => {
+    setup();
+    expect(socket.emit).toHaveBeenCalledWith('join-project', { projectId }, expect.any(Function));
   });
 
-  it('nên đặt lastSeq = board.project.eventSeq khi board vào cache và bỏ qua event có seq <= eventSeq', () => {
-    const client = new QueryClient();
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-
-    act(() => {
-      client.setQueryData(taskKeys.board(projectId), createBoard(12));
-      socketHandlers.get('column:created')?.({
-        id: 'column-stale',
-        name: 'Cột cũ',
-        color: null,
-        position: 1,
-        isDoneCol: false,
-        seq: 12,
-      });
-    });
-
-    expect(client.getQueryData<Board>(taskKeys.board(projectId))?.columns).toHaveLength(1);
+  it('nên invalidate task, activity và board khi task:updated', () => {
+    const { invalidate } = setup();
+    fire('task:updated', { projectId, taskId: 't1', actorId: 'other' });
+    flush();
+    const keys = invalidatedKeys(invalidate);
+    expect(keys).toContainEqual(['tasks', projectId, 't1']);
+    expect(keys).toContainEqual(['tasks', projectId, 'activities', 't1']);
+    expect(keys).toContainEqual(taskKeys.board(projectId));
   });
 
-  it('nên gọi getChangesSince(projectId, eventSeq) khi socket reconnect', async () => {
-    const client = new QueryClient();
-    client.setQueryData(taskKeys.board(projectId), createBoard(27));
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-
-    await act(async () => {
-      socketHandlers.get('connect')?.({});
-      await Promise.resolve();
-    });
-
-    expect(tasksApi.getChangesSince).toHaveBeenCalledTimes(1);
-    expect(tasksApi.getChangesSince).toHaveBeenCalledWith(projectId, 27);
+  it('nên không invalidate board khi checklist:toggled', () => {
+    const { invalidate } = setup();
+    fire('checklist:toggled', { projectId, taskId: 't1', actorId: 'other' });
+    flush();
+    const keys = invalidatedKeys(invalidate);
+    expect(keys).toContainEqual(['tasks', projectId, 't1']);
+    expect(keys).not.toContainEqual(taskKeys.board(projectId));
   });
 
-  it('nên invalidate board thay vì gọi getChangesSince khi reconnect mà lastSeq vẫn = 0', async () => {
-    const client = new QueryClient();
-    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
+  it('nên bỏ qua tín hiệu của project khác', () => {
+    const { invalidate } = setup();
+    fire('task:updated', { projectId: 'project-khac', taskId: 't1', actorId: 'other' });
+    flush();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
 
-    act(() => {
-      socketHandlers.get('connect')?.({});
-    });
-    await act(() => vi.advanceTimersByTimeAsync(400));
+  it('nên vẫn làm mới board khi payload cũ thiếu projectId', () => {
+    const { invalidate } = setup();
+    fire('column:created', { column: { id: 'c1' }, seq: 3 });
+    flush();
+    expect(invalidatedKeys(invalidate)).toContainEqual(taskKeys.board(projectId));
+  });
 
-    expect(tasksApi.getChangesSince).not.toHaveBeenCalled();
-    expect(invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: taskKeys.board(projectId) },
-      { cancelRefetch: false },
+  it('nên invalidate board đúng một lần khi nhận năm tín hiệu liên tiếp', () => {
+    const { invalidate } = setup();
+    for (let i = 0; i < 5; i += 1) {
+      fire('task:moved', { projectId, taskId: `t${i}`, actorId: 'other' });
+    }
+    flush();
+    const boardCalls = invalidatedKeys(invalidate).filter(
+      (key) => JSON.stringify(key) === JSON.stringify(taskKeys.board(projectId)),
     );
+    expect(boardCalls).toHaveLength(1);
   });
 
-  it('gom năm sự kiện cập nhật liên tiếp thành tối đa một invalidate board', async () => {
-    const client = new QueryClient();
-    client.setQueryData(taskKeys.board(projectId), createBoard());
-    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-
-    const handle = socketHandlers.get('task:updated');
-    expect(handle).toBeDefined();
-    act(() => {
-      for (let index = 0; index < 5; index += 1) {
-        handle?.({ taskId, changes: { title: `Việc ${index}` } });
-      }
-    });
-    await act(() => vi.advanceTimersByTimeAsync(400));
-
-    const boardCalls = invalidateQueries.mock.calls.filter(
-      ([filters]) => JSON.stringify(filters?.queryKey) === JSON.stringify(taskKeys.board(projectId)),
-    );
-    expect(boardCalls.length).toBeLessThanOrEqual(1);
+  it('nên bỏ qua tín hiệu do chính tab này vừa gây ra', () => {
+    const { invalidate } = setup();
+    markLocal('t1', 'task:updated');
+    fire('task:updated', { projectId, taskId: 't1', actorId: 'me' });
+    flush();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
-  it('không invalidate sự kiện do chính client vừa gây ra', async () => {
-    const localTaskId = 'task-local';
-    const client = new QueryClient();
-    client.setQueryData(taskKeys.board(projectId), createBoard());
-    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-    markLocal(localTaskId, 'task:updated');
-
-    act(() => {
-      socketHandlers.get('task:updated')?.({ taskId: localTaskId, changes: { title: 'Cục bộ' } });
-    });
-    await act(() => vi.advanceTimersByTimeAsync(400));
-
-    expect(invalidateQueries).not.toHaveBeenCalled();
+  it('nên invalidate danh sách subtask đang có trong cache khi tín hiệu thuộc task', () => {
+    const { qc, invalidate } = setup();
+    qc.setQueryData(['tasks', projectId, 'parent-1', 'subtasks'], []);
+    fire('assignee:added', { projectId, taskId: 'sub-1', actorId: 'other' });
+    flush();
+    expect(invalidatedKeys(invalidate)).toContainEqual(['tasks', projectId, 'parent-1', 'subtasks']);
   });
 
-  it('vá board và detail từ payload task mà không invalidate hai cache này', async () => {
-    const client = new QueryClient();
-    client.setQueryData(taskKeys.board(projectId), createBoard());
-    // Detail đã có sẵn kèm mô tả — payload là thẻ board không có description nên phải MERGE, giữ mô tả.
-    client.setQueryData(['tasks', projectId, taskId, 'detail'], {
-      ...createTask(), title: 'Việc cũ', description: '<p>Mô tả AI vừa ghi</p>',
-    });
-    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-
-    act(() => {
-      socketHandlers.get('task:updated')?.({
-        taskId,
-        changes: { title: 'Delta cũ' },
-        task: createTask(),
-      });
-    });
-    await act(() => vi.advanceTimersByTimeAsync(400));
-
-    expect(client.getQueryData(['tasks', projectId, taskId, 'detail'])).toEqual(
-      expect.objectContaining({ id: taskId, title: 'Việc đã cập nhật', description: '<p>Mô tả AI vừa ghi</p>' }),
-    );
-    const protectedCalls = invalidateQueries.mock.calls.filter(([filters]) => {
-      const key = JSON.stringify(filters?.queryKey);
-      return key === JSON.stringify(taskKeys.board(projectId))
-        || key === JSON.stringify(['tasks', projectId, taskId, 'detail']);
-    });
-    expect(protectedCalls).toHaveLength(0);
+  it('nên invalidate toàn bộ cache tasks khi socket kết nối lại', () => {
+    const { invalidate } = setup();
+    fire('connect');
+    flush();
+    expect(invalidatedKeys(invalidate)).toContainEqual(taskKeys.all);
+    expect(socket.emit).toHaveBeenCalledWith('join-project', { projectId }, expect.any(Function));
   });
 
-  it('ghi description từ changes vào detail rồi tải lại detail (thẻ board không mang mô tả)', async () => {
-    const client = new QueryClient();
-    client.setQueryData(taskKeys.board(projectId), createBoard());
-    client.setQueryData(['tasks', projectId, taskId, 'detail'], { ...createTask(), description: null });
-    const invalidateQueries = vi.spyOn(client, 'invalidateQueries');
-    renderHook(() => useTaskRealtime(projectId), { wrapper: createWrapper(client) });
-
-    act(() => {
-      socketHandlers.get('task:updated')?.({
-        taskId,
-        changes: { description: '<p>Mô tả mới từ AI</p>' },
-        task: createTask(),
-      });
-    });
-    await act(() => vi.advanceTimersByTimeAsync(400));
-
-    expect(client.getQueryData(['tasks', projectId, taskId, 'detail'])).toEqual(
-      expect.objectContaining({ description: '<p>Mô tả mới từ AI</p>' }),
-    );
-    expect(invalidateQueries).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['tasks', projectId, taskId, 'detail'] }),
-      expect.anything(),
-    );
+  it('nên invalidate danh sách project khi chính mình bị xoá khỏi project', () => {
+    const { invalidate } = setup();
+    fire('member:removed', { projectId, userId: 'me', actorId: 'owner' });
+    flush();
+    expect(invalidatedKeys(invalidate)).toContainEqual(taskKeys.projects());
   });
 });

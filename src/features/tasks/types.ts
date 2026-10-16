@@ -3,7 +3,6 @@ export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'PENDING' | 'COMPLETED';
 
 export interface Project {
   id: string;
-  eventSeq?: number;
   name: string;
   description?: string | null;
   ownerId: string;
@@ -393,19 +392,6 @@ export interface DirectoryUser {
   displayName: string;
   avatarUrl: string | null;
   email: string | null;
-}
-
-export interface ProjectChange {
-  seq: number;
-  type: string;
-  payload: unknown;
-  actorId: string;
-  at: string;
-}
-
-export interface ChangesResponse {
-  resync: boolean;
-  changes: ProjectChange[];
 }
 
 /**

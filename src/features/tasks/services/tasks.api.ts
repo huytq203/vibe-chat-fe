@@ -6,7 +6,6 @@ import type {
   Board,
   BoardColumn,
   BoardTask,
-  ChangesResponse,
   ChecklistItem,
   Comment,
   DirectoryUser,
@@ -89,11 +88,6 @@ export const tasksApi = {
   // --- Board + Columns ---
   getBoard: (projectId: string) =>
     taskClient.get<Board>(`/api/v1/projects/${projectId}/board`),
-
-  getChangesSince: (projectId: string, since: number) =>
-    taskClient.get<ChangesResponse>(
-      `/api/v1/projects/${projectId}/changes?since=${since}`,
-    ),
 
   createColumn: (projectId: string, input: { name: string; color?: string }) =>
     taskClient.post<BoardColumn>(`/api/v1/projects/${projectId}/columns`, input),
