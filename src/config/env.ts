@@ -31,6 +31,9 @@ const schema = z.object({
   // Thiếu → app desktop không kiểm tra bản cập nhật.
   NEXT_PUBLIC_UPDATE_MANIFEST_URL: z.string().url().optional(),
 
+  // OAuth client id (web) — thiếu thì ẩn nút Google, đăng nhập bằng mã email vẫn chạy.
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+
   // Firebase Cloud Messaging (public — SDK chạy ở browser cần các giá trị này).
   // Server-side admin (PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY_BASE64) thuộc BE, không expose FE.
   NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1).optional(),
@@ -54,6 +57,7 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_AI_URL: process.env.NEXT_PUBLIC_AI_URL,
   NEXT_PUBLIC_NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || undefined,
   NEXT_PUBLIC_UPDATE_MANIFEST_URL: process.env.NEXT_PUBLIC_UPDATE_MANIFEST_URL || undefined,
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

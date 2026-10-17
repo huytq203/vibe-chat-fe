@@ -18,6 +18,13 @@ export {
   useConfirmRestore,
   useDeleteAccount,
 } from './hooks/use-mutations';
+export {
+  useRequestLoginCode,
+  useVerifyLoginCode,
+  useGoogleLogin,
+  useCompleteSignup,
+  useExchangeHandoff,
+} from './hooks/use-login-mutations';
 export { useMe } from './hooks/use-query';
 export { useImageUpload } from './hooks/useImageUpload';
 export type {

@@ -132,15 +132,15 @@ function buildContentSecurityPolicy(): string {
     "default-src 'self'",
     // 'unsafe-inline': script bootstrap inline của Next. 'wasm-unsafe-eval': @livekit/track-processors.
     // gstatic: firebase-messaging-sw.js importScripts SDK compat.
-    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://accounts.google.com",
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "worker-src 'self' blob:",
-    `connect-src 'self' blob: wss: https://www.gstatic.com https://api.giphy.com https://media.giphy.com ${connectOrigins.join(' ')}`,
+    `connect-src 'self' blob: wss: https://www.gstatic.com https://accounts.google.com https://api.giphy.com https://media.giphy.com ${connectOrigins.join(' ')}`,
     // Mini-app của bot chạy trong iframe, domain do bên thứ ba tự chọn.
-    "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.loom.com https://maps.google.com https://embed.figma.com https://codepen.io https://gist.github.com https://open.spotify.com https://w.soundcloud.com",
+    "frame-src 'self' https://accounts.google.com https://www.youtube.com https://player.vimeo.com https://www.loom.com https://maps.google.com https://embed.figma.com https://codepen.io https://gist.github.com https://open.spotify.com https://w.soundcloud.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
