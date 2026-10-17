@@ -12,6 +12,8 @@ type ElectronApi = {
   platform?: string;
   setBadge?: (payload: BadgePayload) => void;
   showNotification?: (payload: NotifyPayload) => void;
+  startBrowserLogin?: () => Promise<{ code: string; codeVerifier: string }>;
+  cancelBrowserLogin?: () => Promise<void>;
 };
 
 function getApi(): ElectronApi | null {
@@ -38,4 +40,20 @@ export function showElectronNotification(payload: NotifyPayload): void {
 /** Nền tảng OS của app desktop (`win32`/`linux`/`darwin`) — null khi chạy trên web. */
 export function getElectronPlatform(): string | null {
   return getApi()?.platform ?? null;
+}
+
+/** App desktop có hỗ trợ đăng nhập qua trình duyệt (bản ≥ 0.3.0). */
+export function canUseBrowserLogin(): boolean {
+  return typeof getApi()?.startBrowserLogin === 'function';
+}
+
+/** Mở trình duyệt hệ thống để đăng nhập; resolve khi app nhận deep link halo:// hợp lệ. */
+export function startElectronBrowserLogin(): Promise<{ code: string; codeVerifier: string }> {
+  const start = getApi()?.startBrowserLogin;
+  if (!start) return Promise.reject(new Error('Ứng dụng không hỗ trợ đăng nhập qua trình duyệt'));
+  return start();
+}
+
+export function cancelElectronBrowserLogin(): void {
+  void getApi()?.cancelBrowserLogin?.();
 }

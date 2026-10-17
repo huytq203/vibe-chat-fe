@@ -1,6 +1,6 @@
 {
   "name": "halo-chat",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Halo — desktop messaging app",
   "homepage": "https://github.com/huytq203/halo-chat",
   "author": {
@@ -39,6 +39,14 @@
   "build": {
     "appId": "com.halochat.desktop",
     "productName": "Halo",
+    "protocols": [
+      {
+        "name": "Halo",
+        "schemes": [
+          "halo"
+        ]
+      }
+    ],
     "copyright": "Copyright © 2026",
     "directories": {
       "output": "dist-electron"
@@ -47,6 +55,7 @@
       ".next/standalone/**/*",
       "electron/main.js",
       "electron/url-guard.js",
+      "electron/browser-login.js",
       "electron/preload.js",
       "electron/resources/icons/512x512.png"
     ],

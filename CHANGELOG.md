@@ -3,6 +3,17 @@
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản theo semver.
 Quy trình phát hành: [docs/release-process.md](./docs/release-process.md).
 
+## [0.3.0] — 2026-10-17
+
+### Thay đổi
+- Đăng nhập không mật khẩu: Google hoặc mã 6 số gửi qua email; email mới hoàn tất hồ sơ ngay sau khi xác thực.
+- App desktop đăng nhập qua trình duyệt hệ thống, quay lại app bằng liên kết `halo://`.
+- Settings → Chung → "Phương thức đăng nhập".
+- Bỏ đăng ký bằng mật khẩu, xác thực email riêng và quên mật khẩu.
+
+### Bắt buộc
+- Bản desktop < 0.3.0 không đăng nhập được với máy chủ mới — đặt `DESKTOP_MIN_VERSION=0.3.0` khi phát hành.
+
 ## [0.2.0] — 2026-10-17
 
 ### Thêm

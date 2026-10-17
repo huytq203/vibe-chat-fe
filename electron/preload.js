@@ -9,4 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setBadge: (payload) => ipcRenderer.send('badge:set', payload),
   // Hiện thông báo hệ điều hành (native).
   showNotification: (payload) => ipcRenderer.send('notify:show', payload),
+  // Đăng nhập qua trình duyệt hệ thống (PKCE ở main process). Trả { code, codeVerifier }.
+  startBrowserLogin: () => ipcRenderer.invoke('auth:start-browser-login'),
+  cancelBrowserLogin: () => ipcRenderer.invoke('auth:cancel-browser-login'),
 });

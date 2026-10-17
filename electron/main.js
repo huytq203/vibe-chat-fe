@@ -6,12 +6,57 @@ const { spawn } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 const { isAppUrl, isSafeExternalUrl } = require('./url-guard');
+const { createBrowserLoginCoordinator, findDeepLink } = require('./browser-login');
 
 const PORT = 4784;
 const APP_ORIGIN = `http://127.0.0.1:${PORT}`;
 const APP_ID = 'com.halochat.desktop';
 const ICON_PATH = path.join(__dirname, 'resources/icons/512x512.png');
 let mainWindow = null;
+
+// Trang /login của bản web dùng cho luồng đăng nhập qua trình duyệt hệ thống.
+const WEB_URL = process.env.HALO_WEB_URL || 'https://chat.krux.io.vn';
+const DEEP_LINK_PROTOCOL = 'halo';
+
+const browserLogin = createBrowserLoginCoordinator({
+  openExternal: (url) => shell.openExternal(url),
+  webUrl: WEB_URL,
+});
+
+// Deep link mở instance thứ hai → chuyển URL cho instance đang chạy rồi thoát.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+
+function focusMainWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function registerDeepLinkProtocol() {
+  // Chạy dev (`electron .`) phải truyền đường dẫn script để OS gọi đúng app.
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL);
+  }
+}
+
+app.on('second-instance', (_event, argv) => {
+  const link = findDeepLink(argv);
+  if (link && !browserLogin.handleCallback(link)) {
+    console.warn('[electron] bỏ qua deep link không khớp phiên đăng nhập đang chờ');
+  }
+  focusMainWindow();
+});
+
+// macOS gửi deep link qua open-url thay vì argv.
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  browserLogin.handleCallback(url);
+  focusMainWindow();
+});
 let serverProcess = null;
 
 /**
@@ -20,6 +65,10 @@ let serverProcess = null;
  * - Notification: bắn native, click → focus lại cửa sổ.
  */
 function registerIpc() {
+  // Đăng nhập qua trình duyệt hệ thống: main giữ PKCE verifier/state, trả { code, codeVerifier }.
+  ipcMain.handle('auth:start-browser-login', () => browserLogin.start());
+  ipcMain.handle('auth:cancel-browser-login', () => browserLogin.cancel());
+
   ipcMain.on('badge:set', (_e, payload) => {
     const count = Number(payload?.count) || 0;
     if (process.platform === 'win32') {
@@ -41,12 +90,7 @@ function registerIpc() {
       body: payload.body ? String(payload.body) : undefined,
       icon: ICON_PATH,
     });
-    notif.on('click', () => {
-      if (!mainWindow) return;
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    });
+    notif.on('click', focusMainWindow);
     notif.show();
   });
 }
@@ -160,6 +204,8 @@ function openExternalSafely(targetUrl) {
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
+  registerDeepLinkProtocol();
   // Electron cần các role native này để Ctrl/Cmd+Z/A/C/X/V hoạt động ổn định
   // trong input/textarea. Dùng role thay vì tự gửi webContents command để giữ
   // đúng accelerator theo từng hệ điều hành.
