@@ -38,5 +38,23 @@ export type {
   LoginOutcome,
   LoginIdentity,
 } from './types';
-export { loginSchema, registerSchema, verifyEmailSchema, resendOtpSchema, updateMeSchema } from './schemas';
-export type { LoginInput, RegisterInput, VerifyEmailInput, ResendOtpInput, UpdateMeInput } from './schemas';
+export {
+  loginSchema,
+  registerSchema,
+  verifyEmailSchema,
+  resendOtpSchema,
+  updateMeSchema,
+  requestCodeSchema,
+  verifyCodeSchema,
+  completeProfileSchema,
+} from './schemas';
+export type {
+  LoginInput,
+  RegisterInput,
+  VerifyEmailInput,
+  ResendOtpInput,
+  UpdateMeInput,
+  RequestCodeInput,
+  VerifyCodeInput,
+  CompleteProfileInput,
+} from './schemas';

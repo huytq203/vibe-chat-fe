@@ -88,3 +88,35 @@ export const updateMeSchema = z.object({
 });
 
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
+
+// ── Đăng nhập không mật khẩu ───────────────────────────────────────────────
+export const requestCodeSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Email không hợp lệ'),
+});
+
+export const verifyCodeSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, 'Mã gồm đúng 6 chữ số'),
+});
+
+export const completeProfileSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Tên đăng nhập 3–50 ký tự')
+    .max(50, 'Tên đăng nhập 3–50 ký tự')
+    .regex(/^[a-z0-9_.-]+$/, 'Chỉ chữ thường, số, _ . -'),
+  displayName: z.string().trim().min(1, 'Tên hiển thị không được để trống').max(100),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Chọn ngày sinh')
+    .refine(isAtLeast13, 'Bạn phải đủ 13 tuổi'),
+  // Tuỳ chọn: chuỗi rỗng = không nhập.
+  phone: z
+    .string()
+    .trim()
+    .regex(/^(\+?\d{10,20})?$/, 'Số điện thoại 10–20 chữ số (cho phép + đầu)'),
+});
+
+export type RequestCodeInput = z.infer<typeof requestCodeSchema>;
+export type VerifyCodeInput = z.infer<typeof verifyCodeSchema>;
+export type CompleteProfileInput = z.infer<typeof completeProfileSchema>;

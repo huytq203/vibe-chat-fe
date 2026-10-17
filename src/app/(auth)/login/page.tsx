@@ -1,14 +1,23 @@
-import { LoginForm, AuthBootstrap } from '@/features/auth';
+import { AuthBootstrap } from '@/features/auth';
+import { LoginEntry } from '@/features/auth/components/LoginEntry';
+import { parseHandoffParams } from '@/features/auth/lib/handoff-params';
 import { LoginPageShell } from './_components/LoginPageShell';
 
 export const metadata = { title: 'Đăng nhập · Halo' };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const handoff = parseHandoffParams(await searchParams);
   return (
     <>
-      <AuthBootstrap redirectIfAuthed="/chat" />
+      {/* Trình duyệt mở từ app desktop có thể đã đăng nhập web sẵn — vẫn phải hiện
+          form để cấp mã chuyển giao, không được tự vào /chat. */}
+      <AuthBootstrap redirectIfAuthed={handoff ? undefined : '/chat'} />
       <LoginPageShell>
-        <LoginForm />
+        <LoginEntry handoff={handoff} />
       </LoginPageShell>
     </>
   );
