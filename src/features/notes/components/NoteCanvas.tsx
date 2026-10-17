@@ -9,6 +9,7 @@ import { useAwareness, type CollabPerson } from '@/features/notes/hooks/useAware
 import { useCollabDoc, type UseCollabDocResult } from '@/features/notes/hooks/useCollabDoc';
 import { usePage } from '@/features/notes/hooks/use-query';
 import { recordRecentPage } from '@/features/notes/lib/recent-pages';
+import { useNotesUiStore } from '@/features/notes/stores/notes-ui.store';
 import type { OutlineItem } from '@/lib/editor/heading-outline';
 import { notionKeys } from '@/services/keys';
 import { NoteEditorSkeleton } from './editor/NoteEditorSkeleton';
@@ -17,6 +18,7 @@ import { FloatingAiButton } from './FloatingAiButton';
 import { PageOutline } from './PageOutline';
 import { PageTopbar } from './PageTopbar';
 import { PageIcon } from './page/PageIcon';
+import { AiChangeReview } from './review/AiChangeReview';
 
 interface SelectedPageProps {
   collab: UseCollabDocResult;
@@ -100,6 +102,13 @@ export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: N
     enabled: Boolean(pageId && pageQuery.data), onStateless: handleStateless,
   });
   const people = useAwareness(collab.provider);
+  const aiReview = useNotesUiStore((state) => state.aiReview);
+  const closeAiReview = useNotesUiStore((state) => state.closeAiReview);
+  const reviewVersionId = pageId && aiReview?.pageId === pageId ? aiReview.versionId : null;
+  useEffect(() => {
+    // Đổi sang trang khác thì thoát chế độ so sánh của trang cũ.
+    if (aiReview && aiReview.pageId !== pageId) closeAiReview();
+  }, [aiReview, closeAiReview, pageId]);
   return (
     <div className="relative flex min-w-0 flex-1">
       <main className="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-2xl md:border md:shadow-subtle">
@@ -115,22 +124,29 @@ export function NoteCanvas({ pageId, onSelectPage, onBack = () => undefined }: N
             className="sticky top-0 z-10 h-14 border-b border-border bg-background"
           />
         )}
-        <div className="mx-auto w-full max-w-[45rem] px-4 pb-[calc(var(--safe-bottom)+6rem)] pt-24 sm:px-6 md:px-0 md:pb-32">
-          {pageId ? (
-            <SelectedPage
-              collab={collab} onOutlineChange={handleOutlineChange} pageId={pageId}
-              pageQuery={pageQuery} people={people}
-            />
-          ) : (
-            <EmptyState
-              icon={<PanelLeft aria-hidden="true" />}
-              title="Chọn một trang ở bên trái"
-              hint="Nội dung trang sẽ xuất hiện tại đây."
-            />
-          )}
-        </div>
+        {pageId && reviewVersionId ? (
+          <AiChangeReview
+            pageId={pageId} versionId={reviewVersionId}
+            currentTitle={pageQuery.data?.title ?? ''}
+          />
+        ) : (
+          <div className="mx-auto w-full max-w-[45rem] px-4 pb-[calc(var(--safe-bottom)+6rem)] pt-24 sm:px-6 md:px-0 md:pb-32">
+            {pageId ? (
+              <SelectedPage
+                collab={collab} onOutlineChange={handleOutlineChange} pageId={pageId}
+                pageQuery={pageQuery} people={people}
+              />
+            ) : (
+              <EmptyState
+                icon={<PanelLeft aria-hidden="true" />}
+                title="Chọn một trang ở bên trái"
+                hint="Nội dung trang sẽ xuất hiện tại đây."
+              />
+            )}
+          </div>
+        )}
       </main>
-      <PageOutline items={outline} />
+      <PageOutline items={reviewVersionId ? [] : outline} />
       <FloatingAiButton />
     </div>
   );

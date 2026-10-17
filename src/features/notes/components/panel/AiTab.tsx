@@ -88,6 +88,9 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
   const { remove, isDeleting } = useDeleteAiConversation();
   const pageQuery = usePage(pageId);
   const { changedVersion, checkForChange, dismissChange } = useAiPageChange(pageId);
+  const restoredAiVersionId = useNotesUiStore((state) => state.restoredAiVersionId);
+  // Hoàn tác từ khung so sánh cũng phải ẩn thẻ trong chat.
+  const visibleChange = changedVersion?.id === restoredAiVersionId ? null : changedVersion;
   const stream = useCallback<AiStreamFn>(
     (messages, messageAttachments, options) =>
       aiApi.chatStream(
@@ -183,13 +186,13 @@ export function AiTab({ pageId, workspaceId }: AiTabProps) {
           {status}
         </p>
       )}
-      {changedVersion && (
+      {visibleChange && (
         <div className="shrink-0 px-3 pb-2">
           <AiPageChangeCard
-            key={changedVersion.id}
+            key={visibleChange.id}
             pageId={pageId}
             pageTitle={pageQuery.data?.title || 'Không tiêu đề'}
-            version={changedVersion}
+            version={visibleChange}
             onRestored={dismissChange}
           />
         </div>

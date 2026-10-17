@@ -31,12 +31,16 @@ vi.mock('@/features/notes/hooks/use-query', () => ({
   }),
 }));
 
+vi.mock('./review/AiChangeReview', () => ({
+  AiChangeReview: ({ versionId }: { versionId: string }) => <div>Đang so sánh {versionId}</div>,
+}));
+
 vi.mock('./page/Breadcrumb', () => ({
   Breadcrumb: () => <div>Trang hiện tại</div>,
 }));
 
 function resetStore(isSidePanelOpen: boolean) {
-  useNotesUiStore.setState({ isSidePanelOpen, sidePanelTab: 'comments' });
+  useNotesUiStore.setState({ isSidePanelOpen, sidePanelTab: 'comments', aiReview: null });
 }
 
 function renderNoteCanvas() {
@@ -47,6 +51,17 @@ function renderNoteCanvas() {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   }
   return render(<NoteCanvas pageId="page-1" onSelectPage={vi.fn()} />, { wrapper: Wrapper });
+}
+
+function renderCanvasFor(pageId: string) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = (id: string) => (
+    <QueryClientProvider client={queryClient}>
+      <NoteCanvas pageId={id} onSelectPage={vi.fn()} />
+    </QueryClientProvider>
+  );
+  const result = render(view(pageId));
+  return { ...result, showPage: (id: string) => result.rerender(view(id)) };
 }
 
 beforeEach(() => resetStore(false));
@@ -136,5 +151,26 @@ describe('khung soạn thảo ghi chú', () => {
     const { container } = renderNoteCanvas();
 
     expect(container.querySelector('header')).toHaveClass('sticky', 'top-0');
+  });
+});
+
+describe('chế độ xem thay đổi AI trong NoteCanvas', () => {
+  it('nên thay vùng editor bằng khung so sánh khi đang xem thay đổi của trang này', () => {
+    useNotesUiStore.setState({ aiReview: { pageId: 'page-1', versionId: 'version-ai' } });
+
+    renderCanvasFor('page-1');
+
+    expect(screen.getByText('Đang so sánh version-ai')).toBeInTheDocument();
+    expect(screen.queryByTestId('note-editor-chunk-loading')).not.toBeInTheDocument();
+  });
+
+  it('nên thoát chế độ so sánh khi chuyển sang trang khác', async () => {
+    useNotesUiStore.setState({ aiReview: { pageId: 'page-1', versionId: 'version-ai' } });
+    const { showPage } = renderCanvasFor('page-1');
+
+    showPage('page-2');
+
+    await waitFor(() => expect(useNotesUiStore.getState().aiReview).toBeNull());
+    expect(screen.queryByText('Đang so sánh version-ai')).not.toBeInTheDocument();
   });
 });
