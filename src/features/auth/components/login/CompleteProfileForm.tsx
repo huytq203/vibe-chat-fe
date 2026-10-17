@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input/Input';
 import { completeProfileSchema, type CompleteProfileInput } from '@/features/auth/schemas';
 
 const THIS_YEAR = new Date().getFullYear();
-const FIELD_CLASS = 'h-[50px] rounded-full px-5';
+const FIELD_CLASS = 'h-12 rounded-xl px-4';
 
 type CompleteProfileFormProps = {
   prefill: { email: string; displayName: string };
@@ -27,10 +27,7 @@ export function CompleteProfileForm({ prefill, isPending, onSubmit }: CompletePr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Tạo tài khoản cho <span className="font-semibold text-foreground">{prefill.email}</span>
-        </p>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
         <FormField
           control={form.control}
           name="username"
@@ -80,7 +77,7 @@ export function CompleteProfileForm({ prefill, isPending, onSubmit }: CompletePr
             </div>
           )}
         />
-        <Button type="submit" className="h-[50px] w-full rounded-full text-base font-bold" isLoading={isPending}>
+        <Button type="submit" className="h-12 w-full rounded-xl text-base font-bold" isLoading={isPending}>
           Hoàn tất
         </Button>
       </form>

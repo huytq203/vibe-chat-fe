@@ -1,5 +1,5 @@
-import Image from 'next/image';
-import { BrandWatermark } from '@/components/common/BrandAssets';
+import { LoginBrand } from '@/features/auth/components/login/LoginBrand';
+import { LoginArtPanel } from './LoginArtPanel';
 
 /** Props for LoginPageShell */
 export interface LoginPageShellProps {
@@ -7,43 +7,19 @@ export interface LoginPageShellProps {
 }
 
 /**
- * Shell phẳng (full-bleed) cho `/login`, cùng palette với register.
- *
- * Không dùng card có khung: khung buộc cả hai cột nằm gọn trong viewport nên form
- * dễ bị cắt khi màn hình thấp. Ở dạng phẳng, riêng cột form là vùng cuộn.
+ * Shell của `/login` (Server Component): logo ở góc trên trái, nội dung đăng nhập căn giữa
+ * cột trái, khung linh vật bo góc ở cột phải (chỉ từ lg). Cả trang là vùng cuộn duy nhất nên
+ * form không bị cắt khi màn hình thấp; `my-auto` căn giữa khi còn dư chiều cao.
  */
 export function LoginPageShell({ children }: LoginPageShellProps) {
   return (
-    <div data-auth-surface className="relative flex h-full overflow-hidden bg-background">
-      {/* Lớp trang trí — nằm trong `overflow-hidden` của root nên phần tràn mép
-          không cộng vào vùng cuộn của cột form. */}
-      <div className="pointer-events-none absolute inset-0">
-        {/* Watermark bám theo cột form: mép phải dừng đúng chỗ panel minh hoạ bắt
-            đầu nên vết cắt bị panel (nền đục) che, các mép còn lại tràn ra ngoài
-            viewport. Root đã `overflow-hidden` nên không sinh thêm vùng cuộn. */}
-        <BrandWatermark className="right-0 lg:right-[42%]" />
-        <div className="absolute -left-24 -top-24 hidden h-96 w-96 rounded-full bg-primary/5 blur-3xl lg:block" />
-        <div className="absolute -bottom-24 -right-24 hidden h-96 w-96 rounded-full bg-primary/5 blur-3xl lg:block" />
-      </div>
-
-      {/* Cột form là vùng cuộn duy nhất. `my-auto` căn giữa khi còn dư chiều cao,
-          tự về 0 khi nội dung cao hơn viewport để không mất phần đầu form. */}
-      <div className="relative z-10 flex min-w-0 flex-1 justify-center overflow-y-auto overflow-x-hidden px-5 pb-[max(var(--safe-bottom),1rem)] pt-[calc(var(--safe-top)+1rem)] sm:px-6 sm:pb-[max(var(--safe-bottom),1.5rem)] sm:pt-[calc(var(--safe-top)+1.5rem)] md:p-8 lg:px-12 lg:py-8">
-        <div className="my-auto w-full max-w-md">{children}</div>
-      </div>
-
-      <div className="relative hidden overflow-hidden bg-sidebar lg:block lg:w-[42%] lg:flex-none">
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-        <div className="pointer-events-none absolute inset-4 z-20 p-6">
-          <Image
-            src="/asset/banner-login.webp"
-            alt=""
-            fill
-            sizes="42vw"
-            className="object-contain drop-shadow-[0_20px_34px_rgb(61_31_91/0.2)]"
-          />
-        </div>
+    <div data-auth-surface className="h-full overflow-y-auto overflow-x-hidden bg-background">
+      <div className="mx-auto grid min-h-full w-full max-w-[1320px] grid-cols-1 gap-6 px-5 pb-[max(var(--safe-bottom),1.5rem)] pt-[calc(var(--safe-top)+1.25rem)] lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:px-14 lg:pb-8 lg:pt-6">
+        <section className="flex min-w-0 flex-col">
+          <LoginBrand />
+          <div className="my-auto flex w-full flex-col items-center gap-7 py-6 text-center">{children}</div>
+        </section>
+        <LoginArtPanel />
       </div>
     </div>
   );

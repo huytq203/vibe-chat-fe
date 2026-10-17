@@ -6,6 +6,9 @@ import { Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button/Button';
 import { useExchangeHandoff } from '@/features/auth/hooks/use-login-mutations';
+import { LoginCard } from '@/features/auth/components/login/LoginCard';
+import { LoginHeading } from '@/features/auth/components/login/LoginHeading';
+import { WaitIcon } from '@/features/auth/components/login/StatusIcons';
 import { cancelElectronBrowserLogin, startElectronBrowserLogin } from '@/lib/electron';
 
 // Lỗi IPC đến dạng "Error invoking remote method …: Error: <lý do>".
@@ -35,29 +38,43 @@ export function DesktopLoginPanel() {
     }
   };
 
-  return (
-    <div className="w-full max-w-sm space-y-6">
-      <div>
-        <p className="text-2xl font-bold text-primary">Halo</p>
-        <h1 className="mt-1 text-[32px] font-bold leading-tight text-foreground">Đăng nhập</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Halo sẽ mở trình duyệt để bạn đăng nhập bằng Google hoặc mã email, rồi tự quay lại ứng dụng.
-        </p>
-      </div>
-      {waiting ? (
-        <div className="space-y-3">
-          <p className="text-sm text-foreground">Đang chờ bạn đăng nhập trên trình duyệt…</p>
+  if (waiting) {
+    return (
+      <>
+        <LoginHeading
+          size="step"
+          icon={<WaitIcon />}
+          title="Hoàn tất ở trình duyệt"
+          description="Đã mở trình duyệt để đăng nhập. Xong bước đó, Halo sẽ tự quay lại ở đây."
+        />
+        <LoginCard>
+          <p className="rounded-xl bg-secondary px-4 py-3.5 text-sm font-semibold text-primary">
+            Đang chờ bạn đăng nhập trên trình duyệt…
+          </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => void start()}>Mở lại trình duyệt</Button>
             <Button variant="ghost" onClick={cancelElectronBrowserLogin}>Huỷ</Button>
           </div>
-        </div>
-      ) : (
-        <Button className="h-[50px] w-full rounded-full text-base font-bold" onClick={() => void start()} isLoading={exchange.isPending}>
+        </LoginCard>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <LoginHeading
+        title="Nhắn tin, làm việc, ghi chú. Một nơi."
+        description="Halo sẽ mở trình duyệt để bạn đăng nhập bằng Google hoặc mã email, rồi tự quay lại ứng dụng."
+      />
+      <LoginCard>
+        <Button className="h-12 w-full rounded-xl text-base font-bold" onClick={() => void start()} isLoading={exchange.isPending}>
           <Globe className="size-5" aria-hidden="true" />
           Đăng nhập bằng trình duyệt
         </Button>
-      )}
-    </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Cách này an toàn hơn vì Google không cho đăng nhập trong cửa sổ nhúng của ứng dụng.
+        </p>
+      </LoginCard>
+    </>
   );
 }

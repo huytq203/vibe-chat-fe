@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { themes, applyTheme, createTheme, type Theme, type ThemeColors, type BuiltInThemeName } from './themes';
+import { themes, applyTheme, createTheme, getDefaultTheme, type Theme, type ThemeColors, type BuiltInThemeName } from './themes';
+import { writeThemeCookie } from './theme-cookie';
 
 const STORAGE_KEY = 'ui-theme';
 
@@ -19,7 +20,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  currentTheme: themes[0],
+  currentTheme: getDefaultTheme(),
   setTheme: () => {},
   setCustomTheme: () => {},
   themes,
@@ -28,37 +29,47 @@ const ThemeContext = createContext<ThemeContextValue>({
 interface ThemeProviderProps {
   children: ReactNode;
   defaultTheme?: ThemeName;
+  /** Theme server đọc từ cookie: server và client dùng cùng giá trị ở lần vẽ đầu → không lệch hydration. */
+  initialThemeName?: ThemeName;
 }
 
-const getStoredTheme = (allThemes: Theme[], defaultThemeName?: ThemeName): Theme => {
-  if (typeof window === 'undefined') return allThemes[0];
+const getStoredTheme = (allThemes: Theme[], defaultThemeName?: ThemeName, initialThemeName?: ThemeName): Theme => {
+  const fallback = getDefaultTheme(allThemes);
+  if (initialThemeName && !defaultThemeName) return allThemes.find(t => t.name === initialThemeName) ?? fallback;
+  if (typeof window === 'undefined') return fallback;
   // defaultTheme prop in code takes priority over localStorage
   if (defaultThemeName) {
-    return allThemes.find(t => t.name === defaultThemeName) ?? allThemes[0];
+    return allThemes.find(t => t.name === defaultThemeName) ?? fallback;
   }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return allThemes.find(t => t.name === saved) ?? allThemes[0];
-    }
-    return allThemes[0];
+    return allThemes.find(t => t.name === saved) ?? fallback;
   } catch {
-    return allThemes[0];
+    return fallback;
   }
 };
 
-export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
+export function ThemeProvider({ children, defaultTheme, initialThemeName }: ThemeProviderProps) {
   const [allThemes, setAllThemes] = useState<Theme[]>(themes);
-  const [currentTheme, setCurrentTheme] = useState<Theme>(() => getStoredTheme(themes, defaultTheme));
+  const [currentTheme, setCurrentTheme] = useState<Theme>(() => getStoredTheme(themes, defaultTheme, initialThemeName));
 
   useEffect(() => {
     applyTheme(currentTheme);
   }, [currentTheme]);
 
+  // Người dùng cũ chỉ có localStorage: ghi cookie một lần để các lần tải sau server vẽ đúng theme ngay.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && saved !== initialThemeName) writeThemeCookie(saved);
+    } catch { /* localStorage bị chặn */ }
+  }, [initialThemeName]);
+
   const setTheme = (name: ThemeName) => {
     const found = allThemes.find(t => t.name === name);
     if (!found) return;
     try { localStorage.setItem(STORAGE_KEY, name); } catch { /* SSR / quota */ }
+    writeThemeCookie(name);
     setCurrentTheme(found);
   };
 
@@ -71,6 +82,7 @@ export function ThemeProvider({ children, defaultTheme }: ThemeProviderProps) {
         : [...prev, custom];
     });
     try { localStorage.setItem(STORAGE_KEY, name); } catch { /* SSR / quota */ }
+    writeThemeCookie(name);
     setCurrentTheme(custom);
   };
 

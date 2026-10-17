@@ -171,6 +171,40 @@
         from { opacity: 0; transform: translateX(-24px) scale(0.98); }
         to { opacity: 1; transform: translateX(0) scale(1); }
     }
+
+    /* Màn đăng nhập: icon trạng thái (vẽ nét, thư mở) + vòng quỹ đạo quanh linh vật */
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    --animate-draw: draw 0.6s 0.1s ease-out forwards;
+    --animate-draw-late: draw 0.4s 0.6s ease-out forwards;
+    --animate-pop-in: pop-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    @keyframes pop-in {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    --animate-ripple: ripple 1s 0.7s ease-out both;
+    @keyframes ripple {
+        0% { opacity: 0; transform: scale(0.9); }
+        20% { opacity: 0.45; }
+        100% { opacity: 0; transform: scale(1.5); }
+    }
+    --animate-envelope-rise: envelope-rise 0.5s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    @keyframes envelope-rise { to { transform: translateY(-20px); } }
+    --animate-flap-out: flap-out 0.25s 0.15s ease-in forwards;
+    @keyframes flap-out { to { opacity: 0; transform: scaleY(0.05); } }
+    --animate-fade-in-late: fade-in-late 0.01s 0.3s forwards;
+    @keyframes fade-in-late { to { opacity: 1; } }
+    --animate-orbit: orbit 90s linear infinite;
+    --animate-orbit-reverse: orbit 90s linear infinite reverse;
+    @keyframes orbit { to { transform: rotate(360deg); } }
+    --animate-float: float 6s ease-in-out infinite;
+    @keyframes float { 50% { transform: translateY(-8px); } }
+    --animate-twinkle: twinkle 3.2s ease-in-out infinite;
+    --animate-twinkle-b: twinkle 4.1s 0.9s ease-in-out infinite;
+    --animate-twinkle-c: twinkle 2.7s 1.6s ease-in-out infinite;
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.35; transform: scale(0.85); }
+        50% { opacity: 1; transform: scale(1.1); }
+    }
 }
 
 @layer base {

@@ -259,23 +259,15 @@ export const themes: Theme[] = [
 
 // ─── Apply Theme ──────────────────────────────────────────────────────────────
 
-const THEME_STYLE_ID = 'basuicn-theme';
+export const THEME_STYLE_ID = 'basuicn-theme';
 
 /**
- * Applies a theme by injecting a <style> tag at the START of <head>.
- *
- * Why <style> tag instead of element.style.setProperty():
- *   Inline styles have the highest CSS specificity and would override
- *   .dark { } class rules, breaking dark mode. A <style> tag injected
- *   before the app's CSS bundle has lower specificity than .dark { }
- *   rules defined later in the bundle — so dark mode always wins.
+ * CSS ghi đè token của theme. Dùng chung cho client (`applyTheme`) và server
+ * (layout render sẵn thẻ <style> theo cookie) để lần vẽ đầu đã đúng màu, không nháy.
  */
-export function applyTheme(theme: Theme) {
-  if (typeof window === 'undefined') return;
-  if (!theme?.colors) return;
+export function buildThemeCss(theme: Theme): string {
   const { colors: c } = theme;
-
-  const css = `
+  return `
 :root:not(.dark) {
   --background: ${c.background};
   --foreground: ${c.foreground};
@@ -310,7 +302,26 @@ export function applyTheme(theme: Theme) {
   --sidebar-accent-foreground: ${c.accentForeground};
   --sidebar-ring: ${c.ring};
   --switch-background: ${c.border};
+  --brand-mark-filter: ${theme.isDark ? 'invert(1) hue-rotate(180deg) brightness(1.15)' : 'none'};
 }`.trim();
+}
+
+/**
+ * Applies a theme by injecting a <style> tag at the START of <head>.
+ *
+ * Why <style> tag instead of element.style.setProperty():
+ *   Inline styles have the highest CSS specificity and would override
+ *   .dark { } class rules, breaking dark mode. A <style> tag injected
+ *   before the app's CSS bundle has lower specificity than .dark { }
+ *   rules defined later in the bundle — so dark mode always wins.
+ */
+export function applyTheme(theme: Theme) {
+  if (typeof window === 'undefined') return;
+  if (!theme?.colors) return;
+  const { colors: c } = theme;
+
+  const css = buildThemeCss(theme);
+
 
   let styleEl = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null;
   if (!styleEl) {
@@ -373,6 +384,20 @@ export function toCssVars(theme: Theme): string {
   ];
   const body = vars.map(([k, v]) => `        ${k}: ${v};`).join('\n');
   return `:root {\n${body}\n    }`;
+}
+
+// ─── Default Theme ────────────────────────────────────────────────────────────
+
+/** Theme dùng khi người dùng chưa chọn (lần đầu vào app hoặc đã xoá dữ liệu trình duyệt). */
+export const DEFAULT_THEME_NAME: BuiltInThemeName = 'blue';
+
+export function getDefaultTheme(list: Theme[] = themes): Theme {
+  return list.find((theme) => theme.name === DEFAULT_THEME_NAME) ?? list[0];
+}
+
+/** Tên theme (từ cookie/localStorage) → theme hợp lệ; tên lạ hoặc thiếu thì dùng mặc định. */
+export function resolveTheme(name: string | null | undefined, list: Theme[] = themes): Theme {
+  return list.find((theme) => theme.name === name) ?? getDefaultTheme(list);
 }
 
 // ─── Custom Theme Factory ─────────────────────────────────────────────────────

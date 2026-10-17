@@ -11,6 +11,7 @@ vi.mock('@/features/auth/components/GoogleSignInButton', () => ({
     <button type="button" onClick={() => onCredential('google-id-token')}>Google</button>
   ),
 }));
+vi.mock('@/features/app-update', () => ({ DownloadDesktopApp: () => null }));
 vi.mock('@/features/auth/components/RestoreAccountDialog', () => ({
   RestoreAccountDialog: ({ restoreToken }: { restoreToken: string }) => <div>restore:{restoreToken}</div>,
 }));
@@ -34,7 +35,7 @@ import { LoginFlow } from './LoginFlow';
 async function submitEmailAndCode(): Promise<void> {
   await userEvent.type(screen.getByLabelText('Email'), 'Huy@Gmail.com');
   await userEvent.click(screen.getByRole('button', { name: 'Gửi mã đăng nhập' }));
-  await userEvent.type(await screen.findByLabelText('Mã đăng nhập'), '123456');
+  await userEvent.type(await screen.findByLabelText('Chữ số 1'), '123456');
   await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 }
 

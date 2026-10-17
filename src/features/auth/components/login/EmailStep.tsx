@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input/Input';
 import { requestCodeSchema, type RequestCodeInput } from '@/features/auth/schemas';
 
 const FIELD_CLASS =
-  'h-[50px] rounded-full border-border bg-input px-5 text-foreground placeholder:text-muted-foreground focus:border-primary';
+  'h-12 rounded-xl border-border bg-input px-4 text-foreground placeholder:text-muted-foreground focus:border-primary';
 
 type EmailStepProps = {
   defaultEmail: string;
@@ -24,7 +24,7 @@ export function EmailStep({ defaultEmail, isPending, onSubmit }: EmailStepProps)
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(({ email }) => onSubmit(email))} className="space-y-4">
+      <form onSubmit={form.handleSubmit(({ email }) => onSubmit(email))} className="space-y-3.5">
         <FormField
           control={form.control}
           name="email"
@@ -46,7 +46,7 @@ export function EmailStep({ defaultEmail, isPending, onSubmit }: EmailStepProps)
             </div>
           )}
         />
-        <Button type="submit" className="h-[50px] w-full rounded-full text-base font-bold" isLoading={isPending}>
+        <Button type="submit" className="h-12 w-full rounded-xl text-base font-bold" isLoading={isPending}>
           Gửi mã đăng nhập
         </Button>
       </form>

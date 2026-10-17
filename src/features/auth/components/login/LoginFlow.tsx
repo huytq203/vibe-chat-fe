@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Separator } from '@/components/ui/separator/Separator';
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton';
 import { RestoreAccountDialog } from '@/features/auth/components/RestoreAccountDialog';
 import {
@@ -13,10 +12,13 @@ import {
 } from '@/features/auth/hooks/use-login-mutations';
 import type { CompleteProfileInput } from '@/features/auth/schemas';
 import type { HandoffParams, LoginOutcome } from '@/features/auth/types';
+import { DownloadDesktopApp } from '@/features/app-update';
 import { CodeStep } from './CodeStep';
 import { CompleteProfileForm } from './CompleteProfileForm';
 import { EmailStep } from './EmailStep';
 import { HandoffDone } from './HandoffDone';
+import { LoginCard } from './LoginCard';
+import { StepHeading } from './StepHeading';
 import { useLoginError } from './use-login-error';
 
 type Step =
@@ -75,31 +77,29 @@ export function LoginFlow({ handoff }: { handoff: HandoffParams | null }) {
   if (step.kind === 'handoff') return <HandoffDone redirectUrl={step.redirectUrl} />;
 
   return (
-    <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-500">
-      <p className="text-2xl font-bold text-primary">Halo</p>
-      <h1 className="mt-1 text-[32px] font-bold leading-tight text-foreground lg:text-[38px]">
-        {step.kind === 'profile' ? 'Hoàn tất hồ sơ' : 'Đăng nhập'}
-      </h1>
-      {handoff && <p className="mt-2 text-sm text-muted-foreground">Đăng nhập cho ứng dụng Halo trên máy tính.</p>}
+    <>
+      <StepHeading step={step} handoff={handoff} />
 
-      <div className="mt-8 space-y-6">
+      <LoginCard>
         {step.kind === 'email' && (
           <>
             <GoogleSignInButton
               disabled={google.isPending}
               onCredential={(idToken) => void run(() => google.mutateAsync({ idToken, handoff }))}
             />
-            <div className="flex items-center gap-3">
-              <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">hoặc nhận mã qua email</span>
-              <Separator className="flex-1" />
+            <div className="flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              HOẶC
+              <span className="h-px flex-1 bg-border" />
             </div>
             <EmailStep defaultEmail={lastEmail} isPending={requestCode.isPending} onSubmit={(email) => void sendCode(email)} />
+            <p className="text-center text-xs text-muted-foreground">
+              Tiếp tục nghĩa là bạn đồng ý với Điều khoản và Chính sách quyền riêng tư. Email mới sẽ tự tạo tài khoản.
+            </p>
           </>
         )}
         {step.kind === 'code' && (
           <CodeStep
-            email={step.email}
             isVerifying={verify.isPending}
             isResending={requestCode.isPending}
             onVerify={(code) => void run(() => verify.mutateAsync({ email: step.email, code, handoff }))}
@@ -114,7 +114,9 @@ export function LoginFlow({ handoff }: { handoff: HandoffParams | null }) {
             onSubmit={(input) => void submitProfile(step.signupTicket, input)}
           />
         )}
-      </div>
+      </LoginCard>
+
+      {step.kind === 'email' && <DownloadDesktopApp />}
 
       {restoreInfo && (
         <RestoreAccountDialog
@@ -126,6 +128,6 @@ export function LoginFlow({ handoff }: { handoff: HandoffParams | null }) {
           maskedEmail={restoreInfo.maskedEmail}
         />
       )}
-    </div>
+    </>
   );
 }

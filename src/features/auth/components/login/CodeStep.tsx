@@ -5,13 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button/Button';
 import { Form, FormField } from '@/components/ui/form/Form';
-import { Input } from '@/components/ui/input/Input';
 import { verifyCodeSchema, type VerifyCodeInput } from '@/features/auth/schemas';
+import { OtpInput } from './OtpInput';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 type CodeStepProps = {
-  email: string;
   isVerifying: boolean;
   isResending: boolean;
   onVerify: (code: string) => void;
@@ -19,7 +18,7 @@ type CodeStepProps = {
   onChangeEmail: () => void;
 };
 
-export function CodeStep({ email, isVerifying, isResending, onVerify, onResend, onChangeEmail }: CodeStepProps) {
+export function CodeStep({ isVerifying, isResending, onVerify, onResend, onChangeEmail }: CodeStepProps) {
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
   const form = useForm<VerifyCodeInput>({ resolver: zodResolver(verifyCodeSchema), defaultValues: { code: '' } });
 
@@ -36,10 +35,7 @@ export function CodeStep({ email, isVerifying, isResending, onVerify, onResend, 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(({ code }) => onVerify(code))} className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Đã gửi mã 6 số tới <span className="font-semibold text-foreground">{email}</span>.
-        </p>
+      <form onSubmit={form.handleSubmit(({ code }) => onVerify(code))} className="space-y-3.5">
         <FormField
           control={form.control}
           name="code"
@@ -48,21 +44,12 @@ export function CodeStep({ email, isVerifying, isResending, onVerify, onResend, 
               <label htmlFor="login-code" className="text-sm text-foreground">
                 Mã đăng nhập
               </label>
-              <Input
-                id="login-code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="123456"
-                error={fieldState.error?.message}
-                className="h-[50px] rounded-full px-5 text-center text-xl tracking-[0.5em]"
-                {...field}
-                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              />
+              <OtpInput id="login-code" value={field.value} onChange={field.onChange} hasError={Boolean(fieldState.error)} />
+              {fieldState.error && <p className="text-sm text-danger">{fieldState.error.message}</p>}
             </div>
           )}
         />
-        <Button type="submit" className="h-[50px] w-full rounded-full text-base font-bold" isLoading={isVerifying}>
+        <Button type="submit" className="h-12 w-full rounded-xl text-base font-bold" isLoading={isVerifying}>
           Đăng nhập
         </Button>
         <div className="flex items-center justify-between text-sm">

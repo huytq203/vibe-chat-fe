@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { env } from '@/config/env';
 import { renderGoogleButton } from '@/lib/google/identity';
 
-const BUTTON_WIDTH = 320;
+const MIN_BUTTON_WIDTH = 200;
+const MAX_BUTTON_WIDTH = 400; // giới hạn của Google Identity Services
 const BUTTON_HEIGHT = 44;
 const RENDER_CHECK_MS = 1500;
 const MAX_RENDER_ATTEMPTS = 3;
@@ -42,7 +43,7 @@ export function GoogleSignInButton({ onCredential, disabled = false }: GoogleSig
     const attempt = (n: number): void => {
       renderGoogleButton(el, {
         clientId,
-        width: BUTTON_WIDTH,
+        width: Math.round(Math.min(MAX_BUTTON_WIDTH, Math.max(MIN_BUTTON_WIDTH, el.clientWidth))),
         onCredential: (token) => callbackRef.current(token),
       })
         .then(() => {

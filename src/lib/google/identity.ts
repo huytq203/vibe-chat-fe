@@ -2,7 +2,8 @@
  * Wrapper Google Identity Services — feature code KHÔNG chạm `window.google`.
  * Script chỉ nạp khi trang login cần (không vào bundle chung).
  */
-const GIS_SRC = 'https://accounts.google.com/gsi/client';
+export const GIS_SRC = 'https://accounts.google.com/gsi/client';
+export const GIS_ORIGIN = 'https://accounts.google.com';
 
 type CredentialResponse = { credential: string };
 
@@ -11,7 +12,7 @@ type GsiButtonOptions = {
   theme: 'outline';
   size: 'large';
   text: 'continue_with';
-  shape: 'pill';
+  shape: 'rectangular';
   width: number;
   locale: string;
 };
@@ -82,7 +83,7 @@ export async function renderGoogleButton(
     theme: 'outline',
     size: 'large',
     text: 'continue_with',
-    shape: 'pill',
+    shape: 'rectangular',
     width: opts.width,
     locale: 'vi',
   });
