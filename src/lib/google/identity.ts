@@ -57,17 +57,26 @@ export function loadGoogleIdentity(): Promise<GoogleAccountsId> {
   return loading;
 }
 
+// Callback đọc qua biến module: initialize() chỉ nên gọi 1 lần cho mỗi client id
+// (gọi lặp làm GIS cảnh báo và đôi khi không vẽ lại nút).
+let initializedClientId: string | null = null;
+let activeCallback: ((credential: string) => void) | null = null;
+
 export async function renderGoogleButton(
   el: HTMLElement,
   opts: { clientId: string; width: number; onCredential: (credential: string) => void },
 ): Promise<void> {
   const id = await loadGoogleIdentity();
-  id.initialize({
-    client_id: opts.clientId,
-    callback: (response) => opts.onCredential(response.credential),
-    ux_mode: 'popup',
-    use_fedcm_for_button: true,
-  });
+  activeCallback = opts.onCredential;
+  if (initializedClientId !== opts.clientId) {
+    id.initialize({
+      client_id: opts.clientId,
+      callback: (response) => activeCallback?.(response.credential),
+      ux_mode: 'popup',
+    });
+    initializedClientId = opts.clientId;
+  }
+  el.replaceChildren();
   id.renderButton(el, {
     type: 'standard',
     theme: 'outline',

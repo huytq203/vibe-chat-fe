@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, render, waitFor } from '@testing-library/react';
 
 const envMock = vi.hoisted(() => ({ env: { NEXT_PUBLIC_GOOGLE_CLIENT_ID: undefined as string | undefined } }));
 vi.mock('@/config/env', () => envMock);
@@ -23,4 +23,21 @@ describe('GoogleSignInButton', () => {
 
     await waitFor(() => expect(renderGoogleButton).toHaveBeenCalledWith(expect.any(HTMLElement), expect.objectContaining({ clientId: 'cid' })));
   });
+
+  it('vẽ lại nút khi GIS chạy xong mà container vẫn trống, rồi báo lỗi sau số lần thử tối đa', async () => {
+    vi.useFakeTimers();
+    envMock.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID = 'cid';
+    renderGoogleButton.mockClear();
+    const { findByText } = render(<GoogleSignInButton onCredential={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500 * 4);
+    });
+
+    expect(renderGoogleButton).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+    expect(await findByText(/Không tải được đăng nhập Google/)).toBeTruthy();
+  });
+
+  afterEach(() => vi.useRealTimers());
 });
