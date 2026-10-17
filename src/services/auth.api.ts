@@ -1,16 +1,11 @@
 import { apiClient } from '@/lib/api/client';
-import type { DeviceType } from '@/lib/device/device-info';
 import type {
   AuthSession,
   AuthTokens,
   AuthUser,
   LoginIdentity,
-  LoginInput,
   LoginOutcome,
-  RegisterInput,
-  RegisterResult,
   UpdateMeInput,
-  VerifyEmailInput,
 } from '@/features/auth';
 import type { DeviceContext } from '@/features/auth/lib/device-context';
 import type { Conversation } from '@/features/chat/types';
@@ -62,44 +57,6 @@ export const authApi = {
       { auth: false },
     ),
   listIdentities: () => apiClient.get<LoginIdentity[]>('/api/v1/auth/identities'),
-
-  login: (input: LoginInput & { deviceType: DeviceType; deviceName?: string }) =>
-    apiClient.post<AuthSession>('/api/v1/auth/login', {
-      auth: false,
-      body: {
-        username: input.username,
-        password: input.password,
-        deviceType: input.deviceType,
-        ...(input.deviceName ? { deviceName: input.deviceName } : {}),
-      },
-    }),
-  // Đăng ký KHÔNG trả token — tài khoản INACTIVE, BE gửi OTP qua email. Xem docs/fe-auth-otp-guide.md.
-  register: (input: RegisterInput) =>
-    apiClient.post<RegisterResult>('/api/v1/auth/register', {
-      auth: false,
-      body: input,
-    }),
-  verifyEmail: (input: VerifyEmailInput) =>
-    apiClient.post<{ message: string }>('/api/v1/auth/verify-email', {
-      auth: false,
-      body: input,
-    }),
-  resendOtp: (email: string) =>
-    apiClient.post<{ message: string }>('/api/v1/auth/resend-otp', {
-      auth: false,
-      body: { email },
-    }),
-  // ── Quên mật khẩu ──────────────────────────────────────────────────────
-  forgotPassword: (email: string) =>
-    apiClient.post<{ message: string }>('/api/v1/auth/forgot-password', {
-      auth: false,
-      body: { email },
-    }),
-  resetPassword: (input: { email: string; otp: string; newPassword: string }) =>
-    apiClient.post<{ message: string }>('/api/v1/auth/reset-password', {
-      auth: false,
-      body: input,
-    }),
 
   // ── Xoá / khôi phục tài khoản ──────────────────────────────────────────
   // Xoá mềm tài khoản hiện tại (cần đăng nhập). BE đá mọi phiên + lên lịch purge 7 ngày.

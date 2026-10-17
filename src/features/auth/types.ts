@@ -37,12 +37,6 @@ export type AuthSession = {
   user: AuthUser;
 };
 
-/** Đăng ký xong: BE chưa trả token — chuyển sang màn nhập OTP với email này. */
-export type RegisterResult = {
-  message: string;
-  email: string;
-};
-
 /** Tham số chuyển giao đăng nhập về app desktop (PKCE). */
 export type HandoffParams = {
   state: string;

@@ -1,15 +1,6 @@
-import { RegisterForm, AuthBootstrap } from '@/features/auth';
-import { AuthShowcaseLayout } from '@/components/layout/AuthShowcaseLayout';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: 'Đăng ký · Halo' };
-
-export default function RegisterPage() {
-  return (
-    <>
-      <AuthBootstrap redirectIfAuthed="/chat" />
-      <AuthShowcaseLayout>
-        <RegisterForm />
-      </AuthShowcaseLayout>
-    </>
-  );
+// Halo đã bỏ mật khẩu: đăng ký/xác thực email/quên mật khẩu gộp vào /login.
+export default function LegacyAuthPage(): never {
+  redirect('/login');
 }

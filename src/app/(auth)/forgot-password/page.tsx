@@ -1,14 +1,6 @@
-import { AuthBootstrap, ForgotPasswordForm } from '@/features/auth';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: 'Quên mật khẩu · Halo' };
-
-export default function ForgotPasswordPage() {
-  return (
-    <>
-      <AuthBootstrap redirectIfAuthed="/chat" />
-      <main className="flex h-full items-center justify-center overflow-y-auto bg-background px-4 pt-[calc(var(--safe-top)+1rem)] pb-[max(var(--safe-bottom),1rem)]">
-        <ForgotPasswordForm />
-      </main>
-    </>
-  );
+// Halo đã bỏ mật khẩu: đăng ký/xác thực email/quên mật khẩu gộp vào /login.
+export default function LegacyAuthPage(): never {
+  redirect('/login');
 }

@@ -1,19 +1,10 @@
-export { LoginForm } from './components/LoginForm';
-export { RegisterForm } from './components/RegisterForm';
-export { VerifyEmailForm } from './components/VerifyEmailForm';
-export { ForgotPasswordForm } from './components/ForgotPasswordForm';
+export { LoginFlow } from './components/login/LoginFlow';
 export { DeleteAccountDialog } from './components/DeleteAccountDialog';
 export { AuthBootstrap } from './components/AuthBootstrap';
 export { useAuthStore } from './stores/auth.store';
 export {
-  useLogin,
   useLogout,
-  useRegister,
-  useVerifyEmail,
-  useResendOtp,
   useUpdateMe,
-  useForgotPassword,
-  useResetPassword,
   useRequestRestore,
   useConfirmRestore,
   useDeleteAccount,
@@ -26,12 +17,12 @@ export {
   useExchangeHandoff,
 } from './hooks/use-login-mutations';
 export { useMe } from './hooks/use-query';
+export { useIdentities } from './hooks/use-identities';
 export { useImageUpload } from './hooks/useImageUpload';
 export type {
   AuthUser,
   AuthSession,
   AuthTokens,
-  RegisterResult,
   Gender,
   ProfileVisibility,
   HandoffParams,
@@ -39,20 +30,12 @@ export type {
   LoginIdentity,
 } from './types';
 export {
-  loginSchema,
-  registerSchema,
-  verifyEmailSchema,
-  resendOtpSchema,
   updateMeSchema,
   requestCodeSchema,
   verifyCodeSchema,
   completeProfileSchema,
 } from './schemas';
 export type {
-  LoginInput,
-  RegisterInput,
-  VerifyEmailInput,
-  ResendOtpInput,
   UpdateMeInput,
   RequestCodeInput,
   VerifyCodeInput,

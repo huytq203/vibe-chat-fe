@@ -35,7 +35,7 @@ export function GithubIcon(props: BrandIconProps) {
 
 /**
  * Logo Google 4 màu chuẩn thương hiệu — dùng riêng cho màn Login pixel-clone
- * theo Figma (khác `GoogleIcon` currentColor dùng ở SocialLoginRow chung).
+ * theo Figma (khác `GoogleIcon` currentColor dùng ở các nút mạng xã hội đơn sắc).
  */
 export function GoogleColorIcon(props: BrandIconProps) {
   return (

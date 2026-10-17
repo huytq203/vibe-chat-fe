@@ -9,6 +9,7 @@ const { logoutMutate } = vi.hoisted(() => ({
 
 // Mục phiên bản cần QueryClient — có test riêng, ở đây chỉ kiểm phần phiên đăng nhập.
 vi.mock('@/features/settings/components/AppVersionSection', () => ({ AppVersionSection: () => null }));
+vi.mock('@/features/settings/components/LoginMethodsSection', () => ({ LoginMethodsSection: () => null }));
 
 vi.mock('@/features/auth', () => ({
   DeleteAccountDialog: () => null,

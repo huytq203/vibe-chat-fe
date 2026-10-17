@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button/Button';
 import { DeleteAccountDialog, useLogout } from '@/features/auth';
 import { AppVersionSection } from '@/features/settings/components/AppVersionSection';
+import { LoginMethodsSection } from '@/features/settings/components/LoginMethodsSection';
 import { SettingsSection } from '@/features/settings/components/SettingsSection';
 
 /** Cài đặt chung: quản lý phiên hiện tại và vùng nguy hiểm của tài khoản. */
@@ -77,6 +78,8 @@ export function GeneralTab() {
           </AlertDialogContent>
         </AlertDialog>
       </SettingsSection>
+
+      <LoginMethodsSection />
 
       <AppVersionSection />
 
