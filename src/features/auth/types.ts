@@ -42,3 +42,26 @@ export type RegisterResult = {
   message: string;
   email: string;
 };
+
+/** Tham số chuyển giao đăng nhập về app desktop (PKCE). */
+export type HandoffParams = {
+  state: string;
+  codeChallenge: string;
+};
+
+/** Kết quả chung của mọi luồng đăng nhập (mã email / Google / signup / handoff). */
+export type LoginOutcome =
+  | { status: 'AUTHENTICATED'; tokens: AuthTokens; user: AuthUser }
+  | {
+      status: 'SIGNUP_REQUIRED';
+      signupTicket: string;
+      prefill: { email: string; displayName: string };
+    }
+  | { status: 'HANDOFF'; redirectUrl: string };
+
+export type LoginIdentity = {
+  provider: 'GOOGLE' | 'EMAIL';
+  email: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+};

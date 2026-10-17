@@ -7,6 +7,7 @@
 export const authKeys = {
   all: ['auth'] as const,
   me: () => [...authKeys.all, 'me'] as const,
+  identities: () => [...authKeys.all, 'identities'] as const,
 } as const;
 
 export const aiKeys = {
