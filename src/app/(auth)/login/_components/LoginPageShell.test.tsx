@@ -18,7 +18,7 @@ describe('LoginPageShell', () => {
         <div />
       </LoginPageShell>
     );
-    const img = container.querySelector('img[src*="banner2-nobg.png"]');
+    const img = container.querySelector('img[src*="banner-login.webp"]');
     expect(img).toBeInTheDocument();
     expect(img?.parentElement).toHaveClass('inset-4', 'z-20');
   });

@@ -37,7 +37,7 @@ export function LoginPageShell({ children }: LoginPageShellProps) {
         <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute inset-4 z-20 p-6">
           <Image
-            src="/asset/logo/banner2-nobg.png"
+            src="/asset/banner-login.webp"
             alt=""
             fill
             sizes="42vw"
