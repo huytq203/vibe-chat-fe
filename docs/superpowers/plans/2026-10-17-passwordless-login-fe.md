@@ -19,7 +19,7 @@
 - Lib bên thứ ba (Google Identity Services) bọc trong `src/lib/google/`; feature không chạm `window.google`.
 - UI dùng component Basuicn có sẵn (`Button`, `Input`, `Form`, `DatePicker`); không sửa tay `src/components/ui/`.
 - Mã đăng nhập: đúng 6 chữ số; gửi lại sau **60 giây**.
-- Username: `^[a-z0-9_.-]+$`, 3–50 ký tự; tên hiển thị 1–100; ngày sinh `yyyy-MM-dd`, ≥ 13 tuổi; số điện thoại **tuỳ chọn**, `^\+?\d{9,15}$`.
+- Username: `^[a-z0-9_.-]+$`, 3–50 ký tự; tên hiển thị 1–100; ngày sinh `yyyy-MM-dd`, ≥ 13 tuổi; số điện thoại **tuỳ chọn**, `^\+?\d{10,20}$` (giữ quy tắc cũ).
 - Handoff: query `client=desktop`, `state` `^[A-Za-z0-9_-]{16,128}$`, `code_challenge` `^[A-Za-z0-9_-]{43}$`; deep link `halo://auth/callback?code&state`; chờ tối đa **5 phút**.
 - Electron: `WEB_URL` mặc định `https://chat.krux.io.vn` (ghi đè bằng env `HALO_WEB_URL` khi chạy dev).
 - Bản desktop phát hành: **0.3.0**.
@@ -768,7 +768,7 @@ export const completeProfileSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^(\+?\d{9,15})?$/, 'Số điện thoại 9–15 chữ số (cho phép + đầu)'),
+    .regex(/^(\+?\d{10,20})?$/, 'Số điện thoại 10–20 chữ số (cho phép + đầu)'),
 });
 
 export type RequestCodeInput = z.infer<typeof requestCodeSchema>;
