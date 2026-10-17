@@ -1,6 +1,6 @@
 {
   "name": "halo-chat",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Halo — desktop messaging app",
   "homepage": "https://github.com/huytq203/halo-chat",
   "author": {
@@ -31,6 +31,9 @@
     "electron:pack:linux": "npm run electron:build && electron-builder --linux deb",
     "electron:pack:win": "npm run electron:build && electron-builder --win nsis",
     "electron:pack:all": "npm run electron:build && electron-builder --linux deb --win nsis",
+    "release:patch": "npm version patch --no-git-tag-version",
+    "release:minor": "npm version minor --no-git-tag-version",
+    "release:major": "npm version major --no-git-tag-version",
     "prepare": "husky"
   },
   "build": {
@@ -43,6 +46,7 @@
     "files": [
       ".next/standalone/**/*",
       "electron/main.js",
+      "electron/url-guard.js",
       "electron/preload.js",
       "electron/resources/icons/512x512.png"
     ],
@@ -73,11 +77,13 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Halo-Setup-${version}.${ext}"
     },
     "deb": {
       "packageCategory": "net",
-      "afterInstall": "electron/deb-after-install.sh"
+      "afterInstall": "electron/deb-after-install.sh",
+      "artifactName": "halo-chat_${version}_${arch}.${ext}"
     }
   },
   "dependencies": {
@@ -135,7 +141,7 @@
     "livekit-client": "^2.19.1",
     "lucide-react": "^1.16.0",
     "motion": "^12.42.0",
-    "next": "^16.2.6",
+    "next": "^16.3.8",
     "postcss": "^8.5.14",
     "prosemirror-markdown": "^1.13.7",
     "qrcode": "^1.5.4",
@@ -178,7 +184,7 @@
     "electron": "^42.4.0",
     "electron-builder": "^26.15.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.8",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.8",

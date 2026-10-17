@@ -19,6 +19,8 @@ export function AiChatPage() {
   } = useAiConversations({
     origin: 'CHAT',
     scope: 'chat',
+    // URL /ai/[id] đã giữ hội thoại qua lần tải lại; lưu thêm sẽ lệch với URL.
+    persist: false,
   });
   const { remove, isDeleting } = useDeleteAiConversation();
   // Chỉ tự mở hội thoại gần nhất MỘT lần khi vào trang; sau khi người dùng bấm "+"

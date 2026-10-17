@@ -20,7 +20,7 @@ export interface QRCodeImageSettings {
   crossOrigin?: 'anonymous' | 'use-credentials' | '';
 }
 
-const PIXEL_SIZE = { sm: 64, md: 128, lg: 192, xl: 256 } as const;
+const PIXEL_SIZE = { sm: 96, md: 128, lg: 192, xl: 256 } as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 export interface QRCodeProps {
@@ -121,7 +121,7 @@ export const QRCode = React.forwardRef<HTMLDivElement, QRCodeProps>(({
       {label && (
         <p className="text-sm font-medium text-foreground">{label}</p>
       )}
-      <div ref={qrWrapperRef} className="rounded-sm overflow-hidden border border-border shadow-sm">
+      <div ref={qrWrapperRef} className="rounded-xl overflow-hidden border border-border shadow-sm">
         {renderer === 'svg' ? <QRCodeSVG {...qrProps} /> : <QRCodeCanvas {...qrProps} />}
       </div>
       {description && (

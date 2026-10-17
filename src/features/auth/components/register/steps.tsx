@@ -118,8 +118,8 @@ export function StepContact() {
 }
 
 // Khoảng năm hợp lệ cho ngày sinh — tránh dropdown năm chạy tới 2100.
-const DOB_END_MONTH = new Date();
-const DOB_START_MONTH = new Date(DOB_END_MONTH.getFullYear() - 120, 0);
+const DOB_TO_YEAR = new Date().getFullYear();
+const DOB_FROM_YEAR = DOB_TO_YEAR - 120;
 
 /** Bước 3 — Ngày sinh: xác minh đủ 13 tuổi, kèm preview tuổi. */
 export function StepBirthday() {
@@ -141,9 +141,10 @@ export function StepBirthday() {
             placeholder="dd/mm/yyyy"
             description="Thông tin này được bảo mật và không hiển thị công khai"
             error={fieldState.error?.message}
-            startMonth={DOB_START_MONTH}
-            endMonth={DOB_END_MONTH}
+            fromYear={DOB_FROM_YEAR}
+            toYear={DOB_TO_YEAR}
             disableFutureDates
+            presets={false}
             // field.value là chuỗi yyyy-MM-dd → Date (local, tránh lệch timezone khi parse).
             value={field.value ? new Date(`${field.value}T00:00:00`) : undefined}
             // Trả '' thay vì null để giữ đúng kiểu string của schema (thông báo lỗi mới đúng).

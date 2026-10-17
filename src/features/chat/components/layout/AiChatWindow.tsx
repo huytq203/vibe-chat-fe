@@ -12,10 +12,12 @@ import type { AiStreamFn } from '@/features/ai';
 import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
+import { useAiWindowSize } from '@/features/chat/hooks/useAiWindowSize';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
 import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
 import { aiApi } from '@/services/ai.api';
 import { AiHistoryPanel } from './AiHistoryPanel';
+import { AiWindowResizeHandles } from './AiWindowResizeHandles';
 
 export function AiChatWindow() {
   const isOpen = useAiWindowStore((s) => s.isOpen);
@@ -25,6 +27,7 @@ export function AiChatWindow() {
 
   const [input, setInput] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const windowSize = useAiWindowSize();
 
   const {
     conversations, session, activeId, actions, select, startNew, remember, isLoading,
@@ -94,8 +97,11 @@ export function AiChatWindow() {
   const card = (
     <div
       ref={nodeRef}
-      className="pointer-events-auto fixed bottom-6 right-6 z-60 flex h-[520px] w-[360px] flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl"
+      data-testid="ai-chat-window"
+      style={windowSize.style}
+      className="pointer-events-auto fixed bottom-6 right-6 z-60 flex max-h-[calc(100dvh-3rem)] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl"
     >
+      <AiWindowResizeHandles size={windowSize} />
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="ai-drag-handle flex min-w-0 flex-1 cursor-move items-center gap-2">
           <AiAvatar className="h-8 w-8 shadow-subtle ring-1 ring-primary/25" />

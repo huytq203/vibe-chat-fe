@@ -7,6 +7,9 @@ const { logoutMutate } = vi.hoisted(() => ({
   logoutMutate: vi.fn(),
 }));
 
+// Mục phiên bản cần QueryClient — có test riêng, ở đây chỉ kiểm phần phiên đăng nhập.
+vi.mock('@/features/settings/components/AppVersionSection', () => ({ AppVersionSection: () => null }));
+
 vi.mock('@/features/auth', () => ({
   DeleteAccountDialog: () => null,
   useLogout: () => ({ mutate: logoutMutate, isPending: false }),

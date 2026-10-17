@@ -34,3 +34,8 @@ export function setElectronBadge(count: number, iconDataUrl: string | null): voi
 export function showElectronNotification(payload: NotifyPayload): void {
   getApi()?.showNotification?.(payload);
 }
+
+/** Nền tảng OS của app desktop (`win32`/`linux`/`darwin`) — null khi chạy trên web. */
+export function getElectronPlatform(): string | null {
+  return getApi()?.platform ?? null;
+}

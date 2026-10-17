@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { AiAvatar, AiMascot } from '@/components/common/BrandAssets';
+import { AiAvatar } from '@/components/common/BrandAssets';
+import { ResizeHandle } from '@/components/common/ResizeHandle';
 import { Button } from '@/components/ui/button/Button';
 import { AiChatInput, AiMessageList, useAiConversation } from '@/features/ai';
 import type { AiStreamFn } from '@/features/ai';
@@ -12,28 +13,16 @@ import { useAiConversations } from '@/features/ai/hooks/useAiConversations';
 import { useDeleteAiConversation } from '@/features/ai/hooks/useDeleteAiConversation';
 import { useAiAttachments } from '@/features/chat/hooks/useAiAttachments';
 import { useAutoResizeTextarea } from '@/features/chat/hooks/useAutoResizeTextarea';
+import { useResizable } from '@/lib/hooks/useResizable';
 import { aiApi } from '@/services/ai.api';
 import { useProjects } from '../../hooks/useProjects';
 import { taskKeys } from '../../services/keys';
 import { useTasksUIStore } from '../../stores/tasks-ui.store';
 import { buildTaskAiContext } from '../../lib/ai-context';
+import { DEFAULT_STATUS, isMutatingTool, toolStatusLabel } from '../../lib/ai-tools';
+import { TaskAiEmptyState } from './TaskAiEmptyState';
 
-const DEFAULT_STATUS = 'Đang xử lý…';
-const SUGGESTIONS = [
-  'Tiến độ tuần này của tôi?',
-  'Tôi có những task nào?',
-  'Tôi tổng kết báo cáo tuần.',
-] as const;
-const MUTATING_TOOLS = new Set(['create_project', 'create_task', 'update_task']);
-const TOOL_LABELS: Record<string, string> = {
-  list_projects: 'Đang xem project…', create_project: 'Đang tạo project…',
-  list_project_members: 'Đang xem thành viên…', list_tasks: 'Đang tìm task…',
-  create_task: 'Đang tạo task…', update_task: 'Đang cập nhật task…',
-  my_tasks: 'Đang lấy việc của bạn…', project_stats: 'Đang tính tiến độ…',
-  project_leaderboard: 'Đang xếp hạng…',
-  my_performance: 'Đang tính hiệu suất…',
-  search_pages: 'Đang tìm ghi chú…', read_page: 'Đang đọc ghi chú…',
-};
+const PANEL_WIDTH = { storageKey: 'halo-task-ai-panel-width', defaultSize: 390, min: 320, max: 640 };
 
 export function TaskAiPanel() {
   const [input, setInput] = useState('');
@@ -68,6 +57,8 @@ export function TaskAiPanel() {
     scope: 'tasks',
   });
   const { remove, isDeleting } = useDeleteAiConversation();
+  const { size, isResizing, handleProps } = useResizable({ ...PANEL_WIDTH, reverse: true });
+  const panelStyle: CSSProperties & Record<'--task-ai-w', string> = { '--task-ai-w': `${size}px` };
 
   const stream = useCallback<AiStreamFn>((messages, attachments, options) =>
     aiApi.chatStream(
@@ -78,8 +69,8 @@ export function TaskAiPanel() {
       activeId ?? undefined,
     ), [activeId, remember, selectedProjectId]);
   const onTool = useCallback((name: string): void => {
-    setStatus(TOOL_LABELS[name] ?? DEFAULT_STATUS);
-    if (MUTATING_TOOLS.has(name)) hasMutationRef.current = true;
+    setStatus(toolStatusLabel(name));
+    if (isMutatingTool(name)) hasMutationRef.current = true;
   }, []);
   const onSettled = useCallback((): void => {
     setStatus(DEFAULT_STATUS);
@@ -140,8 +131,16 @@ export function TaskAiPanel() {
     <aside
       id="task-ai-panel"
       aria-label="Trợ lý AI"
-      className="absolute inset-y-0 right-0 z-30 flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-xl md:max-w-[420px] md:rounded-l-2xl xl:relative xl:inset-auto xl:z-auto xl:w-[390px] xl:max-w-none xl:shrink-0 xl:rounded-2xl xl:border xl:shadow-subtle"
+      style={panelStyle}
+      className="absolute inset-y-0 right-0 z-30 flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-xl md:max-w-[420px] md:rounded-l-2xl xl:relative xl:inset-auto xl:z-auto xl:w-(--task-ai-w) xl:max-w-none xl:shrink-0 xl:rounded-2xl xl:border xl:shadow-subtle"
     >
+      <ResizeHandle
+        handleProps={handleProps}
+        isResizing={isResizing}
+        edge="left"
+        label="Kéo để đổi độ rộng trợ lý AI"
+        className="max-xl:hidden"
+      />
       <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-3">
           <AiAvatar className="size-9 shadow-micro ring-1 ring-primary/15" />
@@ -176,28 +175,7 @@ export function TaskAiPanel() {
       />
 
       {session.messages.length === 0 && !conversation.loading ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-8 text-center">
-          <AiMascot className="size-28 drop-shadow-[0_14px_22px_rgb(61_31_91/0.14)]" alt="" />
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Bạn muốn xử lý việc gì?</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Chọn một gợi ý hoặc nhập yêu cầu cho Halo AI.
-            </p>
-          </div>
-          <div className="flex w-full max-w-[260px] flex-col gap-2">
-            {SUGGESTIONS.map((prompt) => (
-              <Button
-                key={prompt}
-                size="sm"
-                variant="secondary"
-                className="h-auto min-h-10 w-full justify-start whitespace-normal rounded-xl px-4 py-2.5 text-left leading-snug"
-                onClick={() => void handleSend(prompt)}
-              >
-                {prompt}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <TaskAiEmptyState onPick={(prompt) => void handleSend(prompt)} />
       ) : (
         <AiMessageList
           messages={session.messages}

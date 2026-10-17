@@ -1,85 +1,45 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { BUILD_ID } from '@/lib/version/app-version';
 
-const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? 'dev';
-
-type ServiceWorkerUpdate = {
-  waitingWorker: ServiceWorker | null;
-  isUpdating: boolean;
-  applyUpdate: () => void;
-  dismissUpdate: () => void;
-};
-
-/**
- * Theo dõi worker mới của một registration.
- * Chỉ báo "có bản mới" khi đã có worker đang điều khiển trang — lần cài đầu tiên
- * không phải là cập nhật, và nhắc reload lúc đó chỉ làm user bối rối.
- */
-function watchRegistration(
-  registration: ServiceWorkerRegistration,
-  onWaiting: (worker: ServiceWorker) => void,
-): () => void {
-  const promote = (worker: ServiceWorker | null): void => {
-    if (worker && navigator.serviceWorker.controller) onWaiting(worker);
-  };
-
-  const onUpdateFound = (): void => {
-    const installing = registration.installing;
-    if (!installing) return;
-    installing.addEventListener('statechange', () => {
-      if (installing.state === 'installed') promote(installing);
-    });
-  };
-
-  // Tab mở nhiều ngày không tự kiểm tra bản mới → kiểm lại mỗi lần user quay lại.
+/** Mỗi lần user quay lại tab: hỏi browser có sw.js mới không (tab mở nhiều ngày). */
+function watchRegistration(registration: ServiceWorkerRegistration): () => void {
   const onVisible = (): void => {
     if (document.visibilityState === 'visible') void registration.update().catch(() => undefined);
   };
-
-  promote(registration.waiting);
-  registration.addEventListener('updatefound', onUpdateFound);
   document.addEventListener('visibilitychange', onVisible);
-
-  return () => {
-    registration.removeEventListener('updatefound', onUpdateFound);
-    document.removeEventListener('visibilitychange', onVisible);
-  };
+  return () => document.removeEventListener('visibilitychange', onVisible);
 }
 
-/** Đăng ký `/sw.js` (chỉ ở production) và phát hiện bản build mới đang chờ kích hoạt. */
-export function useServiceWorkerUpdate(enabled: boolean): ServiceWorkerUpdate {
-  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const shouldReloadRef = useRef(false);
-
+/**
+ * Đăng ký `/sw.js` (chỉ ở production).
+ *
+ * KHÔNG còn báo "có bản mới" theo worker: BUILD_ID đổi theo mỗi commit nên lần deploy
+ * nào cũng sinh worker mới, và khi banner hiện thì HTML (tải từ mạng) đã là bản mới rồi
+ * → user bị nhắc liên tục vô ích. Việc báo bản mới chuyển sang `features/app-update`
+ * và chỉ dựa trên semver; worker đang chờ được kích hoạt khi user bấm "Tải lại".
+ */
+export function useServiceWorkerUpdate(enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return;
     if (!('serviceWorker' in navigator) || process.env.NODE_ENV !== 'production') return;
 
-    const container = navigator.serviceWorker;
     let disposed = false;
     let stopWatching = (): void => {};
 
-    const onControllerChange = (): void => {
-      if (!shouldReloadRef.current) return;
-      shouldReloadRef.current = false;
-      window.location.reload();
-    };
-
     // `?v=` đổi theo mỗi build → browser thấy script khác và cài lại worker.
     const register = (): void => {
-      container
+      navigator.serviceWorker
         .register(`/sw.js?v=${encodeURIComponent(BUILD_ID)}`, { scope: '/' })
         .then((registration) => {
-          if (!disposed) stopWatching = watchRegistration(registration, setWaitingWorker);
+          if (!disposed) stopWatching = watchRegistration(registration);
         })
         .catch(() => {
           // Không HTTPS hoặc browser chặn SW → app vẫn chạy bình thường ở chế độ online.
         });
     };
 
-    container.addEventListener('controllerchange', onControllerChange);
     if (document.readyState === 'complete') register();
     else window.addEventListener('load', register, { once: true });
 
@@ -87,18 +47,6 @@ export function useServiceWorkerUpdate(enabled: boolean): ServiceWorkerUpdate {
       disposed = true;
       stopWatching();
       window.removeEventListener('load', register);
-      container.removeEventListener('controllerchange', onControllerChange);
     };
   }, [enabled]);
-
-  const applyUpdate = useCallback((): void => {
-    if (!waitingWorker) return;
-    setIsUpdating(true);
-    shouldReloadRef.current = true;
-    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-  }, [waitingWorker]);
-
-  const dismissUpdate = useCallback((): void => setWaitingWorker(null), []);
-
-  return { waitingWorker, isUpdating, applyUpdate, dismissUpdate };
 }

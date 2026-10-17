@@ -118,6 +118,18 @@ describe('panel trợ lý AI cho công việc', () => {
     expect(screen.getByRole('button', { name: 'Tôi tổng kết báo cáo tuần.' })).toBeInTheDocument();
   });
 
+  it('cho kéo đổi độ rộng ở desktop và dùng độ rộng đã lưu', () => {
+    window.localStorage.setItem('halo-task-ai-panel-width', '500');
+    renderWithProviders(<TaskAiPanel />);
+
+    const panel = screen.getByRole('complementary', { name: 'Trợ lý AI' });
+    expect(panel.style.getPropertyValue('--task-ai-w')).toBe('500px');
+    expect(panel).toHaveClass('xl:w-(--task-ai-w)');
+    expect(screen.getByRole('separator', { name: 'Kéo để đổi độ rộng trợ lý AI' }))
+      .toHaveAttribute('aria-valuenow', '500');
+    window.localStorage.removeItem('halo-task-ai-panel-width');
+  });
+
   it('giữ nguyên scope hội thoại khi link task chuyển sang project khác', async () => {
     renderWithProviders(<TaskAiPanel />);
 

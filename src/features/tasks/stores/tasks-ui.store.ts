@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type ActiveView = 'home' | 'projects' | 'board' | 'reports';
 
@@ -19,8 +20,6 @@ type TasksUIState = {
   selectedTaskId: string | null;
   openTask: (id: string) => void;
   closeTask: () => void;
-  aiConversationByProjectId: Record<string, string | null>;
-  setAiConversation: (projectId: string, conversationId: string | null) => void;
   /** Ngăn xếp drill-down subtask (id các task con dưới task gốc đang mở). */
   subtaskPath: string[];
   openSubtask: (id: string) => void;
@@ -32,7 +31,7 @@ type TasksUIState = {
   closeSettings: () => void;
 };
 
-export const useTasksUIStore = create<TasksUIState>((set) => ({
+export const useTasksUIStore = create<TasksUIState>()(persist((set) => ({
   activeView: 'home',
   setActiveView: (v) => set({ activeView: v }),
   projectSearch: '',
@@ -45,14 +44,6 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   selectedTaskId: null,
   openTask: (id) => set({ selectedTaskId: id, subtaskPath: [] }),
   closeTask: () => set({ selectedTaskId: null, subtaskPath: [] }),
-  aiConversationByProjectId: {},
-  setAiConversation: (projectId, conversationId) =>
-    set((state) => ({
-      aiConversationByProjectId: {
-        ...state.aiConversationByProjectId,
-        [projectId]: conversationId,
-      },
-    })),
   subtaskPath: [],
   openSubtask: (id) => set((s) => ({ subtaskPath: [...s.subtaskPath, id] })),
   navigateSubtaskBack: () => set((s) => ({ subtaskPath: s.subtaskPath.slice(0, -1) })),
@@ -61,4 +52,8 @@ export const useTasksUIStore = create<TasksUIState>((set) => ({
   settingsModal: { open: false },
   openSettings: (tab = 'info') => set({ settingsModal: { open: true, tab } }),
   closeSettings: () => set({ settingsModal: { open: false } }),
+}), {
+  name: 'halo-tasks-ui',
+  // Chỉ giữ trạng thái panel AI qua lần tải lại; view/project đi theo URL deep-link.
+  partialize: (state) => ({ isAiPanelOpen: state.isAiPanelOpen }),
 }));

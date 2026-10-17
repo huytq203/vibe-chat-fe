@@ -50,6 +50,11 @@ function createLocalBuildId(): string {
   return `halo-${hash.digest('hex').slice(0, 20)}`;
 }
 
+// Phiên bản phát hành (semver) — nguồn duy nhất cho banner "có bản mới" và version.json.
+const appVersion = (
+  JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')) as { version: string }
+).version;
+
 const buildId =
   process.env.BUILD_ID ||
   process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -109,6 +114,7 @@ function buildContentSecurityPolicy(): string {
         process.env.NEXT_PUBLIC_BOT_URL,
         process.env.NEXT_PUBLIC_AI_URL,
         process.env.NEXT_PUBLIC_NOTIFICATION_URL,
+        process.env.NEXT_PUBLIC_UPDATE_MANIFEST_URL,
         AUTH_URL,
         VIBE_URL,
         TASK_URL,
@@ -146,6 +152,7 @@ const nextConfig: NextConfig = {
   generateBuildId: async () => buildId,
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,
+    NEXT_PUBLIC_APP_VERSION: appVersion,
   },
   // Cho phép Next.js dev HMR hoạt động khi truy cập qua Cloudflare Quick Tunnel.
   allowedDevOrigins: ['*.trycloudflare.com'],

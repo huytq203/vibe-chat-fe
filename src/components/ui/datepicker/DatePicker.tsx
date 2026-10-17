@@ -1,550 +1,246 @@
 'use client';
 import * as React from 'react';
 import { Popover as BasePopover } from '@base-ui/react';
-import { DayPicker, type DateRange, type Matcher } from 'react-day-picker';
-import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import { Calendar as CalendarIcon, ChevronDown, Clock } from 'lucide-react';
-import { tv } from 'tailwind-variants';
-import * as locales from 'react-day-picker/locale';
+import { cn } from '@/lib/utils/cn';
+import type { CalendarLocaleKey } from '../calendar/calendarUtils';
+import { DatePickerContent } from './DatePickerContent';
+import { useEditableDateInput } from './useEditableDateInput';
+import {
+  DEFAULT_LABELS,
+  DEFAULT_TIME,
+  applyTimeToDate,
+  buildTimeString,
+  dateToTimeParts,
+  formatTriggerText,
+  getDefaultPresets,
+  parseTimeParts,
+  type DatePickerLabels,
+  type DatePickerMode,
+  type DatePreset,
+  type TimeFormat,
+  type TimeParts,
+  type TimePickerStyle,
+} from './datePickerUtils';
 
-import { Button } from '@/components/ui/button/Button';
-import { dayPickerClassNames } from '@/components/ui/calendar/day-picker-theme';
-
-// ---------- types ----------
-
-export type TimeFormat = 'HH' | 'HH:mm' | 'HH:mm:ss';
-export type DatePickerMode = 'single' | 'range' | 'time-only';
-export type TimePickerStyle = 'input' | 'select';
-
-interface TimeParts {
-    h: string;
-    m: string;
-    s: string;
-}
+export type { DatePickerMode, DatePreset, DatePickerLabels, TimeFormat, TimePickerStyle };
 
 /** Props for the DatePicker component */
 export interface DatePickerProps {
-    /** Picker mode: single date, date range, or time-only */
-    mode?: DatePickerMode;
-    /** Selected date (Date for single, DateRange for range) */
-    value?: Date | DateRange | string;
-    /** Callback fired when the date changes */
-    onChange?: (date: Date | DateRange | undefined) => void;
-    /** Current time string, only used when mode is 'time-only' */
-    timeValue?: string;
-    /** Callback fired when the time value changes (time-only mode) */
-    onTimeChange?: (time: string) => void;
-    /** Label text displayed above the picker */
-    label?: string;
-    /** Placeholder text when no date is selected */
-    placeholder?: string;
-    /** Disable all dates before today */
-    disablePastDates?: boolean;
-    /** Show time picker alongside the calendar */
-    showTime?: boolean;
-    /** Time format: hours only, hours:minutes, or hours:minutes:seconds */
-    timeFormat?: TimeFormat;
-    /** Time picker UI style: native input or dropdown selects */
-    timePickerStyle?: TimePickerStyle;
-    /** Disable the entire picker */
-    disabled?: boolean;
-    className?: string;
-    /** Helper text displayed below the picker */
-    description?: string;
-    /** Error message displayed below the picker (replaces description) */
-    error?: string;
-    required?: boolean;
-    captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years" | undefined;
-    /** Cho phép gõ tay ngày (dd/MM/yyyy) song song với chọn lịch — chỉ áp dụng mode 'single' */
-    editable?: boolean;
-    /** Tháng đầu tiên có thể điều hướng tới (mặc định 01/1900) */
-    startMonth?: Date;
-    /** Tháng cuối cùng có thể điều hướng tới (mặc định 12/2100) */
-    endMonth?: Date;
-    /** Vô hiệu hoá mọi ngày sau hôm nay */
-    disableFutureDates?: boolean;
+  /** Picker mode: single date, date range, or time-only */
+  mode?: DatePickerMode;
+  /** Selected date (Date for single, DateRange for range) */
+  value?: Date | DateRange | string;
+  /** Callback fired when the date changes */
+  onChange?: (date: Date | DateRange | undefined) => void;
+  /** Current time string, only used when mode is 'time-only' */
+  timeValue?: string;
+  /** Callback fired when the time value changes (time-only mode) */
+  onTimeChange?: (time: string) => void;
+  label?: string;
+  /** Placeholder text when nothing is selected */
+  placeholder?: string;
+  /** Disable all dates before today */
+  disablePastDates?: boolean;
+  /** Vô hiệu hoá mọi ngày sau hôm nay */
+  disableFutureDates?: boolean;
+  /** Cho phép gõ tay ngày (dd/MM/yyyy) song song với chọn lịch — chỉ áp dụng mode 'single' */
+  editable?: boolean;
+  /** Show a time picker alongside the calendar (single mode) */
+  showTime?: boolean;
+  /** Time format: hours only, hours:minutes, or hours:minutes:seconds */
+  timeFormat?: TimeFormat;
+  /** Time picker UI: scroll columns (default), native input or selects */
+  timePickerStyle?: TimePickerStyle;
+  disabled?: boolean;
+  className?: string;
+  /** Helper text displayed below the picker */
+  description?: string;
+  /** Error message displayed below the picker (replaces description) */
+  error?: string;
+  required?: boolean;
+  /** Quick picks. Defaults depend on the mode; pass `false` to hide them. */
+  presets?: DatePreset[] | false;
+  /** Override any UI text (i18n) */
+  labels?: Partial<DatePickerLabels>;
+  /** react-day-picker locale key (defaults to 'vi') */
+  locale?: CalendarLocaleKey;
+  /** First selectable year in the month/year pickers */
+  fromYear?: number;
+  /** Last selectable year in the month/year pickers */
+  toYear?: number;
+  /** @deprecated The header now always offers month and year pickers. */
+  captionLayout?: 'label' | 'dropdown' | 'dropdown-months' | 'dropdown-years';
 }
 
-// ---------- helpers ----------
-
-const DEFAULT_TIME: TimeParts = { h: '00', m: '00', s: '00' };
-const DEFAULT_START_MONTH = new Date(1900, 0);
-const DEFAULT_END_MONTH = new Date(2100, 11);
-
-function parseTimeParts(timeStr: string): TimeParts {
-    const [h = '00', m = '00', s = '00'] = timeStr.split(':');
-    return {
-        h: h.padStart(2, '0'),
-        m: m.padStart(2, '0'),
-        s: s.padStart(2, '0'),
-    };
-}
-
-function buildTimeString(parts: TimeParts, fmt: TimeFormat): string {
-    if (fmt === 'HH') return parts.h;
-    if (fmt === 'HH:mm') return `${parts.h}:${parts.m}`;
-    return `${parts.h}:${parts.m}:${parts.s}`;
-}
-
-function applyTimeToDate(base: Date, parts: TimeParts): Date {
-    const d = new Date(base);
-    d.setHours(Number(parts.h), Number(parts.m), Number(parts.s), 0);
-    return d;
-}
-
-function dateToTimeParts(d: Date): TimeParts {
-    return {
-        h: d.getHours().toString().padStart(2, '0'),
-        m: d.getMinutes().toString().padStart(2, '0'),
-        s: d.getSeconds().toString().padStart(2, '0'),
-    };
-}
-
-function formatDateDisplay(d: Date, showTime: boolean, fmt: TimeFormat): string {
-    const datePart = format(d, 'dd/MM/yyyy');
-    if (!showTime) return datePart;
-    if (fmt === 'HH') return `${datePart} ${format(d, 'HH')}h`;
-    if (fmt === 'HH:mm') return `${datePart} ${format(d, 'HH:mm')}`;
-    return `${datePart} ${format(d, 'HH:mm:ss')}`;
-}
-
-function parseDateInput(raw: string): Date | undefined {
-    const m = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!m) return undefined;
-    const [, d, mo, y] = m;
-    const day = Number(d), month = Number(mo) - 1, year = Number(y);
-    const date = new Date(year, month, day);
-    const isValid = date.getDate() === day && date.getMonth() === month && date.getFullYear() === year;
-    return isValid ? date : undefined;
-}
-
-/** Chèn tự động dấu "/" theo mẫu dd/mm/yyyy khi người dùng gõ số — không cần tự gõ "/" */
-function maskDateInput(raw: string): string {
-    const digits = raw.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-}
-
-function padOptions(count: number) {
-    return Array.from({ length: count }, (_, i) => ({
-        label: i.toString().padStart(2, '0'),
-        value: i.toString().padStart(2, '0'),
-    }));
-}
-
-const hoursOptions = padOptions(24);
-const minutesOptions = padOptions(60);
-const secondsOptions = padOptions(60);
-
-// ---------- styles ----------
-
-const popoverContent = tv({
-    base: 'z-[200]  rounded-xl border border-border bg-background text-foreground shadow-xl outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2',
-});
-
-// ---------- sub-components ----------
-
-interface NativeSelectProps {
-    value: string;
-    options: { label: string; value: string }[];
-    onChange: (val: string) => void;
-    'aria-label'?: string;
-}
-
-const NativeScrollSelect: React.FC<NativeSelectProps> = ({ value, options, onChange, 'aria-label': ariaLabel }) => (
-    <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground focus:border-primary focus:outline-none"
-    >
-        {options.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-    </select>
-);
-
-interface TimePickerProps {
-    parts: TimeParts;
-    onChange: (parts: TimeParts) => void;
-    timeFormat: TimeFormat;
-    timePickerStyle: TimePickerStyle;
-}
-
-const TimePicker: React.FC<TimePickerProps> = ({ parts, onChange, timeFormat, timePickerStyle }) => {
-    const showMinutes = timeFormat === 'HH:mm' || timeFormat === 'HH:mm:ss';
-    const showSeconds = timeFormat === 'HH:mm:ss';
-
-    if (timePickerStyle === 'input') {
-        const step = showSeconds ? 1 : 60;
-        const rawValue = showSeconds
-            ? `${parts.h}:${parts.m}:${parts.s}`
-            : `${parts.h}:${parts.m}`;
-
-        return (
-            <input
-                type="time"
-                value={rawValue}
-                step={step}
-                onChange={(e) => {
-                    const [h = '00', m = '00', s = '00'] = e.target.value.split(':');
-                    onChange({ h: h.padStart(2, '0'), m: m.padStart(2, '0'), s: s.padStart(2, '0') });
-                }}
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-        );
-    }
-
-    return (
-        <div className="flex items-center gap-1.5">
-            <div className="flex-1">
-                <NativeScrollSelect
-                    aria-label="Giờ"
-                    value={parts.h}
-                    options={hoursOptions}
-                    onChange={(val) => onChange({ ...parts, h: val })}
-                />
-            </div>
-            {showMinutes && (
-                <>
-                    <span className="text-sm font-bold text-muted-foreground">:</span>
-                    <div className="flex-1">
-                        <NativeScrollSelect
-                            aria-label="Phút"
-                            value={parts.m}
-                            options={minutesOptions}
-                            onChange={(val) => onChange({ ...parts, m: val })}
-                        />
-                    </div>
-                </>
-            )}
-            {showSeconds && (
-                <>
-                    <span className="text-sm font-bold text-muted-foreground">:</span>
-                    <div className="flex-1">
-                        <NativeScrollSelect
-                            aria-label="Giây"
-                            value={parts.s}
-                            options={secondsOptions}
-                            onChange={(val) => onChange({ ...parts, s: val })}
-                        />
-                    </div>
-                </>
-            )}
-        </div>
-    );
-};
-
-// ---------- main component ----------
+const POPUP_CLASS =
+  'z-50 rounded-2xl border border-border bg-background text-foreground shadow-xl outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95';
 
 export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
-    mode = 'single',
-    value,
-    onChange,
-    timeValue,
-    onTimeChange,
-    label,
-    placeholder = 'Select date...',
-    disablePastDates = false,
-    showTime = false,
-    timeFormat = 'HH:mm:ss',
-    timePickerStyle = 'select',
-    disabled = false,
-    className,
-    description,
-    error,
-    required,
-    captionLayout = undefined,
-    editable = false,
-    startMonth = DEFAULT_START_MONTH,
-    endMonth = DEFAULT_END_MONTH,
-    disableFutureDates = false,
+  mode = 'single', value, onChange, timeValue, onTimeChange, label, placeholder, disablePastDates = false,
+  disableFutureDates = false, editable = false,
+  showTime = false, timeFormat = 'HH:mm:ss', timePickerStyle = 'columns', disabled = false, className,
+  description, error, required, presets, labels: labelOverrides, locale = 'vi', fromYear, toYear,
 }, ref) => {
-    const [open, setOpen] = React.useState(false);
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const anchorRef = React.useRef<HTMLDivElement>(null);
+  const labels = React.useMemo(() => ({ ...DEFAULT_LABELS, ...labelOverrides }), [labelOverrides]);
+  const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const anchorRef = React.useRef<HTMLDivElement>(null);
 
-    // Controlled nếu có onChange — value prop được trust kể cả khi undefined
-    const isControlled = onChange !== undefined;
-    const [internalDate, setInternalDate] = React.useState<Date | DateRange | undefined>(undefined);
-    const date = isControlled ? value : internalDate;
+  // Controlled when onChange is provided; `value` is then trusted even when undefined.
+  const isControlled = onChange !== undefined;
+  const [internalDate, setInternalDate] = React.useState<Date | DateRange | undefined>(undefined);
+  const date = isControlled ? value : internalDate;
+  const isTimeOnly = mode === 'time-only';
 
-    const [calendarMonth, setCalendarMonth] = React.useState<Date>(() => {
-        const selected = date instanceof Date ? date : (date as DateRange | undefined)?.from;
-        return selected ?? new Date();
-    });
-    const handleOpenChange = (newOpen: boolean) => {
-        if (newOpen) {
-            const selectedDate = date instanceof Date ? date : (date as DateRange)?.from;
-            setCalendarMonth(selectedDate ?? new Date());
-        }
-        setOpen(newOpen);
-    };
+  const parts = React.useMemo<TimeParts>(() => {
+    if (isTimeOnly && timeValue) return parseTimeParts(timeValue);
+    if (date instanceof Date) return dateToTimeParts(date);
+    return DEFAULT_TIME;
+  }, [date, timeValue, isTimeOnly]);
 
-    const timeParts = React.useMemo<TimeParts>(() => {
-        if (mode === 'time-only' && timeValue) return parseTimeParts(timeValue);
-        if (date instanceof Date) return dateToTimeParts(date);
-        return DEFAULT_TIME;
-    }, [date, timeValue, mode]);
+  const commit = (next: Date | DateRange | undefined) => {
+    if (!isControlled) setInternalDate(next);
+    onChange?.(next);
+  };
 
-    const handlePartsChange = (newParts: TimeParts) => {
-        if (mode === 'time-only') {
-            onTimeChange?.(buildTimeString(newParts, timeFormat));
-            return;
-        }
-        if (date instanceof Date) {
-            const newDate = applyTimeToDate(date, newParts);
-            if (!isControlled) setInternalDate(newDate);
-            onChange?.(newDate);
-        }
-    };
+  const isEditable = editable && mode === 'single';
+  const isAllowedDate = (d: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (disablePastDates && d < today) return false;
+    return !(disableFutureDates && d > new Date());
+  };
+  const dateInput = useEditableDateInput(date instanceof Date ? date : undefined, commit, isAllowedDate);
 
-    const handleDateSelect = (selectedDate: Date | DateRange | Date[] | undefined) => {
-        if (!selectedDate) {
-            if (!isControlled) setInternalDate(undefined);
-            onChange?.(undefined);
-            return;
-        }
-        if (mode === 'single' && showTime && selectedDate instanceof Date) {
-            const newDate = applyTimeToDate(selectedDate, timeParts);
-            if (!isControlled) setInternalDate(newDate);
-            onChange?.(newDate);
-        } else {
-            if (!isControlled) setInternalDate(selectedDate as Date | DateRange);
-            onChange?.(selectedDate as DateRange);
-            if (mode === 'single' && !showTime) setOpen(false);
-        }
-    };
+  const handlePartsChange = (next: TimeParts) => {
+    if (isTimeOnly) return onTimeChange?.(buildTimeString(next, timeFormat));
+    commit(applyTimeToDate(date instanceof Date ? date : new Date(), next));
+  };
 
-    // Khởi tạo từ `date` để lần mount đầu (hoặc remount khi quay lại bước trước)
-    // ô nhập vẫn hiển thị đúng giá trị — nếu để rỗng, onBlur sẽ commit rỗng và xoá dữ liệu.
-    const [inputValue, setInputValue] = React.useState(() =>
-        date instanceof Date ? format(date, 'dd/MM/yyyy') : '',
-    );
-    // Đồng bộ ô nhập khi `date` đổi từ ngoài (chọn lịch / controlled) — chỉnh state ngay
-    // trong render (pattern React chính thức) thay vì effect để tránh cascading render.
-    const [syncedDate, setSyncedDate] = React.useState(date);
-    if (date !== syncedDate) {
-        setSyncedDate(date);
-        if (date instanceof Date) setInputValue(format(date, 'dd/MM/yyyy'));
-        else if (!date) setInputValue('');
+  const handleSelect = (selected: Date | DateRange | Date[] | undefined) => {
+    if (!selected || Array.isArray(selected)) return commit(undefined);
+    if (mode === 'single' && selected instanceof Date) {
+      commit(showTime ? applyTimeToDate(selected, parts) : selected);
+      if (!showTime) setOpen(false);
+      return;
     }
+    commit(selected);
+  };
 
-    const handleInputChange = (raw: string) => {
-        const masked = maskDateInput(raw);
-        setInputValue(masked);
-        const parsed = parseDateInput(masked);
-        if (!parsed) return;
-        setCalendarMonth(parsed);
-        if (!isControlled) setInternalDate(parsed);
-        onChange?.(parsed);
-    };
+  const handlePreset = ({ value: v }: DatePreset) => {
+    commit(v instanceof Date && showTime ? applyTimeToDate(v, parts) : v);
+    if (mode === 'single' && !showTime) setOpen(false);
+  };
 
-    const commitInput = () => {
-        if (!inputValue.trim()) {
-            if (!isControlled) setInternalDate(undefined);
-            onChange?.(undefined);
-            return;
-        }
-        if (!parseDateInput(inputValue)) {
-            setInputValue(date instanceof Date ? format(date, 'dd/MM/yyyy') : '');
-        }
-    };
+  const handleNow = () => {
+    const now = new Date();
+    if (isTimeOnly) onTimeChange?.(buildTimeString(dateToTimeParts(now), timeFormat));
+    else commit(showTime ? now : new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  };
 
-    const triggerLabel = React.useMemo(() => {
-        if (mode === 'time-only') {
-            const val = timeValue ?? buildTimeString(timeParts, timeFormat);
-            if (!val || val === '00' || val === '00:00' || val === '00:00:00')
-                return <span className="text-muted-foreground">{placeholder || 'Select time...'}</span>;
-            return <span>{val}</span>;
-        }
+  const resolvedPresets = presets === false ? [] : presets ?? (showTime ? [] : getDefaultPresets(mode, labels));
+  const hasValue = isTimeOnly ? !!timeValue : mode === 'range' ? !!(date as DateRange | undefined)?.from : date instanceof Date;
 
-        if (!date) return <span className="text-muted-foreground">{placeholder}</span>;
+  const triggerText = formatTriggerText(mode, date as Date | DateRange | undefined, timeValue, showTime, timeFormat);
 
-        if (mode === 'single' && date instanceof Date) {
-            return <span>{formatDateDisplay(date, showTime, timeFormat)}</span>;
-        }
+  return (
+    <div ref={ref} className={cn('flex w-full flex-col gap-1.5', className)}>
+      {label && (
+        <label className="text-sm font-medium text-foreground">
+          {label}
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </label>
+      )}
 
-        if (mode === 'range') {
-            const range = date as DateRange;
-            if (range.from && range.to) {
-                return (
-                    <span>
-                        {format(range.from, 'dd/MM/yyyy')} – {format(range.to, 'dd/MM/yyyy')}
-                    </span>
-                );
-            }
-            if (range.from) return <span>{format(range.from, 'dd/MM/yyyy')} –</span>;
-        }
-
-        return <span className="text-muted-foreground">{placeholder}</span>;
-    }, [date, mode, showTime, timeFormat, timeValue, timeParts, placeholder]);
-
-    const disabledMatchers = React.useMemo<Matcher[] | undefined>(() => {
-        const matchers: Matcher[] = [];
-        if (disablePastDates) matchers.push({ before: new Date() });
-        if (disableFutureDates) matchers.push({ after: new Date() });
-        return matchers.length > 0 ? matchers : undefined;
-    }, [disablePastDates, disableFutureDates]);
-
-    const isTimeMode = mode === 'time-only';
-    const needsTimePicker = isTimeMode || (mode === 'single' && showTime);
-
-    return (
-        <div ref={ref} className={`flex flex-col gap-1.5 w-full ${className || ''}`}>
-            {label && (
-                <label className="text-sm font-medium text-foreground">
-                    {label}
-                    {required && <span className="ml-0.5 text-destructive">*</span>}
-                </label>
+      <BasePopover.Root open={open} onOpenChange={disabled ? undefined : setOpen}>
+        {isEditable ? (
+          <div
+            ref={anchorRef}
+            className={cn(
+              'group flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm transition-shadow focus-within:border-primary',
+              error ? 'border-danger focus-within:border-danger' : 'border-border',
+              disabled && 'cursor-not-allowed opacity-50',
             )}
+          >
+            <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={10}
+              disabled={disabled}
+              placeholder={placeholder ?? labels.placeholder}
+              aria-label={label}
+              value={dateInput.inputValue}
+              onChange={(e) => dateInput.onInputChange(e.target.value)}
+              onBlur={dateInput.onInputBlur}
+              className="min-w-0 flex-1 bg-transparent text-left text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            />
+            <BasePopover.Trigger
+              render={
+                <button type="button" disabled={disabled} aria-label="Mở lịch" className="shrink-0">
+                  <ChevronDown className="size-4 text-muted-foreground transition-transform duration-200 group-data-popup-open:rotate-180" aria-hidden="true" />
+                </button>
+              }
+            />
+          </div>
+        ) : (
+        <BasePopover.Trigger
+          render={
+            <button
+              ref={triggerRef}
+              type="button"
+              disabled={disabled}
+              className={cn(
+                'group flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm transition-shadow',
+                'hover:border-primary focus:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                error ? 'border-danger' : 'border-border',
+              )}
+            >
+              {isTimeOnly ? <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+              <span className={cn('flex-1 truncate text-left', !hasValue && 'text-muted-foreground')}>
+                {hasValue ? triggerText : placeholder ?? labels.placeholder}
+              </span>
+              <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-popup-open:rotate-180" aria-hidden="true" />
+            </button>
+          }
+        />
+        )}
+        <BasePopover.Portal>
+          {/* z-[200]: popover phải nổi trên dialog (z-[100]) theo thang lớp của Halo. */}
+          <BasePopover.Positioner anchor={isEditable ? anchorRef : triggerRef} sideOffset={6} className="z-[200]">
+            <BasePopover.Popup className={POPUP_CLASS}>
+              <DatePickerContent
+                mode={mode}
+                date={date as Date | DateRange | undefined}
+                parts={parts}
+                showTime={showTime}
+                timeFormat={timeFormat}
+                timePickerStyle={timePickerStyle}
+                presets={resolvedPresets}
+                labels={labels}
+                locale={locale}
+                fromYear={fromYear}
+                toYear={toYear}
+                disablePastDates={disablePastDates}
+                disableFutureDates={disableFutureDates}
+                onSelectDate={handleSelect}
+                onPartsChange={handlePartsChange}
+                onPreset={handlePreset}
+                onToday={handleNow}
+                onClear={() => (isTimeOnly ? onTimeChange?.('') : commit(undefined))}
+                onClose={() => setOpen(false)}
+              />
+            </BasePopover.Popup>
+          </BasePopover.Positioner>
+        </BasePopover.Portal>
+      </BasePopover.Root>
 
-            <BasePopover.Root open={open} onOpenChange={disabled ? undefined : handleOpenChange}>
-                {editable && mode === 'single' ? (
-                    <div
-                        ref={anchorRef}
-                        className={[
-                            'group flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm',
-                            'transition-shadow focus-within:border-primary',
-                            error ? 'border-danger focus-within:border-danger' : 'border-border',
-                            disabled ? 'cursor-not-allowed opacity-50' : '',
-                        ].join(' ')}
-                    >
-                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={10}
-                            disabled={disabled}
-                            placeholder={placeholder}
-                            value={inputValue}
-                            onChange={(e) => handleInputChange(e.target.value)}
-                            onBlur={commitInput}
-                            className="min-w-0 flex-1 bg-transparent text-left text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-                        />
-                        <BasePopover.Trigger
-                            render={
-                                <button type="button" disabled={disabled} aria-label="Mở lịch" className="shrink-0">
-                                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
-                                </button>
-                            }
-                        />
-                    </div>
-                ) : (
-                    <BasePopover.Trigger
-                        render={
-                            <button
-                                ref={triggerRef}
-                                type="button"
-                                disabled={disabled}
-                                className={[
-                                    'flex h-10 w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm',
-                                    'ring-offset-background transition-shadow',
-                                    'hover:border-primary focus:border-primary focus:outline-none',
-                                    'disabled:cursor-not-allowed disabled:opacity-50',
-                                    error ? 'border-danger focus:border-danger' : 'border-border',
-                                    'group',
-                                ].join(' ')}
-                            >
-                                {isTimeMode ? (
-                                    <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                ) : (
-                                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                )}
-                                <div className="flex-1 truncate text-left">{triggerLabel}</div>
-                                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
-                            </button>
-                        }
-                    />
-                )}
-
-                <BasePopover.Portal>
-                    <BasePopover.Positioner anchor={editable && mode === 'single' ? anchorRef : triggerRef} sideOffset={6} className="z-[200]">
-                        <BasePopover.Popup className={popoverContent()}>
-                            {!isTimeMode && mode === 'single' && (
-                                <div className="p-2 flex justify-center">
-                                    <DayPicker
-                                        mode="single"
-                                        locale={locales.vi}
-                                        selected={date as Date | undefined}
-                                        month={calendarMonth}
-                                        onMonthChange={setCalendarMonth}
-                                        onSelect={(d) => handleDateSelect(d)}
-                                        captionLayout={captionLayout}
-                                        startMonth={startMonth}
-                                        endMonth={endMonth}
-                                        disabled={disabledMatchers}
-                                        classNames={dayPickerClassNames}
-                                    />
-                                </div>
-                            )}
-                            {!isTimeMode && mode === 'range' && (
-                                <div className="p-2 flex justify-center">
-                                    <DayPicker
-                                        mode="range"
-                                        locale={locales.vi}
-                                        selected={date as DateRange | undefined}
-                                        month={calendarMonth}
-                                        onMonthChange={setCalendarMonth}
-                                        onSelect={(d) => handleDateSelect(d)}
-                                        captionLayout={captionLayout}
-                                        startMonth={startMonth}
-                                        endMonth={endMonth}
-                                        disabled={disabledMatchers}
-                                        classNames={dayPickerClassNames}
-                                    />
-                                </div>
-                            )}
-
-                            {needsTimePicker && (
-                                <div className={`border-t border-border p-3 flex flex-col gap-2 ${isTimeMode ? 'border-t-0' : ''}`}>
-                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span>
-                                            {timeFormat === 'HH' ? 'Chọn giờ' : timeFormat === 'HH:mm' ? 'Giờ : Phút' : 'Giờ : Phút : Giây'}
-                                        </span>
-                                    </div>
-                                    <TimePicker
-                                        parts={timeParts}
-                                        onChange={handlePartsChange}
-                                        timeFormat={timeFormat}
-                                        timePickerStyle={timePickerStyle}
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between gap-2 p-3 border-t border-border">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (mode === 'time-only') {
-                                            onTimeChange?.('');
-                                        } else {
-                                            if (!isControlled) setInternalDate(undefined);
-                                            onChange?.(undefined);
-                                        }
-                                    }}
-                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
-                                >
-                                    Xoá lựa chọn
-                                </button>
-                                <Button type="button" size="sm" onClick={() => setOpen(false)}>
-                                    Xong
-                                </Button>
-                            </div>
-                        </BasePopover.Popup>
-                    </BasePopover.Positioner>
-                </BasePopover.Portal>
-            </BasePopover.Root>
-            {description && !error && (
-                <p className="text-[0.8rem] text-muted-foreground">{description}</p>
-            )}
-            {error && (
-                <p className="text-[0.8rem] font-medium text-danger">{error}</p>
-            )}
-        </div>
-    );
+      {description && !error && <p className="text-[0.8rem] text-muted-foreground">{description}</p>}
+      {error && <p className="text-[0.8rem] font-medium text-danger">{error}</p>}
+    </div>
+  );
 });
-
-DatePicker.displayName = "DatePicker";
+DatePicker.displayName = 'DatePicker';

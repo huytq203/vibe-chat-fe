@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/lib/theme/ThemeProvider';
 import { Toaster } from '@/components/ui/toast/Toaster';
 import { Providers } from './providers';
 import { appleSplashScreens } from '@/lib/pwa/apple-splash';
+import { AppUpdateNotifier } from '@/features/app-update';
 import { ServiceWorkerRegister } from '@/lib/pwa/ServiceWorkerRegister';
 import { ViewportSync } from '@/lib/viewport';
 
@@ -59,7 +60,10 @@ export default function RootLayout({
       <body className="flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
           <Framework7Shell>
-            <Providers>{children}</Providers>
+            <Providers>
+              {children}
+              <AppUpdateNotifier />
+            </Providers>
           </Framework7Shell>
         </ThemeProvider>
         <Toaster position="top-center" expand richColors />

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { History, MessageSquareText, PanelRightClose, Share2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { AiAvatar } from '@/components/common/BrandAssets';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ResizeHandle } from '@/components/common/ResizeHandle';
 import { Button } from '@/components/ui/button/Button';
 import {
   Tabs,
@@ -16,6 +17,7 @@ import {
   useNotesUiStore,
   type SidePanelTab,
 } from '@/features/notes/stores/notes-ui.store';
+import { useResizable } from '@/lib/hooks/useResizable';
 import { cn } from '@/lib/utils/cn';
 import { AiTab } from './AiTab';
 import { CommentThread } from './CommentThread';
@@ -47,6 +49,8 @@ const emptyIconByTab: Record<SidePanelTab, ReactNode> = {
   ai: <AiAvatar className="size-9 bg-transparent" />,
 };
 
+const PANEL_WIDTH = { storageKey: 'halo-notes-side-panel-width', defaultSize: 340, min: 300, max: 640 };
+
 function PanelContent({ pageId, tab, workspaceId }: {
   pageId?: string;
   tab: SidePanelTab;
@@ -66,6 +70,10 @@ export function SidePanel() {
   const setOpen = useNotesUiStore((state) => state.setSidePanelOpen);
   const activeTab = useNotesUiStore((state) => state.sidePanelTab);
   const setActiveTab = useNotesUiStore((state) => state.setSidePanelTab);
+  const { size, isResizing, handleProps } = useResizable({ ...PANEL_WIDTH, reverse: true });
+  const panelStyle: CSSProperties & Record<'--side-panel-w', string> = {
+    '--side-panel-w': `${size}px`,
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,22 +90,33 @@ export function SidePanel() {
       aria-label="Bảng bên ghi chú"
       aria-hidden={!isOpen}
       data-testid="notes-side-panel"
+      style={panelStyle}
       className={cn(
         'relative z-20 h-full shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground',
         'transition-[width,margin] duration-200 ease-[cubic-bezier(.32,.72,0,1)]',
         'motion-reduce:transition-none max-[1279px]:fixed max-[1279px]:inset-0 max-[1279px]:z-50',
+        isResizing && 'transition-none',
         isOpen
-          ? 'pointer-events-auto w-[340px] max-[1279px]:w-full min-[1280px]:ml-3 min-[1280px]:rounded-2xl min-[1280px]:border min-[1280px]:bg-sidebar/75 min-[1280px]:shadow-subtle min-[1280px]:backdrop-blur-md'
+          ? 'pointer-events-auto w-(--side-panel-w) max-[1279px]:w-full min-[1280px]:ml-3 min-[1280px]:rounded-2xl min-[1280px]:border min-[1280px]:bg-sidebar/75 min-[1280px]:shadow-subtle min-[1280px]:backdrop-blur-md'
           : 'pointer-events-none w-0 border-0 shadow-none max-[1279px]:invisible min-[1280px]:ml-0',
       )}
     >
+      {isOpen && (
+        <ResizeHandle
+          handleProps={handleProps}
+          isResizing={isResizing}
+          edge="left"
+          label="Kéo để đổi độ rộng bảng bên"
+          className="max-[1279px]:hidden"
+        />
+      )}
       {isOpen && (
         <Tabs
           value={activeTab}
           onValueChange={(value) => {
             if (isSidePanelTab(value)) setActiveTab(value);
           }}
-          className="flex h-full min-w-[340px] flex-col max-[1279px]:min-w-0"
+          className="flex h-full min-w-(--side-panel-w) flex-col max-[1279px]:min-w-0"
         >
           <div className="flex min-h-14 shrink-0 items-center border-b border-border max-[1279px]:pt-[var(--safe-top)]">
             <TabsList

@@ -5,6 +5,7 @@ import { renderWithProviders as render } from '@/test/test-utils';
 import { AiChatPage } from '../AiChatPage';
 import { AiChatWindow } from '../AiChatWindow';
 import { useAiWindowStore } from '@/features/chat/stores/ai-window.store';
+import { useAiActiveConversationStore } from '@/features/ai/stores/ai-active-conversation.store';
 import { aiConversationsApi } from '@/services/ai-conversations.api';
 import { aiApi } from '@/services/ai.api';
 
@@ -88,6 +89,7 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     routerReplace.mockReset();
     routerPush.mockReset();
     useAiWindowStore.setState({ isOpen: false, position: { x: 0, y: 0 } });
+    useAiActiveConversationStore.setState({ recent: [] });
     vi.mocked(aiConversationsApi.list).mockReset();
     vi.mocked(aiConversationsApi.detail).mockReset();
     vi.mocked(aiConversationsApi.remove).mockReset();
@@ -103,6 +105,15 @@ describe('trang Halo AI dùng hội thoại hợp nhất', () => {
     expect(await screen.findByRole('button', { name: recentConversation.title })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: oldConversation.title })).toBeInTheDocument();
     expect(aiConversationsApi.list).toHaveBeenCalledWith({ origin: 'CHAT' });
+  });
+
+  it('nên để URL quyết định: vào /ai không có id thì không mở hội thoại đã lưu', async () => {
+    isMobile = true;
+    useAiActiveConversationStore.getState().setActive('chat', OLD_ID);
+    render(<AiChatPage />);
+
+    expect(await screen.findByRole('button', { name: oldConversation.title })).toBeInTheDocument();
+    expect(aiConversationsApi.detail).not.toHaveBeenCalled();
   });
 
   it('nên tải chi tiết khi chọn một hội thoại', async () => {

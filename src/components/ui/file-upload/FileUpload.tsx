@@ -13,6 +13,7 @@ const fileUploadVariants = tv({
       'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed',
       'cursor-pointer transition-all duration-200',
       'hover:border-primary/50 hover:bg-primary/5',
+      'has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-primary has-[input:focus-visible]:ring-offset-2',
     ].join(' '),
     fillPreview: [
       'relative overflow-hidden rounded-xl border border-border group',

@@ -96,7 +96,7 @@ describe("bảng bên ghi chú", () => {
     expect(flow).toHaveClass("flex");
     expect(canvas.parentElement).toBe(flow);
     expect(panel.parentElement).toBe(flow);
-    expect(panel).toHaveClass("relative", "w-[340px]", "min-[1280px]:ml-3");
+    expect(panel).toHaveClass("relative", "w-(--side-panel-w)", "min-[1280px]:ml-3");
     expect(panel).not.toHaveClass("absolute", "fixed");
     expect(panel).toHaveClass(
       "max-[1279px]:fixed",
@@ -196,5 +196,25 @@ describe("bảng bên ghi chú", () => {
     expect(screen.getByTestId("notes-trash-view")).toBeInTheDocument();
     expect(screen.queryByTestId("notes-canvas")).not.toBeInTheDocument();
     expect(screen.queryByTestId("notes-side-panel")).not.toBeInTheDocument();
+  });
+
+  it("dùng độ rộng đã lưu và cho kéo đổi độ rộng khi đang mở", () => {
+    window.localStorage.setItem("halo-notes-side-panel-width", "480");
+    resetStore(true);
+    renderNotesLayout();
+
+    const panel = screen.getByTestId("notes-side-panel");
+    expect(panel.style.getPropertyValue("--side-panel-w")).toBe("480px");
+    expect(panel.className).toContain("w-(--side-panel-w)");
+    const handle = screen.getByRole("separator", { name: "Kéo để đổi độ rộng bảng bên" });
+    expect(handle).toHaveAttribute("aria-valuenow", "480");
+    window.localStorage.removeItem("halo-notes-side-panel-width");
+  });
+
+  it("ẩn tay nắm đổi độ rộng khi bảng bên đóng", () => {
+    resetStore(false);
+    renderNotesLayout();
+
+    expect(screen.queryByRole("separator", { hidden: true })).not.toBeInTheDocument();
   });
 });

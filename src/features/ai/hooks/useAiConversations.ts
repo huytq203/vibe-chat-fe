@@ -2,28 +2,38 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type Dispatch,
-  type RefObject,
   type SetStateAction,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api/client';
 import {
   aiConversationsApi,
   type AiConversationOrigin,
   type AiConversationSummary,
 } from '@/services/ai-conversations.api';
 import { aiConversationKeys } from '../lib/ai-conversation-keys';
-import type { AiMessage, AiSession, AiSessionActions } from '../types';
-
-const NEW_CONVERSATION_TITLE = 'Cuộc trò chuyện mới';
+import {
+  NEW_CONVERSATION_TITLE,
+  createDraftSession,
+  createSessionActions,
+} from '../lib/ai-session';
+import {
+  selectActiveConversation,
+  useAiActiveConversationStore,
+} from '../stores/ai-active-conversation.store';
+import type { AiSession, AiSessionActions } from '../types';
 
 type UseAiConversationsOptions = {
   origin?: AiConversationOrigin;
   scope: string;
+  /** false: chỉ nhớ trong bộ nhớ — dùng khi nơi gọi đã có nguồn sự thật khác (URL). */
+  persist?: boolean;
 };
 
 type LocalSession = {
@@ -45,122 +55,6 @@ type Result = {
   remember: (conversationId: string) => void;
   refetch: () => void;
 };
-
-function createDraftSession(scope: string): AiSession {
-  return {
-    id: `ai:${scope}`,
-    title: NEW_CONVERSATION_TITLE,
-    messages: [],
-    updatedAt: Date.now(),
-  };
-}
-
-function lastUserIndex(messages: AiMessage[]): number {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'user') return index;
-  }
-  return -1;
-}
-
-function clearFailure(message: AiMessage): AiMessage {
-  const next = { ...message };
-  delete next.status;
-  delete next.errorMessage;
-  return next;
-}
-
-function isSamePendingUser(left: AiMessage | undefined, right: AiMessage): boolean {
-  if (left?.role !== 'user' || right.role !== 'user' || left.content !== right.content) {
-    return false;
-  }
-  const leftAttachments = left.attachments ?? [];
-  const rightAttachments = right.attachments ?? [];
-  return leftAttachments.length === rightAttachments.length
-    && leftAttachments.every((attachment, index) => {
-      const other = rightAttachments[index];
-      return other?.name === attachment.name
-        && other.mimeType === attachment.mimeType
-        && other.size === attachment.size;
-    });
-}
-
-type SessionAccess = {
-  sessionRef: RefObject<AiSession>;
-  update: (updater: (session: AiSession) => AiSession) => void;
-  reset: () => AiSession;
-};
-
-function createSessionActions(access: SessionAccess): AiSessionActions {
-  const replaceMessages = (sessionId: string, messages: AiMessage[]): void => {
-    access.update((session) => session.id === sessionId ? { ...session, messages } : session);
-  };
-
-  return {
-    createSession: () => access.reset().id,
-    pushMessage: (sessionId, message) => {
-      access.update((session) => {
-        if (session.id !== sessionId) return session;
-        const title = session.messages.length === 0 && message.role === 'user'
-          ? (message.content.slice(0, 40) || message.attachments?.[0]?.name || NEW_CONVERSATION_TITLE)
-          : session.title;
-        return {
-          ...session,
-          title,
-          messages: [...session.messages, message],
-          updatedAt: Date.now(),
-        };
-      });
-    },
-    ensurePendingUser: (sessionId, message) => {
-      access.update((session) => {
-        if (session.id !== sessionId || isSamePendingUser(session.messages.at(-1), message)) {
-          return session;
-        }
-        return {
-          ...session,
-          title: session.messages.length === 0
-            ? (message.content.slice(0, 40)
-              || message.attachments?.[0]?.name
-              || NEW_CONVERSATION_TITLE)
-            : session.title,
-          messages: [...session.messages, message],
-          updatedAt: Date.now(),
-        };
-      });
-    },
-    dropLastAssistant: (sessionId) => {
-      const session = access.sessionRef.current;
-      if (session.id !== sessionId) return [];
-      if (session.messages.at(-1)?.role !== 'assistant') return session.messages;
-      const messages = session.messages.slice(0, -1);
-      replaceMessages(sessionId, messages);
-      return messages;
-    },
-    markLastUserFailed: (sessionId, reason) => {
-      const session = access.sessionRef.current;
-      if (session.id !== sessionId) return;
-      const index = lastUserIndex(session.messages);
-      if (index < 0) return;
-      replaceMessages(sessionId, session.messages.map((message, position) =>
-        position === index ? { ...message, status: 'failed', errorMessage: reason } : message));
-    },
-    prepareResend: (sessionId, index) => {
-      const session = access.sessionRef.current;
-      if (session.id !== sessionId || !session.messages[index]) return [];
-      const messages = session.messages.slice(0, index + 1)
-        .map((message, position) => position === index ? clearFailure(message) : message);
-      replaceMessages(sessionId, messages);
-      return messages;
-    },
-    removeMessage: (sessionId, index) => {
-      const session = access.sessionRef.current;
-      const removed = session.id === sessionId ? session.messages[index] : undefined;
-      if (!removed) return null;
-      replaceMessages(sessionId, session.messages.filter((_, position) => position !== index));
-      return removed;
-    },
-  };
-}
 
 function useStableActions(
   session: AiSession,
@@ -231,10 +125,33 @@ function useStableActions(
 
 const TITLE_REFRESH_DELAYS_MS = [2500, 7000] as const;
 
-export function useAiConversations({ origin, scope }: UseAiConversationsOptions): Result {
+function isGone(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 403);
+}
+
+function useActiveConversation(
+  scope: string,
+  persist: boolean,
+): [string | null, (scope: string, id: string | null) => void] {
+  const persisted = useAiActiveConversationStore(selectActiveConversation(scope));
+  const setPersisted = useAiActiveConversationStore((state) => state.setActive);
+  const [inMemory, setInMemory] = useState<Record<string, string | null>>({});
+  const setInMemoryActive = useCallback((key: string, id: string | null) => {
+    setInMemory((current) => ({ ...current, [key]: id }));
+  }, []);
+  return persist
+    ? [persisted, setPersisted]
+    : [inMemory[scope] ?? null, setInMemoryActive];
+}
+
+export function useAiConversations({
+  origin,
+  scope,
+  persist = true,
+}: UseAiConversationsOptions): Result {
   const queryClient = useQueryClient();
-  const [activeByScope, setActiveByScope] = useState<Record<string, string | null>>({});
-  const activeId = activeByScope[scope] ?? null;
+  // Lưu ngoài component để đổi tab (unmount) hay tải lại trang không mất hội thoại đang mở.
+  const [activeId, setActive] = useActiveConversation(scope, persist);
   const [local, setLocal] = useState<LocalSession>({
     scope,
     activeId: null,
@@ -249,7 +166,13 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
     queryKey: aiConversationKeys.detail(activeId ?? ''),
     queryFn: () => aiConversationsApi.detail(activeId ?? ''),
     enabled: Boolean(activeId),
+    retry: (count, error) => !isGone(error) && count < 1,
   });
+  const isDetailGone = isGone(detail.error);
+  useEffect(() => {
+    // Hội thoại đã lưu bị xoá/mất quyền ở nơi khác → về phiên nháp thay vì kẹt ở trạng thái lỗi.
+    if (activeId && isDetailGone) setActive(scope, null);
+  }, [activeId, isDetailGone, scope, setActive]);
   const scoped = local.scope === scope && local.activeId === activeId ? local : null;
   const summary = list.data?.find(({ id }) => id === activeId);
   const session = scoped?.dirty || !detail.data
@@ -267,9 +190,7 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
         updatedAt: summary ? Date.parse(summary.updatedAt) : 0,
       };
   const isDetailLoading = Boolean(activeId) && detail.isPending;
-  const clearActive = useCallback(() => {
-    setActiveByScope((current) => ({ ...current, [scope]: null }));
-  }, [scope]);
+  const clearActive = useCallback(() => setActive(scope, null), [scope, setActive]);
   const actions = useStableActions(
     session,
     scope,
@@ -279,13 +200,13 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
     isDetailLoading,
   );
   const select = useCallback((id: string) => {
-    setActiveByScope((current) => ({ ...current, [scope]: id }));
+    setActive(scope, id);
     setLocal({ scope, activeId: id, value: createDraftSession(id), dirty: false });
-  }, [scope]);
+  }, [scope, setActive]);
   const startNew = useCallback(() => { actions.createSession(); }, [actions]);
   const remember = useCallback((conversationId: string) => {
     if (!activeId) {
-      setActiveByScope((current) => ({ ...current, [scope]: conversationId }));
+      setActive(scope, conversationId);
       actions.alias?.(session.id, conversationId);
       setLocal((previous) => previous.scope === scope && previous.activeId === null
         ? {
@@ -305,7 +226,7 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
         void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
       }, delay);
     }
-  }, [actions, activeId, origin, queryClient, scope, session.id]);
+  }, [actions, activeId, origin, queryClient, scope, session.id, setActive]);
   const refetch = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: aiConversationKeys.list(origin) });
     if (activeId) {
@@ -319,7 +240,7 @@ export function useAiConversations({ origin, scope }: UseAiConversationsOptions)
     session,
     actions,
     isLoading: list.isPending || isDetailLoading,
-    isError: list.isError || detail.isError,
+    isError: list.isError || (detail.isError && !isDetailGone),
     select,
     startNew,
     remember,

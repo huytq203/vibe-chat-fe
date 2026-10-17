@@ -27,6 +27,10 @@ const schema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // URL tuyệt đối tới /version.json của bản web — chỉ app desktop cần (origin 127.0.0.1).
+  // Thiếu → app desktop không kiểm tra bản cập nhật.
+  NEXT_PUBLIC_UPDATE_MANIFEST_URL: z.string().url().optional(),
+
   // Firebase Cloud Messaging (public — SDK chạy ở browser cần các giá trị này).
   // Server-side admin (PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY_BASE64) thuộc BE, không expose FE.
   NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1).optional(),
@@ -50,6 +54,7 @@ const parsed = schema.safeParse({
   NEXT_PUBLIC_AI_URL: process.env.NEXT_PUBLIC_AI_URL,
   NEXT_PUBLIC_NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL,
   NEXT_PUBLIC_USE_PROXY: process.env.NEXT_PUBLIC_USE_PROXY,
+  NEXT_PUBLIC_UPDATE_MANIFEST_URL: process.env.NEXT_PUBLIC_UPDATE_MANIFEST_URL || undefined,
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,

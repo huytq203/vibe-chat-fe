@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog/AlertDialog';
 import { Button } from '@/components/ui/button/Button';
 import { DeleteAccountDialog, useLogout } from '@/features/auth';
+import { AppVersionSection } from '@/features/settings/components/AppVersionSection';
 import { SettingsSection } from '@/features/settings/components/SettingsSection';
 
 /** Cài đặt chung: quản lý phiên hiện tại và vùng nguy hiểm của tài khoản. */
@@ -76,6 +77,8 @@ export function GeneralTab() {
           </AlertDialogContent>
         </AlertDialog>
       </SettingsSection>
+
+      <AppVersionSection />
 
       <SettingsSection
         title="Vùng nguy hiểm"

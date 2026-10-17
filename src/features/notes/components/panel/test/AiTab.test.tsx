@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAiActiveConversationStore } from '@/features/ai/stores/ai-active-conversation.store';
 import { aiConversationsApi } from '@/services/ai-conversations.api';
 import { aiApi } from '@/services/ai.api';
 import { notionAiApi } from '@/services/notion-ai.api';
@@ -90,7 +91,7 @@ beforeEach(() => {
 
 afterEach(() => {
   useNotesUiStore.getState().setAiComposerDraft(null);
-  useNotesUiStore.getState().setAiConversation('workspace-1', null);
+  useAiActiveConversationStore.setState({ recent: [] });
   vi.unstubAllGlobals();
 });
 

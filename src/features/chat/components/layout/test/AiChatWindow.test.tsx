@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
 import { AiChatWindow } from "../AiChatWindow";
 import { useAiWindowStore } from "@/features/chat/stores/ai-window.store";
+import { useAiActiveConversationStore } from "@/features/ai/stores/ai-active-conversation.store";
 
 vi.mock("@/services/ai-conversations.api", () => ({
   aiConversationsApi: {
@@ -90,6 +91,7 @@ beforeAll(() => {
 describe("AiChatWindow", () => {
   beforeEach(() => {
     localStorage.clear();
+    useAiActiveConversationStore.setState({ recent: [] });
     useAiWindowStore.setState({ isOpen: false, position: { x: 0, y: 0 } });
     chat.mockReset();
   });
@@ -103,6 +105,19 @@ describe("AiChatWindow", () => {
     useAiWindowStore.getState().open();
     render(<AiChatWindow />);
     expect(screen.getByText("Halo AI")).toBeInTheDocument();
+  });
+
+  it("cho kéo cạnh trái/cạnh trên để đổi kích thước và dùng kích thước đã lưu", () => {
+    localStorage.setItem("halo-ai-window-width", "480");
+    localStorage.setItem("halo-ai-window-height", "640");
+    useAiWindowStore.getState().open();
+    render(<AiChatWindow />);
+
+    const width = screen.getByRole("separator", { name: "Kéo để đổi độ rộng cửa sổ AI" });
+    const height = screen.getByRole("separator", { name: "Kéo để đổi chiều cao cửa sổ AI" });
+    expect(width).toHaveAttribute("aria-valuenow", "480");
+    expect(height).toHaveAttribute("aria-valuenow", "640");
+    expect(screen.getByTestId("ai-chat-window")).toHaveStyle({ width: "480px", height: "640px" });
   });
 
   it('nên đóng cửa sổ mà không điều hướng quay lại', async () => {

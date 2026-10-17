@@ -162,6 +162,8 @@ export function ProfileEditForm({ form, me, isPending, onSubmit, onCancel }: Pro
                     label="Ngày sinh"
                     placeholder="Chọn ngày sinh"
                     captionLayout="dropdown"
+                    disableFutureDates
+                    presets={false}
                     value={toDate(field.value)}
                     onChange={(d) =>
                       field.onChange(d instanceof Date ? format(d, 'yyyy-MM-dd') : null)

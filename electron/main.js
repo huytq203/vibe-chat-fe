@@ -5,8 +5,10 @@ const path = require('path');
 const { spawn } = require('child_process');
 const net = require('net');
 const fs = require('fs');
+const { isAppUrl, isSafeExternalUrl } = require('./url-guard');
 
 const PORT = 4784;
+const APP_ORIGIN = `http://127.0.0.1:${PORT}`;
 const APP_ID = 'com.halochat.desktop';
 const ICON_PATH = path.join(__dirname, 'resources/icons/512x512.png');
 let mainWindow = null;
@@ -131,15 +133,30 @@ function createWindow() {
     show: false,
   });
 
-  mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
+  mainWindow.loadURL(APP_ORIGIN);
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => { mainWindow = null; });
 
   // External links open in OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
-    shell.openExternal(targetUrl);
+    openExternalSafely(targetUrl);
     return { action: 'deny' };
   });
+
+  // Renderer bị điều hướng ra origin khác vẫn giữ preload `electronAPI` → chặn, mở ngoài.
+  mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
+    if (isAppUrl(targetUrl, APP_ORIGIN)) return;
+    event.preventDefault();
+    openExternalSafely(targetUrl);
+  });
+}
+
+function openExternalSafely(targetUrl) {
+  if (!isSafeExternalUrl(targetUrl)) {
+    console.warn('[electron] chặn mở URL ngoài với scheme không cho phép');
+    return;
+  }
+  void shell.openExternal(targetUrl);
 }
 
 app.whenReady().then(() => {

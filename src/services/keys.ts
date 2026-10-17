@@ -14,6 +14,11 @@ export const aiKeys = {
   config: () => [...aiKeys.all, 'config'] as const,
 } as const;
 
+export const appVersionKeys = {
+  all: ['app-version'] as const,
+  manifest: (url: string) => [...appVersionKeys.all, 'manifest', url] as const,
+} as const;
+
 export const sessionKeys = {
   all: ['sessions'] as const,
   list: () => [...sessionKeys.all, 'list'] as const,

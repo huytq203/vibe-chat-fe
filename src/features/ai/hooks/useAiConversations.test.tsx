@@ -2,7 +2,9 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '@/lib/api/client';
 import { aiConversationsApi } from '@/services/ai-conversations.api';
+import { useAiActiveConversationStore } from '../stores/ai-active-conversation.store';
 import { useAiConversations } from './useAiConversations';
 
 vi.mock('@/services/ai-conversations.api', () => ({
@@ -23,6 +25,7 @@ function createWrapper(client = new QueryClient({
 }
 
 beforeEach(() => {
+  useAiActiveConversationStore.setState({ recent: [] });
   list.mockResolvedValue([]);
   detail.mockImplementation(async (id) => ({
     id, title: null, origin: 'TASKS', context: null, messages: [],
@@ -167,5 +170,50 @@ describe('lịch sử hội thoại AI hợp nhất', () => {
     expect(result.current.session.messages.map(({ content }) => content)).toEqual([
       'Câu hỏi cũ', 'Câu trả lời cũ', 'Câu hỏi mới', 'Câu trả lời mới',
     ]);
+  });
+
+  it('giữ hội thoại đang mở sau khi unmount rồi mount lại (đổi tab / tải lại)', async () => {
+    const first = renderHook(
+      () => useAiConversations({ scope: 'ws-1:page-1' }),
+      { wrapper: createWrapper() },
+    );
+    act(() => first.result.current.select('conversation-1'));
+    first.unmount();
+
+    const second = renderHook(
+      () => useAiConversations({ scope: 'ws-1:page-1' }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(second.result.current.activeId).toBe('conversation-1');
+    await waitFor(() => expect(detail).toHaveBeenCalledWith('conversation-1'));
+  });
+
+  it('mỗi scope giữ hội thoại riêng', () => {
+    const { result, rerender } = renderHook(
+      ({ scope }) => useAiConversations({ scope }),
+      { wrapper: createWrapper(), initialProps: { scope: 'ws-1:page-1' } },
+    );
+    act(() => result.current.select('conversation-1'));
+
+    rerender({ scope: 'ws-1:page-2' });
+    expect(result.current.activeId).toBeNull();
+
+    rerender({ scope: 'ws-1:page-1' });
+    expect(result.current.activeId).toBe('conversation-1');
+  });
+
+  it('quay về phiên nháp khi hội thoại đã lưu không còn trên server', async () => {
+    useAiActiveConversationStore.getState().setActive('tasks', 'conversation-gone');
+    detail.mockRejectedValue(new ApiError(404, 'NOT_FOUND', 'Không tìm thấy'));
+
+    const { result } = renderHook(
+      () => useAiConversations({ scope: 'tasks' }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.activeId).toBeNull());
+    expect(result.current.isError).toBe(false);
+    expect(result.current.session.messages).toEqual([]);
   });
 });
