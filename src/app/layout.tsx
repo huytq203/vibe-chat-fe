@@ -67,8 +67,10 @@ export default async function RootLayout({
       className={`${beVietnamPro.variable} antialiased`}
     >
       <head>
-        {/* CSS sinh từ hằng số theme của dự án (không có dữ liệu người dùng) nên an toàn để chèn thẳng. */}
-        <style id={THEME_STYLE_ID} dangerouslySetInnerHTML={{ __html: buildThemeCss(theme) }} />
+        {/* CSS sinh từ hằng số theme của dự án (không có dữ liệu người dùng) nên an toàn để chèn thẳng.
+            suppressHydrationWarning: một số tiện ích trình duyệt chèn thêm <style> vào đầu <head> trước khi
+            React hydrate, làm React so nhầm thẻ này; client vẫn tự cập nhật nội dung qua applyTheme. */}
+        <style id={THEME_STYLE_ID} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: buildThemeCss(theme) }} />
       </head>
       {/* Framework7 sở hữu geometry của html/body/root. Không đặt chiều cao
           viewport custom ở đây vì iOS có thể cắt mất vùng home indicator. */}

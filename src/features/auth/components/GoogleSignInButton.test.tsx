@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 
 const envMock = vi.hoisted(() => ({ env: { NEXT_PUBLIC_GOOGLE_CLIENT_ID: undefined as string | undefined } }));
 vi.mock('@/config/env', () => envMock);
@@ -37,6 +37,24 @@ describe('GoogleSignInButton', () => {
     expect(renderGoogleButton).toHaveBeenCalledTimes(3);
     vi.useRealTimers();
     expect(await findByText(/Không tải được đăng nhập Google/)).toBeTruthy();
+  });
+
+  it('chỉ hiện nút Google của mình khi iframe chính thức đã vẽ xong', async () => {
+    envMock.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID = 'cid';
+    renderGoogleButton.mockImplementationOnce((el: HTMLElement) => {
+      el.appendChild(document.createElement('iframe'));
+      return Promise.resolve();
+    });
+    render(<GoogleSignInButton onCredential={vi.fn()} />);
+
+    expect(await screen.findByText('Tiếp tục với Google')).toBeInTheDocument();
+  });
+
+  it('chưa vẽ xong thì chỉ hiện khung chờ, không hiện chữ nút', () => {
+    envMock.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID = 'cid';
+    render(<GoogleSignInButton onCredential={vi.fn()} />);
+
+    expect(screen.queryByText('Tiếp tục với Google')).not.toBeInTheDocument();
   });
 
   afterEach(() => vi.useRealTimers());
