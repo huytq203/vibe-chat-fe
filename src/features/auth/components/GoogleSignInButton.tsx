@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { env } from '@/config/env';
 import { renderGoogleButton } from '@/lib/google/identity';
 
 const BUTTON_WIDTH = 320;
+
+const subscribeNoop = (): (() => void) => () => {};
+const getClientSnapshot = (): boolean => true;
+const getServerSnapshot = (): boolean => false;
 
 type GoogleSignInButtonProps = {
   onCredential: (idToken: string) => void;
@@ -17,6 +21,8 @@ export function GoogleSignInButton({ onCredential, disabled = false }: GoogleSig
   const containerRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onCredential);
   const [failed, setFailed] = useState(false);
+  // Chỉ vẽ ở client: server và client có thể thấy env khác nhau (build/restart lệch) → tránh hydration mismatch.
+  const isClient = useSyncExternalStore(subscribeNoop, getClientSnapshot, getServerSnapshot);
 
   // Nút GIS chỉ render 1 lần — giữ callback mới nhất qua ref để không render lại nút.
   useEffect(() => {
@@ -25,15 +31,15 @@ export function GoogleSignInButton({ onCredential, disabled = false }: GoogleSig
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!clientId || !el) return;
+    if (!isClient || !clientId || !el) return;
     renderGoogleButton(el, {
       clientId,
       width: BUTTON_WIDTH,
       onCredential: (token) => callbackRef.current(token),
     }).catch(() => setFailed(true));
-  }, [clientId]);
+  }, [clientId, isClient]);
 
-  if (!clientId) return null;
+  if (!isClient || !clientId) return null;
   if (failed) {
     return <p className="text-center text-sm text-muted-foreground">Không tải được đăng nhập Google, hãy dùng mã email.</p>;
   }
